@@ -53,13 +53,13 @@ describe('starter plan chooser', () => {
     starterPlanSheet()
     const host = renderTop()
     expect([...host.querySelectorAll('.item .tt')].map(el => el.textContent))
-      .toEqual(['Push / Pull / Legs', 'Upper / Lower', 'Full Body', '5×5'])
-    expect(rowFor(host, 'Upper / Lower').querySelector('.ss').textContent).toContain('4 days per week')
+      .toEqual(['Snatch / Clean & Jerk / Squat', 'Technique / Strength', 'Full Body', '5×5'])
+    expect(rowFor(host, 'Technique / Strength').querySelector('.ss').textContent).toContain('4 days per week')
   })
 
   it('loads straight away when the plan’s weekdays are free, without asking', () => {
     useStore.setState(s => ({ S: { ...s.S, week: { 0: ['mine'], 6: ['mine'] } } }))
-    choose('Upper / Lower')
+    choose('Technique / Strength')
 
     expect(useUI.getState().sheets).toHaveLength(0)   // no confirmation was raised
     expect(nameOn(1)).toBe('Upper A')
@@ -69,7 +69,7 @@ describe('starter plan chooser', () => {
     expect(S().week[0]).toEqual(['mine'])             // untouched weekdays stay put
     expect(S().week[6]).toEqual(['mine'])
     expect(S().routines[0].name).toBe('My routine')   // and nothing is deleted
-    expect(useUI.getState().toastMsg).toBe('Upper / Lower loaded')
+    expect(useUI.getState().toastMsg).toBe('Technique / Strength loaded')
   })
 
   it('asks first when a weekday the plan wants is already taken', () => {

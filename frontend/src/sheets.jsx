@@ -100,9 +100,9 @@ export function confirmSheet(opts) {
 // string literals written inside a t() call, so copy parked in the catalog and passed in as a
 // variable is invisible to it — it would quietly stay English in every language.
 const PLAN_COPY = {
-  ppl: () => ({ name: t('Push / Pull / Legs'), about: t('Push, pull and legs each get their own day.') }),
-  'upper-lower': () => ({ name: t('Upper / Lower'), about: t('Upper body twice, lower body twice.') }),
-  'full-body': () => ({ name: t('Full Body'), about: t('Three sessions, the whole body each time.') }),
+  ppl: () => ({ name: t('Snatch / Clean & Jerk / Squat'), about: t('Snatch, clean & jerk and squat/pull each get their own day.') }),
+  'upper-lower': () => ({ name: t('Technique / Strength'), about: t('Classic-lift technique twice, squat/pull strength twice.') }),
+  'full-body': () => ({ name: t('Full Body'), about: t('Three sessions, a classic lift plus squat and pull each time.') }),
   '5x5': () => ({ name: t('5×5'), about: t('Five sets of five on the main barbell lifts.') })
 }
 

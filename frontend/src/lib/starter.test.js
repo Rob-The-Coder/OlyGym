@@ -6,25 +6,25 @@ import { buildStarterPlan, starterPlanDays, starterPlanOptions, starterRoutines 
 // same table as the code would pass no matter what that table said. [weekday, name, sets].
 const APPROVED = {
   ppl: [
-    [1, 'Push Day', [['0025', 4, 8], ['0047', 3, 10], ['0426', 3, 10], ['0334', 3, 12], ['0241', 3, 12], ['0251', 3, 10]]],
-    [3, 'Pull Day', [['2330', 4, 10], ['0027', 4, 8], ['1323', 3, 10], ['0031', 3, 10], ['0313', 3, 12]]],
-    [5, 'Leg Day', [['0043', 4, 8], ['0085', 3, 10], ['0739', 3, 12], ['0585', 3, 12], ['0586', 3, 12], ['0605', 4, 15]]],
+    [1, 'Snatch Day', [['wl58', 5, 3], ['wl97', 3, 3], ['wl79', 3, 5], ['wl78', 3, 5]]],
+    [3, 'Clean & Jerk Day', [['wl59', 5, 3], ['wl405', 4, 3], ['wl98', 3, 3], ['wl77', 3, 5]]],
+    [5, 'Squat & Pull Day', [['wl77', 5, 5], ['wl604', 3, 5], ['wl183', 3, 8], ['wl171', 3, 10]]],
   ],
   'upper-lower': [
-    [1, 'Upper A', [['0025', 3, 8], ['2330', 3, 10], ['0047', 2, 10], ['1323', 2, 10], ['0334', 2, 12], ['0241', 2, 12], ['0031', 2, 12]]],
-    [2, 'Lower A', [['0043', 3, 8], ['0085', 3, 8], ['0739', 2, 10], ['0586', 2, 12], ['0605', 3, 15]]],
-    [4, 'Upper B', [['0047', 3, 8], ['0027', 3, 8], ['0426', 2, 10], ['2330', 2, 10], ['0334', 2, 12], ['0241', 2, 12], ['0313', 2, 12]]],
-    [5, 'Lower B', [['0739', 3, 10], ['0085', 2, 10], ['0585', 2, 12], ['0586', 3, 12], ['0605', 3, 15]]],
+    [1, 'Technique A', [['wl61', 5, 3], ['wl97', 3, 3], ['wl79', 3, 5]]],
+    [2, 'Strength A', [['wl77', 4, 5], ['wl101', 3, 8], ['wl39', 3, 8]]],
+    [4, 'Technique B', [['wl67', 5, 3], ['wl405', 4, 3], ['wl98', 3, 3]]],
+    [5, 'Strength B', [['wl78', 4, 5], ['wl604', 3, 5], ['wl806', 3, 8]]],
   ],
   'full-body': [
-    [1, 'Full Body A', [['0043', 3, 8], ['0025', 3, 8], ['2330', 3, 10], ['0586', 3, 12], ['0334', 2, 12], ['0031', 2, 12]]],
-    [3, 'Full Body B', [['0085', 3, 8], ['0047', 3, 10], ['1323', 3, 10], ['0585', 3, 12], ['0334', 2, 12], ['0241', 2, 12]]],
-    [5, 'Full Body C', [['0739', 3, 10], ['0025', 2, 10], ['0027', 3, 10], ['0426', 2, 10], ['0586', 3, 12], ['0605', 3, 15]]],
+    [1, 'Full Body A', [['wl58', 4, 3], ['wl77', 3, 5], ['wl171', 3, 10]]],
+    [3, 'Full Body B', [['wl76', 4, 2], ['wl78', 3, 5], ['wl39', 3, 8]]],
+    [5, 'Full Body C', [['wl78', 3, 5], ['wl604', 3, 5], ['wl806', 3, 8]]],
   ],
   '5x5': [
-    [1, '5×5 A', [['0043', 5, 5], ['0025', 5, 5], ['0027', 5, 5]]],
-    [3, '5×5 B', [['0085', 5, 5], ['0426', 5, 5], ['2330', 5, 5]]],
-    [5, '5×5 C', [['0739', 5, 5], ['0047', 5, 5], ['1323', 5, 5]]],
+    [1, '5×5 A', [['wl77', 5, 5], ['wl806', 5, 5], ['wl171', 5, 5]]],
+    [3, '5×5 B', [['wl78', 5, 5], ['wl87', 5, 5], ['wl604', 5, 5]]],
+    [5, '5×5 C', [['wl77', 5, 5], ['wl183', 5, 5], ['wl39', 5, 5]]],
   ],
 }
 
@@ -89,11 +89,11 @@ describe.each(Object.keys(APPROVED))('%s', planId => {
 })
 
 describe('starterRoutines (the demo build entry point)', () => {
-  it('still returns push, pull and legs unchanged', () => {
+  it('still returns snatch, clean & jerk and squat/pull unchanged', () => {
     const routines = starterRoutines()
-    expect(routines.map(r => r.name)).toEqual(['Push Day', 'Pull Day', 'Leg Day'])
+    expect(routines.map(r => r.name)).toEqual(['Snatch Day', 'Clean & Jerk Day', 'Squat & Pull Day'])
     routines.forEach((r, i) => expect(shape(r)).toEqual(APPROVED.ppl[i][2]))
-    expect(routines.map(r => r.emoji)).toEqual(['barbell', 'pullup', 'legs'])
+    expect(routines.map(r => r.emoji)).toEqual(['barbell', 'barbell', 'legs'])
   })
 
   it('mints fresh ids on every invocation', () => {
