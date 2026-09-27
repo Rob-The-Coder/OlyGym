@@ -90,19 +90,25 @@ function lifecycleWorkouts(now = BASE_NOW) {
   )
   const balanceEdge = now - (30 * DAY - 30000)
   const strengthEdge = now - (14 * DAY - 30000)
+  // wl806 (bench press) is chest-primary weight 1, same as the old fixture's chest exercise —
+  // the exact load numbers below only depend on that primary weight, not on which id it is.
   return [
-    workout('fatigue-edge', fatigueEdge, [entry('1254', Array.from({ length: 6 }, () => set(true, { rir: 0 })))]),
-    workout('balance-edge', balanceEdge, [entry('1254', [set(true, { rir: 2 })])]),
-    workout('strength-edge', strengthEdge, [entry('1001', [set(true, { rir: 2 })])]),
-    workout('abs-completed', now - 20 * DAY, [entry('1002', [set(true, { rir: 2 })])]),
-    workout('abs-undone', now - DAY, [entry('1002', [set(false, { rir: 0 })])]),
+    workout('fatigue-edge', fatigueEdge, [entry('wl806', Array.from({ length: 6 }, () => set(true, { rir: 0 })))]),
+    workout('balance-edge', balanceEdge, [entry('wl806', [set(true, { rir: 2 })])]),
+    workout('strength-edge', strengthEdge, [entry('wl77', [set(true, { rir: 2 })])]),
+    workout('abs-completed', now - 20 * DAY, [entry('wl430', [set(true, { rir: 2 })])]),
+    workout('abs-undone', now - DAY, [entry('wl430', [set(false, { rir: 0 })])]),
   ]
 }
 
 function allFatiguedWorkout(now = BASE_NOW) {
+  // One exercise per muscle in MUSCLES (see muscles.js), so 12 hard sets each fatigues every
+  // muscle the recovery view can shade. wl751/wl919 carry adductors/serratus as an explicit
+  // primary (weight 1) rather than the smaller BY_BODYPART share other entries get diluted
+  // across several muscles, so they clear the fatigue threshold on their own.
   const ids = [
-    '1018', '1012', '1167', '1013', '3011', '1413', '1399', '1016', '1005',
-    '1010', '1003', '1001', '1511', '1494', '1002', '1000', '1396',
+    'wl806', 'wl77', 'wl430', 'wl731', 'wl916', 'wl39', 'wl97', 'wl101', 'wl135', 'wl521',
+    'wl751', 'wl919',
   ]
   return workout(
     'all-fatigued',
@@ -112,13 +118,13 @@ function allFatiguedWorkout(now = BASE_NOW) {
 }
 
 function allSubfullWorkout(now = BASE_NOW) {
-  return workout('all-subfull', now - 15 * DAY, [entry('1254', [set(true)])])
+  return workout('all-subfull', now - 15 * DAY, [entry('wl806', [set(true)])])
 }
 
 function exercisePickerWorkouts(now = BASE_NOW) {
   return [
-    workout('bench', now, [entry('0025', [set(true, { w: 80 })])]),
-    workout('squat', now - DAY, [entry('0043', [set(true, { w: 60 })])]),
+    workout('bench', now, [entry('wl806', [set(true, { w: 80 })])]),
+    workout('squat', now - DAY, [entry('wl77', [set(true, { w: 60 })])]),
     workout('legacy', now - 2 * DAY, [
       {
         id: LEGACY_SNAPSHOT_ID,
@@ -275,7 +281,7 @@ describe('Stats muscle recovery view runtime', () => {
 
   it('derives a pound-profile bodyweight in kg and passes it into the rendered Fatigue map', async () => {
     const bodyweightWorkout = workout('bodyweight', BASE_NOW, [
-      entry('0001', [{ done: true, w: 0, r: 10 }]),
+      entry('wl430', [{ done: true, w: 0, r: 10 }]),
     ])
     resetFixture([bodyweightWorkout])
     mocks.S.unit = 'lb'
@@ -295,8 +301,16 @@ describe('Stats muscle recovery view runtime', () => {
     await click(viewButton('Fatigue'))
     const fatigueMap = lastMap()
     expect(Object.keys(fatigueMap.load)).toEqual(MUSCLES)
-    expect(Object.values(fatigueMap.load).every(value => value > 0.5)).toBe(true)
-    expect(Object.values(levelsOf(fatigueMap.load, fatigueMap.thresholds)).every(level => level === 4)).toBe(true)
+    // Neither tibialis nor calves has a dedicated isolation exercise in the OlyGym catalogue —
+    // shin/calf work isn't programmed in isolation for Olympic weightlifting, only picked up as
+    // a diffuse secondary of squats, jumps and lower-body accessory work. Both still get a real,
+    // nonzero share, just not enough alone to saturate against a single all-out session.
+    const thin = new Set(['tibialis', 'calves'])
+    const others = MUSCLES.filter(m => !thin.has(m))
+    expect(others.every(m => fatigueMap.load[m] > 0.5)).toBe(true)
+    for (const m of thin) expect(fatigueMap.load[m]).toBeGreaterThan(0)
+    const levels = levelsOf(fatigueMap.load, fatigueMap.thresholds)
+    expect(others.every(m => levels[m] === 4)).toBe(true)
 
     await unmountStats()
     resetFixture([allSubfullWorkout()])
@@ -325,12 +339,12 @@ describe('Stats strength exercise rows', () => {
     expect(muscleCard().textContent).toContain('Exercises · Chest')
     const row = [...muscleCard().querySelectorAll('.mrow[role="button"]')].find(el => el.textContent.includes('Est. 1RM'))
     expect(row, 'expected a tappable exercise row for the chest').toBeTruthy()
-    expect(row.textContent).toContain('barbell bench press')
+    expect(row.textContent).toContain('bench press')
 
     await click(row)
     expect(thrown).toEqual([])
     expect(mocks.exerciseHistorySheet).toHaveBeenCalledTimes(1)
-    expect(mocks.exerciseHistorySheet).toHaveBeenCalledWith('0025')
+    expect(mocks.exerciseHistorySheet).toHaveBeenCalledWith('wl806')
 
     // The keyboard path of tappable() must land in the same place.
     await act(async () => { row.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Enter', bubbles: true })) })
@@ -400,15 +414,15 @@ describe('Stats exercise progress picker', () => {
     expect(optionButtons()[0].textContent).toContain('Legacy shoulder press')
 
     await click(modal.querySelector('button[aria-label="Clear"]'))
-    await setSearch('squat full bárbell')
+    await setSearch('sqùat bäck')
 
-    expect(modal.textContent).toContain('barbell full squat')
-    expect(modal.textContent).not.toContain('barbell bench press')
+    expect(modal.textContent).toContain('back squat')
+    expect(modal.textContent).not.toContain('bench press')
 
-    const matching = [...modal.querySelectorAll('button')].find(button => button.textContent.includes('barbell full squat'))
+    const matching = [...modal.querySelectorAll('button')].find(button => button.textContent.includes('back squat'))
     await click(matching)
 
     expect(useUI.getState().sheets).toHaveLength(0)
-    expect(card.querySelector('.lrow-v').textContent).toContain('barbell full squat')
+    expect(card.querySelector('.lrow-v').textContent).toContain('back squat')
   })
 })

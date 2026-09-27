@@ -85,9 +85,9 @@ const BY_BODYPART = {
   Jerk: { deltoids: 0.35, quadriceps: 0.3, triceps: 0.2, gluteal: 0.15 },
   'General Exercises': { quadriceps: 0.35, gluteal: 0.3, hamstring: 0.25, 'lower-back': 0.1 },
   'Trunk (Ab & Back)': { abs: 0.45, obliques: 0.3, 'lower-back': 0.25 },
-  'Jumping & Plyometrics': { quadriceps: 0.4, gluteal: 0.3, hamstring: 0.2, calves: 0.1 },
-  'Accessory - Lower/Whole Body': { quadriceps: 0.3, gluteal: 0.3, hamstring: 0.25, calves: 0.15 },
-  'Accessory - Prep & Prehab': { deltoids: 0.3, 'upper-back': 0.25, 'hip-flexors': 0.2, abs: 0.25 },
+  'Jumping & Plyometrics': { quadriceps: 0.35, gluteal: 0.3, hamstring: 0.2, calves: 0.1, tibialis: 0.05 },
+  'Accessory - Lower/Whole Body': { quadriceps: 0.28, gluteal: 0.28, hamstring: 0.22, calves: 0.12, adductors: 0.06, tibialis: 0.04 },
+  'Accessory - Prep & Prehab': { deltoids: 0.26, 'upper-back': 0.2, 'hip-flexors': 0.16, abs: 0.2, serratus: 0.18 },
   'Accessory - Upper Body': { chest: 0.25, 'upper-back': 0.25, deltoids: 0.25, biceps: 0.125, triceps: 0.125 },
   Carries: { forearm: 0.3, trapezius: 0.3, abs: 0.2, gluteal: 0.2 },
 }
