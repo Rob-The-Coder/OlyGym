@@ -1,14 +1,18 @@
 import { describe, it, expect } from 'vitest'
 import { nextTrainingDay, modeOf, isTimed, fmtSec, setLabel, defaultConfig, buildSets, freestyleConfig, exLine, workoutVolume, bestWeightFor, bestWeightForEntry, effortOf, stepEffort, capEffort, isBw, isPerSide, sideReps, repStep, cascadeWeight, insertWarmupRow, removeRowAt, workSetsDone, setsDone, setsDoneActive, setUnits, doneUnits, setUnitsTotal, pairAdjacent, unpairSuperset, supersetUnits, applyIntensifierPlan, pinnedNoteFor, exNoteFor, effectiveRoutineIds, effectiveRoutines, effectiveRoutineId, effectiveRoutine, lastEntryFor, entryExcluded } from './history.js'
 import { makeSideSet, setSideField, toggleSide } from './workout-model.js'
-import { EXDB } from './exercises.js'
+import { EXDB, registerCustom } from './exercises.js'
 
-// Real ids out of the shipped catalogue, so the body-part fallback is exercised for real.
-const CARDIO = EXDB.find(e => e.bp === 'cardio').id
-// A *loaded* lift: the catalogue's first non-cardio entry is a sit-up, which since issue #32
-// defaults to bodyweight and would quietly send every label test down the other path.
-const LIFT = EXDB.find(e => e.bp !== 'cardio' && e.eq !== 'body weight').id
-const BW = EXDB.find(e => e.eq === 'body weight').id
+// The OlyGym catalogue has no cardio category: cardio is reachable through imported and custom
+// exercises now (see the decision log in OLYGYM_PLAN.md). The fixture registers one, which is the
+// same path a real user takes, so every cardio assertion below still exercises live code.
+const CARDIO = 'custom-cardio'
+registerCustom([{ id: CARDIO, n: 'row erg', bp: 'cardio', eq: 'machine', custom: true, st: [] }])
+// A *loaded* lift: a barbell movement, so it is neither cardio nor bodyweight and every label test
+// takes the ordinary path instead of the bodyweight one (issue #32).
+const LIFT = EXDB.find(e => e.eq === 'barbell' && modeOf({ id: e.id }) === 'reps').id
+// A bodyweight movement, for the reps-only path and the "+10 kg on a dip belt" one.
+const BW = EXDB.find(e => e.eq === 'body weight' && modeOf({ id: e.id }) === 'reps').id
 
 describe('modeOf', () => {
   it('falls back to the body part when a plan has no mode — every existing plan keeps working', () => {

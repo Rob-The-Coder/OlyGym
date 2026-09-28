@@ -1427,7 +1427,7 @@ describe('per-side effort completion', () => {
 describe('Workout exercise tags', () => {
   it('names a custom exercise\'s target muscle by its display name', async () => {
     const { registerCustom } = await import('../lib/exercises.js')
-    registerCustom([{ id: 'cqa1', n: 'QA Custom Thrust', bp: 'upper legs', eq: 'barbell', custom: true, tg: 'gluteal', sm: [], primaries: ['gluteal'], secondaries: [], muscleGroups: ['gluteal'] }])
+    registerCustom([{ id: 'cqa1', n: 'QA Custom Thrust', bp: 'Accessory - Lower/Whole Body', eq: 'barbell', custom: true, tg: 'gluteal', sm: [], primaries: ['gluteal'], secondaries: [], muscleGroups: ['gluteal'] }])
     try {
       await mount([exercise('cqa1', [false])])
       const tags = [...container.querySelectorAll('.tag')].map(tag => tag.textContent.trim())
@@ -1437,17 +1437,20 @@ describe('Workout exercise tags', () => {
   })
 
   // The cardio target "cardiovascular system" is a translated key of its own; mapping it through
-  // MUSCLE_NAME must not turn "Herz-Kreislauf" back into English for every built-in cardio exercise.
+  // MUSCLE_NAME must not turn "Herz-Kreislauf" back into English. The OlyGym catalogue carries no
+  // cardio entry any more, so the case arrives as a custom exercise — the same path a user takes.
   it('keeps the cardio target translated (burpee, de)', async () => {
+    const { registerCustom } = await import('../lib/exercises.js')
     const { _setLangState } = await import('../lib/i18n-core.js')
     const { default: de } = await import('../locales/de.js')
     _setLangState('de', de, null, null)
+    registerCustom([{ id: 'cqa-cardio', n: 'burpee', bp: 'cardio', eq: 'body weight', custom: true, tg: 'cardiovascular system', sm: [] }])
     try {
-      await mount([exercise('1160', [false])])
+      await mount([exercise('cqa-cardio', [false], { target: { mode: 'cardio', min: 20, speed: 8 } })])
       const tags = [...container.querySelectorAll('.tag')].map(tag => tag.textContent.trim())
       expect(tags).toContain('Herz-Kreislauf')
       expect(tags).not.toContain('Cardiovascular system')
-    } finally { _setLangState('en', null, null, null) }
+    } finally { registerCustom([]); _setLangState('en', null, null, null) }
   })
 })
 

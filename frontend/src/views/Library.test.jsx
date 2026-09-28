@@ -72,15 +72,17 @@ describe('Library favourites', () => {
     expect(h1[1]).not.toContain('hyphens:auto')
   })
 
-  it('keeps a favourite on top inside a body-part filter, but never pulls one in from elsewhere', () => {
-    const chest = EXDB.filter(e => e.bp === 'chest')
-    const legs = EXDB.find(e => e.bp !== 'chest')
-    mocks.S.favEx = [chest[4].id, legs.id]
+  it('keeps a favourite on top inside a category filter, but never pulls one in from elsewhere', () => {
+    // The catalogue's `bp` is a movement family now, so that is what the chips filter by.
+    const FAMILY = 'Accessory - Upper Body'
+    const inFamily = EXDB.filter(e => e.bp === FAMILY)
+    const other = EXDB.find(e => e.bp !== FAMILY)
+    mocks.S.favEx = [inFamily[4].id, other.id]
     const host = render()
-    const chip = [...host.querySelectorAll('.chips .chip')].find(b => b.textContent === 'chest')
+    const chip = [...host.querySelectorAll('.chips .chip')].find(b => b.textContent === FAMILY)
     act(() => chip.click())
     const shown = names(host)
-    expect(shown[0]).toBe(chest[4].n)
-    expect(shown).not.toContain(legs.n)
+    expect(shown[0]).toBe(inFamily[4].n)
+    expect(shown).not.toContain(other.n)
   })
 })

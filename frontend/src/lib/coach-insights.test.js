@@ -2,17 +2,20 @@ import { describe, it, expect } from 'vitest'
 import { insightsFor, sessionInsights, windowWorkouts } from './coach-insights.js'
 import { EXIDX } from './exercises.js'
 
-// Pick two real catalogue ids from different body parts so the body-part grouping is real.
-const ids = Object.keys(EXIDX)
-const chest = ids.find(id => EXIDX[id].bp === 'chest')
-const legs = ids.find(id => EXIDX[id].bp === 'upper legs')
+// Two real catalogue ids from different movement families, because that is what these insights
+// group by now: the OlyGym catalogue's `bp` is a family (Snatch, Clean, Jerk, Accessory…), not a
+// body part. Whether the Coach should group by muscle instead is a product question tracked in
+// OLYGYM_PLAN.md.
+const byName = name => Object.values(EXIDX).find(e => e.n === name).id
+const chest = byName('bench press')
+const legs = byName('back squat')
 
 const day = (d, h = 10) => new Date(d + 'T' + String(h).padStart(2, '0') + ':00:00').getTime()
 const w = (id, d, entries, over = {}) => ({ id, d, name: 'Push', start: day(d), end: day(d) + 55 * 60000, entries, ...over })
 const set = (w_, r, extra = {}) => ({ done: true, w: w_, r, ...extra })
 
 const S = () => ({
-  unit: 'kg', targetW: 80, customEx: [{ id: 'cx1', n: 'My row', bp: 'back' }],
+  unit: 'kg', targetW: 80, customEx: [{ id: 'cx1', n: 'Hanging leg raise', bp: 'Trunk (Ab & Back)' }],
   bodyweight: [{ d: '2026-07-01', w: 90 }, { d: '2026-08-02', w: 84 }, { d: '2026-08-10', w: 83 }, { d: '2026-08-20', w: 82.5 }],
   workouts: [
     w('w0', '2026-07-20', [{ id: chest, sets: [set(60, 10)] }]),                                             // outside the window
@@ -33,10 +36,10 @@ describe('insightsFor', () => {
     // volume excludes the warm-up and the unchecked set
     expect(i.volume).toBe(60 * 10 * 2 + 100 * 5 + 65 * 10 + 65 * 9 + 50 * 10 + 70 * 10 * 2 + 110 * 5)
   })
-  it('groups sets by body part, custom exercises included, biggest first', () => {
+  it('groups sets by movement family, custom exercises included, biggest first', () => {
     const i = insightsFor(S(), win)
-    expect(i.bodyParts[0]).toMatchObject({ bp: 'chest', sets: 6 })
-    expect(i.bodyParts.map(b => b.bp)).toContain('back')
+    expect(i.bodyParts[0]).toMatchObject({ bp: 'Accessory - Upper Body', sets: 6 })
+    expect(i.bodyParts.map(b => b.bp)).toContain('Trunk (Ab & Back)')
     expect(i.bodyParts.reduce((n, b) => n + b.share, 0)).toBeCloseTo(1, 5)
   })
   it('reads the body weight inside the window with its delta and goal', () => {

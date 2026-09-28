@@ -2,13 +2,19 @@
 // harder set, the record, and what progression should aim for. The reporter's case: 30 kg of
 // assistance, then 20 kg — the 20 is the new best, and the next session should ask for less.
 import { describe, it, expect } from 'vitest'
-import { isAssisted, betterWeight, beatsWeight, EXIDX } from './exercises.js'
+import { isAssisted, betterWeight, beatsWeight, EXIDX, registerCustom } from './exercises.js'
 import { bestWeightFor, bestWeightForEntry } from './history.js'
 import { readSession, nextPrescription } from './progression.js'
 import { bestSetOf, e1rmSeries, is1RMRecord } from './onerm.js'
 
-const ASSISTED = '0017'          // assisted pull-up, leverage machine
-const PLAIN = '0025'             // barbell bench press
+// The OlyGym catalogue carries no leverage machine, so the feature is reachable through a custom
+// exercise — which is exactly how it is reached in the app, and what this fixture registers.
+const ASSISTED = 'custom-assisted-pull-up'
+registerCustom([{
+  id: ASSISTED, n: 'assisted pull-up', bp: 'Accessory - Upper Body', eq: 'leverage machine',
+  tg: 'upper-back', sm: [], custom: true, st: []
+}])
+const PLAIN = Object.values(EXIDX).find(e => e.n === 'bench press').id   // ordinary load: heavier is harder
 const set = (w, r, done = true) => ({ w, r, done })
 const workout = (d, id, sets) => ({ d, start: Date.parse(d + 'T10:00:00Z'), entries: [{ id, target: { mode: 'reps', sets: 1, reps: 8, weight: sets[0].w }, sets }] })
 
@@ -17,8 +23,16 @@ describe('which exercises count as assisted', () => {
     expect(isAssisted(ASSISTED)).toBe(true)
     expect(EXIDX[ASSISTED].eq).toBe('leverage machine')
     expect(isAssisted(PLAIN)).toBe(false)
-    // a partner holding your legs, a medicine ball, a band, your own body — ordinary load
-    for (const id of ['0011', '1708', '0014', '0970', '0697']) expect(isAssisted(id), id).toBe(false)
+    // The name alone is not enough: a partner holding your legs, a medicine ball, a band, your own
+    // body — all ordinary load, heavier is harder. The OlyGym catalogue has no movement whose name
+    // says "assisted" without being a leverage machine, so the cases are spelled out as objects,
+    // which is also the shape a custom exercise arrives in.
+    for (const ex of [
+      { n: 'partner assisted leg raise', eq: 'body weight' },
+      { n: 'self assisted inverse leg curl', eq: 'body weight' },
+      { n: 'band assisted leg curl', eq: 'band' },
+      { n: 'medicine ball assisted twist', eq: 'medicine ball' }
+    ]) expect(isAssisted(ex), ex.n).toBe(false)
   })
 
   it('lets an exercise or a routine config say so outright', () => {

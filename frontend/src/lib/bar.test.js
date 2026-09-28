@@ -2,17 +2,27 @@ import { describe, expect, test } from 'vitest'
 import { BAR_EQ, DEFAULT_BAR_KG, DEFAULT_BAR_LB, usesBar, defaultBarWeight, barWeightFor, hasBarOverride, plateSplit } from './bar.js'
 import { EXDB } from './exercises-data.js'
 
-const idOf = eq => EXDB.find(e => e.eq === eq).id
+const idOf = eq => EXDB.find(e => e.eq === eq)?.id
+
+// The OlyGym catalogue tags every bar movement `eq: 'barbell'` and carries no EZ-bar, separate
+// olympic-barbell, Smith or trap-bar entry yet (see WS1.5/C5 in OLYGYM_PLAN.md). A bar exercise in
+// these tests is therefore either a real catalogue id (barbell) or a stand-in object for one of
+// the four types the catalogue does not tag yet.
+const EZ = { id: 'ez bar (stand-in)', eq: 'ez barbell' }
 
 describe('bar equipment', () => {
-  test('covers the five bar types and the 228 catalogue exercises they carry', () => {
+  test('covers the five bar types, and every catalogue exercise that carries one', () => {
     expect([...BAR_EQ].sort()).toEqual(['barbell', 'ez barbell', 'olympic barbell', 'smith machine', 'trap bar'])
-    expect(EXDB.filter(e => BAR_EQ.has(e.eq)).length).toBe(228)
+    // Only `barbell` occurs today, so this is a canary: retagging the EZ-bar, Smith and trap-bar
+    // movements (C5) is meant to move this number, and nothing else should.
+    const tagged = EXDB.filter(e => BAR_EQ.has(e.eq))
+    expect(tagged.length).toBeGreaterThan(0)
+    expect(tagged.every(e => e.eq === 'barbell')).toBe(true)
   })
 
   test('usesBar answers for ids and exercise objects alike', () => {
+    expect(usesBar(idOf('barbell')), 'barbell').toBe(true)
     for (const eq of BAR_EQ) {
-      expect(usesBar(idOf(eq)), eq).toBe(true)
       expect(usesBar({ eq }), eq).toBe(true)
     }
     expect(usesBar({ eq: 'dumbbell' })).toBe(false)
@@ -39,31 +49,30 @@ describe('per-unit defaults', () => {
 
 describe('barWeightFor', () => {
   const barbell = idOf('barbell')
-  const ez = idOf('ez barbell')
 
   test('falls back to the equipment default in the profile unit', () => {
     expect(barWeightFor({ unit: 'kg', barWeights: {} }, barbell)).toBe(20)
     expect(barWeightFor({ unit: 'lb', barWeights: {} }, barbell)).toBe(45)
-    expect(barWeightFor({ unit: 'kg' }, ez)).toBe(10)
+    expect(barWeightFor({ unit: 'kg' }, EZ)).toBe(10)
   })
 
   test('an explicit override wins over the default', () => {
-    const S = { unit: 'kg', barWeights: { [ez]: 7.5 } }
-    expect(barWeightFor(S, ez)).toBe(7.5)
-    expect(hasBarOverride(S, ez)).toBe(true)
+    const S = { unit: 'kg', barWeights: { [EZ.id]: 7.5 } }
+    expect(barWeightFor(S, EZ)).toBe(7.5)
+    expect(hasBarOverride(S, EZ.id)).toBe(true)
     expect(barWeightFor(S, barbell)).toBe(20)   // other exercises keep their default
     expect(hasBarOverride(S, barbell)).toBe(false)
   })
 
   test('a deleted override falls back to the default, but a stored 0 is "no bar"', () => {
-    const S = { unit: 'kg', barWeights: { [ez]: 12.5 } }
-    delete S.barWeights[ez]
-    expect(barWeightFor(S, ez)).toBe(10)
+    const S = { unit: 'kg', barWeights: { [EZ.id]: 12.5 } }
+    delete S.barWeights[EZ.id]
+    expect(barWeightFor(S, EZ)).toBe(10)
     // Changed with issue #138: 0 used to mean "clear this override". It now means the exercise
     // has no bar (a counterbalanced Smith carriage), which is a value of its own — the editor
     // deletes the key to ask for the default back.
-    expect(barWeightFor({ unit: 'kg', barWeights: { [ez]: 0 } }, ez)).toBe(0)
-    expect(hasBarOverride({ unit: 'kg', barWeights: { [ez]: 0 } }, ez)).toBe(true)
+    expect(barWeightFor({ unit: 'kg', barWeights: { [EZ.id]: 0 } }, EZ)).toBe(0)
+    expect(hasBarOverride({ unit: 'kg', barWeights: { [EZ.id]: 0 } }, EZ.id)).toBe(true)
   })
 
   test('is null for anything without a bar', () => {

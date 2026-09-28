@@ -48,7 +48,7 @@ function pickMuscles(form, rowTitle, labels) {
   click(sub, 'button', 'Done')
 }
 const custom = (over = {}) => ({
-  id: 'cqa1', n: 'QA Custom Thrust', bp: 'upper legs', eq: 'barbell', custom: true, desc: '',
+  id: 'cqa1', n: 'QA Custom Thrust', bp: 'Accessory - Lower/Whole Body', eq: 'barbell', custom: true, desc: '',
   tg: 'gluteal', sm: ['forearm', 'hip-flexors'], primaries: ['gluteal'], secondaries: ['forearm', 'hip-flexors'],
   muscleGroups: ['gluteal', 'forearm', 'hip-flexors'], ...over,
 })
@@ -77,7 +77,7 @@ describe('custom exercise target (QA C10)', () => {
     customExSheet(null)
     const form = renderTop()
     act(() => type(form.querySelector('input.input'), 'QA Hip Thrust Pull'))
-    click(form, '.chip', 'upper legs')
+    click(form, '.chip', 'Accessory - Lower/Whole Body')
     click(form, '.chip', 'barbell')
     pickMuscles(form, 'Primary muscle groups', ['Hamstrings', 'Glutes', 'Traps'])
     click(form, 'button', 'Create exercise')
