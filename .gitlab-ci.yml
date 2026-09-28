@@ -256,6 +256,10 @@ test:api:
     # A dataset or prompt change that forgets to regenerate them would otherwise only surface as
     # "the Coach can't find that exercise" — or a prompt edit that never reached the model.
     - node scripts/build-coach-assets.mjs --check
+    # The exercise catalogue itself is generated from the Catalyst CSV plus the curated tag sidecar.
+    # A tag edit (equipment, muscles) that forgets to regenerate it would leave the running app on
+    # the old metadata while the sidecar says otherwise.
+    - node scripts/oly-catalogue/build-oly-catalogue.mjs --check
     # api/coach/core is imported by the server under bare node AND by the phone under Vite.
     # vitest forgives what node does not (?raw, import.meta.glob); this runs outside vitest.
     - node api/scripts/check-core-loadable.mjs

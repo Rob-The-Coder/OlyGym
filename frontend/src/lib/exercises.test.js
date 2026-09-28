@@ -19,7 +19,7 @@ describe('normalizeStr', () => {
 
 describe('matchExercise', () => {
   const benchPress = {
-    id: '0025',
+    id: 'wl806',
     n: 'barbell bench press',
     bp: 'chest',
     tg: 'pectorals',
@@ -29,7 +29,7 @@ describe('matchExercise', () => {
   }
 
   const lateralRaise = {
-    id: '0283',
+    id: 'wl825',
     n: 'dumbbell lateral raise',
     bp: 'shoulders',
     tg: 'delts',
@@ -98,11 +98,12 @@ describe('matchExercise', () => {
     expect(matchExercise(lateralRaise, 'halteres ombros')).toBe(true)
   })
 
-  // The pt-BR exercise-name pack (!16) renames the catalogue in the UI. Searching has to reach
-  // that name as well as the canonical English one, or the library goes dark for pt-BR profiles
-  // the moment they type what they see on screen.
+  // A translated exercise-name pack renames the catalogue in the UI. Searching has to reach that
+  // name as well as the canonical English one, or the library goes dark for that profile the moment
+  // it types what it sees on screen. No pack ships today (the OlyGym catalogue has none yet), so the
+  // case drives the seam directly — the mechanism still has to work when one is regenerated.
   it('matches the localized exercise name as well as the English one', () => {
-    _setLangState('pt-BR', {}, null, { '0025': 'supino reto com barra' })
+    _setLangState('pt-BR', {}, null, { wl806: 'supino reto com barra' })
 
     expect(matchExercise(benchPress, 'supino')).toBe(true)
     expect(matchExercise(benchPress, 'supino barra')).toBe(true)
@@ -111,7 +112,7 @@ describe('matchExercise', () => {
   })
 
   it('rebuilds the cached haystack when the language changes', () => {
-    _setLangState('pt-BR', {}, null, { '0025': 'supino reto com barra' })
+    _setLangState('pt-BR', {}, null, { wl806: 'supino reto com barra' })
     expect(matchExercise(benchPress, 'supino')).toBe(true)
 
     _setLangState('en', null, null, null)

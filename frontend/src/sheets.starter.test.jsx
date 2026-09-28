@@ -62,10 +62,10 @@ describe('starter plan chooser', () => {
     choose('Technique / Strength')
 
     expect(useUI.getState().sheets).toHaveLength(0)   // no confirmation was raised
-    expect(nameOn(1)).toBe('Upper A')
-    expect(nameOn(2)).toBe('Lower A')
-    expect(nameOn(4)).toBe('Upper B')
-    expect(nameOn(5)).toBe('Lower B')
+    expect(nameOn(1)).toBe('Technique A')
+    expect(nameOn(2)).toBe('Strength A')
+    expect(nameOn(4)).toBe('Technique B')
+    expect(nameOn(5)).toBe('Strength B')
     expect(S().week[0]).toEqual(['mine'])             // untouched weekdays stay put
     expect(S().week[6]).toEqual(['mine'])
     expect(S().routines[0].name).toBe('My routine')   // and nothing is deleted

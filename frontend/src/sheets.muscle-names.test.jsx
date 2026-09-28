@@ -17,6 +17,10 @@ import MuscleExplorer from './components/MuscleExplorer.jsx'
 const mounted = []
 const S = () => useStore.getState().S
 
+// A real Olympic lift out of the shipped catalogue, for the "catalogue metadata" half of these
+// cases: it names its muscles by the map's ids, which is what MUSCLE_NAME has to translate.
+const OLY = Object.values(EXIDX).find(e => e.n === 'power clean').id
+
 // Renders whatever sheet is on top and returns its host element.
 function renderTop() {
   const sheet = useUI.getState().sheets.at(-1)
@@ -74,38 +78,42 @@ describe('muscle names in the rows and tags (QA C9)', () => {
     expect(rowFor(host, 'QA Custom Thrust').querySelector('.ss').textContent).toBe('Glutes · barbell')
   })
 
-  it('config sheet tags read like the detail sheet, for a custom exercise and for power clean', () => {
+  it('config sheet tags read like the detail sheet, for a custom exercise and for an Olympic lift', () => {
     seed(custom())
     exConfigSheet(EXIDX.cqa1, null, vi.fn())
     const tags = h => [...h.querySelectorAll('.tag')].map(e => e.textContent.trim())
     expect(tags(renderTop())).toEqual(['Glutes', 'barbell', 'Forearms', 'Hip flexors'])
-    // #207 Olympic lifts list their secondaries as map ids ('forearm', 'deltoids').
-    exConfigSheet(EXIDX['0648'], null, vi.fn())
-    expect(tags(renderTop())).toEqual(['hamstrings', 'barbell', 'Calves', 'Forearms', 'Shoulders'])
+    // #207 The catalogue names muscles by the map's ids (trapezius, quadriceps, gluteal), which only
+    // MUSCLE_NAME turns into a translatable label — the config sheet must show the labels the detail
+    // sheet shows, secondaries included.
+    exConfigSheet(EXIDX[OLY], null, vi.fn())
+    expect(tags(renderTop())).toEqual(['Traps', 'barbell', 'Quads', 'Glutes'])
   })
 
   it('translates them in German too — "forearm" was staying English', () => {
     _setLangState('de', de, null, null)
     seed(custom())
-    exConfigSheet(EXIDX['0648'], null, vi.fn())
+    exConfigSheet(EXIDX[OLY], null, vi.fn())
     const tags = [...renderTop().querySelectorAll('.tag')].map(e => e.textContent.trim())
-    expect(tags).toEqual(['Beinbeuger', 'Langhantel', 'Waden', 'Unterarme', 'Schultern'])
+    expect(tags).toEqual(['Trapez', 'Langhantel', 'Quadrizeps', 'Gesäß'])
     exercisePicker(vi.fn())
     const host = renderTop()
     act(() => type(host.querySelector('input.input'), 'QA Custom'))
     expect(rowFor(host, 'QA Custom Thrust').querySelector('.ss').textContent).toBe('Gesäß · Langhantel')
   })
 
-  // The dataset's cardio target "cardiovascular system" is both a map id and a translated key
-  // of its own. Routing it through MUSCLE_NAME must not cost it its translation: the 29
-  // built-in cardio exercises read "Herz-Kreislauf" in German, never "Cardiovascular system".
+  // The cardio target "cardiovascular system" is both a map id and a translated key of its own.
+  // Routing it through MUSCLE_NAME must not cost it its translation: it reads "Herz-Kreislauf" in
+  // German, never "Cardiovascular system". The OlyGym catalogue carries no cardio entry, so the
+  // fixture is the custom exercise a user would make (or an import would bring in).
   it('keeps the cardio target translated (burpee, de)', () => {
     _setLangState('de', de, null, null)
+    seed({ id: 'cqa-cardio', n: 'burpee', bp: 'cardio', eq: 'body weight', custom: true, tg: 'cardiovascular system', sm: [] })
     exercisePicker(vi.fn())
     const host = renderTop()
     act(() => type(host.querySelector('input.input'), 'burpee'))
     expect(rowFor(host, 'burpee').querySelector('.ss').textContent).toBe('Herz-Kreislauf · Körpergewicht')
-    exConfigSheet(EXIDX['1160'], null, vi.fn())
+    exConfigSheet(EXIDX['cqa-cardio'], null, vi.fn())
     const tags = [...renderTop().querySelectorAll('.tag')].map(e => e.textContent.trim())
     expect(tags).toEqual(['Cardio', 'Herz-Kreislauf', 'Körpergewicht'])
   })

@@ -40,24 +40,25 @@ afterEach(() => {
 })
 
 describe('exercise picker equipment filter', () => {
-  // The exact reproduction from issue #71: "lower arms" + "dumbbell", then switch to "upper arms".
-  // Both body parts have dumbbell exercises, so the filter must stay selected across the switch.
-  it('keeps the dumbbell filter when switching from lower arms to upper arms', () => {
+  // The exact reproduction from issue #71, on the OlyGym catalogue's families: a category with
+  // dumbbell work + "dumbbell", then a switch to another category that also has dumbbell work, so
+  // the equipment filter must stay selected across the switch.
+  it('keeps the dumbbell filter when switching category', () => {
     exercisePicker(vi.fn())
     const host = renderTop()
 
-    // lower arms → dumbbell
-    act(() => chipByText(host, 'lower arms').click())
+    // Accessory - Lower/Whole Body → dumbbell
+    act(() => chipByText(host, 'Accessory - Lower/Whole Body').click())
     const eqChip = chipByText(host, 'dumbbell')
-    expect(eqChip, 'dumbbell chip should be offered under lower arms').toBeTruthy()
+    expect(eqChip, 'dumbbell chip should be offered under Accessory - Lower/Whole Body').toBeTruthy()
     act(() => eqChip.click())
     expect(isOn(chipByText(host, 'dumbbell'))).toBe(true)
 
-    // switch to upper arms — dumbbell is still valid there, so it must remain selected
-    act(() => chipByText(host, 'upper arms').click())
-    expect(isOn(chipByText(host, 'upper arms'))).toBe(true)
+    // switch to Accessory - Upper Body — dumbbell is still valid there, so it must remain selected
+    act(() => chipByText(host, 'Accessory - Upper Body').click())
+    expect(isOn(chipByText(host, 'Accessory - Upper Body'))).toBe(true)
     const eqAfter = chipByText(host, 'dumbbell')
-    expect(eqAfter, 'dumbbell chip should still be present under upper arms').toBeTruthy()
+    expect(eqAfter, 'dumbbell chip should still be present under Accessory - Upper Body').toBeTruthy()
     expect(isOn(eqAfter)).toBe(true)
     expect(isOn(chipByText(host, 'Any equipment'))).toBe(false)
   })

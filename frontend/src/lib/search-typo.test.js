@@ -60,11 +60,14 @@ it('searchExercises takes a word literally when it hits anything exactly, and on
 })
 
 it('searchExercises over the real catalogue returns only exact hits for correctly spelled words', () => {
-  const plain = (e, q) => normalizeStr([e.n, e.tg, e.eq, e.bp, ...(e.sm || [])].join(' ')).includes(q)
+  // The oracle has to describe the corpus exactly, description included: the OlyGym catalogue gives
+  // every entry a full sentence, so a word can be a literal hit through `desc` alone ("wrist" in
+  // "Rice bucket finger flexion extension…") and the production search is right to count it.
+  const plain = (e, q) => normalizeStr([e.n, e.tg, e.eq, e.bp, ...(e.sm || []), e.desc || ''].join(' ')).includes(q)
   for (const q of ['wrist', 'power', 'slide', 'thigh', 'squat', 'clean']) {
     const got = searchExercises(EXDB, q)
     expect(got.length, q).toBe(EXDB.filter(e => plain(e, q)).length)
     expect(got.every(e => plain(e, q)), q).toBe(true)
   }
-  expect(searchExercises(EXDB, 'wrist')[0].n).toBe('band reverse wrist curl')
+  expect(searchExercises(EXDB, 'wrist')[0].n).toBe('barbell wrist curl')
 })

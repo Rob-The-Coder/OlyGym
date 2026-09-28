@@ -17,6 +17,7 @@ import { writeFileSync, readFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { matchExercise } from '../frontend/src/lib/import-csv.js'
+import { HEVY_ID_MAP, HEVY_TITLE_MAP } from '../frontend/src/lib/hevy-id-map.js'
 import { EXIDX } from '../frontend/src/lib/exercises.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -43,110 +44,131 @@ function hevyApiKey() {
 // a wrong one. Keep in sync with the note at the top of the generated map.
 const NEVER_BY_TITLE = new Set(['crunch', 'side plank', 'squat (machine)', 'triceps extension (cable)', 'rear delt reverse fly (cable)'])
 
-const BY_TITLE = {
-  // Reported from a real import as customs — same lifts, Hevy vocabulary.
-  'bulgarian split squat (dumbbell)': '0410',
-  'bulgarian split squat (barbell)': '0099',
-  'chest supported incline row (dumbbell)': '0327',
-  'knee raise parallel bars': '0826',
-  'lat pulldown - close grip (cable)': '2616',
-  'rear delt reverse fly (dumbbell)': '0383',
-  'rear delt reverse fly (machine)': '0602',
-  'reverse lunge (dumbbell)': '0381',
-  'reverse lunge (barbell)': '0078',
-  'seated incline curl (dumbbell)': '0318',
-  'seated shoulder press (machine)': '0603',
-  'single leg standing calf raise (machine)': '0605',
+// Curated Hevy titles, kept as titles and NOT as ids on purpose: the OlyGym catalogue is
+// regenerated from the Catalyst CSV (scripts/oly-catalogue/), so an id written here is a time
+// bomb — the previous table had 283 template ids and every one of them pointed at the retired
+// dataset. A title that resolves today resolves tomorrow.
+//
+// Every title below goes through the same matcher the CSV import uses, so this table can only
+// ever produce ids the catalogue actually has.
+const BY_TITLE_TITLES = [
+  'ab wheel',
+  'back extension (weighted hyperextension)',
+  'battle ropes',
+  'behind the back bicep wrist curl (barbell)',
+  'bench press (barbell)',
+  'bench press (dumbbell)',
+  'bench press (smith machine)',
+  'bent over row (barbell)',
+  'bent over row (dumbbell)',
+  'bicep curl (barbell)',
+  'bicep curl (cable)',
+  'bicep curl (dumbbell)',
+  'bulgarian split squat (barbell)',
+  'bulgarian split squat (dumbbell)',
+  'butterfly (pec deck)',
+  'cable crunch',
+  'cable fly crossovers',
+  'cable pallof press',
+  'chest dip',
+  'chest fly (dumbbell)',
+  'chest fly (machine)',
+  'chest supported incline row (dumbbell)',
+  'chest supported reverse fly (dumbbell)',
+  'chin up',
+  'chin-up',
+  'concentration curl (dumbbell)',
+  'cycling',
+  'deadlift (barbell)',
+  'elliptical trainer',
+  'exercise bike',
+  'face pull',
+  'front squat (barbell)',
+  'goblet squat (dumbbell)',
+  'goblet squat (kettlebell)',
+  'good morning (barbell)',
+  'hack squat (machine)',
+  'hammer curl (dumbbell)',
+  'hanging knee raise',
+  'hanging leg raise',
+  'incline bench press (barbell)',
+  'incline bench press (dumbbell)',
+  'incline chest fly (dumbbell)',
+  'iso-lateral row (machine)',
+  'jumping jack',
+  'jumping jacks',
+  'kickback (dumbbell)',
+  'knee raise parallel bars',
+  'lat pulldown (cable)',
+  'lat pulldown - close grip (cable)',
+  'lat pulldown - wide grip (cable)',
+  'lateral raise (dumbbell)',
+  'leg extension (machine)',
+  'leg press (machine)',
+  'lunge (dumbbell)',
+  'lunges (dumbbell)',
+  'lying leg curl (machine)',
+  'overhead press (barbell)',
+  'overhead press (dumbbell)',
+  'overhead press (smith machine)',
+  'pallof press',
+  'plank',
+  'plate front raise',
+  'preacher curl (barbell)',
+  'pull up',
+  'pull-up',
+  'push up',
+  'push-up',
+  'rear delt reverse fly (dumbbell)',
+  'rear delt reverse fly (machine)',
+  'reverse grip lat pulldown (cable)',
+  'reverse lunge (barbell)',
+  'reverse lunge (dumbbell)',
+  'romanian deadlift (barbell)',
+  'romanian deadlift (dumbbell)',
+  'russian twist',
+  'seated cable row - bar grip',
+  'seated calf raise (machine)',
+  'seated incline curl (dumbbell)',
+  'seated leg curl (machine)',
+  'seated shoulder press (machine)',
+  'shoulder press (barbell)',
+  'shoulder press (dumbbell)',
+  'shoulder press (machine)',
+  'shrug (barbell)',
+  'shrug (dumbbell)',
+  'single arm lateral raise (cable)',
+  'single leg standing calf raise (machine)',
+  'skull crusher (barbell)',
+  'skullcrusher (barbell)',
+  'squat (barbell)',
+  'stair machine',
+  'stair machine (steps)',
+  'standing calf raise (dumbbell)',
+  'standing calf raise (machine)',
+  'stationary bike',
+  'sumo deadlift (barbell)',
+  'treadmill',
+  'tricep kickback (dumbbell)',
+]
 
-  // Shared with import-csv ALIAS_EX / cardio pins.
-  'ab wheel': '0857',
-  'elliptical trainer': '2141',
-  'treadmill': '3666',
-  'cycling': '2331',
-  'stationary bike': '2138',
-  'exercise bike': '2138',
-  'stair machine': '2311',
-  'stair machine (steps)': '2311',
-  'jumping jack': '3220',
-  'jumping jacks': '3220',
-  'battle ropes': '0128',
-  'pallof press': '0979',
-  'cable pallof press': '0979',
-  'face pull': '0203',
-  'hack squat (machine)': '0743',
-  'iso-lateral row (machine)': '0571',
-  'seated cable row - bar grip': '0218',
-  'reverse grip lat pulldown (cable)': '0673',
-  'single arm lateral raise (cable)': '0192',
-  'plate front raise': '0310',
-  'back extension (weighted hyperextension)': '0573',
-  'behind the back bicep wrist curl (barbell)': '0104',
-  'butterfly (pec deck)': '0596',
-  'chest fly (machine)': '0596',
-  'chest fly (dumbbell)': '0308',
-  'incline chest fly (dumbbell)': '0319',
-  'cable fly crossovers': '1269',
-  'bicep curl (dumbbell)': '0294',
-  'bicep curl (cable)': '0868',
-  'bicep curl (barbell)': '0031',
-  'chest supported reverse fly (dumbbell)': '0383',
-  'bench press (smith machine)': '0748',
-  'overhead press (smith machine)': '0766',
+const CURATED = new Set(BY_TITLE_TITLES.map(t => t.toLowerCase()))
 
-  // Common Hevy titles → canonical catalogue entries (verified ids).
-  'bench press (barbell)': '0025',
-  'bench press (dumbbell)': '0289',
-  'incline bench press (barbell)': '0047',
-  'incline bench press (dumbbell)': '0314',
-  'overhead press (barbell)': '0091',
-  'overhead press (dumbbell)': '0405',
-  'shoulder press (machine)': '0603',
-  'shoulder press (dumbbell)': '0405',
-  'shoulder press (barbell)': '0091',
-  'squat (barbell)': '0043',
-  'front squat (barbell)': '0042',
-  'deadlift (barbell)': '0032',
-  'romanian deadlift (barbell)': '0085',
-  'romanian deadlift (dumbbell)': '1459',
-  'sumo deadlift (barbell)': '0117',
-  'bent over row (barbell)': '0027',
-  'bent over row (dumbbell)': '0292',
-  'lat pulldown (cable)': '2330',
-  'lat pulldown - wide grip (cable)': '2330',
-  'leg press (machine)': '0739',
-  'leg extension (machine)': '0585',
-  'seated leg curl (machine)': '0586',
-  'lying leg curl (machine)': '0586',
-  'goblet squat (dumbbell)': '1760',
-  'goblet squat (kettlebell)': '0534',
-  'lunge (dumbbell)': '0336',
-  'lunges (dumbbell)': '0336',
-  'pull up': '0652',
-  'pull-up': '0652',
-  'chin up': '1326',
-  'chin-up': '1326',
-  'push up': '0662',
-  'push-up': '0662',
-  'chest dip': '0251',
-  'plank': '2135',
-  'russian twist': '0687',
-  'hanging leg raise': '0472',
-  'hanging knee raise': '0472',
-  'cable crunch': '0175',
-  'standing calf raise (machine)': '0605',
-  'seated calf raise (machine)': '0594',
-  'standing calf raise (dumbbell)': '0417',
-  'shrug (barbell)': '0095',
-  'shrug (dumbbell)': '0406',
-  'hammer curl (dumbbell)': '0312',
-  'concentration curl (dumbbell)': '0297',
-  'preacher curl (barbell)': '0070',
-  'skullcrusher (barbell)': '0060',
-  'skull crusher (barbell)': '0060',
-  'tricep kickback (dumbbell)': '0333',
-  'kickback (dumbbell)': '0333',
-  'lateral raise (dumbbell)': '0334',
-  'good morning (barbell)': '0044',
+/** Catalogue exercise name (lowercased) → id, for the exact-name bridge below. */
+const NAME_IDX = new Map(Object.values(EXIDX).map(e => [e.n.toLowerCase(), e.id]))
+
+/**
+ * Bridge-mode resolution: the title must name a catalogue exercise exactly, with the trailing
+ * equipment parenthetical allowed to fall off ("bench press (barbell)" → "bench press").
+ *
+ * The matcher's fuzzy paths are deliberately NOT used here: run over the whole Hevy vocabulary
+ * they turned "clean and press" into "press in clean" and "dumbbell row" into "rle dumbbell row".
+ * A wrong lift is worse than a custom exercise, so only an exact name bridges.
+ */
+function exactId(title) {
+  const key = String(title || '').trim().toLowerCase()
+  const bare = key.replace(/\s*\([^)]*\)\s*$/, '').trim()
+  return NAME_IDX.get(key) || NAME_IDX.get(bare) || null
 }
 
 const EQ_PAREN = {
@@ -157,10 +179,12 @@ const EQ_PAREN = {
 
 function resolve(t) {
   const title = String(t.title || '').trim()
+  if (t.exact) return exactId(title)
   const key = title.toLowerCase()
-  if (Object.prototype.hasOwnProperty.call(BY_TITLE, key)) {
-    const v = BY_TITLE[key]
-    return v && EXIDX[v] ? v : null
+  if (CURATED.has(key)) {
+    const id = matchExercise(key)
+    if (id && EXIDX[id]) return id
+    return null
   }
   const paren = EQ_PAREN[t.equipment]
   const tries = []
@@ -194,26 +218,68 @@ async function fetchTemplates(apiKey) {
   return items
 }
 
-async function main() {
-  for (const [title, id] of Object.entries(BY_TITLE)) {
-    if (id && !EXIDX[id]) throw new Error(`BY_TITLE "${title}" → missing catalogue id ${id}`)
+/**
+ * Template ids out of the committed map, re-resolved through their own titles.
+ *
+ * Without a Hevy API key the template ids are all we have: the committed map pairs a template id
+ * with a catalogue id, and the title map pairs a title with that same catalogue id, so inverting
+ * the latter turns each template id back into a title — which the matcher resolves against the
+ * catalogue as it stands today. A template whose lift is not in an Olympic catalogue is dropped
+ * and imports as a custom exercise.
+ */
+function bridgedTemplates() {
+  const titleOf = new Map()
+  for (const [title, id] of Object.entries(HEVY_TITLE_MAP)) if (!titleOf.has(id)) titleOf.set(id, title)
+  const out = []
+  for (const [id, oldId] of Object.entries(HEVY_ID_MAP)) {
+    const title = titleOf.get(oldId)
+    if (title) out.push({ id, title, equipment: null, exact: true })
   }
+  return out
+}
+
+/** Curated titles the catalogue cannot reach — reported, never fatal (they import as custom). */
+function reportCurated() {
+  const missing = BY_TITLE_TITLES.filter(t => !matchExercise(t))
+  if (!missing.length) return
+  console.log(`Curated titles with no catalogue match (${missing.length}) — they import as custom:`)
+  missing.forEach(t => console.log('  -', t))
+}
+
+async function main() {
+  reportCurated()
 
   const arg = process.argv[2]
   let templates
+  let bridged = false
   if (arg && existsSync(arg)) {
     templates = JSON.parse(readFileSync(arg, 'utf8'))
   } else {
     const key = hevyApiKey()
-    if (!key) {
-      throw new Error('Set HEVY_API_KEY (env or .env), or pass a templates JSON path')
+    if (key) {
+      templates = await fetchTemplates(key)
+    } else {
+      bridged = true
+      templates = bridgedTemplates()
+      console.log(`No HEVY_API_KEY — bridging ${templates.length} template ids through their titles.`)
     }
-    templates = await fetchTemplates(key)
   }
 
   const map = {}
   const titleMap = {}
   const unmatched = []
+
+  // In bridge mode the template list only carries the titles that are attached to a template id,
+  // so the committed title map is the other half of the input: resolve it too, or every
+  // regeneration would quietly drop the titles no template happens to name.
+  if (bridged) {
+    for (const title of Object.keys(HEVY_TITLE_MAP)) {
+      const key = title.toLowerCase()
+      if (titleMap[key]) continue
+      const id = resolve({ title, equipment: null, exact: true })
+      if (id) titleMap[key] = id
+    }
+  }
   for (const t of templates) {
     if (!t?.id || t.is_custom) { if (t?.id && t.is_custom) unmatched.push(t); continue }
     const id = resolve(t)
@@ -230,12 +296,20 @@ async function main() {
   const titleKeys = Object.keys(titleMap).sort()
   const titleLines = titleKeys.map(k => `  ${JSON.stringify(k)}: ${JSON.stringify(titleMap[k])},`)
 
+  const how = bridged
+    ? `// Rebuilt WITHOUT a Hevy API key: the previous map's template ids were resolved through their
+// own titles, accepting only a title that names a catalogue exercise exactly (an equipment
+// parenthetical may fall off, so "bench press (barbell)" is the bench press). Anything else is left
+// out and imports as a custom exercise: the matcher's fuzzy paths turned "clean and press" into
+// "press in clean", and a wrong lift is worse than a custom. Set HEVY_API_KEY and re-run for a full
+// regeneration — the API path also reaches the templates this file never had a title for.`
+    : '// Regenerated from the Hevy templates API + verified title aliases.'
   const body = `// AUTO-GENERATED by scripts/build-hevy-id-map.mjs — do not edit by hand.
-// Hevy exercise_template id → openGym catalogue id, plus English title → id for CSV exports
-// (Hevy CSV has titles, not template ids). Regenerated from the Hevy templates API +
-// verified title aliases.
-// ${keys.length} mapped · ${unmatched.length} left unmatched (import as custom).
-// Source templates: ${templates.length} (built-in only).
+// Hevy exercise_template id → OlyGym catalogue id, plus English title → id for CSV exports
+// (Hevy CSV has titles, not template ids).
+${how}
+// Every id below resolves in the catalogue; anything else imports as a custom exercise.
+// ${keys.length} template ids and ${titleKeys.length} titles mapped.
 
 export const HEVY_ID_MAP = {
 ${lines.join('\n')}

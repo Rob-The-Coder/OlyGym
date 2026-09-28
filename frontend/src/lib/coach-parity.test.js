@@ -14,11 +14,16 @@
 import { describe, it, expect } from 'vitest'
 import { modeOf as uiModeOf, isBw as uiIsBw, isPerSide as uiIsPerSide } from './history.js'
 import { modeOf as srvModeOf, isBw as srvIsBw, isPerSide as srvIsPerSide } from '../../../api/coach/core/payload.js'
-import { exOr } from './exercises.js'
+import { EXDB, exOr } from './exercises.js'
 
 // Real ids from the catalogue, so `eq`/`bp` are whatever the dataset actually says rather than
-// whatever this test assumed. 0001 is a bodyweight sit-up; the others are looked up the same way.
-const IDS = ['0001', '0025', '0043', 'no-such-exercise']
+// whatever this test assumed. Three deliberately different cases: a bodyweight movement, a loaded
+// barbell one, and an id that resolves to nothing. (The OlyGym catalogue carries no cardio entry
+// any more — cardio is reachable through customs and imports, and is covered by the mode itself
+// in CONFIGS below.)
+const BODYWEIGHT = EXDB.find(e => e.eq === 'body weight' && uiModeOf({ id: e.id }) === 'reps').id
+const LOADED = EXDB.find(e => e.eq === 'barbell' && uiModeOf({ id: e.id }) === 'reps').id
+const IDS = [BODYWEIGHT, LOADED, 'no-such-exercise']
 
 const CONFIGS = [
   {},
@@ -59,12 +64,12 @@ describe('server/client reading rules agree', () => {
   }
 
   it('an explicit flag beats the catalogue, on both sides', () => {
-    const bodyweightEx = exOr('0001')
-    expect(uiIsBw({ id: '0001' })).toBe(true)
-    expect(srvIsBw({ id: '0001' }, bodyweightEx)).toBe(true)
+    const bodyweightEx = exOr(BODYWEIGHT)
+    expect(uiIsBw({ id: BODYWEIGHT })).toBe(true)
+    expect(srvIsBw({ id: BODYWEIGHT }, bodyweightEx)).toBe(true)
     // A dip done with a belt turns it off; the server must agree, or it keeps reading the
     // added load as no load.
-    expect(uiIsBw({ id: '0001', bodyweight: false })).toBe(false)
-    expect(srvIsBw({ id: '0001', bodyweight: false }, bodyweightEx)).toBe(false)
+    expect(uiIsBw({ id: BODYWEIGHT, bodyweight: false })).toBe(false)
+    expect(srvIsBw({ id: BODYWEIGHT, bodyweight: false }, bodyweightEx)).toBe(false)
   })
 })

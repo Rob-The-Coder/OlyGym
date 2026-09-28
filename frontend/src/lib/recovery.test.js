@@ -33,7 +33,11 @@ const WEIGHTED = EXDB.find(ex => {
   const weights = musclesOf(ex)
   return ex.bp !== 'cardio' && Object.values(weights).includes(0.4)
 })
-if (!SINGLE || !WEIGHTED) throw new Error('recovery tests require single- and secondary-weight fixtures')
+// A chest-led movement for the fatigue and strength fixtures. It used to be the old dataset's
+// "band bench press" (chest primary, triceps and shoulders secondary); a barbell bench press has
+// the same shape now.
+const CHEST = EXDB.find(ex => ex.n === 'bench press')
+if (!SINGLE || !WEIGHTED || !CHEST) throw new Error('recovery tests require single-, secondary- and chest-led fixtures')
 
 const SINGLE_WEIGHTS = musclesOf(SINGLE)
 const WEIGHTED_WEIGHTS = musclesOf(WEIGHTED)
@@ -272,7 +276,7 @@ describe('fatigue state boundaries', () => {
 
 describe('causal fatigue reference', () => {
   const loadedWorkout = (start, weight, count = 8) => workoutAt(
-    '1254',
+    CHEST.id,
     start,
     Array.from({ length: count }, () => ({ done: true, w: weight, r: 8 })),
   )
@@ -426,9 +430,9 @@ describe('warm-up flag in strength and fatigue', () => {
   it('a warm-up set does not reset strength but still adds fatigue volume', () => {
     const now = Date.UTC(2026, 7, 1, 12)
     const oldWork = { id: 'w1', d: '2026-07-10', start: now - 20 * 86400000, unit: 'kg',
-      entries: [{ id: '1254', sets: [{ done: true, w: 80, r: 8 }] }] }
+      entries: [{ id: CHEST.id, sets: [{ done: true, w: 80, r: 8 }] }] }
     const warm = { id: 'w2', d: '2026-08-01', start: now - 3600000, unit: 'kg',
-      entries: [{ id: '1254', sets: [{ done: true, warmup: true, w: 20, r: 8 }] }] }
+      entries: [{ id: CHEST.id, sets: [{ done: true, warmup: true, w: 20, r: 8 }] }] }
     const workouts = [oldWork, warm]
     const strength = strengthOf(workouts, now)
     // the strength edge is 20 days old: the fresh warm-up must NOT be the latest training event

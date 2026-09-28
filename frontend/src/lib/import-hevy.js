@@ -6,6 +6,7 @@
 // callers: nothing here stores it.
 
 import { EXIDX } from './exercises.js'
+import { bpFromName } from './import-csv.js'
 import { uid } from './format.js'
 import { isWarmupRow } from './workout-model.js'
 import { HEVY_ID_MAP, HEVY_TITLE_MAP } from './hevy-id-map.js'
@@ -101,15 +102,19 @@ export async function fetchHevyAccount(apiKey, { onProgress } = {}) {
 
 /* ---------------------------------------------------------- template → id -- */
 
-// Hevy primary_muscle_group → openGym body-part for exercises we invent.
+// Hevy primary_muscle_group → the OlyGym catalogue's movement families, for exercises we invent.
 const HEVY_BP = {
-  biceps: 'upper arms', triceps: 'upper arms', forearms: 'lower arms',
-  chest: 'chest', lats: 'back', upper_back: 'back', lower_back: 'back',
-  traps: 'back', shoulders: 'shoulders',
-  abdominals: 'waist', abs: 'waist', obliques: 'waist',
-  quadriceps: 'upper legs', hamstrings: 'upper legs', glutes: 'upper legs',
-  abductors: 'upper legs', adductors: 'upper legs', calves: 'lower legs',
-  cardio: 'cardio', full_body: 'upper legs', other: 'upper legs', neck: 'neck',
+  biceps: 'Accessory - Upper Body', triceps: 'Accessory - Upper Body', forearms: 'Accessory - Upper Body',
+  chest: 'Accessory - Upper Body', lats: 'Accessory - Upper Body', upper_back: 'Accessory - Upper Body',
+  traps: 'Accessory - Upper Body', shoulders: 'Accessory - Upper Body',
+  lower_back: 'Trunk (Ab & Back)', abdominals: 'Trunk (Ab & Back)', abs: 'Trunk (Ab & Back)',
+  obliques: 'Trunk (Ab & Back)',
+  quadriceps: 'Accessory - Lower/Whole Body', hamstrings: 'Accessory - Lower/Whole Body',
+  glutes: 'Accessory - Lower/Whole Body', abductors: 'Accessory - Lower/Whole Body',
+  adductors: 'Accessory - Lower/Whole Body', calves: 'Accessory - Lower/Whole Body',
+  cardio: 'cardio', neck: 'Accessory - Prep & Prehab',
+  // 'full_body' and 'other' are deliberately absent: they say nothing about the movement, so the
+  // name gets its say first (bpFromName) and only then the generic family fallback.
 }
 
 /**
@@ -147,9 +152,10 @@ export function localWhen(iso) {
   return { d: day, t }
 }
 
+/** The family Hevy's muscle group implies, or null when it says nothing we recognise. */
 function bpOfTemplate(t) {
   const g = String(t?.primary_muscle_group || '').toLowerCase()
-  return HEVY_BP[g] || 'upper legs'
+  return HEVY_BP[g] || null
 }
 
 /** Shared resolver: HEVY_ID_MAP hit, else one custom exercise per Hevy template id. */
@@ -173,8 +179,12 @@ function makeResolver(templates) {
       const name = (t?.title || fallbackTitle || 'exercise').toLowerCase()
       c = {
         id: 'im' + uid(), n: name, custom: true, eq: 'custom', tg: '', desc: '',
-        bp: bpOfTemplate(t) || (t?.type === 'distance_duration' || t?.type === 'duration' ? 'cardio' : null)
-          || 'upper legs',
+        // Hevy's muscle group first, then the name (bpFromName knows the cardio words), then the
+        // set type: a duration template with no group is cardio by shape. 'General Exercises' is
+        // the last resort — a real family, so the exercise lands under a chip someone can find.
+        bp: bpOfTemplate(t) || bpFromName(name)
+          || (t?.type === 'distance_duration' || t?.type === 'duration' ? 'cardio' : null)
+          || 'General Exercises',
       }
       created.set(key, c)
       unmatched.add(t?.title || fallbackTitle || name)
