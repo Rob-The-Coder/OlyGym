@@ -14,6 +14,11 @@ data/
 # IDE project files
 .idea/
 
+# Working notes and throwaway previews: kept in the workspace on purpose, not in the repo
+OLYGYM_PLAN.md
+oly-media-preview*.html
+oly-media-preview*.png
+
 # Build output / deps
 frontend/dist/
 node_modules/
