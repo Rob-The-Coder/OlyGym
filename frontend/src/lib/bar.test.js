@@ -4,20 +4,20 @@ import { EXDB } from './exercises-data.js'
 
 const idOf = eq => EXDB.find(e => e.eq === eq)?.id
 
-// The OlyGym catalogue tags every bar movement `eq: 'barbell'` and carries no EZ-bar, separate
-// olympic-barbell, Smith or trap-bar entry yet (see WS1.5/C5 in OLYGYM_PLAN.md). A bar exercise in
-// these tests is therefore either a real catalogue id (barbell) or a stand-in object for one of
-// the four types the catalogue does not tag yet.
-const EZ = { id: 'ez bar (stand-in)', eq: 'ez barbell' }
+// The catalogue tags bar movements `barbell` apart from the EZ-bar ones, which the sidecar
+// (scripts/oly-catalogue/exercise-tags.json) marks `ez barbell`; there is no separate olympic
+// barbell, Smith or trap-bar entry. A bar exercise in these tests is therefore either a real
+// catalogue id or a stand-in object for one of the three types the catalogue does not carry.
+const EZ = { id: idOf('ez barbell'), eq: 'ez barbell' }
 
 describe('bar equipment', () => {
   test('covers the five bar types, and every catalogue exercise that carries one', () => {
     expect([...BAR_EQ].sort()).toEqual(['barbell', 'ez barbell', 'olympic barbell', 'smith machine', 'trap bar'])
-    // Only `barbell` occurs today, so this is a canary: retagging the EZ-bar, Smith and trap-bar
-    // movements (C5) is meant to move this number, and nothing else should.
+    // Only `barbell` and the EZ-bar movements occur today, so this is a canary: retagging the Smith
+    // or trap-bar movements (the sidecar in scripts/oly-catalogue) should move it, and nothing else.
     const tagged = EXDB.filter(e => BAR_EQ.has(e.eq))
     expect(tagged.length).toBeGreaterThan(0)
-    expect(tagged.every(e => e.eq === 'barbell')).toBe(true)
+    expect([...new Set(tagged.map(e => e.eq))].sort()).toEqual(['barbell', 'ez barbell'])
   })
 
   test('usesBar answers for ids and exercise objects alike', () => {
