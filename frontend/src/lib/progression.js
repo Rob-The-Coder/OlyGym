@@ -18,6 +18,7 @@
 
 import { modeOf, repStep, rerampWarmups, isBw, isPerSide, entryExcluded } from './history.js'
 import { EXIDX, isAssisted } from './exercises.js'
+import { musclesOf } from './muscles.js'
 import { isWarmupRow, isSideSet, syncSideAggregate, makeSideSet } from './workout-model.js'
 import { normalizeRepRange } from './rep-range.js'
 
@@ -75,14 +76,32 @@ export function deloadTarget1RM(weight, reps, factor = DELOAD_FACTOR, perSide = 
   return base == null ? null : round1(base * f)
 }
 
-// Body parts where a 5 kg jump is normal rather than brutal.
-const HEAVY_BP = ['upper legs', 'lower legs', 'back', 'hips', 'glutes']
+// Muscles where a 5 kg jump is normal rather than brutal: the lower body and the posterior
+// chain. This used to be the dataset's body parts ('upper legs', 'lower legs', 'back', …) — a
+// vocabulary the OlyGym catalogue no longer speaks, which quietly put every squat and deadlift
+// back on the 2.5 kg step. Reading the exercise's own muscles instead keeps the rule honest for
+// any catalogue: a back squat is quadriceps-led, a bench press is not, and a competition snatch
+// (trapezius-led) stays on the 2.5 kg step the sport actually uses.
+const HEAVY_MUSCLES = ['quadriceps', 'gluteal', 'hamstring', 'lower-back', 'adductors', 'calves', 'tibialis']
+
+// The catalogue's exercise objects are stable (EXIDX is built once), so the muscles-to-increment
+// lookup is worth caching: the steppers ask for it on every render.
+const heavyCache = new WeakMap()
+const isHeavy = ex => {
+  if (!ex) return false
+  let hit = heavyCache.get(ex)
+  if (hit === undefined) {
+    const weights = musclesOf(ex)
+    hit = HEAVY_MUSCLES.some(slug => (weights[slug] || 0) >= 1)
+    heavyCache.set(ex, hit)
+  }
+  return hit
+}
 
 // Default load step. Lower-body lifts take the bigger jump — that is the "lift-specific
 // increment" a linear program lives on; an exercise can override it with cfg.inc.
 export function defaultIncrement(exId, unit) {
-  const ex = EXIDX[exId]
-  const heavy = ex && HEAVY_BP.includes(ex.bp)
+  const heavy = isHeavy(EXIDX[exId])
   if (unit === 'lb') return heavy ? 10 : 5
   return heavy ? 5 : 2.5
 }

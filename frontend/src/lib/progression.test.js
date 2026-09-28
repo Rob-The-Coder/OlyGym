@@ -5,14 +5,25 @@ import {
   deloadFactorOf, DELOAD_FACTOR, POLICIES_FOR, DELOAD_AFTER, MAX_BW_SETS
 } from './progression.js'
 import { entryExcluded } from './history.js'
-import { EXDB, isAssisted } from './exercises.js'
+import { EXDB } from './exercises.js'
 
-// A plainly loaded lift: more weight is harder. The first match used to be `assisted chest dip`,
-// whose stack takes weight off you and which therefore progresses downwards (issue #232) — these
-// tests are about the ordinary direction, so the assistance machines are excluded by name here.
-const LIFT = EXDB.find(e => e.bp !== 'cardio' && !['upper legs', 'lower legs', 'back', 'hips', 'glutes'].includes(e.bp) && !['body weight', 'band', 'resistance band'].includes(e.eq) && !isAssisted(e.id)).id
-const HEAVY = EXDB.find(e => e.bp === 'upper legs').id
-const CARDIO = EXDB.find(e => e.bp === 'cardio').id
+// Named lookups rather than ids: the catalogue is auto-generated (scripts/oly-catalogue/), so a
+// name is the stable key and an id is a detail. A name that disappears fails the file on its
+// first line instead of quietly running the suite against the wrong exercise.
+const byName = name => {
+  const ex = EXDB.find(e => e.n === name)
+  if (!ex) throw new Error(`the catalogue no longer has "${name}"`)
+  return ex.id
+}
+
+// A plainly loaded lift that takes the small step: more weight is harder, 2.5 kg at a time.
+const LIFT = byName('bench press')
+// A lift the bigger step belongs to — see HEAVY_MUSCLES in progression.js.
+const HEAVY = byName('back squat')
+// The OlyGym catalogue has no cardio category any more: the cardio logging mode is reachable
+// through imported and custom exercises only. So this fixture is a custom id with the mode set
+// explicitly (see `mode: 'cardio'` below), not a catalogue entry that no longer exists.
+const CARDIO = 'custom-cardio'
 
 // Build a state whose history is a list of sessions given as [weight, ...repsPerSet].
 // A rep count of null means "the set was never checked off".
@@ -116,6 +127,18 @@ describe('defaultIncrement', () => {
   it('gives lower-body lifts the bigger jump', () => {
     expect(defaultIncrement(LIFT, 'kg')).toBe(2.5)
     expect(defaultIncrement(HEAVY, 'kg')).toBe(5)
+  })
+  // The rule reads the exercise's own muscles (HEAVY_MUSCLES), not the catalogue's movement
+  // family. These are the lifts this fork cares about, so the table is pinned one by one.
+  it('gives the classic heavy lifts the big step and the Olympic lifts the small one', () => {
+    const expected = [
+      ['back squat', 5], ['front squat', 5], ['split squat', 5],
+      ['deadlift', 5], ['romanian deadlift (rdl)', 5], ['good morning', 5],
+      ['bench press', 2.5], ['bent row', 2.5], ['pull-up', 2.5],
+      ['snatch', 2.5], ['clean', 2.5], ['clean-jerk', 2.5],
+      ['snatch balance', 2.5], ['snatch pull', 2.5]
+    ]
+    for (const [name, step] of expected) expect(defaultIncrement(byName(name), 'kg'), name).toBe(step)
   })
   it('scales to pounds', () => {
     expect(defaultIncrement(LIFT, 'lb')).toBe(5)
@@ -527,7 +550,7 @@ describe('policy "off"', () => {
     expect(p.weight).toBeUndefined()
   })
   it('is what cardio always gets', () => {
-    expect(nextPrescription({ unit: 'kg', workouts: [] }, { id: CARDIO, sets: 1, min: 20 }).kind).toBe('off')
+    expect(nextPrescription({ unit: 'kg', workouts: [] }, { id: CARDIO, mode: 'cardio', sets: 1, min: 20 }).kind).toBe('off')
   })
 })
 

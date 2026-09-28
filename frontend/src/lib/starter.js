@@ -41,8 +41,8 @@ const FIVE_BY_FIVE = [
 // [weekday, routineKey] — weekday is a DAYN index, so 1 is Monday. Fixed weeks only: every
 // plan repeats the same seven days, which is all the weekly plan model can represent.
 const PLANS = {
-  ppl: { routines: PPL, schedule: [[1, 'push'], [3, 'pull'], [5, 'legs']] },
-  'upper-lower': { routines: UPPER_LOWER, schedule: [[1, 'upper-a'], [2, 'lower-a'], [4, 'upper-b'], [5, 'lower-b']] },
+  ppl: { routines: PPL, schedule: [[1, 'snatch'], [3, 'cj'], [5, 'squat-pull']] },
+  'upper-lower': { routines: UPPER_LOWER, schedule: [[1, 'tech-a'], [2, 'strength-a'], [4, 'tech-b'], [5, 'strength-b']] },
   'full-body': { routines: FULL_BODY, schedule: [[1, 'fb-a'], [3, 'fb-b'], [5, 'fb-c']] },
   '5x5': { routines: FIVE_BY_FIVE, schedule: [[1, '5x5-a'], [3, '5x5-b'], [5, '5x5-c']] }
 }
@@ -50,8 +50,8 @@ const PLANS = {
 const build = routines =>
   routines.map(([, name, emoji, list]) => ({ id: uid(), name, emoji, ex: list.map(([id, sets, reps]) => ({ id, sets, reps, weight: 0 })) }))
 
-// Fresh routine objects (new ids) — [push, pull, legs]. The demo build seeds a history on
-// top of exactly these three, so this entry point keeps its shape.
+// Fresh routine objects (new ids) — [snatch, clean & jerk, squat & pull]. The demo build seeds a
+// history on top of exactly these three, so this entry point keeps its shape.
 export const starterRoutines = () => build(PPL)
 
 // [{ id, days }] for the chooser. The day count is read off the schedule rather than stored

@@ -1172,8 +1172,12 @@ function ProgressionFields({ ex, mode, c, setC, routine, unit, perSide }) {
   </>
 }
 
-function ExConfig({ ex, existing, onSave, onDelete, close, routine, initial }) {
+function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, initial }) {
   const st = useStore(s => s.S)
+  // A caller can hand us an id the catalogue no longer resolves — a plan written against another
+  // dataset, an exercise deleted on another device. exOr keeps the sheet usable (it reads as the
+  // usual placeholder) instead of taking the whole editor down on the first `ex.id`.
+  const ex = exProp || exOr(existing?.id || initial?.id)
   const cardio = isCardio(ex.id)
   const seed = existing || initial || defaultConfig(ex.id)
   const [c, setC] = useState(() => {
