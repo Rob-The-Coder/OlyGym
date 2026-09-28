@@ -4,7 +4,7 @@ import { buildPlanBundle, mergePlan, parsePlan } from './plan-share.js'
 // There was no test file for plan sharing at all, which is how a whole prescription field
 // went missing without anyone noticing.
 const stateWith = ex => ({
-  routines: [{ id: 'r1', name: 'Push', ex: [{ id: '0025', sets: 3, reps: 5, weight: 100, ...ex }] }],
+  routines: [{ id: 'r1', name: 'Push', ex: [{ id: 'wl806', sets: 3, reps: 5, weight: 100, ...ex }] }],
   week: {}, customEx: [],
 })
 const roundTrip = ex => parsePlan(JSON.stringify(buildPlanBundle(stateWith(ex), 'Plan'))).routines[0].ex[0]
@@ -14,8 +14,8 @@ describe('plan-share units', () => {
     const source = {
       unit: 'kg', week: {}, customEx: [],
       routines: [{ id: 'r', name: 'Strength', ex: [
-        { id: '0025', mode: 'reps', sets: 3, reps: 5, weight: 60, inc: 2.5 },
-        { id: '0007', mode: 'time', sets: 1, sec: 30, weight: 20, inc: 5 },
+        { id: 'wl806', mode: 'reps', sets: 3, reps: 5, weight: 60, inc: 2.5 },
+        { id: 'wl77', mode: 'time', sets: 1, sec: 30, weight: 20, inc: 5 },
       ] }],
     }
     const bundle = buildPlanBundle(source, 'Strength')
@@ -29,7 +29,7 @@ describe('plan-share units', () => {
   it('converts pounds back to kilograms and merges the converted prescription', () => {
     const source = {
       unit: 'lb', week: {}, customEx: [],
-      routines: [{ id: 'r', name: 'Strength', ex: [{ id: '0025', sets: 3, reps: 5, weight: 135, inc: 10 }] }],
+      routines: [{ id: 'r', name: 'Strength', ex: [{ id: 'wl806', sets: 3, reps: 5, weight: 135, inc: 10 }] }],
     }
     const bundle = buildPlanBundle(source, 'Strength')
     const target = { unit: 'kg', routines: [], customEx: [], week: {} }
@@ -41,7 +41,7 @@ describe('plan-share units', () => {
     const legacy = {
       opengym_plan: 1, name: 'Legacy', summary: 'old export',
       week: { 1: 'r' }, customEx: [],
-      routines: [{ id: 'r', name: 'Strength', ex: [{ id: '0025', sets: 3, reps: 5, weight: 60, inc: 2.5 }] }],
+      routines: [{ id: 'r', name: 'Strength', ex: [{ id: 'wl806', sets: 3, reps: 5, weight: 60, inc: 2.5 }] }],
     }
     const parsed = parsePlan(legacy, 'lb')
     expect(parsed.unit).toBe('lb')
@@ -51,7 +51,7 @@ describe('plan-share units', () => {
   it('accepts legacy root omissions and the older weightUnit marker', () => {
     const legacy = {
       opengym_plan: 1, weightUnit: 'lbs', legacyNote: 'kept as metadata',
-      routines: [{ id: 'r', name: 'Strength', ex: [{ id: '0025', sets: 3, reps: 5, weight: 135, inc: 10 }] }],
+      routines: [{ id: 'r', name: 'Strength', ex: [{ id: 'wl806', sets: 3, reps: 5, weight: 135, inc: 10 }] }],
     }
     const parsed = parsePlan(legacy, 'kg')
     expect(parsed.routines[0].ex[0]).toMatchObject({ weight: 61.25, inc: 4.5 })
@@ -124,14 +124,14 @@ describe('what survives a shared plan', () => {
   })
 
   it('clamps a hand-edited warm-up count instead of showing it verbatim', () => {
-    const bundle = { opengym_plan: 1, name: 'x', routines: [{ id: 'r', name: 'R', ex: [{ id: '0025', sets: 3, reps: 5, warmupSets: 999 }] }], week: {}, customEx: [] }
+    const bundle = { opengym_plan: 1, name: 'x', routines: [{ id: 'r', name: 'R', ex: [{ id: 'wl806', sets: 3, reps: 5, warmupSets: 999 }] }], week: {}, customEx: [] }
     expect(parsePlan(bundle).routines[0].ex[0].warmupSets).toBe(5)
   })
 
   // A plan file is someone else's data: a rest that arrives as a string would reach the timer's
   // arithmetic as one, and a negative or garbage one has no meaning to keep.
   it('normalises a hand-edited rest to a positive whole number or drops it', () => {
-    const withRest = restSec => ({ opengym_plan: 1, name: 'x', routines: [{ id: 'r', name: 'R', ex: [{ id: '0025', sets: 3, reps: 5, restSec }] }], week: {}, customEx: [] })
+    const withRest = restSec => ({ opengym_plan: 1, name: 'x', routines: [{ id: 'r', name: 'R', ex: [{ id: 'wl806', sets: 3, reps: 5, restSec }] }], week: {}, customEx: [] })
     expect(parsePlan(withRest('120')).routines[0].ex[0].restSec).toBe(120)
     expect(parsePlan(withRest(90.6)).routines[0].ex[0].restSec).toBe(91)
     expect('restSec' in parsePlan(withRest(-30)).routines[0].ex[0]).toBe(false)
@@ -141,12 +141,12 @@ describe('what survives a shared plan', () => {
   // The floors are the config sheet's own (count >= 1, pct >= 5); a value that is present but
   // out of range is pulled up to the floor, while a missing one falls back to the default.
   it('clamps out-of-range intensifier numbers to the floors the app enforces', () => {
-    const bundle = { opengym_plan: 1, name: 'x', routines: [{ id: 'r', name: 'R', ex: [{ id: '0025', sets: 3, reps: 5, intensifier: { type: 'dropset', count: 0, pct: -5 } }] }], week: {}, customEx: [] }
+    const bundle = { opengym_plan: 1, name: 'x', routines: [{ id: 'r', name: 'R', ex: [{ id: 'wl806', sets: 3, reps: 5, intensifier: { type: 'dropset', count: 0, pct: -5 } }] }], week: {}, customEx: [] }
     expect(parsePlan(bundle).routines[0].ex[0].intensifier).toEqual({ type: 'dropset', count: 1, pct: 5 })
   })
 
   it('falls back to the default drop percentage when the file omits it', () => {
-    const bundle = { opengym_plan: 1, name: 'x', routines: [{ id: 'r', name: 'R', ex: [{ id: '0025', sets: 3, reps: 5, intensifier: { type: 'dropset' } }] }], week: {}, customEx: [] }
+    const bundle = { opengym_plan: 1, name: 'x', routines: [{ id: 'r', name: 'R', ex: [{ id: 'wl806', sets: 3, reps: 5, intensifier: { type: 'dropset' } }] }], week: {}, customEx: [] }
     expect(parsePlan(bundle).routines[0].ex[0].intensifier).toEqual({ type: 'dropset', count: 1, pct: 20 })
   })
 })
@@ -155,8 +155,8 @@ describe('what survives a shared plan', () => {
 describe('week schedule as a routine-id list', () => {
   const twoRoutines = {
     routines: [
-      { id: 'a', name: 'A', ex: [{ id: '0025', sets: 3, reps: 5 }] },
-      { id: 'b', name: 'B', ex: [{ id: '0031', sets: 3, reps: 8 }] },
+      { id: 'a', name: 'A', ex: [{ id: 'wl806', sets: 3, reps: 5 }] },
+      { id: 'b', name: 'B', ex: [{ id: 'wl97', sets: 3, reps: 8 }] },
     ],
     customEx: [],
   }
@@ -184,7 +184,7 @@ describe('week schedule as a routine-id list', () => {
 
   it('mergePlan drops an element whose id did not survive parsing, never writes undefined', () => {
     // 'gone' is not among the bundle routines → ridMap has no entry → filtered out
-    const bundle = { routines: [{ id: 'a', name: 'A', ex: [{ id: '0025', sets: 3, reps: 5 }] }], week: { 1: ['a', 'gone'], 2: ['gone'] }, customEx: [] }
+    const bundle = { routines: [{ id: 'a', name: 'A', ex: [{ id: 'wl806', sets: 3, reps: 5 }] }], week: { 1: ['a', 'gone'], 2: ['gone'] }, customEx: [] }
     const target = { routines: [], week: {}, customEx: [] }
     mergePlan(target, bundle, { schedule: true })
     expect(target.week[1]).toEqual([target.routines[0].id])

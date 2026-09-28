@@ -72,7 +72,11 @@ function buildReview(S) {
 
 /** A small, honest starter plan for the demo's creation flow. */
 function buildPlan(S, intake) {
-  const pick = (bp, eq) => EXDB.find(e => e.bp === bp && (!eq || e.eq === eq)) || EXDB.find(e => e.bp === bp)
+  // The demo plan is written as movements, not as catalogue ids: the OlyGym catalogue is generated
+  // from names (scripts/oly-catalogue/), so a lookup by name survives a regeneration that renumbers
+  // an entry. `eq` is a preference — equipment the catalogue does not carry for that movement falls
+  // back to the plain name, so an intake can never leave a routine empty.
+  const pick = (name, eq) => EXDB.find(e => e.n === name && (!eq || e.eq === eq)) || EXDB.find(e => e.n === name)
   const days = intake?.preferredDays?.length ? intake.preferredDays.slice(0, 3) : [1, 3, 5]
   const eq = (intake?.equipment || [])[0] || null
   const mk = (id, name, sets, reps, why) => ({ id, sets, reps, mode: 'reps', why })
@@ -81,18 +85,18 @@ function buildPlan(S, intake) {
       id: 'dr1', name: t('Full body A'), emoji: '💪', prog: 'linear',
       why: t('The two big lower-body and pressing patterns first, while you are fresh.'),
       ex: [
-        mk(pick('upper legs', eq)?.id, null, 3, 8, t('The main lower-body driver — where most of the strength comes from.')),
-        mk(pick('chest', eq)?.id, null, 3, 10, t('Horizontal pressing, the other half of the session.')),
-        mk(pick('back', eq)?.id, null, 3, 10, t('A pull for every press, so the shoulders stay balanced.'))
+        mk(pick('back squat', eq)?.id, null, 3, 8, t('The main lower-body driver — where most of the strength comes from.')),
+        mk(pick('bench press', eq)?.id, null, 3, 10, t('Horizontal pressing, the other half of the session.')),
+        mk(pick('bent row', eq)?.id, null, 3, 10, t('A pull for every press, so the shoulders stay balanced.'))
       ].filter(e => e.id)
     },
     {
       id: 'dr2', name: t('Full body B'), emoji: '🏋️', prog: 'linear',
       why: t('The same patterns, different variations — enough overlap to progress, enough difference to stay fresh.'),
       ex: [
-        mk(pick('upper legs', eq)?.id, null, 3, 10, t('Same pattern, higher reps than day A.')),
-        mk(pick('shoulders', eq)?.id, null, 3, 10, t('Vertical pressing.')),
-        mk(pick('upper arms', eq)?.id, null, 3, 12, t('Direct arm work, since you asked for it.'))
+        mk(pick('front squat', eq)?.id, null, 3, 10, t('Same pattern, higher reps than day A.')),
+        mk(pick('push press', eq)?.id, null, 3, 10, t('Vertical pressing.')),
+        mk(pick('dumbbell curl', eq)?.id, null, 3, 12, t('Direct arm work, since you asked for it.'))
       ].filter(e => e.id)
     }
   ]

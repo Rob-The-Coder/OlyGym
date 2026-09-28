@@ -1,38 +1,16 @@
 import { EXDB } from './exercises-data.js'
-import { USER_EXERCISE_MUSCLE_OVERRIDES, exerciseMuscleMetadataFor } from './exercise-muscle-batch-1.js'
 import { t, getVersion, exerciseNameSearchText } from './i18n-core.js'
 
 export { EXDB }
 
-// The generated dataset remains the compatibility/raw export. The runtime catalogue applies
-// owner-approved muscle metadata as a narrow overlay, so imports and historical tests that rely
-// on the upstream shape keep working while EXIDX and pickers see the corrected model.
-const catalogueExercise = ex => {
-  const metadata = exerciseMuscleMetadataFor(ex?.id)
-  if (!Object.keys(metadata).length) return ex
-  const out = { ...ex, ...metadata }
-  const user = USER_EXERCISE_MUSCLE_OVERRIDES[ex?.id] || {}
-  // A future dataset row may carry explicit arrays of its own; preserve those over generated
-  // defaults unless the owner has deliberately supplied a correction for the same field.
-  for (const key of ['primaries', 'secondaries']) {
-    if (Object.prototype.hasOwnProperty.call(ex, key) && !Object.prototype.hasOwnProperty.call(user, key)) out[key] = ex[key]
-  }
-  if (Array.isArray(out.primaries)) out.primaries = [...out.primaries]
-  if (Array.isArray(out.secondaries)) out.secondaries = [...out.secondaries]
-  return out
-}
+// OlyGym's catalogue (Catalyst Athletics import) already carries its own tg/sm muscle tags
+// (see exercises-data.js), so — unlike the upstream generic-fitness dataset this fork replaced —
+// no runtime overlay is needed to patch in muscle metadata. CATALOGUE is kept as the public name
+// so downstream code (pickers, EXIDX, search) doesn't need to change.
+export const CATALOGUE = EXDB
 
-export const CATALOGUE = EXDB.map(catalogueExercise)
-
-// The generated dataset already supplies secondary muscles for most exercises. Keep the
-// handful of conservative catalogue additions that are useful to the muscle map here so a
-// dataset refresh does not erase them. Values follow the dataset's existing alias vocabulary.
-const SECONDARY_ADDITIONS = {
-  '0027': ['rear deltoids'], // barbell bent over row
-  '0293': ['rear deltoids'], // dumbbell bent over row
-  '0499': ['rear deltoids'], // inverted row
-  '0861': ['rear deltoids'], // cable seated row
-}
+// No dataset-wide secondary-muscle corrections yet for the new catalogue.
+const SECONDARY_ADDITIONS = {}
 
 // Secondary muscles for an exercise, with the small conservative additions applied as an
 // overlay. The raw dataset is never mutated - consumers that want the pristine catalogue

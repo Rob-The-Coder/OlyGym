@@ -100,9 +100,9 @@ export function confirmSheet(opts) {
 // string literals written inside a t() call, so copy parked in the catalog and passed in as a
 // variable is invisible to it — it would quietly stay English in every language.
 const PLAN_COPY = {
-  ppl: () => ({ name: t('Push / Pull / Legs'), about: t('Push, pull and legs each get their own day.') }),
-  'upper-lower': () => ({ name: t('Upper / Lower'), about: t('Upper body twice, lower body twice.') }),
-  'full-body': () => ({ name: t('Full Body'), about: t('Three sessions, the whole body each time.') }),
+  ppl: () => ({ name: t('Snatch / Clean & Jerk / Squat'), about: t('Snatch, clean & jerk and squat/pull each get their own day.') }),
+  'upper-lower': () => ({ name: t('Technique / Strength'), about: t('Classic-lift technique twice, squat/pull strength twice.') }),
+  'full-body': () => ({ name: t('Full Body'), about: t('Three sessions, a classic lift plus squat and pull each time.') }),
   '5x5': () => ({ name: t('5×5'), about: t('Five sets of five on the main barbell lifts.') })
 }
 
@@ -1172,8 +1172,12 @@ function ProgressionFields({ ex, mode, c, setC, routine, unit, perSide }) {
   </>
 }
 
-function ExConfig({ ex, existing, onSave, onDelete, close, routine, initial }) {
+function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, initial }) {
   const st = useStore(s => s.S)
+  // A caller can hand us an id the catalogue no longer resolves — a plan written against another
+  // dataset, an exercise deleted on another device. exOr keeps the sheet usable (it reads as the
+  // usual placeholder) instead of taking the whole editor down on the first `ex.id`.
+  const ex = exProp || exOr(existing?.id || initial?.id)
   const cardio = isCardio(ex.id)
   const seed = existing || initial || defaultConfig(ex.id)
   const [c, setC] = useState(() => {
