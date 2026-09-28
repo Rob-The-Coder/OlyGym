@@ -8,6 +8,12 @@ data/
 # Local config
 .env
 
+# Personal training plan (the coach's workbook — personal data, never published)
+*.xlsx
+
+# IDE project files
+.idea/
+
 # Build output / deps
 frontend/dist/
 node_modules/
