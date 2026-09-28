@@ -22,6 +22,13 @@ is reps-only by default), which bar weight the per-side plate maths starts from 
 which equipment chips the exercise appears under. `tg`/`sm` drive the muscle map and the recovery
 model; an exercise with neither falls back to its movement family in `muscles.js` (`BY_BODYPART`).
 
+## Media
+
+An entry carries no `img` and no `gif`: `yt` is the only picture source, and the app hotlinks the
+video's poster frame from `img.youtube.com` at runtime (`frontend/src/lib/media.js`, sizes and the
+fallback chain live there). Nothing is downloaded, committed or bundled — the terms are in
+`NOTICE.md`.
+
 ## What the build guarantees
 
 - The id is `wl` + the Catalyst exercise-page id parsed from the URL, so every entry stays traceable

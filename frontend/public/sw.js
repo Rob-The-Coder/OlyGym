@@ -73,13 +73,9 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || url.origin !== location.origin) return
   if (url.pathname.startsWith('/api/')) return    // never cache auth/data
 
-  const isMedia = url.pathname.includes('/img/') || url.pathname.includes('/gif/')
-  if (isMedia) {
-    e.respondWith(caches.open(CACHE).then(c => c.match(e.request).then(hit =>
-      hit || fetch(e.request).then(res => { if (res.ok) c.put(e.request, res.clone()); return res })
-    )))
-    return
-  }
+  // Nothing sits on this origin that wants cache-first any more: the exercise pictures are
+  // YouTube poster frames, cross-origin, which the line above already leaves to the browser.
+
   // Network first; the copy for the cache is cloned before the response is handed to the page —
   // cloning later, once the page has started reading the body, throws and caches nothing, which
   // is why the shell never used to survive an offline reload.
