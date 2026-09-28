@@ -99,9 +99,9 @@ describe('mergeImport and custom exercises', () => {
 
   it('matches the name regardless of case and spacing, including one the user made by hand', () => {
     const S = fresh()
-    S.customEx.push({ id: 'mine', n: 'Zorb  Roller ', bp: 'waist', custom: true })
+    S.customEx.push({ id: 'mine', n: 'Zorb  Roller ', bp: 'Trunk (Ab & Back)', custom: true })
     mergeImport(S, parseWorkoutCSV(EXPORT_A, { unit: 'kg' }))
     expect(S.customEx).toHaveLength(1)
-    expect(S.workouts[0].entries.map(e => e.id)).toEqual(['mine', '0025'])
+    expect(S.workouts[0].entries.map(e => e.id)).toEqual(['mine', 'wl806'])
   })
 })

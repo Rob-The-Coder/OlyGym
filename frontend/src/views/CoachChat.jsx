@@ -446,7 +446,16 @@ const Notes = ({ notes }) => !!notes?.length && <div className="pcard-notes">
 
 /* ---------------------------------- insights ---------------------------------- */
 
-const BP_LABEL = { back: 'Back muscles', cardio: 'Cardio', chest: 'Chest', 'lower arms': 'Forearms', 'lower legs': 'Calves', neck: 'Neck', shoulders: 'Shoulders', 'upper arms': 'Arms', 'upper legs': 'Legs', waist: 'Core', other: 'Other' }
+// The OlyGym catalogue's `bp` is a movement family (and a state written before the swap still
+// carries the old body parts), so both vocabularies have a label here.
+const BP_LABEL = {
+  back: 'Back muscles', cardio: 'Cardio', chest: 'Chest', 'lower arms': 'Forearms', 'lower legs': 'Calves',
+  neck: 'Neck', shoulders: 'Shoulders', 'upper arms': 'Arms', 'upper legs': 'Legs', waist: 'Core', other: 'Other',
+  Snatch: 'Snatch', Clean: 'Clean', Jerk: 'Jerk', 'General Exercises': 'General',
+  'Trunk (Ab & Back)': 'Core', 'Jumping & Plyometrics': 'Plyometrics',
+  'Accessory - Lower/Whole Body': 'Lower body', 'Accessory - Upper Body': 'Upper body',
+  'Accessory - Prep & Prehab': 'Prehab', Carries: 'Carries',
+}
 const bpLabel = bp => t(BP_LABEL[bp] || bp)
 
 /**

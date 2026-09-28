@@ -157,56 +157,62 @@ function buildIndex() {
 // common vocabulary is spelled out. The convention is that an unqualified name means the
 // canonical barbell version, which is what these apps assume when they show it to you.
 // Extending this table is the intended way to improve import accuracy.
+// Foreign names the word-bag cannot reach on its own, mapped onto the OlyGym catalogue.
+//
+// Two rules, both learned the hard way:
+//   · An entry earns its place only when the automatic matcher cannot get there, so a catalogue
+//     regeneration cannot leave a stale id behind — the previous table had 87 entries and every
+//     single one pointed at the retired dataset.
+//   · The same movement with the wrong equipment label beats no match (a Pallof press is a Pallof
+//     press whatever is clipped to the cable). A *different* movement never does: a military press
+//     is not a push press, and filing years of pressing under a jerk would be worse than leaving
+//     the exercise as a custom the user can see and fix.
+//
+// Names with no counterpart are deliberately absent — treadmill, cycling, elliptical, stationary
+// bike, stepmill, battle ropes, jumping jacks, machine and Smith variants, machine chest fly,
+// goblet squat, leg press, calf raises, decline and close-grip bench press, sumo deadlift,
+// dumbbell rows, cable crossovers, overhead and military press. They import as custom exercises.
 const ALIAS_EX = {
-  'bench press': '0025', 'barbell bench press': '0025', 'flat bench press': '0025', 'flat barbell bench press': '0025',
-  'incline bench press': '0047', 'decline bench press': '0033',
-  'close grip bench press': '0030', 'close-grip bench press': '0030',
-  squat: '0043', 'back squat': '0043', 'barbell squat': '0043', 'front squat': '0042',
-  deadlift: '0032', 'romanian deadlift': '0085', rdl: '0085', 'sumo deadlift': '0117',
-  'lat pulldown': '2330', 'lat pull down': '2330', pulldown: '2330',
-  shrug: '0095', shrugs: '0095',
-  'overhead press': '0091', 'military press': '0091', 'shoulder press': '0091', ohp: '0091',
-  'barbell row': '0027', 'bent over row': '0027', 'bent-over row': '0027',
-  'dumbbell row': '0292', 'one arm dumbbell row': '0292',
-  'leg curl': '0586', 'lying leg curl': '0586', 'seated leg curl': '0586',
-  'leg press': '0739', 'leg extension': '0585',
-  'calf raise': '1372', 'standing calf raise': '1372', 'seated calf raise': '0088',
-  'lateral raise': '0334', 'side raise': '0334', 'reverse fly': '0348', 'rear delt fly': '0348',
-  'bicep curl': '0294', 'biceps curl': '0294', 'dumbbell curl': '0294',
-  'preacher curl': '0070', 'barbell curl': '0031',
-  'tricep pushdown': '0241', 'triceps pushdown': '0241', pushdown: '0241',
-  skullcrusher: '0060', 'skull crusher': '0060', 'lying triceps extension': '0061',
-  lunge: '0054', lunges: '0054', 'cable crossover': '1269', 'cable cross over': '1269',
-  'goblet squat': '1760', 'dumbbell goblet squat': '1760', 'kettlebell goblet squat': '0534',
-  // Reported in issue #74: these come out of Hevy under names no word-overlap can reach, so
-  // they landed as custom exercises. The catalogue's cardio vocabulary is thin (29 of 1,324
-  // entries), so each of these is the *only* candidate rather than the best of several.
-  treadmill: '3666', 'treadmill walk': '3666', 'treadmill run': '3666',
-  cycling: '2331', 'cross trainer': '2331', elliptical: '2141',
-  'stationary bike': '2138', 'exercise bike': '2138', 'stepmill': '2311',
-  // The catalogue has only band Pallof presses, so a cable one resolves to the band entry:
-  // same movement, wrong equipment label, which beats leaving it uncategorised.
-  'pallof press': '0979', 'cable pallof press': '0979', 'vertical pallof press': '1015',
-  'cable core pallof press': '0979', 'core pallof press': '0979',
-  // Hevy's own vocabulary, from a real export. Hevy writes the equipment in parentheses
-  // and uses "bicep"/"chest fly"/"reverse fly" where the dataset says "biceps"/"fly"/
-  // "reverse fly", so these are near-misses the word-bag cannot close on its own.
-  'bicep curl (dumbbell)': '0294', 'bicep curl (cable)': '0868', 'bicep curl (barbell)': '0031',
-  'chest fly (dumbbell)': '0308', 'chest fly (machine)': '0596', 'butterfly (pec deck)': '0596',
-  'incline chest fly (dumbbell)': '0319', 'cable fly crossovers': '1269',
-  'rear delt reverse fly (dumbbell)': '0383', 'rear delt reverse fly (machine)': '0602',
-  'chest supported reverse fly (dumbbell)': '0383',
-  'bench press (smith machine)': '0748', 'overhead press (smith machine)': '0766',
-  'hack squat (machine)': '0743', 'iso-lateral row (machine)': '0571',
-  'seated cable row - bar grip': '0218', 'reverse grip lat pulldown (cable)': '0673',
-  'single arm lateral raise (cable)': '0192', 'plate front raise': '0310',
-  'back extension (weighted hyperextension)': '0573',
-  'behind the back bicep wrist curl (barbell)': '0104',
-  // A face pull is a rope rear-delt row; the dataset has no entry under that name.
-  'face pull': '0203',
-  // Cardio again: the only candidates in a 29-entry cardio vocabulary.
-  'jumping jack': '3220', 'jumping jacks': '3220', 'battle ropes': '0128',
-  'stair machine (steps)': '2311', 'stair machine': '2311',
+  // Bench. Only the incline has a counterpart; there is no decline or close-grip bench here.
+  'barbell bench press': 'wl806', 'flat bench press': 'wl806', 'flat barbell bench press': 'wl806',
+  'incline bench press': 'wl847',
+  // Squat. The bare word needs the alias: the catalogue has back, front and overhead squats, so
+  // the word-bag refuses to choose between them — and a plain "Squat" from a Strong or FitNotes
+  // export means the back squat.
+  squat: 'wl77', 'barbell squat': 'wl77',
+  // Pulls from the floor
+  'romanian deadlift': 'wl101', rdl: 'wl101',
+  // Upper back
+  'lat pull down': 'wl725', pulldown: 'wl725',
+  'reverse grip lat pulldown (cable)': 'wl876',
+  'barbell row': 'wl171', 'bent over row': 'wl171', 'bent-over row': 'wl171',
+  // The catalogue's plain dumbbell row is the single-arm one; without this the word-bag picks
+  // "rle dumbbell row", which is a different exercise.
+  'dumbbell row': 'wl568', 'one arm dumbbell row': 'wl568',
+  // The catalogue's only shrugs are the Olympic ones; the movement is the same one.
+  shrug: 'wl93', shrugs: 'wl93',
+  // Legs. Knee flexion only: an Olympic catalogue has no machine leg curl.
+  'lying leg curl': 'wl559', 'seated leg curl': 'wl559',
+  lunges: 'wl354',
+  // Arms
+  'bicep curl': 'wl821', 'biceps curl': 'wl821', 'bicep curl (dumbbell)': 'wl821',
+  'bicep curl (cable)': 'wl809',
+  // The catalogue's barbell curl is an EZ-bar curl.
+  'bicep curl (barbell)': 'wl838', 'barbell curl': 'wl838',
+  'triceps pushdown': 'wl911', pushdown: 'wl911',
+  'skull crusher': 'wl903',
+  // The only triceps extension here is the overhead one.
+  'lying triceps extension': 'wl804',
+  // Shoulders and rear delts
+  'side raise': 'wl825',
+  // The catalogue carries the two-arm cable raise; one arm at a time is the same movement.
+  'single arm lateral raise (cable)': 'wl811',
+  'rear delt reverse fly (dumbbell)': 'wl870', 'chest supported reverse fly (dumbbell)': 'wl870',
+  // A dumbbell fly and a pec deck are both a pec fly; only the dumbbell one has a counterpart.
+  'chest fly (dumbbell)': 'wl866',
+  // Core and lower back. The Pallof presses here are band ones; the movement is the same.
+  'cable pallof press': 'wl526', 'core pallof press': 'wl526', 'cable core pallof press': 'wl526',
+  'back extension (weighted hyperextension)': 'wl425',
 }
 
 let ALIAS_IDX = null
@@ -270,22 +276,39 @@ export function matchHevyTitle(name) {
 // Grip" is a back exercise); a wrist or reverse curl is a forearm exercise that happens to say
 // "curl"; a leg curl is not an arm curl; and a Romanian or stiff-leg deadlift trains the legs where
 // the conventional pull is filed under the back. "grip" alone still reads as forearms — last.
+// Names the exporters use, mapped onto the OlyGym catalogue's movement families — this is what a
+// name that matched nothing gets stamped with, so a fabricated exercise lands under a chip someone
+// can find again instead of in a category no filter offers.
+//
+// 'cardio' stays a value of its own even though the catalogue has no cardio entry: it is the only
+// route to the cardio logging mode for a custom exercise (a burpee, a treadmill walk).
 const NAME_BP = [
-  [/\b(wrist|forearm|forearms|reverse curl)\b/, 'lower arms'],
-  [/\b(leg curl|leg curls|hamstring curl|nordic)\b/, 'upper legs'],
-  [/\b(romanian|rdl|stiff leg|stiff legged|straight leg)\b.*\bdeadlifts?\b|\brdl\b/, 'upper legs'],
-  [/\b(curl|curls|bicep|biceps|tricep|triceps|skullcrusher|pushdown)\b/, 'upper arms'],
-  [/\bchest supported\b/, 'back'],   // where the chest rests, not what it trains
-  [/\b(bench|chest|pec|fly|flye|crossover|crossovers|dip)\b/, 'chest'],
-  [/\b(row|rows|pulldown|pullup|pull up|chin up|lat|lats|back|deadlift|deadlifts|shrug)\b/, 'back'],
-  [/\b(shoulder|delt|delts|overhead|lateral raise|front raise|face pull|press up)\b/, 'shoulders'],
-  [/\b(calf|calves)\b/, 'lower legs'],
-  [/\b(squat|lunge|leg|glute|hamstring|quad|hip thrust)\b/, 'upper legs'],
-  [/\b(ab|abs|core|plank|crunch|sit up|oblique|russian twist)\b/, 'waist'],
-  [/\b(run|running|jog|bike|cycling|rope|ropes|jump|jacks|burpee|sprint|treadmill|stair)\b/, 'cardio'],
-  [/\bneck\b/, 'neck'],
-  [/\bgrip\b/, 'lower arms'],
+  [/\b(wrist|forearm|forearms|grip|reverse curl)\b/, 'Accessory - Upper Body'],
+  [/\b(leg curl|leg curls|hamstring curl|nordic)\b/, 'Accessory - Lower/Whole Body'],
+  [/\b(romanian|rdl|stiff leg|stiff legged|straight leg)\b.*\bdeadlifts?\b|\brdl\b/, 'Accessory - Lower/Whole Body'],
+  [/\b(back extension|hyperextension)\b/, 'Trunk (Ab & Back)'],
+  [/\b(curl|curls|bicep|biceps|tricep|triceps|skullcrusher|pushdown)\b/, 'Accessory - Upper Body'],
+  [/\bchest supported\b/, 'Accessory - Upper Body'],   // where the chest rests, not what it trains
+  [/\b(bench|chest|pec|fly|flye|crossover|crossovers|dip)\b/, 'Accessory - Upper Body'],
+  // Head words that are more specific than the equipment words around them come first: a back
+  // squat is a squat, not "back", and a leg press is legs, not a press.
+  [/\bsquats?\b/, 'General Exercises'],
+  [/\b(deadlifts?|cleans?|snatch(es)?|jerks?)\b/, 'General Exercises'],
+  [/\b(shoulder|delt|delts|overhead|lateral raise|front raise|face pull|press up)\b/, 'Accessory - Upper Body'],
+  [/\b(calf|calves|tibialis)\b/, 'Accessory - Lower/Whole Body'],
+  [/\b(lunge|leg|glute|hamstring|quad|hip thrust)s?\b/, 'Accessory - Lower/Whole Body'],
+  [/\bpress(es)?\b/, 'General Exercises'],
+  [/\b(ab|abs|core|plank|crunch|sit up|oblique|russian twist)\b/, 'Trunk (Ab & Back)'],
+  [/\b(farmer|suitcase|carry|carries|yoke)\b/, 'Carries'],
+  [/\b(jump|jumps|hop|hops|bound|plyo)\b/, 'Jumping & Plyometrics'],
+  [/\b(stretch|mobility|foam|activation|prehab|rotator)\b/, 'Accessory - Prep & Prehab'],
+  [/\b(run|running|jog|bike|cycling|rope|ropes|jacks|burpee|sprint|treadmill|stair|elliptical|rower|erg)\b/, 'cardio'],
+  [/\b(row|rows|pulldown|pullup|pull up|chin up|lat|lats|back|shrug)\b/, 'Accessory - Upper Body'],
+  [/\bneck\b/, 'Accessory - Prep & Prehab'],
 ]
+
+
+
 // Hyphens, underscores and slashes read as spaces first: "Stiff-Legged Deadlift" and
 // "Chest-Supported Row" are the same names the rules above spell with a space, and the
 // matcher (wordsOf) already treats the two spellings as one exercise — the body part has to agree.
@@ -295,13 +318,20 @@ export const bpFromName = name => {
 }
 
 // Categories the exporters use -> the dataset's body parts, for exercises we invent.
+// Categories the exporters use -> the catalogue's movement families, for exercises we invent.
 const CATEGORY_BP = {
-  chest: 'chest', back: 'back', lats: 'back', shoulders: 'shoulders', delts: 'shoulders',
-  legs: 'upper legs', quads: 'upper legs', hamstrings: 'upper legs', glutes: 'upper legs',
-  calves: 'lower legs', abs: 'waist', core: 'waist', obliques: 'waist',
-  arms: 'upper arms', biceps: 'upper arms', triceps: 'upper arms', forearms: 'lower arms',
-  cardio: 'cardio', 'full body': 'upper legs', olympic: 'upper legs', neck: 'neck',
+  chest: 'Accessory - Upper Body', back: 'Accessory - Upper Body', lats: 'Accessory - Upper Body',
+  shoulders: 'Accessory - Upper Body', delts: 'Accessory - Upper Body',
+  arms: 'Accessory - Upper Body', biceps: 'Accessory - Upper Body', triceps: 'Accessory - Upper Body',
+  forearms: 'Accessory - Upper Body', neck: 'Accessory - Prep & Prehab',
+  legs: 'Accessory - Lower/Whole Body', quads: 'Accessory - Lower/Whole Body',
+  hamstrings: 'Accessory - Lower/Whole Body', glutes: 'Accessory - Lower/Whole Body',
+  calves: 'Accessory - Lower/Whole Body',
+  abs: 'Trunk (Ab & Back)', core: 'Trunk (Ab & Back)', obliques: 'Trunk (Ab & Back)',
+  cardio: 'cardio',
+  'full body': 'General Exercises', olympic: 'General Exercises',
 }
+
 
 /* ----------------------------------------------------------- conversion --- */
 
@@ -428,7 +458,7 @@ export function parseWorkoutCSV(text, { unit = 'kg' } = {}) {
         c = {
           id: 'im' + uid(), n: name.toLowerCase(), custom: true, eq: 'custom', tg: '', desc: '',
           bp: CATEGORY_BP[cell(r, 'category').toLowerCase()] || (km || (mins && !reps) ? 'cardio' : null)
-            || bpFromName(name.toLowerCase()) || 'upper legs',
+            || bpFromName(name.toLowerCase()) || 'General Exercises',
         }
         created.set(key, c)
         unmatched.add(name)

@@ -6,22 +6,46 @@ import {
 import { EXIDX } from './exercises.js'
 import { mergeImport } from './import-csv.js'
 
+// Fixtures come out of the map itself rather than being typed in: the map is regenerated against
+// the catalogue (scripts/build-hevy-id-map.mjs), and a template id written here by hand would go
+// stale exactly the way the whole map did when the OlyGym catalogue replaced the old dataset.
+const hidFor = name => {
+  const hit = Object.entries(HEVY_ID_MAP).find(([, id]) => EXIDX[id]?.n === name)
+  if (!hit) throw new Error(`HEVY_ID_MAP no longer maps "${name}" — pick another fixture`)
+  return hit[0]
+}
+const SPLIT_HID = hidFor('bulgarian split squat')
+const CURL_HID = hidFor('hammer curl')
+const LUNGE_HID = hidFor('reverse lunge')
+const SPLIT_ID = HEVY_ID_MAP[SPLIT_HID]
+const CURL_ID = HEVY_ID_MAP[CURL_HID]
+const LUNGE_ID = HEVY_ID_MAP[LUNGE_HID]
+
+// Template ids Hevy has and the catalogue cannot reach: a distance template (no cardio entry in an
+// Olympic catalogue) and a template the user invented in Hevy. Both become custom exercises.
+const DIST_HID = 'DEAD0001'
+const CUSTOM_HID = 'DEADBEEF'
+
 const TEMPLATES = [
   {
-    id: '3303376C', title: 'Elliptical Trainer', type: 'distance_duration',
+    id: SPLIT_HID, title: 'Bulgarian Split Squat (Dumbbell)', type: 'weight_reps',
+    primary_muscle_group: 'quadriceps', secondary_muscle_groups: [], equipment: 'dumbbell', is_custom: false,
+  },
+  {
+    id: CURL_HID, title: 'Hammer Curl (Dumbbell)', type: 'weight_reps',
+    primary_muscle_group: 'biceps', secondary_muscle_groups: [], equipment: 'dumbbell', is_custom: false,
+  },
+  {
+    id: LUNGE_HID, title: 'Reverse Lunge (Dumbbell)', type: 'weight_reps',
+    primary_muscle_group: 'quadriceps', secondary_muscle_groups: [], equipment: 'dumbbell', is_custom: false,
+  },
+  {
+    id: DIST_HID, title: 'Treadmill Run', type: 'distance_duration',
     primary_muscle_group: 'cardio', secondary_muscle_groups: [], equipment: 'machine', is_custom: false,
   },
   {
-    id: '4E5257DE', title: 'Lat Pulldown - Close Grip (Cable)', type: 'weight_reps',
-    primary_muscle_group: 'lats', secondary_muscle_groups: [], equipment: 'machine', is_custom: false,
-  },
-  {
-    id: 'DEADBEEF', title: 'My Invented Landmine Twist', type: 'weight_reps',
-    primary_muscle_group: 'abdominals', secondary_muscle_groups: [], equipment: 'other', is_custom: true,
-  },
-  {
-    id: '99D5F10E', title: 'Ab Wheel', type: 'reps_only',
-    primary_muscle_group: 'abdominals', secondary_muscle_groups: [], equipment: 'other', is_custom: false,
+    id: CUSTOM_HID, title: 'My Invented Landmine Row', type: 'weight_reps',
+    primary_muscle_group: 'other', secondary_muscle_groups: [], equipment: 'other', is_custom: true,
   },
 ]
 
@@ -33,17 +57,8 @@ const WORKOUT = {
   exercises: [
     {
       index: 0,
-      title: 'Crosstrainer', // localized — must NOT drive the match
-      exercise_template_id: '3303376C',
-      sets: [{
-        index: 0, type: 'normal', weight_kg: null, reps: null,
-        distance_meters: 480, duration_seconds: 180, rpe: null,
-      }],
-    },
-    {
-      index: 1,
-      title: 'Latzug - Enger Griff (Kabel)',
-      exercise_template_id: '4E5257DE',
+      title: 'Bulgarische Ausfallschritte', // localized — must NOT drive the match
+      exercise_template_id: SPLIT_HID,
       sets: [
         { index: 0, type: 'warmup', weight_kg: 25, reps: 15, distance_meters: null, duration_seconds: null, rpe: null },
         { index: 1, type: 'normal', weight_kg: 52, reps: 15, distance_meters: null, duration_seconds: null, rpe: 8 },
@@ -51,9 +66,26 @@ const WORKOUT = {
       ],
     },
     {
+      index: 1,
+      title: 'Hammercurls',
+      exercise_template_id: CURL_HID,
+      sets: [
+        { index: 0, type: 'normal', weight_kg: 20, reps: 12, distance_meters: null, duration_seconds: null, rpe: null },
+      ],
+    },
+    {
       index: 2,
+      title: 'Laufband',
+      exercise_template_id: DIST_HID,
+      sets: [{
+        index: 0, type: 'normal', weight_kg: null, reps: null,
+        distance_meters: 480, duration_seconds: 180, rpe: null,
+      }],
+    },
+    {
+      index: 3,
       title: 'Meine Eigenkreation',
-      exercise_template_id: 'DEADBEEF',
+      exercise_template_id: CUSTOM_HID,
       sets: [
         { index: 0, type: 'normal', weight_kg: 20, reps: 12, distance_meters: null, duration_seconds: null, rpe: null },
       ],
@@ -68,30 +100,18 @@ describe('HEVY_ID_MAP', () => {
     }
   })
 
-  // Real import leftovers: same lifts under Hevy's naming. Map lookup is the
-  // only resolution path — titles are never guessed at runtime.
-  const PINNED = {
-    B5D3A742: '0410', // Bulgarian Split Squat (Dumbbell)
-    '914F3A96': '0327', // Chest Supported Incline Row (Dumbbell)
-    '98237BA2': '0826', // Knee Raise Parallel Bars
-    '4E5257DE': '2616', // Lat Pulldown - Close Grip (Cable)
-    C315DC2A: '0602', // Rear Delt Reverse Fly (Cable)
-    FFDA283B: '0381', // Reverse Lunge (Dumbbell)
-    '8BAB2735': '0318', // Seated Incline Curl (Dumbbell)
-    '9237BAD1': '0603', // Seated Shoulder Press (Machine)
-    B05C2C29: '0605', // Single Leg Standing Calf Raise (Machine)
-    '3303376C': '2141', // Elliptical Trainer
-    '99D5F10E': '0857', // Ab Wheel
-  }
-  for (const [hid, want] of Object.entries(PINNED)) {
-    it(`maps ${hid} → ${want} (${EXIDX[want]?.n})`, () => {
+  // Real import leftovers: same lifts under Hevy's naming. Map lookup is the only resolution path —
+  // titles are never guessed at runtime.
+  const PINNED = [[SPLIT_HID, SPLIT_ID], [CURL_HID, CURL_ID], [LUNGE_HID, LUNGE_ID]]
+  for (const [hid, want] of PINNED) {
+    it(`maps ${hid} → ${want} (${EXIDX[want].n})`, () => {
       expect(HEVY_ID_MAP[hid]).toBe(want)
       expect(matchHevyTemplate({ id: hid, title: 'ignored localized name' })).toBe(want)
     })
   }
 
   it('leaves catalogue gaps unmapped (import as custom)', () => {
-    for (const id of ['68CE0B9B', '0222DB42', 'D1CD146F']) {
+    for (const id of [DIST_HID, CUSTOM_HID, '68CE0B9B']) {
       expect(HEVY_ID_MAP[id]).toBeUndefined()
       expect(matchHevyTemplate({ id, title: 'whatever' })).toBeNull()
     }
@@ -100,8 +120,8 @@ describe('HEVY_ID_MAP', () => {
 
 describe('matchHevyTemplate', () => {
   it('is map-only — title never overrides the id', () => {
-    expect(matchHevyTemplate({ id: '3303376C', title: 'Totally Wrong Name' })).toBe('2141')
-    expect(matchHevyTemplate({ id: 'DEADBEEF', title: 'Bench Press' })).toBeNull()
+    expect(matchHevyTemplate({ id: SPLIT_HID, title: 'Totally Wrong Name' })).toBe(SPLIT_ID)
+    expect(matchHevyTemplate({ id: CUSTOM_HID, title: 'Bench Press' })).toBeNull()
   })
 })
 
@@ -113,32 +133,38 @@ describe('parseHevyWorkouts', () => {
     expect(parsed.workouts).toHaveLength(1)
 
     const entries = parsed.workouts[0].entries
-    const elliptical = entries.find(e => e.id === '2141')
-    expect(elliptical).toBeTruthy()
-    expect(elliptical.sets[0]).toMatchObject({ min: 3, done: true })
+    const split = entries.find(e => e.id === SPLIT_ID)
+    expect(split).toBeTruthy()
+    expect(split.sets[0]).toMatchObject({ w: 25, r: 15, phase: 'warmup' })
+    expect(split.sets[1]).toMatchObject({ w: 52, r: 15, rpe: 8 })
+    expect(split.topW).toBe(52)
 
-    const pulldown = entries.find(e => e.id === '2616')
-    expect(pulldown).toBeTruthy()
-    expect(pulldown.sets[0]).toMatchObject({ w: 25, r: 15, phase: 'warmup' })
-    expect(pulldown.sets[1]).toMatchObject({ w: 52, r: 15, rpe: 8 })
-    expect(pulldown.topW).toBe(52)
+    const curl = entries.find(e => e.id === CURL_ID)
+    expect(curl).toBeTruthy()
+    expect(curl.sets[0]).toMatchObject({ w: 20, r: 12 })
+
     expect(parsed.warmups).toBe(1)
     expect(parsed.rpeSets).toBe(1)
-    // The stored volume leaves the warm-up out, like a workout finished in the app (QA C14):
-    // 52×15 + 52×10 + 20×12 = 1,540, not 1,915.
-    expect(parsed.workouts[0].vol).toBe(1540)
+    // The stored volume leaves the warm-up out, like a workout finished in the app (QA C14), and a
+    // distance set carries no tonnage: 52×15 + 52×10 + 20×12 + 20×12.
+    expect(parsed.workouts[0].vol).toBe(52 * 15 + 52 * 10 + 20 * 12 + 20 * 12)
 
-    const custom = entries.find(e => String(e.id).startsWith('im'))
-    expect(custom).toBeTruthy()
-    expect(parsed.customEx.some(c => c.id === custom.id && c.n === 'my invented landmine twist')).toBe(true)
-    expect(parsed.customEx.find(c => c.id === custom.id).bp).toBe('waist')
-    expect(parsed.unmatchedNames).toContain('My Invented Landmine Twist')
+    // Two customs: the distance template (no cardio in an Olympic catalogue) and the invented one.
+    const customs = entries.filter(e => String(e.id).startsWith('im'))
+    expect(customs).toHaveLength(2)
+    const distance = customs.find(e => e.id === parsed.customEx.find(c => c.n === 'treadmill run').id)
+    expect(distance.sets[0]).toMatchObject({ min: 3, done: true })
+    expect(parsed.customEx.find(c => c.n === 'treadmill run').bp).toBe('cardio')
+    // An invented row gets its family off the name, and the warm-up-less Hevy group does not win.
+    expect(parsed.customEx.find(c => c.n === 'my invented landmine row').bp).toBe('Accessory - Upper Body')
+    expect(parsed.unmatchedNames).toContain('My Invented Landmine Row')
+    expect(parsed.unmatchedNames).toContain('Treadmill Run')
   })
 
   it('converts kg weights into a lb profile', () => {
     const parsed = parseHevyWorkouts([WORKOUT], TEMPLATES, { unit: 'lb' })
-    const pulldown = parsed.workouts[0].entries.find(e => e.id === '2616')
-    expect(pulldown.sets.find(s => s.r === 15 && !s.phase).w).toBeCloseTo(114.6, 0)
+    const split = parsed.workouts[0].entries.find(e => e.id === SPLIT_ID)
+    expect(split.sets.find(s => s.r === 15 && !s.phase).w).toBeCloseTo(114.6, 0)
     expect(parsed.converted).toBe(true)
   })
 
@@ -171,7 +197,7 @@ describe('mergeImport with Hevy payloads', () => {
     const S = { workouts: [], customEx: [], exWeights: {}, bodyweight: [] }
     const first = mergeImport(S, parsed)
     expect(first.added).toBe(1)
-    expect(S.customEx.length).toBe(1)
+    expect(S.customEx.length).toBe(2)   // the distance template and the invented exercise
     const second = mergeImport(S, parsed)
     expect(second.added).toBe(0)
     expect(S.workouts).toHaveLength(1)
@@ -228,14 +254,14 @@ describe('parseHevyRoutines', () => {
     title: 'Oberkörper 2',
     exercises: [
       {
-        title: 'Crosstrainer',
-        exercise_template_id: '3303376C',
+        title: 'Laufband',
+        exercise_template_id: DIST_HID,
         superset_id: null,
         sets: [{ type: 'normal', weight_kg: null, reps: null, distance_meters: 480, duration_seconds: 180 }],
       },
       {
-        title: 'Latzug',
-        exercise_template_id: '4E5257DE',
+        title: 'Bulgarische Ausfallschritte',
+        exercise_template_id: SPLIT_HID,
         superset_id: 1,
         sets: [
           { type: 'warmup', weight_kg: 25, reps: 15 },
@@ -245,8 +271,8 @@ describe('parseHevyRoutines', () => {
         ],
       },
       {
-        title: 'Row partner',
-        exercise_template_id: '914F3A96', // chest supported incline row → 0327
+        title: 'Reverse Lunge',
+        exercise_template_id: LUNGE_HID,
         superset_id: 1,
         sets: [
           { type: 'normal', weight_kg: 20, reps: 12 },
@@ -262,14 +288,16 @@ describe('parseHevyRoutines', () => {
     expect(parsed.routines[0].name).toBe('Oberkörper 2')
     expect(parsed.exerciseCount).toBe(3)
 
-    const [cardio, pull, row] = parsed.routines[0].ex
-    expect(cardio.id).toBe('2141')
+    const [cardio, split, lunge] = parsed.routines[0].ex
+    // No cardio entry in the catalogue any more: the distance template arrives as a custom, still
+    // logged in cardio mode.
+    expect(parsed.customEx.find(c => c.id === cardio.id).bp).toBe('cardio')
     expect(cardio).toMatchObject({ sets: 1, min: 3 })
-    expect(pull.id).toBe('2616')
-    expect(pull).toMatchObject({ sets: 3, reps: 15, weight: 52, warmupSets: 1 })
-    expect(row.id).toBe('0327')
-    expect(pull.sg).toBeTruthy()
-    expect(pull.sg).toBe(row.sg)
+    expect(split.id).toBe(SPLIT_ID)
+    expect(split).toMatchObject({ sets: 3, reps: 15, weight: 52, warmupSets: 1 })
+    expect(lunge.id).toBe(LUNGE_ID)
+    expect(split.sg).toBeTruthy()
+    expect(split.sg).toBe(lunge.sg)
   })
 
   it('mergeHevyRoutines replaces a routine it imported before instead of duplicating it', () => {
@@ -297,9 +325,10 @@ describe('parseHevyRoutines', () => {
 describe('buildHevyExerciseMap', () => {
   it('indexes every template id from the static map', () => {
     const map = buildHevyExerciseMap(TEMPLATES)
-    expect(map.get('3303376C')).toBe('2141')
-    expect(map.get('4E5257DE')).toBe('2616')
-    expect(map.get('DEADBEEF')).toBeNull()
+    expect(map.get(SPLIT_HID)).toBe(SPLIT_ID)
+    expect(map.get(CURL_HID)).toBe(CURL_ID)
+    expect(map.get(LUNGE_HID)).toBe(LUNGE_ID)
+    expect(map.get(CUSTOM_HID)).toBeNull()
     expect(map.size).toBe(TEMPLATES.length)
   })
 })
