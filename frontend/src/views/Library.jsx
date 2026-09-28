@@ -35,7 +35,7 @@ export default function Library() {
   useRevealActiveChip(eqStrip, eqOn)
 
   return <>
-    <div className="hdr"><div><h1>{t('Exercises')}</h1><div className="sub">{t('{0} exercises with animations', EXDB.length)}</div></div>
+    <div className="hdr"><div><h1>{t('Exercises')}</h1><div className="sub">{t('{0} exercises with video demos', EXDB.length)}</div></div>
       <Button size="sm" variant="tinted" icon="target" onClick={() => nav('/muscles')}>{t('By muscle')}</Button>
     </div>
     <div className="search" style={{ marginBottom: 10 }}><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
@@ -61,7 +61,7 @@ export default function Library() {
     <div className="list">
       <div className="item" {...tappable(() => customExSheet(null, ex => exerciseDetailSheet(ex), q.trim()))}>
         <div className="thumb thumb-x"><Icon name="sparkles" /></div>
-        <div className="grow"><div className="tt">{t('Create your own exercise')}</div><div className="ss">{t('name + body part, no animation')}</div></div><Icon name="plus" className="chev" />
+        <div className="grow"><div className="tt">{t('Create your own exercise')}</div><div className="ss">{t('name + body part, no video')}</div></div><Icon name="plus" className="chev" />
       </div>
       {f.slice(0, shown).map(e => {
         const best = bestWeightFor(S, e.id)

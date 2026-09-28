@@ -306,10 +306,11 @@ export default function Settings() {
             onChange={v => update(s => { s.keepAwake = v })} />
         </Row>
       )}
-      {/* 'full'/'mini' is also what the tap-toggle on the workout animation writes; 'off' hides
-          workout media entirely (library, detail sheet and picker thumbs are unaffected).
-          Legacy/unknown values read as 'full'. */}
-      <Row icon="figureRun" iconTint="var(--green)" title={t('Exercise animations')}>
+      {/* 'full'/'mini' is also what the minimise toggle in the workout writes; 'off' hides the
+          picture in the workout entirely (library, detail sheet and picker thumbs are unaffected).
+          Legacy/unknown values read as 'full'. The key is still called gifSize: renaming it would
+          be a state migration for no behaviour. */}
+      <Row icon="figureRun" iconTint="var(--green)" title={t('Exercise pictures')}>
         <Segmented className="seg-inline"
           options={[{ value: 'full', label: t('Full') }, { value: 'mini', label: t('Small') }, { value: 'off', label: t('Hidden') }]}
           value={S.gifSize === 'mini' || S.gifSize === 'off' ? S.gifSize : 'full'}
@@ -433,8 +434,8 @@ export default function Settings() {
         are running, or whether an update actually installed. */}
     <div className="dim small" style={{ textAlign: 'center', marginTop: 4, lineHeight: 1.6 }}>
       openGym v{__APP_VERSION__} · {t('free & open source (AGPL v3)')}<br />
-      <a href="https://gitlab.com/DuarteSantos8/opengym" target="_blank" rel="noopener">source code</a> · exercise data: hasaneyldrm/exercises-dataset (MIT)<br />
-      exercise images and animations © <a href="https://gymvisual.com/" target="_blank" rel="noopener">Gym visual</a>
+      <a href="https://gitlab.com/DuarteSantos8/opengym" target="_blank" rel="noopener">source code</a> · exercise data: <a href="https://www.catalystathletics.com/exercises/" target="_blank" rel="noopener">Catalyst Athletics</a><br />
+      {t('demo videos: YouTube — frames hotlinked, nothing downloaded')}
     </div>
   </div>
 }

@@ -435,7 +435,7 @@ h4.sec{
   position:absolute;left:6px;right:6px;height:3px;border-radius:99px;
   background:var(--acc);transform:translateY(-50%);pointer-events:none;z-index:3;
 }
-.thumb{width:50px;height:50px;border-radius:9px;object-fit:cover;background:#fff;flex:none}
+.thumb{width:50px;height:50px;border-radius:9px;object-fit:cover;background:var(--surface-2);flex:none}
 /* exercise pictures are decoration inside tappable rows/cards: no save-image callout on
    a long press and no drag ghost when a scroll starts on the picture */
 .thumb,.exmedia img{-webkit-touch-callout:none;-webkit-user-drag:none;user-select:none;-webkit-user-select:none}
@@ -689,8 +689,10 @@ body.chips-dragging *{cursor:inherit}
 }
 .wprog{height:4px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin-bottom:16px}
 .wprog i{display:block;height:100%;background:var(--acc);border-radius:99px;transition:width var(--med) var(--ease)}
-.exmedia{position:relative;border-radius:var(--r-lg);overflow:hidden;background:#fff;margin-bottom:12px}
-.exmedia img{width:100%;height:320px;object-fit:contain;display:block}
+/* the frame of the demo video, hotlinked from YouTube: 16:9, cropped by object-fit so the
+   letterboxed hqdefault fallback loses its black bars. Nothing is downloaded. */
+.exmedia{position:relative;border-radius:var(--r-lg);overflow:hidden;background:var(--surface-2);margin-bottom:12px}
+.exmedia img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
 .exmedia .gifhint,.exmedia .giftoggle{
   position:absolute;bottom:9px;display:inline-flex;align-items:center;gap:4px;
   background:rgba(0,0,0,.45);color:#fff;border-radius:99px;padding:5px 11px;
@@ -700,16 +702,14 @@ body.chips-dragging *{cursor:inherit}
 .exmedia .gifhint{right:9px}
 .exmedia .giftoggle{left:9px}
 .exmedia .gifhint .icn,.exmedia .giftoggle .icn{font-size:13px}
-/* superset: both exercises are on screen together, so the animations have to give way —
-   at 180px you had to scroll a full screen between two exercises done back-to-back */
-.exmedia.compact img{height:120px}
+/* superset: both exercises are on screen together, so the pictures have to give way — the card
+   is half a screen wide, so 16:9 already lands around 90px without its own height */
 .exmedia.mini img{height:84px}
-/* both the animation and the still failed to load: a neutral tile instead of the browser's
-   broken-image glyph; same heights as the picture so the card does not jump. tap retries. */
+/* the frame 404'd (or the connection dropped): a neutral tile instead of the browser's
+   broken-image glyph, same shape as the picture so the card does not jump. tap retries. */
 .exmedia.broken{background:var(--surface-2)}
-.exmedia-x{width:100%;height:320px;display:flex;align-items:center;justify-content:center;color:var(--label-3);font-size:34px}
-.exmedia.compact .exmedia-x{height:120px}
-.exmedia.mini .exmedia-x{height:84px}
+.exmedia-x{width:100%;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;color:var(--label-3);font-size:34px}
+.exmedia.mini .exmedia-x{height:84px;aspect-ratio:auto}
 
 .sethead{
   display:flex;align-items:center;gap:8px;padding:0 0 6px;
@@ -1415,7 +1415,6 @@ body.chips-dragging *{cursor:inherit}
   /* 520px fits the clock, the bar and all three controls on one line again */
   #timer.rest{flex-direction:row;align-items:center;gap:14px}
   #timer.rest .head{flex:1;min-width:0}
-  .exmedia img{height:380px}
   .hm-wrap{display:flex;flex-direction:column;align-items:center}
 }
 
