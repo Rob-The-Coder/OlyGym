@@ -119,16 +119,14 @@ docker compose pull   # grab prebuilt images (amd64 + arm64) — skip to build f
 docker compose up -d
 ```
 
-Open **http://localhost:8080**, tap **Create profile**, and you're in. First launch downloads
-the exercise media (~140 MB) once.
+Open **http://localhost:8080**, tap **Create profile**, and you're in. Nothing is downloaded: each
+exercise shows the poster frame of its demo video, hotlinked from YouTube by your browser.
 
-> **About that media:** it reaches openGym through
-> [hasaneyldrm/exercises-dataset](https://github.com/hasaneyldrm/exercises-dataset), which
-> redistributes [ExerciseDB v1](https://exercisedb.dev/) — its metadata and instruction text are
-> MIT, but the images and animations are third-party content under *neither* that MIT license nor
-> openGym's AGPL, and their ownership is currently disputed between Gym visual and ExerciseDB.
-> openGym ships none of it: your instance downloads it from upstream. Reusing it yourself,
-> commercially or not, means clearing it with the rights holder — see [NOTICE.md](NOTICE.md).
+> **About that picture:** the catalogue in this fork comes from
+> [Catalyst Athletics](https://www.catalystathletics.com/exercises/) — names, descriptions and the
+> link to each exercise's video — and the videos are theirs, hosted on YouTube. This fork ships no
+> media at all: the frame is fetched at runtime and nothing is stored. Their text and videos are
+> under neither openGym's AGPL nor any license granted to you — see [NOTICE.md](NOTICE.md).
 The prebuilt images are published twice, from the same tag: `registry.gitlab.com/duartesantos8/opengym/{api,web}`
 (what `docker-compose.yml` pulls) and `ghcr.io/duartesantos8/opengym-{api,web}` on GitHub — swap the
 `image:` lines if you prefer GHCR. Prefer building the images yourself instead of pulling from a
@@ -225,8 +223,8 @@ trainer role, MCP write), the iOS app, the Android and health items, and what al
 ## Tech
 
 React 19 + Vite (React Router, Zustand) · Node (no framework) · nginx · Docker Compose ·
-WebAuthn · exercise data from [hasaneyldrm/exercises-dataset](https://github.com/hasaneyldrm/exercises-dataset)
-(MIT metadata and instructions; media © Gym visual — see [License](#license)).
+WebAuthn · exercise data from [Catalyst Athletics](https://www.catalystathletics.com/exercises/);
+demo videos on YouTube, frames hotlinked at runtime (see [License](#license)).
 No database server, no cloud dependencies — the frontend builds inside Docker, so self-hosting
 stays a one-command `docker compose up`.
 
@@ -291,15 +289,12 @@ use, modify and share it; if you run a modified version as a network service, yo
 version's source under the same license. Nobody can turn openGym into a closed, proprietary
 product.
 
-**Third-party content is not, and openGym cannot sublicense it.** The exercise metadata and
-instruction text originate from [ExerciseDB v1](https://exercisedb.dev/) and reach openGym through
-[hasaneyldrm/exercises-dataset](https://github.com/hasaneyldrm/exercises-dataset) under the
-**MIT** license. The exercise images and animations are third-party content covered by neither
-that license nor the AGPL, and their ownership is **currently unresolved** — the upstream dataset
-attributes them to [Gym visual](https://gymvisual.com/) under a non-transferable permission, while
-[ExerciseDB/AscendAPI](https://exercisedb.io/faq) claims to be their creator and owner. A
-clarification has been requested. openGym does not redistribute them (your instance fetches them
-at first run) and does not relicense them. To reuse that media yourself, clear it with the rights
-holder first.
+**Third-party content is not, and openGym cannot sublicense it.** The exercise catalogue in this
+fork — names, movement categories, equipment, descriptions and the link to each demo video — comes
+from [Catalyst Athletics](https://www.catalystathletics.com/exercises/), taken from their public
+exercise pages; every entry cites the page it came from. Neither that text nor their videos are
+covered by the AGPL or licensed to you by this project. No media is redistributed here: the app
+hotlinks the video's poster frame from `img.youtube.com` at runtime and never stores it. To reuse
+their text or video yourself, clear it with the rights holder first.
 
 Full third-party notices, including the body-diagram geometry: **[NOTICE.md](NOTICE.md)**.
