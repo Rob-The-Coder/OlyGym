@@ -1250,4 +1250,22 @@ export default {
   'already added': 'già aggiunto',
   'no exercises': 'nessun esercizio',
   'Pick equipment': 'Scegli l’attrezzatura',
+  // Movement families of the OlyGym catalogue (see lib/exercises.js BODYPARTS). They are i18n keys
+  // like every other label, and Italian is the language this fork is read in: the other packs fall
+  // back to English until someone translates them.
+  'Snatch': 'Strappo',
+  'Clean': 'Girata',
+  'Jerk': 'Slancio',
+  'General Exercises': 'Esercizi generali',
+  'Trunk (Ab & Back)': 'Tronco (addome e schiena)',
+  'Jumping & Plyometrics': 'Salti e pliometria',
+  'Accessory - Lower/Whole Body': 'Accessori - Gambe e corpo intero',
+  'Accessory - Upper Body': 'Accessori - Parte superiore',
+  'Accessory - Prep & Prehab': 'Accessori - Preparazione e prevenzione',
+  'Carries': 'Trasporti',
+  // Labels for the Coach's insight bars (views/CoachChat.jsx BP_LABEL).
+  'Plyometrics': 'Pliometria',
+  'Lower body': 'Parte inferiore',
+  'Upper body': 'Parte superiore',
+  'Prehab': 'Prevenzione',
 }

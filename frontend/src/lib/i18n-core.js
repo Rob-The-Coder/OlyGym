@@ -9,8 +9,15 @@ export const LANGS = {
   tr: 'Türkçe', ru: 'Русский', zh: '中文',
   ko: '한국어', hi: 'हिन्दी', th: 'ไทย', hu: 'Magyar'
 }
-export const INSTR_LANGS = ['en', 'es', 'fr', 'it', 'tr', 'ru', 'zh', 'hi', 'pl', 'ko', 'pt-BR', 'hu']
-export const EXERCISE_NAME_LANGS = ['pt-BR', 'hu']
+// Exercise instructions and translated exercise names ship as per-language packs keyed by exercise
+// id. Every id in the catalogue was replaced by the OlyGym swap, so the packs that came with the old
+// dataset — eleven instruction packs and two name packs, ~7 MB the app loaded and then ignored,
+// because a pack with no entry for an id quietly falls back to English — went with it.
+//
+// 'en' is the catalogue's own `st` steps, which is what everything reads now. Translating the new
+// catalogue is a real job: the generator scripts and their curated sources are still in scripts/.
+export const INSTR_LANGS = ['en']
+export const EXERCISE_NAME_LANGS = []
 export const DATE_LOCALES = {
   en: 'en-GB', de: 'de-DE', 'de-CH': 'de-CH', es: 'es-ES', fr: 'fr-FR', it: 'it-IT',
   pt: 'pt-PT', 'pt-BR': 'pt-BR',
@@ -101,9 +108,10 @@ export function _setLangState(newLang, newDict, newInstr, newExerciseNames) {
   lang = LANGS[newLang] ? newLang : 'en'
   dict = lang === 'en' ? {} : (newDict || {})
   instr = lang === 'en' || !INSTR_LANGS.includes(baseLang(lang)) ? null : (newInstr || null)
-  exerciseNames = lang === 'en' || !EXERCISE_NAME_LANGS.includes(baseLang(lang))
-    ? null
-    : (newExerciseNames || null)
+  // An explicitly handed name pack is honoured even for a language we ship none for: the loader
+  // only ever passes one for a language in EXERCISE_NAME_LANGS, and the tests use this seam to pin
+  // the localized-name search while no pack is shipped (the OlyGym catalogue has none yet).
+  exerciseNames = lang === 'en' ? null : (newExerciseNames || null)
   version++
   return version
 }
