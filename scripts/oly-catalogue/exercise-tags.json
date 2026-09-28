@@ -1,0 +1,4199 @@
+{
+  "wl39": {
+    "eq": "body weight",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl40": {
+    "eq": "body weight",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl44": {
+    "eq": "body weight"
+  },
+  "wl45": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl58": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl59": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl60": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl61": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl62": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl63": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl65": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl66": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl67": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl68": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl69": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl70": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl71": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl72": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl75": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl76": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl77": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl78": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl79": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl80": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl81": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl82": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl86": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl87": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl88": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl89": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl90": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl92": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl93": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl95": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl96": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl97": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl98": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl99": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl100": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl101": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl104": {
+    "eq": "body weight",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl113": {
+    "eq": "body weight"
+  },
+  "wl135": {
+    "eq": "body weight"
+  },
+  "wl149": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl150": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl158": {
+    "eq": "body weight"
+  },
+  "wl162": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl163": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl166": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl167": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl168": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl171": {
+    "eq": "barbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl173": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl174": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl176": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl177": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl179": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl180": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl181": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl183": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl184": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl185": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl186": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl187": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl193": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl194": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl196": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl197": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl198": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl202": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl203": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl204": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl205": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl206": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl207": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl208": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl209": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl211": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl213": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl215": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl217": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl218": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl312": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl313": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl314": {
+    "eq": "plate",
+    "tg": "obliques",
+    "sm": [
+      "abs"
+    ]
+  },
+  "wl315": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl316": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl317": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl318": {
+    "eq": "body weight"
+  },
+  "wl320": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl321": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl322": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl324": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl325": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl326": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl327": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl328": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl329": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl353": {
+    "eq": "body weight",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl354": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal"
+    ]
+  },
+  "wl355": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl358": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl359": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl360": {
+    "eq": "bench",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl361": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl362": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl365": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl366": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl367": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl368": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl369": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl370": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl371": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl372": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl373": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl374": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl378": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl379": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl380": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl381": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl382": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl383": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl385": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl386": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl387": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl388": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl389": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl390": {
+    "eq": "bench",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl391": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl392": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl393": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl394": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl396": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl397": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl398": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl399": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl400": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl401": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl402": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl403": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl404": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl405": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl406": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl407": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl408": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl409": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl410": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl411": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "calves"
+    ]
+  },
+  "wl412": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl413": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl414": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl416": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl417": {
+    "eq": "barbell"
+  },
+  "wl418": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl419": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl420": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl421": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl424": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl425": {
+    "eq": "body weight",
+    "tg": "triceps"
+  },
+  "wl426": {
+    "eq": "body weight",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl427": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl428": {
+    "eq": "barbell"
+  },
+  "wl429": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl430": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl431": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl432": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl433": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl434": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl435": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl436": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl438": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl439": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl440": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl441": {
+    "eq": "barbell"
+  },
+  "wl442": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl443": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl444": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl445": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl448": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl449": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl450": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl453": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl454": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl455": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl456": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl457": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl458": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl459": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl462": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl463": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl464": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl465": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl466": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl467": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl468": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl469": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl470": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl471": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl472": {
+    "eq": "band",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl473": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl474": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal"
+    ]
+  },
+  "wl475": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl476": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl477": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl478": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl479": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl480": {
+    "eq": "body weight",
+    "tg": "triceps"
+  },
+  "wl481": {
+    "eq": "barbell"
+  },
+  "wl482": {
+    "eq": "dumbbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl483": {
+    "eq": "dumbbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl485": {
+    "eq": "barbell"
+  },
+  "wl487": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl488": {
+    "eq": "body weight",
+    "tg": "triceps"
+  },
+  "wl489": {
+    "eq": "body weight",
+    "tg": "obliques",
+    "sm": [
+      "abs"
+    ]
+  },
+  "wl490": {
+    "eq": "body weight"
+  },
+  "wl491": {
+    "eq": "body weight"
+  },
+  "wl492": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl494": {
+    "eq": "body weight"
+  },
+  "wl496": {
+    "eq": "body weight",
+    "tg": "gluteal",
+    "sm": [
+      "hamstring"
+    ]
+  },
+  "wl497": {
+    "eq": "body weight",
+    "tg": "obliques",
+    "sm": [
+      "abs"
+    ]
+  },
+  "wl498": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl499": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl500": {
+    "eq": "body weight"
+  },
+  "wl501": {
+    "eq": "body weight",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl503": {
+    "eq": "body weight",
+    "tg": "obliques",
+    "sm": [
+      "abs"
+    ]
+  },
+  "wl504": {
+    "eq": "body weight"
+  },
+  "wl505": {
+    "eq": "body weight",
+    "tg": "triceps"
+  },
+  "wl506": {
+    "eq": "body weight",
+    "tg": "triceps"
+  },
+  "wl507": {
+    "eq": "body weight"
+  },
+  "wl508": {
+    "eq": "body weight"
+  },
+  "wl509": {
+    "eq": "body weight"
+  },
+  "wl510": {
+    "eq": "body weight"
+  },
+  "wl511": {
+    "eq": "body weight"
+  },
+  "wl512": {
+    "eq": "body weight"
+  },
+  "wl513": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl514": {
+    "eq": "dumbbell",
+    "tg": "forearm",
+    "sm": [
+      "trapezius"
+    ]
+  },
+  "wl515": {
+    "eq": "dumbbell",
+    "tg": "forearm",
+    "sm": [
+      "trapezius"
+    ]
+  },
+  "wl516": {
+    "eq": "barbell",
+    "tg": "triceps"
+  },
+  "wl517": {
+    "eq": "barbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl518": {
+    "eq": "barbell",
+    "tg": "triceps"
+  },
+  "wl521": {
+    "eq": "body weight",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl522": {
+    "eq": "body weight"
+  },
+  "wl523": {
+    "eq": "body weight"
+  },
+  "wl524": {
+    "eq": "kettlebell"
+  },
+  "wl526": {
+    "eq": "body weight",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl527": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl528": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl529": {
+    "eq": "body weight"
+  },
+  "wl530": {
+    "eq": "body weight"
+  },
+  "wl531": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl532": {
+    "eq": "body weight"
+  },
+  "wl533": {
+    "eq": "body weight"
+  },
+  "wl535": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl536": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl537": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl539": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl540": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl541": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl542": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl543": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl544": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl545": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl546": {
+    "eq": "bench"
+  },
+  "wl547": {
+    "eq": "body weight"
+  },
+  "wl548": {
+    "eq": "box",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "calves"
+    ]
+  },
+  "wl549": {
+    "eq": "body weight",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "calves"
+    ]
+  },
+  "wl550": {
+    "eq": "body weight"
+  },
+  "wl551": {
+    "eq": "body weight",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "calves"
+    ]
+  },
+  "wl552": {
+    "eq": "box",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "calves"
+    ]
+  },
+  "wl553": {
+    "eq": "box",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl554": {
+    "eq": "body weight",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "calves"
+    ]
+  },
+  "wl555": {
+    "eq": "body weight",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl556": {
+    "eq": "box",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "calves"
+    ]
+  },
+  "wl557": {
+    "eq": "body weight",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "calves"
+    ]
+  },
+  "wl558": {
+    "eq": "body weight",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "calves"
+    ]
+  },
+  "wl559": {
+    "eq": "barbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl560": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal"
+    ]
+  },
+  "wl561": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal"
+    ]
+  },
+  "wl562": {
+    "eq": "dumbbell",
+    "tg": "forearm",
+    "sm": [
+      "trapezius"
+    ]
+  },
+  "wl563": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl564": {
+    "eq": "body weight"
+  },
+  "wl565": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl566": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl567": {
+    "eq": "body weight"
+  },
+  "wl568": {
+    "eq": "dumbbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl569": {
+    "eq": "barbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl570": {
+    "eq": "barbell",
+    "tg": "triceps"
+  },
+  "wl571": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl572": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl577": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl578": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl579": {
+    "eq": "barbell"
+  },
+  "wl580": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl581": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl584": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl586": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl588": {
+    "eq": "dumbbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl590": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl591": {
+    "eq": "dumbbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl593": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl594": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl595": {
+    "eq": "body weight"
+  },
+  "wl596": {
+    "eq": "body weight"
+  },
+  "wl597": {
+    "eq": "body weight"
+  },
+  "wl598": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal"
+    ]
+  },
+  "wl600": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal"
+    ]
+  },
+  "wl604": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl605": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl606": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl607": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl608": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl609": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl610": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl611": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl612": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl613": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl614": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl615": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl616": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl617": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl618": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl619": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl620": {
+    "eq": "body weight",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl621": {
+    "eq": "body weight",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl622": {
+    "eq": "box",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl623": {
+    "eq": "body weight",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl624": {
+    "eq": "body weight",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "calves"
+    ]
+  },
+  "wl625": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl626": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl627": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl628": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl629": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl630": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl631": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl632": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl633": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl634": {
+    "eq": "body weight",
+    "tg": "obliques",
+    "sm": [
+      "abs"
+    ]
+  },
+  "wl635": {
+    "eq": "body weight"
+  },
+  "wl636": {
+    "eq": "body weight"
+  },
+  "wl637": {
+    "eq": "barbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl638": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl639": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl640": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl641": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl642": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl643": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl644": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl645": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl646": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl647": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl648": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl649": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl650": {
+    "eq": "band",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl651": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl652": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl653": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl654": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl655": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl656": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl657": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl658": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl659": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl660": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl661": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl662": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl663": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl664": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl665": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl666": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl667": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl668": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl669": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl670": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl671": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl672": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl673": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl674": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl675": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl676": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl677": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl678": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl679": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl680": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl681": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl682": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl683": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl684": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl685": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl686": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl687": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl688": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl689": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl690": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl691": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl692": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl693": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl694": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl695": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl696": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl697": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl698": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl699": {
+    "eq": "barbell",
+    "tg": "trapezius",
+    "sm": [
+      "quadriceps",
+      "gluteal"
+    ]
+  },
+  "wl700": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl701": {
+    "eq": "barbell",
+    "tg": "obliques",
+    "sm": [
+      "abs"
+    ]
+  },
+  "wl702": {
+    "eq": "bench"
+  },
+  "wl703": {
+    "eq": "body weight",
+    "tg": "obliques",
+    "sm": [
+      "abs"
+    ]
+  },
+  "wl704": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl705": {
+    "eq": "body weight",
+    "tg": "obliques",
+    "sm": [
+      "abs"
+    ]
+  },
+  "wl706": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl707": {
+    "eq": "body weight",
+    "tg": "obliques",
+    "sm": [
+      "abs"
+    ]
+  },
+  "wl708": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl709": {
+    "eq": "body weight"
+  },
+  "wl710": {
+    "eq": "body weight",
+    "tg": "triceps"
+  },
+  "wl711": {
+    "eq": "body weight",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl712": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl713": {
+    "eq": "body weight"
+  },
+  "wl714": {
+    "eq": "body weight",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl715": {
+    "eq": "body weight",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl716": {
+    "eq": "body weight"
+  },
+  "wl717": {
+    "eq": "body weight",
+    "tg": "obliques",
+    "sm": [
+      "abs"
+    ]
+  },
+  "wl718": {
+    "eq": "bench",
+    "tg": "chest",
+    "sm": [
+      "triceps",
+      "deltoids"
+    ]
+  },
+  "wl719": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl720": {
+    "eq": "barbell",
+    "tg": "obliques",
+    "sm": [
+      "abs"
+    ]
+  },
+  "wl721": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl722": {
+    "eq": "dumbbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl723": {
+    "eq": "bench",
+    "tg": "gluteal",
+    "sm": [
+      "hamstring"
+    ]
+  },
+  "wl724": {
+    "eq": "dumbbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl725": {
+    "eq": "barbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl726": {
+    "eq": "dumbbell",
+    "tg": "forearm",
+    "sm": [
+      "trapezius"
+    ]
+  },
+  "wl727": {
+    "eq": "bench",
+    "tg": "gluteal",
+    "sm": [
+      "hamstring"
+    ]
+  },
+  "wl728": {
+    "eq": "body weight"
+  },
+  "wl729": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl730": {
+    "eq": "body weight",
+    "tg": "gluteal",
+    "sm": [
+      "hamstring"
+    ]
+  },
+  "wl731": {
+    "eq": "body weight"
+  },
+  "wl732": {
+    "eq": "body weight"
+  },
+  "wl733": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal"
+    ]
+  },
+  "wl734": {
+    "eq": "barbell"
+  },
+  "wl735": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal"
+    ]
+  },
+  "wl736": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl737": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl738": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal"
+    ]
+  },
+  "wl739": {
+    "eq": "barbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal"
+    ]
+  },
+  "wl740": {
+    "eq": "dumbbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl741": {
+    "eq": "dumbbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl742": {
+    "eq": "body weight",
+    "tg": "gluteal",
+    "sm": [
+      "hamstring"
+    ]
+  },
+  "wl743": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl744": {
+    "eq": "wall"
+  },
+  "wl745": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl746": {
+    "eq": "dumbbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl747": {
+    "eq": "body weight",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl748": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  },
+  "wl749": {
+    "eq": "wall"
+  },
+  "wl750": {
+    "eq": "wall"
+  },
+  "wl751": {
+    "eq": "body weight",
+    "tg": "adductors"
+  },
+  "wl752": {
+    "eq": "body weight"
+  },
+  "wl753": {
+    "eq": "body weight"
+  },
+  "wl754": {
+    "eq": "body weight",
+    "tg": "adductors"
+  },
+  "wl755": {
+    "eq": "body weight",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl756": {
+    "eq": "band",
+    "tg": "adductors"
+  },
+  "wl757": {
+    "eq": "body weight",
+    "tg": "adductors"
+  },
+  "wl758": {
+    "eq": "body weight",
+    "tg": "adductors"
+  },
+  "wl759": {
+    "eq": "band",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl760": {
+    "eq": "band",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl761": {
+    "eq": "band"
+  },
+  "wl762": {
+    "eq": "band",
+    "tg": "deltoids"
+  },
+  "wl763": {
+    "eq": "band"
+  },
+  "wl764": {
+    "eq": "band"
+  },
+  "wl765": {
+    "eq": "band",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl766": {
+    "eq": "body weight"
+  },
+  "wl767": {
+    "eq": "body weight"
+  },
+  "wl768": {
+    "eq": "body weight"
+  },
+  "wl769": {
+    "eq": "body weight"
+  },
+  "wl770": {
+    "eq": "body weight",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal"
+    ]
+  },
+  "wl771": {
+    "eq": "body weight",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal"
+    ]
+  },
+  "wl772": {
+    "eq": "body weight"
+  },
+  "wl773": {
+    "eq": "barbell",
+    "tg": "triceps"
+  },
+  "wl774": {
+    "eq": "barbell"
+  },
+  "wl775": {
+    "eq": "body weight",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl776": {
+    "eq": "body weight"
+  },
+  "wl777": {
+    "eq": "body weight"
+  },
+  "wl778": {
+    "eq": "band"
+  },
+  "wl779": {
+    "eq": "band",
+    "tg": "adductors"
+  },
+  "wl780": {
+    "eq": "body weight"
+  },
+  "wl781": {
+    "eq": "band",
+    "tg": "abs",
+    "sm": [
+      "hip-flexors"
+    ]
+  },
+  "wl782": {
+    "eq": "body weight",
+    "tg": "triceps"
+  },
+  "wl783": {
+    "eq": "wall"
+  },
+  "wl784": {
+    "eq": "band"
+  },
+  "wl785": {
+    "eq": "band"
+  },
+  "wl786": {
+    "eq": "body weight",
+    "tg": "adductors"
+  },
+  "wl787": {
+    "eq": "sled"
+  },
+  "wl788": {
+    "eq": "barbell"
+  },
+  "wl789": {
+    "eq": "barbell"
+  },
+  "wl790": {
+    "eq": "barbell"
+  },
+  "wl791": {
+    "eq": "band"
+  },
+  "wl792": {
+    "eq": "body weight",
+    "tg": "gluteal",
+    "sm": [
+      "hamstring"
+    ]
+  },
+  "wl793": {
+    "eq": "body weight",
+    "tg": "adductors"
+  },
+  "wl794": {
+    "eq": "body weight",
+    "tg": "adductors"
+  },
+  "wl795": {
+    "eq": "body weight"
+  },
+  "wl796": {
+    "eq": "wall"
+  },
+  "wl797": {
+    "eq": "dumbbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl798": {
+    "eq": "kettlebell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl799": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl800": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl801": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl802": {
+    "eq": "band",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl803": {
+    "eq": "barbell"
+  },
+  "wl804": {
+    "eq": "barbell",
+    "tg": "triceps"
+  },
+  "wl805": {
+    "eq": "barbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl806": {
+    "eq": "bench",
+    "tg": "chest",
+    "sm": [
+      "triceps",
+      "deltoids"
+    ]
+  },
+  "wl807": {
+    "eq": "bench",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl808": {
+    "eq": "cable",
+    "tg": "triceps"
+  },
+  "wl809": {
+    "eq": "cable",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl810": {
+    "eq": "cable",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl811": {
+    "eq": "cable"
+  },
+  "wl812": {
+    "eq": "cable"
+  },
+  "wl813": {
+    "eq": "cable",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl814": {
+    "eq": "cable",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl815": {
+    "eq": "barbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl816": {
+    "eq": "barbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl817": {
+    "eq": "cable",
+    "tg": "triceps"
+  },
+  "wl818": {
+    "eq": "dumbbell",
+    "tg": "forearm",
+    "sm": [
+      "trapezius"
+    ]
+  },
+  "wl819": {
+    "eq": "dumbbell",
+    "tg": "chest",
+    "sm": [
+      "triceps",
+      "deltoids"
+    ]
+  },
+  "wl820": {
+    "eq": "dumbbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl821": {
+    "eq": "dumbbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl822": {
+    "eq": "dumbbell"
+  },
+  "wl823": {
+    "eq": "dumbbell"
+  },
+  "wl824": {
+    "eq": "dumbbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl825": {
+    "eq": "dumbbell"
+  },
+  "wl826": {
+    "eq": "dumbbell"
+  },
+  "wl827": {
+    "eq": "dumbbell",
+    "tg": "forearm",
+    "sm": [
+      "trapezius"
+    ]
+  },
+  "wl828": {
+    "eq": "dumbbell",
+    "tg": "triceps"
+  },
+  "wl829": {
+    "eq": "dumbbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl830": {
+    "eq": "dumbbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl831": {
+    "eq": "dumbbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl832": {
+    "eq": "dumbbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl833": {
+    "eq": "dumbbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl834": {
+    "eq": "dumbbell"
+  },
+  "wl835": {
+    "eq": "dumbbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl836": {
+    "eq": "dumbbell",
+    "tg": "triceps"
+  },
+  "wl837": {
+    "eq": "dumbbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl838": {
+    "eq": "ez barbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl839": {
+    "eq": "ez barbell"
+  },
+  "wl840": {
+    "eq": "dumbbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl841": {
+    "eq": "barbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl842": {
+    "eq": "barbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl843": {
+    "eq": "barbell",
+    "tg": "triceps"
+  },
+  "wl844": {
+    "eq": "barbell"
+  },
+  "wl845": {
+    "eq": "barbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl846": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl847": {
+    "eq": "bench",
+    "tg": "chest",
+    "sm": [
+      "triceps",
+      "deltoids"
+    ]
+  },
+  "wl848": {
+    "eq": "bench"
+  },
+  "wl849": {
+    "eq": "bench",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl850": {
+    "eq": "dumbbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl851": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl852": {
+    "eq": "body weight",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl853": {
+    "eq": "dumbbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl854": {
+    "eq": "dumbbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps",
+      "quadriceps"
+    ]
+  },
+  "wl855": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl856": {
+    "eq": "kettlebell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl857": {
+    "eq": "kettlebell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl858": {
+    "eq": "barbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl859": {
+    "eq": "barbell"
+  },
+  "wl860": {
+    "eq": "cable",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl861": {
+    "eq": "barbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl862": {
+    "eq": "barbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl863": {
+    "eq": "cable",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl864": {
+    "eq": "body weight",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl865": {
+    "eq": "barbell"
+  },
+  "wl866": {
+    "eq": "barbell"
+  },
+  "wl867": {
+    "eq": "barbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl868": {
+    "eq": "barbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl869": {
+    "eq": "body weight"
+  },
+  "wl870": {
+    "eq": "barbell"
+  },
+  "wl871": {
+    "eq": "barbell"
+  },
+  "wl872": {
+    "eq": "cable",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl873": {
+    "eq": "ez barbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl874": {
+    "eq": "barbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl875": {
+    "eq": "barbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl876": {
+    "eq": "barbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl877": {
+    "eq": "cable",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl878": {
+    "eq": "barbell"
+  },
+  "wl879": {
+    "eq": "rings",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl880": {
+    "eq": "dumbbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl881": {
+    "eq": "cable",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl882": {
+    "eq": "kettlebell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl883": {
+    "eq": "cable",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl884": {
+    "eq": "body weight",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl885": {
+    "eq": "barbell"
+  },
+  "wl886": {
+    "eq": "barbell",
+    "tg": "triceps"
+  },
+  "wl887": {
+    "eq": "cable",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl888": {
+    "eq": "dumbbell",
+    "tg": "forearm",
+    "sm": [
+      "trapezius"
+    ]
+  },
+  "wl889": {
+    "eq": "dumbbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl890": {
+    "eq": "dumbbell",
+    "tg": "forearm",
+    "sm": [
+      "trapezius"
+    ]
+  },
+  "wl891": {
+    "eq": "dumbbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl892": {
+    "eq": "dumbbell",
+    "tg": "forearm",
+    "sm": [
+      "trapezius"
+    ]
+  },
+  "wl893": {
+    "eq": "dumbbell",
+    "tg": "quadriceps",
+    "sm": [
+      "gluteal",
+      "hamstring"
+    ]
+  },
+  "wl894": {
+    "eq": "cable",
+    "tg": "triceps"
+  },
+  "wl895": {
+    "eq": "barbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl896": {
+    "eq": "rings",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl897": {
+    "eq": "cable",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl898": {
+    "eq": "barbell"
+  },
+  "wl899": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl900": {
+    "eq": "barbell"
+  },
+  "wl901": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl902": {
+    "eq": "dumbbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl903": {
+    "eq": "barbell"
+  },
+  "wl904": {
+    "eq": "bench",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl905": {
+    "eq": "barbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl906": {
+    "eq": "barbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl907": {
+    "eq": "barbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl908": {
+    "eq": "dumbbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl909": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl910": {
+    "eq": "barbell"
+  },
+  "wl911": {
+    "eq": "barbell"
+  },
+  "wl912": {
+    "eq": "cable",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl913": {
+    "eq": "barbell",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl914": {
+    "eq": "barbell",
+    "tg": "deltoids",
+    "sm": [
+      "triceps"
+    ]
+  },
+  "wl915": {
+    "eq": "barbell",
+    "tg": "biceps",
+    "sm": [
+      "forearm"
+    ]
+  },
+  "wl916": {
+    "eq": "band"
+  },
+  "wl917": {
+    "eq": "body weight",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl918": {
+    "eq": "body weight",
+    "tg": "upper-back",
+    "sm": [
+      "biceps"
+    ]
+  },
+  "wl919": {
+    "eq": "body weight",
+    "tg": "serratus",
+    "sm": [
+      "trapezius"
+    ]
+  },
+  "wl920": {
+    "eq": "body weight"
+  },
+  "wl921": {
+    "eq": "barbell",
+    "tg": "hamstring",
+    "sm": [
+      "gluteal",
+      "lower-back"
+    ]
+  }
+}
