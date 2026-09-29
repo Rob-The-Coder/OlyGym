@@ -208,3 +208,27 @@
 .setrow{padding:10px 0}
 .setrow .stp button{height:44px}
 
+
+/* ============================================================================
+   Home
+   ----------------------------------------------------------------------------
+   Most of this screen is already carried by the primitives (cards, rows, the
+   gear's icon button, the primary button, the chips). What is Home's own is the
+   week strip and the little tag pills.
+   ============================================================================ */
+
+/* M3 gives a day its own container rather than a bare number: same footprint, a
+   softer corner, and a state layer under the finger. Today keeps the filled
+   accent circle it already had — that part was M3 before this pass. */
+.wday{border-radius:20px;transition:background var(--fast) var(--ease)}
+.wday:active{background:color-mix(in srgb,var(--label) 10%,transparent)}
+.wday .dot.plan{background:var(--m3-outline)}
+
+/* Tags become M3 assist chips: outlined instead of filled, so a row of them stops
+   reading as a row of buttons. The accent tag keeps its tonal container. */
+.tag{
+  border-radius:var(--m3-shape-s);
+  background:transparent;
+  box-shadow:inset 0 0 0 1px var(--m3-outline-variant);
+}
+.tag.acc{box-shadow:none;background:color-mix(in srgb,var(--acc) 22%,transparent);color:var(--acc)}
