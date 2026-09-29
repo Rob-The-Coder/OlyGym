@@ -37,7 +37,12 @@ export default function Media({ ex, id, compact, minimizable }) {
   const src = chain[step]
   const retry = () => setStep(0)
   const embed = mode === 'off' ? null : embedUrl(ex)
-  const playing = !!embed && (mode === 'inline' || asked)
+  // ponytail: 'inline' is honoured everywhere except the workout. A workout can have six
+  // exercises on screen at once, and six live YouTube players is six videos loading and trying to
+  // play at the same time — the poster is what a workout wants. Lift the restriction if the
+  // workout ever shows one exercise at a time.
+  const inline = mode === 'inline' && !minimizable
+  const playing = !!embed && (inline || asked)
   const open = e => { e.stopPropagation(); setAsked(true) }
   return (
     <div className={'exmedia' + (compact ? ' compact' : '') + (mini ? ' mini' : '') + (src || playing ? '' : ' broken')} id={id} onClick={src || playing ? undefined : retry}>

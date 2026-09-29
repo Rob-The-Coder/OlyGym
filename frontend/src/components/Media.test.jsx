@@ -147,6 +147,15 @@ describe('Media video', () => {
     expect(badge()).toBeFalsy()
   })
 
+  it("'inline' does not load a player per exercise in the workout — the badge is still there", () => {
+    mocks.S = { gifSize: 'full', video: 'inline' }
+    mount({ minimizable: true })
+    expect(host.querySelector('iframe')).toBeFalsy()
+    expect(badge()).toBeTruthy()
+    act(() => { badge().click() })
+    expect(host.querySelector('iframe').getAttribute('src')).toBe(EMBED)
+  })
+
   it('shows no badge in the minimised strip, and no badge without a video', () => {
     mocks.S = { gifSize: 'mini' }
     mount({ minimizable: true })
