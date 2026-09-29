@@ -113,6 +113,12 @@
 .btn.sm{min-height:36px;padding:6px 16px;font-size:13px;border-radius:var(--m3-shape-full)}
 .btn.xs{min-height:28px;padding:4px 12px;font-size:12px;border-radius:var(--m3-shape-full)}
 
+/* --- icon buttons: M3 gives them a round container and a state layer -------- */
+/* Square-on-press was the tell here too (index.css scaled to .92 over a square
+   fill). Sizes stay wherever a screen overrides them; the shape just rounds. */
+.iconbtn{border-radius:var(--m3-shape-full);transition:background var(--fast) var(--ease),color var(--fast)}
+.iconbtn:active{background:color-mix(in srgb,var(--label) 12%,transparent);transform:none}
+
 /* --- chips: M3 filter chip — outlined, small radius, tonal when selected --- */
 .chip{
   border-radius: var(--m3-shape-s); border: 1px solid var(--m3-outline);
