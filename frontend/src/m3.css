@@ -360,3 +360,18 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
 .day-row .lrow-i{width:34px;height:34px;border-radius:var(--m3-shape-full);font-size:18px}
 .day-row .tt{font-size:15px}
 .day-add{margin-top:8px}
+
+/* ============================================================================
+   Stats
+   ----------------------------------------------------------------------------
+   The number tiles, at the density the user picked on 2026-09-29 (variant B of
+   three, oly-previews/stats-variants.png): 18px of padding, a 30/500 figure and
+   the label on M3's label-medium. The charts were in that mockup only as a
+   schematic — the real ones are 140 to 160px tall already, chosen per chart, and
+   they stay as they are.
+   ============================================================================ */
+.tiles{gap:12px}
+.tile{border-radius:20px;padding:18px}
+.tile .l{font-size:12px;font-weight:500;letter-spacing:.03em}
+.tile .v{font-size:30px;font-weight:500;letter-spacing:-.012em}
+.tile.tappable:active{background:color-mix(in srgb,var(--label) 10%,transparent)}
