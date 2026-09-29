@@ -315,3 +315,48 @@
 
 .card .big{font-size:34px;font-weight:500;letter-spacing:-.012em}
 .sect-t{font-size:12px;font-weight:500;letter-spacing:.03em}
+
+/* ============================================================================
+   Plan and the routine editor
+   ----------------------------------------------------------------------------
+   Shape, surface and type only; the week schedule's inner rows are laid out with
+   inline styles in Plan.jsx, so they are not touched here (they need a decision
+   of their own — see the plan).
+   ============================================================================ */
+
+/* One role, one look: the section label above a list, a card's own heading and
+   the label over a group all become M3's label-medium. index.css had them at
+   13/400, .sect-t is already 12/500 from the type pass — this lines them up. */
+h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--label-2)}
+
+/* The Coach banner becomes an M3 tonal card: the accent stays in the mix, but as
+   a container tone rather than a gradient with a coloured border, and a press is
+   a state layer instead of scaling the whole card. */
+.coach-cta{
+  border-radius:20px;border:0;
+  background:color-mix(in srgb,var(--acc) 14%,var(--m3-surface-container));
+  transition:background var(--fast) var(--ease);
+}
+.coach-cta:active{transform:none;background:color-mix(in srgb,var(--acc) 22%,var(--m3-surface-container))}
+.coach-cta-av{border-radius:var(--m3-shape-l)}
+
+/* M3's empty state: the glyph sits in a large tonal circle instead of floating. */
+.empty .ico{
+  width:64px;height:64px;border-radius:var(--m3-shape-full);margin:0 auto 14px;
+  background:var(--m3-surface-container-high);color:var(--label-2);font-size:28px;
+}
+
+/* Muscle chips in the editor are the same idea as .tag, so they get the same
+   outlined treatment instead of a filled pill. */
+.mchip{border-radius:var(--m3-shape-s);background:transparent;box-shadow:inset 0 0 0 1px var(--m3-outline-variant)}
+
+/* The week schedule's day cards. The sub-rows used to be laid out with inline
+   styles in Plan.jsx, which a stylesheet cannot override — they are classes now,
+   and this is the density the user picked on 2026-09-29 (variant B of three drawn
+   side by side, oly-media-preview-plan-variants.png): 8px between sub-rows, a
+   34px round glyph, 15px routine names. */
+.item.day-card{display:block;min-height:0;padding:14px 16px}
+.day-row{display:flex;align-items:center;gap:12px;padding:8px 0}
+.day-row .lrow-i{width:34px;height:34px;border-radius:var(--m3-shape-full);font-size:18px}
+.day-row .tt{font-size:15px}
+.day-add{margin-top:8px}
