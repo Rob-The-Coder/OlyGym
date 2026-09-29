@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import { MOBILE } from './lib/mobile.js'
 import './index.css'
+// Material 3 Expressive tokens, loaded after index.css on purpose: equal-specificity
+// `:root` rules here win, and upstream's index.css stays untouched. See m3.css.
+import './m3.css'
 
 // App.jsx restores per-route scroll itself; the browser's own attempt races it.
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual'

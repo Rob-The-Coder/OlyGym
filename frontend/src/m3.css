@@ -1,0 +1,377 @@
+/* ============================================================================
+   Material 3 Expressive — the token layer
+   ----------------------------------------------------------------------------
+   Two rules hold this file together:
+
+   1. Every value here is a Material 3 role or a step of an M3 scale (shape,
+      motion, tonal surface). No component styles live here yet — this layer
+      only re-points the variables the app already uses, so all 15k lines of JSX
+      and index.css keep working untouched.
+   2. index.css is upstream's file and stays untouched, which is why this is a
+      second file instead of an edit: upstream merges keep costing nothing, and
+      the override lives in one place. It is loaded after index.css (main.jsx),
+      so equal-specificity `:root` rules here win.
+
+   What it changes today: corner radii (M3 shape scale — sheets and the tab bar
+   get M3's 28dp extra-large corner), the tonal surface ladder (a card separates
+   from its background by tone, not by a hairline), and the motion curves
+   (M3 standard easing, longer durations than iOS's snappy ones).
+
+   What deliberately is NOT here yet: elevation shadows, state layers and the
+   type scale. Nothing reads them today, and a token nobody reads is dead code —
+   they arrive with the screens that use them (WS4b), in this same file.
+   ============================================================================ */
+
+:root {
+  /* ---- shape: M3 none / xs 4 / s 8 / m 12 / l 16 / xl 28 / full ------------ */
+  --m3-shape-xs:   4px;
+  --m3-shape-s:    8px;
+  --m3-shape-m:   12px;
+  --m3-shape-l:   16px;
+  --m3-shape-xl:  28px;
+  --m3-shape-full: 999px;
+
+  /* ---- colour roles, dark -------------------------------------------------
+     M3's dark surfaces are near-black with a faint tint raised toward the
+     primary hue, and they step by tone. Pure #000 with hairline separators is
+     the iOS look this replaces. */
+  --m3-surface:                    #0b0b0e;   /* the page behind everything */
+  --m3-surface-container-lowest:   #060608;   /* recessed wells (track, rail) */
+  --m3-surface-container-low:      #151419;   /* bars, sheets */
+  --m3-surface-container:          #1d1b21;   /* cards, grouped lists */
+  --m3-surface-container-high:     #27252c;   /* nested fills, pressed state */
+  --m3-surface-container-highest:  #33313a;   /* controls: segmented track, switch */
+  --m3-outline:         rgba(147, 143, 153, .50);
+  --m3-outline-variant: rgba(147, 143, 153, .28);
+
+  /* ---- motion: M3 standard / emphasized curves and durations -------------- */
+  --m3-ease-standard:   cubic-bezier(.2, 0, 0, 1);
+  --m3-ease-emphasized: cubic-bezier(.3, 0, 0, 1);
+  --m3-dur-short:  150ms;
+  --m3-dur-medium: 250ms;
+  --m3-dur-long:   400ms;
+
+  /* ---- the app's own names, defined by the roles above -------------------- */
+  --bg:        var(--m3-surface);
+  --bg-el:     var(--m3-surface-container-low);
+  --surface:   var(--m3-surface-container);
+  --surface-2: var(--m3-surface-container-high);
+  --surface-3: var(--m3-surface-container-highest);
+  --sep:       var(--m3-outline);
+  --sep-op:    var(--m3-outline-variant);
+
+  --r-sm:   var(--m3-shape-s);
+  --r:      var(--m3-shape-m);
+  --r-card: var(--m3-shape-l);
+  --r-lg:   var(--m3-shape-l);
+  --r-xl:   var(--m3-shape-xl);
+
+  --ease: var(--m3-ease-standard);
+  --fast: var(--m3-dur-short);
+  --med:  var(--m3-dur-medium);
+}
+
+/* Light: M3's light surfaces carry the same faint tint. The card keeps its
+   contrast against the page (white on a tinted background), as before. */
+:root[data-theme="light"] {
+  --m3-surface:                   #f8f5fb;
+  --m3-surface-container-lowest:  #f2eef6;
+  --m3-surface-container-low:     #f4f0f8;
+  --m3-surface-container:         #ffffff;
+  --m3-surface-container-high:    #ece7f1;
+  --m3-surface-container-highest: #e3dde9;
+  --m3-outline:         rgba(73, 69, 79, .50);
+  --m3-outline-variant: rgba(73, 69, 79, .24);
+}
+
+/* ============================================================================
+   Primitives
+   ----------------------------------------------------------------------------
+   M3's look lives here, not in the tokens above: buttons become pills, chips
+   grow an outline, the segmented control gets a pill that slides, list rows go
+   to 56dp, and the navigation bar gets its indicator. Every rule overrides a
+   class index.css already uses (.btn, .chip, .seg, .lrow, #tabbar), so all of
+   it reaches every screen without touching a line of JSX.
+   ============================================================================ */
+
+/* --- buttons: M3 pill, 40dp, label 14/500, state layer on press ------------ */
+.btn{
+  border-radius: var(--m3-shape-full);
+  min-height: 40px; padding: 10px 24px;
+  font-size: 14px; font-weight: 500; letter-spacing: .006em;
+  transition: filter var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+.btn .icn{font-size:18px}
+/* M3 answers a press with a state layer over the same shape; scaling the whole
+   button (which is what index.css did) is the iOS tell. */
+.btn:active{transform:none;filter:brightness(1.16)}
+.btn.primary{box-shadow:0 1px 2px rgba(0,0,0,.30), 0 1px 3px 1px rgba(0,0,0,.15)}
+.btn.primary:active{background:var(--acc)}
+.btn.tinted{background:color-mix(in srgb,var(--acc) 20%,transparent);color:var(--label)}
+.btn.danger{background:color-mix(in srgb,var(--red) 20%,transparent);color:var(--label)}
+.btn.ghost,.btn.plain{font-weight:500}
+.btn.sm{min-height:36px;padding:6px 16px;font-size:13px;border-radius:var(--m3-shape-full)}
+.btn.xs{min-height:28px;padding:4px 12px;font-size:12px;border-radius:var(--m3-shape-full)}
+
+/* --- icon buttons: M3 gives them a round container and a state layer -------- */
+/* Square-on-press was the tell here too (index.css scaled to .92 over a square
+   fill). Sizes stay wherever a screen overrides them; the shape just rounds. */
+.iconbtn{border-radius:var(--m3-shape-full);transition:background var(--fast) var(--ease),color var(--fast)}
+.iconbtn:active{background:color-mix(in srgb,var(--label) 12%,transparent);transform:none}
+
+/* --- chips: M3 filter chip — outlined, small radius, tonal when selected --- */
+.chip{
+  border-radius: var(--m3-shape-s); border: 1px solid var(--m3-outline);
+  background: transparent; color: var(--label-2); font-weight: 500;
+  padding: 6px 12px;
+}
+.chip:active{background:color-mix(in srgb,var(--label) 10%,transparent)}
+.chip.on{background:color-mix(in srgb,var(--acc) 26%,transparent);border-color:transparent;color:var(--label);font-weight:500}
+.chip.on .dim{color:color-mix(in srgb,var(--label) 62%,transparent)}
+
+/* --- segmented: the pill slides on a full track ---------------------------- */
+.seg{background:var(--m3-surface-container-highest);border-radius:var(--m3-shape-full);padding:4px}
+:root[data-theme="light"] .seg{background:var(--m3-surface-container-highest)}
+.seg-sel{
+  top:4px;bottom:4px;left:4px;
+  width:calc((100% - 8px)/var(--n));
+  background:var(--acc);border-radius:var(--m3-shape-full);box-shadow:none;
+}
+:root[data-theme="light"] .seg-sel{background:var(--acc)}
+.seg button{color:var(--label-2);font-weight:500}
+.seg button.on{color:var(--on-acc)}
+
+/* --- grouped lists: 20dp container, 56dp rows, separators between only ---- */
+.sect-b,.card{border-radius:20px}
+.lrow{min-height:56px;padding:12px 16px}
+.lrow+.lrow::before{background:var(--m3-outline-variant);left:16px}
+.lrow:has(.lrow-i)+.lrow:has(.lrow-i)::before{left:61px}
+.lrow.tap:active{background:color-mix(in srgb,var(--label) 10%,transparent)}
+.item:active{background:color-mix(in srgb,var(--label) 10%,transparent)}
+
+/* --- navigation bar: indicator behind the active icon, Start as an M3 FAB -- */
+/* The indicator is a pseudo element rather than padding on the icon: `.icn` is an
+   SVG sized 1em × 1em with border-box, so padding would shrink the glyph itself. */
+#tabbar{
+  border-top: 0;
+  background: color-mix(in srgb,var(--m3-surface-container-low) 96%, transparent);
+  box-shadow: 0 1px 0 var(--m3-outline-variant) inset;
+}
+#tabbar button{position:relative;font-size:11px;gap:2px;color:var(--label-2)}
+/* The indicator wraps icon *and* label, not just the icon: a pill around the icon alone
+   left the top of the label poking out of it, which read as a half-covered tab. `inset`
+   rather than a fixed box keeps it correct whatever the label's height ends up being in
+   another language. */
+#tabbar button::before{
+  content:'';position:absolute;z-index:0;inset:-3px 0;border-radius:20px;
+  background:transparent;transition:background var(--fast) var(--ease);
+}
+#tabbar button.on:not(.start)::before{background:color-mix(in srgb,var(--acc) 24%,transparent)}
+#tabbar button.on{color:var(--label)}
+#tabbar button .icn{position:relative;z-index:1;font-size:22px;color:var(--label-2)}
+#tabbar button.on .icn{color:var(--label)}
+/* the FAB: M3 gives it a 16dp corner, not a circle */
+#tabbar button.start{margin-top:-20px}
+#tabbar button.start .cir{border-radius:var(--m3-shape-l)}
+#tabbar button.start.rec .cir::after{border-radius:var(--m3-shape-l)}
+
+/* ============================================================================
+   Workout — M3 at the density it already has
+   ----------------------------------------------------------------------------
+   Decided with the user: shape, ink and state layers change; spacing does not.
+   A set row keeps its 7px of padding on purpose — this is the one screen where
+   a taller row costs a scroll in the middle of a set.
+   ============================================================================ */
+
+/* The done marker becomes an M3 filled icon button. Unchecked was outlined in
+   --label-4 (18% white), which nearly disappeared on the tonal card; the outline
+   token is a real edge without being loud. Checked stays the accent fill, and the
+   press answers with a state layer instead of shrinking the target under a finger. */
+.chk,.ck{box-shadow:inset 0 0 0 1.5px var(--m3-outline)}
+.chk.on,.ck.on{box-shadow:none}
+.chk:active,.ck:active{transform:none;background:color-mix(in srgb,var(--label) 12%,transparent)}
+.chk.on:active,.ck.on:active{background:var(--acc);filter:brightness(1.16)}
+
+/* The kg/reps steppers keep their 40×44 hit areas; M3 just gives the group its
+   pill shape and answers a press with a state layer rather than a fill swap. */
+.stp{border-radius:var(--m3-shape-full)}
+.stp button:active{background:color-mix(in srgb,var(--label) 12%,transparent)}
+
+/* Separators between sets, at the M3 outline tone (was --sep, the heavier one). */
+.setrow+.setrow::before{background:var(--m3-outline-variant)}
+
+/* Chosen with the user on 2026-09-29: a little more room here too. A set row goes
+   from 7px to 10px of padding and the kg/reps steppers from 40px to 44px, which is
+   M3's minimum touch target — the controls were cramped enough that the pill shape
+   did not read at all. It costs a few pixels of scroll per set, which is the trade
+   the user picked over "M3 you cannot see". */
+.setrow{padding:10px 0}
+.setrow .stp button{height:44px}
+
+
+/* ============================================================================
+   Home
+   ----------------------------------------------------------------------------
+   Most of this screen is already carried by the primitives (cards, rows, the
+   gear's icon button, the primary button, the chips). What is Home's own is the
+   week strip and the little tag pills.
+   ============================================================================ */
+
+/* M3 gives a day its own container rather than a bare number: same footprint, a
+   softer corner, and a state layer under the finger. Today keeps the filled
+   accent circle it already had — that part was M3 before this pass. */
+.wday{border-radius:20px;transition:background var(--fast) var(--ease)}
+.wday:active{background:color-mix(in srgb,var(--label) 10%,transparent)}
+.wday .dot.plan{background:var(--m3-outline)}
+
+/* Tags become M3 assist chips: outlined instead of filled, so a row of them stops
+   reading as a row of buttons. The accent tag keeps its tonal container. */
+.tag{
+  border-radius:var(--m3-shape-s);
+  background:transparent;
+  box-shadow:inset 0 0 0 1px var(--m3-outline-variant);
+}
+.tag.acc{box-shadow:none;background:color-mix(in srgb,var(--acc) 22%,transparent);color:var(--acc)}
+
+/* ============================================================================
+   Lists — the Library's rows, and every other screen that draws the same one
+   ----------------------------------------------------------------------------
+   Chosen with the user on 2026-09-29 from three densities drawn side by side
+   (oly-media-preview-lib-variants.png): rows 60 → 68px, thumbnails 50 → 56px,
+   search field → M3's search bar (a tonal pill) at 52px. The trade is visible:
+   long names wrap to a second line on a narrow phone, so a screen holds about
+   six rows instead of seven. These are shared classes, so this reaches the Plan,
+   the pickers and the routine editor too — deliberate, one list should not have
+   two densities.
+   ============================================================================ */
+.list .item{min-height:68px;padding:12px 14px;gap:14px;border-radius:18px}
+.list .thumb{width:56px;height:56px;border-radius:12px}
+
+/* M3 search bar: pill on the tonal surface, leading icon centred in it. */
+.search .input{
+  background:var(--m3-surface-container-high);
+  border-radius:var(--m3-shape-full);
+  min-height:52px; padding-left:44px; font-size:16px;
+}
+:root[data-theme="light"] .search .input{background:var(--m3-surface-container-high)}
+.search>svg{left:16px;width:18px;height:18px}
+
+/* ============================================================================
+   Sheets, dialogs and the picker
+   ----------------------------------------------------------------------------
+   Shape and surface only; type sizes are left exactly where they were.
+   ============================================================================ */
+
+/* The drag handle was 18% white, which on the tonal sheet surface is nearly
+   invisible — M3 puts it on the outline tone. */
+.sheet .grab{background:var(--m3-outline)}
+
+/* A centred dialog is M3's extra-large shape (28dp), not the card's 16, and it
+   sits on a high container so it reads as above the sheet behind it. */
+.center{border-radius:var(--m3-shape-xl);background:var(--m3-surface-container-high)}
+
+/* The picker's search field becomes the same M3 search bar as the Library's —
+   pill, tonal, leading icon centred — so the two searches in the app match. */
+.searchf .field{
+  background:var(--m3-surface-container-high);
+  border-radius:var(--m3-shape-full);
+  min-height:52px;padding-left:44px;font-size:16px;
+}
+:root[data-theme="light"] .searchf .field{background:var(--m3-surface-container-high)}
+.searchf .lead{left:16px;font-size:18px}
+.searchf .clear{right:12px;width:24px;height:24px}
+
+/* ============================================================================
+   Type
+   ----------------------------------------------------------------------------
+   Chosen with the user on 2026-09-29 from three scales drawn side by side
+   (oly-media-preview-type.png): M3's sizes with a little more presence than M3
+   itself — display type at 500 rather than 400, and a slight negative tracking
+   instead of none, because on a dark background 400 at 32px reads thinner than
+   it does on paper.
+
+   Roles, so the next screen has something to follow:
+     screen title      headline-large   32/500   (was 34/700)
+     sheet title       title-large      22/500   (was 20/600)
+     row title         body-large       16/400   (lists said 17)
+     row subtitle      body-medium      14/400   (was 13)
+     big number        display-small    34/500   (was 30/600)
+     section label     label-medium     12/500   (was 13/400)
+     button / chip     label-large      14/500   (already)
+     tab label         label-small      11/500   (already)
+   ============================================================================ */
+.hdr h1{font-size:32px;font-weight:500;letter-spacing:-.01em}
+/* index.css steps the title down on a narrow phone; that rule is in a media query
+   and this file outranks it, so the step has to be restated here or it is lost. */
+@media (max-width:420px){.hdr h1{font-size:30px}}
+
+.hdr .sub{font-size:16px;letter-spacing:-.002em}
+.sheet h3{font-size:22px;font-weight:500;letter-spacing:-.008em}
+
+.lrow-t{font-size:16px;letter-spacing:-.006em}
+.lrow-s{font-size:14px}
+.lrow-v{font-size:16px}
+.item .ss{font-size:14px}
+
+.card .big{font-size:34px;font-weight:500;letter-spacing:-.012em}
+.sect-t{font-size:12px;font-weight:500;letter-spacing:.03em}
+
+/* ============================================================================
+   Plan and the routine editor
+   ----------------------------------------------------------------------------
+   Shape, surface and type only; the week schedule's inner rows are laid out with
+   inline styles in Plan.jsx, so they are not touched here (they need a decision
+   of their own — see the plan).
+   ============================================================================ */
+
+/* One role, one look: the section label above a list, a card's own heading and
+   the label over a group all become M3's label-medium. index.css had them at
+   13/400, .sect-t is already 12/500 from the type pass — this lines them up. */
+h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--label-2)}
+
+/* The Coach banner becomes an M3 tonal card: the accent stays in the mix, but as
+   a container tone rather than a gradient with a coloured border, and a press is
+   a state layer instead of scaling the whole card. */
+.coach-cta{
+  border-radius:20px;border:0;
+  background:color-mix(in srgb,var(--acc) 14%,var(--m3-surface-container));
+  transition:background var(--fast) var(--ease);
+}
+.coach-cta:active{transform:none;background:color-mix(in srgb,var(--acc) 22%,var(--m3-surface-container))}
+.coach-cta-av{border-radius:var(--m3-shape-l)}
+
+/* M3's empty state: the glyph sits in a large tonal circle instead of floating. */
+.empty .ico{
+  width:64px;height:64px;border-radius:var(--m3-shape-full);margin:0 auto 14px;
+  background:var(--m3-surface-container-high);color:var(--label-2);font-size:28px;
+}
+
+/* Muscle chips in the editor are the same idea as .tag, so they get the same
+   outlined treatment instead of a filled pill. */
+.mchip{border-radius:var(--m3-shape-s);background:transparent;box-shadow:inset 0 0 0 1px var(--m3-outline-variant)}
+
+/* The week schedule's day cards. The sub-rows used to be laid out with inline
+   styles in Plan.jsx, which a stylesheet cannot override — they are classes now,
+   and this is the density the user picked on 2026-09-29 (variant B of three drawn
+   side by side, oly-media-preview-plan-variants.png): 8px between sub-rows, a
+   34px round glyph, 15px routine names. */
+.item.day-card{display:block;min-height:0;padding:14px 16px}
+.day-row{display:flex;align-items:center;gap:12px;padding:8px 0}
+.day-row .lrow-i{width:34px;height:34px;border-radius:var(--m3-shape-full);font-size:18px}
+.day-row .tt{font-size:15px}
+.day-add{margin-top:8px}
+
+/* ============================================================================
+   Stats
+   ----------------------------------------------------------------------------
+   The number tiles, at the density the user picked on 2026-09-29 (variant B of
+   three, oly-previews/stats-variants.png): 18px of padding, a 30/500 figure and
+   the label on M3's label-medium. The charts were in that mockup only as a
+   schematic — the real ones are 140 to 160px tall already, chosen per chart, and
+   they stay as they are.
+   ============================================================================ */
+.tiles{gap:12px}
+.tile{border-radius:20px;padding:18px}
+.tile .l{font-size:12px;font-weight:500;letter-spacing:.03em}
+.tile .v{font-size:30px;font-weight:500;letter-spacing:-.012em}
+.tile.tappable:active{background:color-mix(in srgb,var(--label) 10%,transparent)}

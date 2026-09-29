@@ -1,6 +1,6 @@
-# Exercise media — fetched on first `docker compose up` (or via scripts/fetch-media.sh)
-media/img/
-media/gif/
+# Nothing downloads exercise media any more (the pictures are YouTube poster frames),
+# but an instance that ran an older version still has the folder sitting there.
+media/
 
 # Runtime data — users, passkeys, per-user state, session secret
 data/
@@ -14,10 +14,10 @@ data/
 # IDE project files
 .idea/
 
-# Working notes and throwaway previews: kept in the workspace on purpose, not in the repo
+# Working notes and throwaway previews: kept in the workspace on purpose, not in the repo.
+# Every mockup, screenshot and comparison from the UI work lives in oly-previews/.
 OLYGYM_PLAN.md
-oly-media-preview*.html
-oly-media-preview*.png
+oly-previews/
 
 # Build output / deps
 frontend/dist/
