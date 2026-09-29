@@ -210,8 +210,8 @@ body.resting #app{padding-bottom:calc(206px + var(--sab))}
    finger-sized target, so the pseudo element widens what the tap lands on without
    changing the painted box. Segmented buttons sit flush against each other, so they
    only grow vertically or the neighbour would steal the edge of the tap. */
-.iconbtn,.chip,.seg button,.helpbtn{position:relative}
-.iconbtn::before,.chip::before,.seg button::before,.helpbtn::before{content:'';position:absolute;inset:-6px}
+.iconbtn,.chip,.seg button,.helpbtn,.exmedia .gifhint{position:relative}
+.iconbtn::before,.chip::before,.seg button::before,.helpbtn::before,.exmedia .gifhint::before{content:'';position:absolute;inset:-6px}
 .seg button::before{inset:-6px 0}
 .iconbtn.on-ss{background:var(--acc-soft);color:var(--acc)}
 .iconbtn:disabled{opacity:.32}
@@ -705,6 +705,9 @@ body.chips-dragging *{cursor:inherit}
 /* superset: both exercises are on screen together, so the pictures have to give way — the card
    is half a screen wide, so 16:9 already lands around 90px without its own height */
 .exmedia.mini img{height:84px}
+/* the video itself (lib/video.js), mounted on demand in the same 16:9 box as the poster */
+.exmedia .exvideo{width:100%;aspect-ratio:16/9;display:block;border:0;background:#000}
+.exmedia.mini .exvideo{height:84px;aspect-ratio:auto}
 /* the frame 404'd (or the connection dropped): a neutral tile instead of the browser's
    broken-image glyph, same shape as the picture so the card does not jump. tap retries. */
 .exmedia.broken{background:var(--surface-2)}
