@@ -232,3 +232,26 @@
   box-shadow:inset 0 0 0 1px var(--m3-outline-variant);
 }
 .tag.acc{box-shadow:none;background:color-mix(in srgb,var(--acc) 22%,transparent);color:var(--acc)}
+
+/* ============================================================================
+   Lists — the Library's rows, and every other screen that draws the same one
+   ----------------------------------------------------------------------------
+   Chosen with the user on 2026-09-29 from three densities drawn side by side
+   (oly-media-preview-lib-variants.png): rows 60 → 68px, thumbnails 50 → 56px,
+   search field → M3's search bar (a tonal pill) at 52px. The trade is visible:
+   long names wrap to a second line on a narrow phone, so a screen holds about
+   six rows instead of seven. These are shared classes, so this reaches the Plan,
+   the pickers and the routine editor too — deliberate, one list should not have
+   two densities.
+   ============================================================================ */
+.list .item{min-height:68px;padding:12px 14px;gap:14px;border-radius:18px}
+.list .thumb{width:56px;height:56px;border-radius:12px}
+
+/* M3 search bar: pill on the tonal surface, leading icon centred in it. */
+.search .input{
+  background:var(--m3-surface-container-high);
+  border-radius:var(--m3-shape-full);
+  min-height:52px; padding-left:44px; font-size:16px;
+}
+:root[data-theme="light"] .search .input{background:var(--m3-surface-container-high)}
+.search>svg{left:16px;width:18px;height:18px}
