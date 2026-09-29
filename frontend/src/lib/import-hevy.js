@@ -302,7 +302,7 @@ export function parseHevyWorkouts(workouts, templates, { unit = 'kg' } = {}) {
 }
 
 /**
- * Hevy routine → openGym routine config.
+ * Hevy routine → OlyGym routine config.
  * Work sets become `sets`×`reps`/`weight`; warm-ups become `warmupSets`;
  * supersets keep adjacency via `sg`. Always imported as *new* routines.
  */
@@ -312,7 +312,7 @@ export function parseHevyRoutines(routines, templates, { unit = 'kg' } = {}) {
 
   for (const r of routines || []) {
     const ex = []
-    const sgMap = new Map() // Hevy superset_id → openGym sg token
+    const sgMap = new Map() // Hevy superset_id → OlyGym sg token
 
     for (const he of r.exercises || []) {
       const id = R.resolve(he.exercise_template_id, he.title)

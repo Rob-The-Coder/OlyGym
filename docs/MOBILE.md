@@ -1,6 +1,6 @@
 # Building the mobile app (iOS / Android)
 
-openGym ships in two flavors from the same codebase:
+OlyGym ships in two flavors from the same codebase:
 
 | | **Self-hosted** (this repo's default) | **Mobile app** (`VITE_MOBILE=1`) |
 |---|---|---|
@@ -19,7 +19,7 @@ through the OS share sheet instead of a browser download.
 ### Connecting the app to your own server
 
 On first launch the app asks how you want to use it. Alongside the fully local mode above,
-you can instead **connect it to a self-hosted openGym server** — your data then lives there,
+you can instead **connect it to a self-hosted OlyGym server** — your data then lives there,
 synced the same way the browser PWA does, instead of only on the phone. This is a mode of the
 same app, not a different build or download.
 
@@ -46,7 +46,7 @@ or Settings → **"Connect to my server"** later) to finish. Notes:
 - **Android:** Android Studio (bundles the SDK). Java 21 for Gradle.
 - **iOS:** a Mac with Xcode 15+ and CocoaPods (`brew install cocoapods`). A free Apple ID
   is enough to run the app on your own iPhone (see below); paid membership is only needed
-  for App Store distribution, which openGym doesn't do.
+  for App Store distribution, which OlyGym doesn't do.
 
 ## Build & run
 
@@ -81,7 +81,7 @@ npx @capacitor/assets generate --iconBackgroundColor '#0c0e12' --splashBackgroun
 
 ## Distribution — deliberately no app stores
 
-openGym's mobile app is not on the Play Store or App Store, and that's a choice: no store
+OlyGym's mobile app is not on the Play Store or App Store, and that's a choice: no store
 accounts, no store rules, no yearly fees between you and an open-source app.
 
 ### Android — sideload the APK
@@ -91,8 +91,8 @@ The official signed APK is in four places, all the same file:
 - **[opengym.duarte-santos.ch](https://opengym.duarte-santos.ch)** — the download page.
 - **[GitLab's package registry](https://gitlab.com/DuarteSantos8/opengym/-/packages)** — every
   build under `opengym-android/<version>/`, with a `.sha256` beside it. Direct link, no login:
-  `https://gitlab.com/api/v4/projects/85678327/packages/generic/opengym-android/<version>/openGym-<version>.apk`
-- **[The GitHub release](https://github.com/DuarteSantos8/openGym/releases)** for that version,
+  `https://gitlab.com/api/v4/projects/85678327/packages/generic/opengym-android/<version>/OlyGym-<version>.apk`
+- **[The GitHub release](https://github.com/DuarteSantos8/OlyGym/releases)** for that version,
   with the APK and its `.sha256` attached as release assets.
 - **[The GitLab release](https://gitlab.com/DuarteSantos8/opengym/-/releases)** on the mirror,
   where the file is built; it links to the package registry above.
@@ -123,7 +123,7 @@ keytool -genkeypair -keystore my.keystore -alias opengym -keyalg RSA -validity 1
 
 # align + sign (zipalign/apksigner ship with the Android SDK build-tools)
 zipalign -f -p 4 app-release-unsigned.apk aligned.apk
-apksigner sign --ks my.keystore --ks-key-alias opengym --out openGym.apk aligned.apk
+apksigner sign --ks my.keystore --ks-key-alias opengym --out OlyGym.apk aligned.apk
 ```
 
 ### iPhone — what's actually possible
@@ -158,7 +158,7 @@ membership, the distribution certificate and profile as protected file variables
   reads `version` out of it), so the two drifting apart shows up as a misnamed file.
 - Tagging `vX.Y.Z` is what ships everything: images, APK, release notes. Don't push a version
   tag you don't mean to release — `v*` tags are protected for that reason.
-- **License:** openGym is AGPL-3.0, which by itself sits badly with app-store terms of
+- **License:** OlyGym is AGPL-3.0, which by itself sits badly with app-store terms of
   service. `NOTICE.md` carries an app-store exception (an additional permission under
   AGPL §7) granted by the copyright holder — relevant only if store distribution ever happens.
 - The app requests notification permission only when the workout-day reminder is switched

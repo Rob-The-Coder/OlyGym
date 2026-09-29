@@ -1,6 +1,6 @@
-# Contributing to openGym
+# Contributing to OlyGym
 
-Thanks for taking a look! openGym is intentionally small and dependency-light, and the goal is
+Thanks for taking a look! OlyGym is intentionally small and dependency-light, and the goal is
 to keep it that way — easy to read, easy to self-host.
 
 ## Project layout
@@ -76,10 +76,10 @@ here before, otherwise a maintainer presses "Run pipeline" after a first look at
 | You have | Goes to |
 | --- | --- |
 | A quick question, or you'd rather just chat | [The Discord](https://discord.gg/e62jY6fwVb) |
-| A question, or self-hosting that won't behave | [An issue labelled `question`](https://github.com/DuarteSantos8/openGym/issues) |
-| An idea you're not sure about yet | [An issue labelled `idea`](https://github.com/DuarteSantos8/openGym/issues) |
-| A reproducible bug | [Issues](https://github.com/DuarteSantos8/openGym/issues) |
-| A change you've already built | [A pull request](https://github.com/DuarteSantos8/openGym/pulls) |
+| A question, or self-hosting that won't behave | [An issue labelled `question`](https://github.com/DuarteSantos8/OlyGym/issues) |
+| An idea you're not sure about yet | [An issue labelled `idea`](https://github.com/DuarteSantos8/OlyGym/issues) |
+| A reproducible bug | [Issues](https://github.com/DuarteSantos8/OlyGym/issues) |
+| A change you've already built | [A pull request](https://github.com/DuarteSantos8/OlyGym/pulls) |
 
 Questions and ideas are issues too (one tracker is enough) — just labelled, so nobody
 mistakes a question for agreed-on work. An answered question is worth more than the same answer

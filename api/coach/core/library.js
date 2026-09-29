@@ -14,7 +14,7 @@ export const libraryHas = id => LIB_BY_ID.has(id);
 export const libraryName = id => LIB_BY_ID.get(id)?.n || null;
 
 /* ---------- the library slice the model gets to choose from ----------
-   Bounded. The whole catalogue is 1,324 rows — 10k+ tokens on every job, which costs real money
+   Bounded. The whole catalogue is 624 rows — 10k+ tokens on every job, which costs real money
    against a cloud API and does not fit a small local model's context at all; and a model does
    not choose better from 1,324 options than from 160. So the slice is capped and balanced: an
    even share of every body part, in catalogue order (deterministic, so repeated jobs keep the

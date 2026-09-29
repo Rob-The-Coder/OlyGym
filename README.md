@@ -12,6 +12,17 @@ No account on someone else's server, no subscription, no ads. Just `docker compo
 
 <br>
 
+> ### This repository is OlyGym
+>
+> A personal fork of [openGym](https://github.com/DuarteSantos8/openGym) aimed at **Olympic
+> weightlifting**: the exercise catalogue is Catalyst Athletics' 624 lifts, the demo video of each
+> one is a hotlinked YouTube frame, and the coach's own training plan can be imported from an
+> Excel workbook. The text in this README still describes the upstream project — same software,
+> same self-hosting story — and the app itself calls itself OlyGym. Upstream's marketing site
+> under `website/` is untouched and not deployed by this fork.
+
+<br>
+
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-a3e635?style=flat-square)](LICENSE)
 ![Self-hosted](https://img.shields.io/badge/self--hosted-%F0%9F%8F%A0-60a5fa?style=flat-square)
 ![PWA](https://img.shields.io/badge/PWA-installable-a78bfa?style=flat-square)

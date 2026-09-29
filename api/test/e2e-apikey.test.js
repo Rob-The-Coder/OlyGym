@@ -10,7 +10,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import { tempData, writeState, sampleState } from './helpers.mjs';
+import { tempData, writeState, sampleState, EX_LOADED } from './helpers.mjs';
 
 const DIR = tempData();
 const cfg = await import('../coach/config.js');
@@ -26,7 +26,7 @@ const REVIEW_CHANGE = {
   coach_contract: 1,
   summary: 'Top sets at RPE 10 on the dumbbell press; one set less.',
   evidence: { from: '2026-07-20', to: '2026-07-20', sessions: 1 },
-  changes: [{ id: 'c1', type: 'sets', target: { routineId: 'r1', exId: '0001' }, before: 3, after: 2, why: 'stalls ≥ 2 and every top set at RPE 10' }],
+  changes: [{ id: 'c1', type: 'sets', target: { routineId: 'r1', exId: EX_LOADED }, before: 3, after: 2, why: 'stalls ≥ 2 and every top set at RPE 10' }],
   notes: []
 };
 let answerWith = REVIEW_NOCHANGE;
@@ -138,7 +138,7 @@ test('Gemini: x-goog-api-key header, generateContent, JSON mime type', async () 
   assert.equal(job.headers['x-goog-api-key'], 'AIza-test-789');
   assert.ok(!job.url.includes('key='), 'never ?key=');
   assert.equal(job.body.generationConfig.responseMimeType, 'application/json');
-  assert.match(job.body.systemInstruction.parts[0].text, /openGym Coach/);
+  assert.match(job.body.systemInstruction.parts[0].text, /OlyGym Coach/);
 });
 
 test('an overloaded provider is retried and the job still succeeds', async () => {
