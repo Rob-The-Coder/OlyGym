@@ -175,3 +175,36 @@
 #tabbar button.start .cir{border-radius:var(--m3-shape-l)}
 #tabbar button.start.rec .cir::after{border-radius:var(--m3-shape-l)}
 
+/* ============================================================================
+   Workout — M3 at the density it already has
+   ----------------------------------------------------------------------------
+   Decided with the user: shape, ink and state layers change; spacing does not.
+   A set row keeps its 7px of padding on purpose — this is the one screen where
+   a taller row costs a scroll in the middle of a set.
+   ============================================================================ */
+
+/* The done marker becomes an M3 filled icon button. Unchecked was outlined in
+   --label-4 (18% white), which nearly disappeared on the tonal card; the outline
+   token is a real edge without being loud. Checked stays the accent fill, and the
+   press answers with a state layer instead of shrinking the target under a finger. */
+.chk,.ck{box-shadow:inset 0 0 0 1.5px var(--m3-outline)}
+.chk.on,.ck.on{box-shadow:none}
+.chk:active,.ck:active{transform:none;background:color-mix(in srgb,var(--label) 12%,transparent)}
+.chk.on:active,.ck.on:active{background:var(--acc);filter:brightness(1.16)}
+
+/* The kg/reps steppers keep their 40×44 hit areas; M3 just gives the group its
+   pill shape and answers a press with a state layer rather than a fill swap. */
+.stp{border-radius:var(--m3-shape-full)}
+.stp button:active{background:color-mix(in srgb,var(--label) 12%,transparent)}
+
+/* Separators between sets, at the M3 outline tone (was --sep, the heavier one). */
+.setrow+.setrow::before{background:var(--m3-outline-variant)}
+
+/* Chosen with the user on 2026-09-29: a little more room here too. A set row goes
+   from 7px to 10px of padding and the kg/reps steppers from 40px to 44px, which is
+   M3's minimum touch target — the controls were cramped enough that the pill shape
+   did not read at all. It costs a few pixels of scroll per set, which is the trade
+   the user picked over "M3 you cannot see". */
+.setrow{padding:10px 0}
+.setrow .stp button{height:44px}
+
