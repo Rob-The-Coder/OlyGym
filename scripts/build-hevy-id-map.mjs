@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Build frontend/src/lib/hevy-id-map.js — a complete, deterministic
- * Hevy template-id → openGym catalogue-id table.
+ * Hevy template-id → OlyGym catalogue-id table.
  *
  * Usage:
  *   HEVY_API_KEY=… node scripts/build-hevy-id-map.mjs
