@@ -255,3 +255,28 @@
 }
 :root[data-theme="light"] .search .input{background:var(--m3-surface-container-high)}
 .search>svg{left:16px;width:18px;height:18px}
+
+/* ============================================================================
+   Sheets, dialogs and the picker
+   ----------------------------------------------------------------------------
+   Shape and surface only; type sizes are left exactly where they were.
+   ============================================================================ */
+
+/* The drag handle was 18% white, which on the tonal sheet surface is nearly
+   invisible — M3 puts it on the outline tone. */
+.sheet .grab{background:var(--m3-outline)}
+
+/* A centred dialog is M3's extra-large shape (28dp), not the card's 16, and it
+   sits on a high container so it reads as above the sheet behind it. */
+.center{border-radius:var(--m3-shape-xl);background:var(--m3-surface-container-high)}
+
+/* The picker's search field becomes the same M3 search bar as the Library's —
+   pill, tonal, leading icon centred — so the two searches in the app match. */
+.searchf .field{
+  background:var(--m3-surface-container-high);
+  border-radius:var(--m3-shape-full);
+  min-height:52px;padding-left:44px;font-size:16px;
+}
+:root[data-theme="light"] .searchf .field{background:var(--m3-surface-container-high)}
+.searchf .lead{left:16px;font-size:18px}
+.searchf .clear{right:12px;width:24px;height:24px}
