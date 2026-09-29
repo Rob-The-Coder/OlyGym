@@ -10,7 +10,6 @@ const backend = process.env.API_TARGET || 'http://127.0.0.1:3000'
 // presenting the expected Origin here covers the ones that don't send it. Match your .env if you
 // changed ORIGIN: API_ORIGIN=https://gym.example.com npm run dev
 const apiOrigin = process.env.API_ORIGIN || 'http://localhost:8080'
-const media = process.env.MEDIA_TARGET || 'http://127.0.0.1:8888'
 
 // Optional web analytics (Umami). Injected only when BOTH vars are set at build time,
 // so a plain `npm run build` — and every self-hosted install — stays telemetry-free.
@@ -60,10 +59,10 @@ export default defineConfig({
     // and is imported by the phone build. vite build and vitest already reach it; the dev
     // server needs to be told the workspace is wider than frontend/.
     fs: { allow: ['..'] },
+    // Only /api is proxied: the exercise pictures come from YouTube, straight from the browser,
+    // so there is no local media server to point at any more.
     proxy: {
-      '/api': { target: backend, changeOrigin: true, headers: { Origin: apiOrigin } },
-      '/img': { target: media, changeOrigin: true },
-      '/gif': { target: media, changeOrigin: true }
+      '/api': { target: backend, changeOrigin: true, headers: { Origin: apiOrigin } }
     }
   },
   build: { chunkSizeWarningLimit: 1500 }

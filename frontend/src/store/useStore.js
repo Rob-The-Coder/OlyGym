@@ -25,6 +25,11 @@ export const DEF = {
   theme: 'dark', accent: 'lime', body: 'male', targetW: null,
   bodyweight: [], routines: [], week: {}, dayPlan: {},
   exWeights: {}, workouts: [], active: null, customEx: [], gifSize: 'full',
+  // The demo video of each exercise, a layer of its own, next to the poster frame `gifSize`
+  // governs: 'button' (the badge on the poster opens it — the default, and what a profile written
+  // before this setting existed reads as), 'inline' (the player loads with the exercise) or 'off'
+  // (the poster only, nothing from YouTube is ever embedded).
+  video: 'button',
   // How the active workout is laid out — 'cards' (one exercise at a time with Prev/Next),
   // 'list' (every exercise stacked and scrollable) or 'compact' (that stack stripped to just
   // names and set rows — no media, tags, notes, last-time or progression line). Purely

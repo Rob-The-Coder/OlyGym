@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, forwardRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore, DEF, hasData } from '../store/useStore.js'
 import { workoutControls } from '../lib/workout-controls.js'
+import { videoMode } from '../lib/video.js'
 import { convertStateUnit } from '../lib/units.js'
 import { useUI } from '../store/useUI.js'
 import { ACCENTS, todayISO, localTZ, weekStartOf, MONDAY, SUNDAY } from '../lib/format.js'
@@ -315,6 +316,15 @@ export default function Settings() {
           options={[{ value: 'full', label: t('Full') }, { value: 'mini', label: t('Small') }, { value: 'off', label: t('Hidden') }]}
           value={S.gifSize === 'mini' || S.gifSize === 'off' ? S.gifSize : 'full'}
           onChange={v => update(s => { s.gifSize = v })} />
+      </Row>
+      {/* A layer of its own, deliberately not the same setting as the picture above: the frame
+          comes from img.youtube.com, the video is an embed. 'On tap' is the default and the
+          reason the poster exists at all — nothing is requested from YouTube until you ask. */}
+      <Row icon="play" iconTint="var(--red)" title={t('Demo videos')}>
+        <Segmented className="seg-inline"
+          options={[{ value: 'off', label: t('Hidden') }, { value: 'button', label: t('On tap') }, { value: 'inline', label: t('Always') }]}
+          value={videoMode(S.video)}
+          onChange={v => update(s => { s.video = v })} />
       </Row>
       <Row icon="bell" iconTint="var(--pink)" title={t('Sounds')}>
         {/* Turning Sounds on is a tap: unlock the audio context now so a timer that ends before
