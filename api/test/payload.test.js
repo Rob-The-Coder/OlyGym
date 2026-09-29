@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { tempData, sampleState } from './helpers.mjs';
+import { tempData, sampleState, EX_LOADED, EX_TIMED } from './helpers.mjs';
+import { libraryName } from '../coach/core/library.js';
 
 tempData();
 const payload = await import('../coach/core/payload.js');
@@ -51,7 +52,7 @@ test('review payload carries the plan, the window, effort and aggregates', () =>
   const p = payload.build(sampleState(), { handle: handleFor('u1'), kind: 'review', note: 'shoulder pinches' });
   assert.equal(p.task, 'review');
   assert.equal(p.plan.routines.length, 1);
-  assert.equal(p.plan.routines[0].ex[0].name, '3/4 sit-up', 'exercise names are resolved for the model');
+  assert.equal(p.plan.routines[0].ex[0].name, libraryName(EX_LOADED), 'exercise names are resolved for the model');
   assert.equal(p.window.workouts.length, 1);
   assert.equal(p.window.workouts[0].entries[0].sets[0].rpe, 9.5, 'effort survives into the payload');
   assert.equal(p.userNote, 'shoulder pinches');
@@ -65,12 +66,12 @@ test('a stalling exercise shows up in the aggregates the way the engine counts i
   // Three sessions that all fell short of the 10-rep target.
   S.workouts = ['2026-07-06', '2026-07-13', '2026-07-20'].map((d, i) => ({
     id: 'w' + i, d, name: 'A', start: 0, end: 60000, entries: [{
-      id: '0001', target: { sets: 3, reps: 10, weight: 20 },
+      id: EX_LOADED, target: { sets: 3, reps: 10, weight: 20 },
       sets: [{ w: 20, r: 9, done: true }, { w: 20, r: 8, done: true }, { w: 20, r: 7, done: true }]
     }]
   }));
   const p = payload.build(S, { handle: handleFor('u1'), kind: 'review' });
-  const ex = p.aggregates.exercises.find(e => e.id === '0001');
+  const ex = p.aggregates.exercises.find(e => e.id === EX_LOADED);
   assert.equal(ex.stalls, 3, 'three misses in a row is a stall of three');
   assert.equal(ex.lastOk, false);
 });
@@ -79,12 +80,12 @@ test('a set that was never ticked off is a miss, not a gap', () => {
   const S = sampleState();
   S.workouts = [{
     id: 'w1', d: '2026-07-20', name: 'A', start: 0, end: 60000, entries: [{
-      id: '0001', target: { sets: 3, reps: 10, weight: 20 },
+      id: EX_LOADED, target: { sets: 3, reps: 10, weight: 20 },
       sets: [{ w: 20, r: 10, done: true }, { w: 20, r: 10, done: true }, { w: 20, r: 10, done: false }]
     }]
   }];
   const p = payload.build(S, { handle: handleFor('u1'), kind: 'review' });
-  assert.equal(p.aggregates.exercises.find(e => e.id === '0001').stalls, 1);
+  assert.equal(p.aggregates.exercises.find(e => e.id === EX_LOADED).stalls, 1);
 });
 
 test('the review window is bounded even for someone with years of history', () => {
@@ -104,7 +105,7 @@ test('creation payload carries working weights so baselines start from evidence'
   const p = payload.build(sampleState(), { handle: handleFor('u1'), kind: 'create' });
   assert.equal(p.task, 'create');
   assert.ok(!p.window, 'creation does not ship the training window');
-  assert.equal(p.history.workingWeights.find(w => w.id === '0001').best, 20);
+  assert.equal(p.history.workingWeights.find(w => w.id === EX_LOADED).best, 20);
 });
 
 test('the library is filtered to the equipment someone actually has', () => {
@@ -116,7 +117,7 @@ test('the library is filtered to the equipment someone actually has', () => {
   assert.ok(dumbbell.every(e => e.eq === undefined && e.id && e.n && e.bp), 'entries are slim');
   assert.ok(payload.librarySlice({}, ['dumbbell', 'barbell']).some(e => eqOf(e.id) === 'barbell'));
   // Custom exercises always travel: they exist nowhere else and the model cannot guess them.
-  const withCustom = payload.librarySlice({ customEx: [{ id: 'cx1', n: 'Sandbag carry', bp: 'back' }] }, ['dumbbell']);
+  const withCustom = payload.librarySlice({ customEx: [{ id: 'cx1', n: 'Sandbag carry', bp: 'Carries' }] }, ['dumbbell']);
   assert.equal(withCustom[0].id, 'cx1');
 });
 
@@ -132,7 +133,12 @@ test('the library slice is capped, balanced across body parts, deterministic, an
   // Small groups (neck has two rows) run out early and their share flows to the rest, so the
   // bound is "nobody dominates", not "everyone equal".
   assert.ok(Math.max(...Object.values(byBp)) <= MAX_LIBRARY / 4, `one body part dominates: ${JSON.stringify(byBp)}`);
-  assert.equal(byBp.neck, LIBRARY.filter(e => e.bp === 'neck').length, 'a tiny group is present in full');
+  // Whichever group is smallest today must be there in full: it runs out before its share
+  // does. Hardcoding the old dataset's `neck` made this fail for the wrong reason.
+  const sizes = {};
+  LIBRARY.forEach(e => { sizes[e.bp] = (sizes[e.bp] || 0) + 1; });
+  const smallest = Object.keys(sizes).sort((a, b) => sizes[a] - sizes[b])[0];
+  assert.equal(byBp[smallest], sizes[smallest], `the smallest group (${smallest}) is present in full`);
   assert.deepEqual(all.map(e => e.id), payload.librarySlice({}, []).map(e => e.id), 'same slice every time');
 
   // An exercise the user already trains rides along even when the filter would exclude it.
@@ -165,10 +171,10 @@ test('declined changes are carried forward so the Coach does not nag', () => {
 /* ---------- debriefs and the cohort ---------- */
 const debriefState = () => sampleState({
   workouts: [
-    { id: 'w0', d: '2026-07-06', name: 'Full body A', start: 1000, end: 1000 + 40 * 60000, vol: 500, prs: [], entries: [{ id: '0001', sets: [{ w: 18, r: 10, done: true }] }] },
-    { id: 'wx', d: '2026-07-10', name: 'Other', start: 1000, end: 1000 + 30 * 60000, vol: 100, prs: [], entries: [{ id: '0007', sets: [{ sec: 45, done: true }] }] },
-    { id: 'w1', d: '2026-07-13', name: 'Full body A', start: 1000, end: 1000 + 42 * 60000, vol: 560, prs: [], entries: [{ id: '0001', sets: [{ w: 20, r: 9, done: true }] }] },
-    { id: 'w2', d: '2026-07-20', name: 'Full body A', start: 1000, end: 1000 + 45 * 60000, vol: 600, prs: ['0001'], entries: [{ id: '0001', target: { sets: 3, reps: 10, weight: 20 }, sets: [{ w: 20, r: 10, done: true, warmup: true }, { w: 20, r: 10, done: true }, { w: 20, r: 9, done: true }, { w: 20, r: 8, done: false }] }] }
+    { id: 'w0', d: '2026-07-06', name: 'Full body A', start: 1000, end: 1000 + 40 * 60000, vol: 500, prs: [], entries: [{ id: EX_LOADED, sets: [{ w: 18, r: 10, done: true }] }] },
+    { id: 'wx', d: '2026-07-10', name: 'Other', start: 1000, end: 1000 + 30 * 60000, vol: 100, prs: [], entries: [{ id: EX_TIMED, sets: [{ sec: 45, done: true }] }] },
+    { id: 'w1', d: '2026-07-13', name: 'Full body A', start: 1000, end: 1000 + 42 * 60000, vol: 560, prs: [], entries: [{ id: EX_LOADED, sets: [{ w: 20, r: 9, done: true }] }] },
+    { id: 'w2', d: '2026-07-20', name: 'Full body A', start: 1000, end: 1000 + 45 * 60000, vol: 600, prs: [EX_LOADED], entries: [{ id: EX_LOADED, target: { sets: 3, reps: 10, weight: 20 }, sets: [{ w: 20, r: 10, done: true, warmup: true }, { w: 20, r: 10, done: true }, { w: 20, r: 9, done: true }, { w: 20, r: 8, done: false }] }] }
   ]
 });
 
@@ -196,12 +202,12 @@ test('workoutMeta counts done work sets, keeps the stored volume and the PR coun
   assert.deepEqual(m, { id: 'w2', d: '2026-07-20', name: 'Full body A', minutes: 45, vol: 600, sets: 2, prs: 1 });
   assert.equal(payload.workoutMeta(sampleState({ workouts: [] }), 'w2'), null);
   // No stored volume: computed from the work sets.
-  const S = sampleState({ workouts: [{ id: 'q', d: '2026-07-01', start: 1, end: 60001, entries: [{ id: '0001', sets: [{ w: 10, r: 10, done: true }, { w: 10, r: 10, done: true, phase: 'warmup' }] }] }] });
+  const S = sampleState({ workouts: [{ id: 'q', d: '2026-07-01', start: 1, end: 60001, entries: [{ id: EX_LOADED, sets: [{ w: 10, r: 10, done: true }, { w: 10, r: 10, done: true, phase: 'warmup' }] }] }] });
   assert.equal(payload.workoutMeta(S, 'q').vol, 100);
 });
 
 test('the cohort rides along on a review and a debrief only when handed in', () => {
-  const cohort = { unit: 'kg', people: 4, sessionsPerWeek: { median: 2.5, you: 3 }, exercises: [{ id: '0001', name: 'x', median: 50, you: 55 }] };
+  const cohort = { unit: 'kg', people: 4, sessionsPerWeek: { median: 2.5, you: 3 }, exercises: [{ id: EX_LOADED, name: 'x', median: 50, you: 55 }] };
   const review = payload.build(sampleState(), { handle: handleFor('u'), kind: 'review', cohort });
   assert.deepEqual(review.cohort, cohort);
   const debrief = payload.build(debriefState(), { handle: handleFor('u'), kind: 'debrief', cohort });

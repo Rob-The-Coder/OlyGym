@@ -11,15 +11,32 @@ import { bestSetOf } from '../../frontend/src/lib/onerm.js'
 
 // Re-stated here so the assertions stand alone without reaching into lib internals to learn
 // the demo state's exact values.
-const FAKE_TODAY_ISO = '2026-07-27'                         // Monday — Push Day is scheduled
+const FAKE_TODAY_ISO = '2026-07-27'                         // Monday — Snatch Day is scheduled
 const GOAL_WEIGHT = 77
-// Re-pinned against the v1.2.4 seed, which moved when the demo learned about bodyweight work
-// and effort. Hand-checked rather than copied off a failing run: 18412.5 is the sum of w×r
-// over the twenty completed sets, and 1.3 is 78.3 − 77.
-const NEWEST_WORKOUT = { date: '2026-07-24', name: 'Leg Day', volume: 18412.5, bw: 78.4, sets_done: 20, sets_total: 20, duration: '1h 11m' }
-const LATEST_BW = { date: '2026-07-27', weight: 78.3, delta: 1.3 }
-const LEG_PRESS_ID = '0739'                                 // sled 45° leg press in the demo data
-const LEG_PRESS_BEST = { w: 152.5, r: 12, epley: 213.5, brzycki: 219.6 }
+// Re-pinned against the seed as it stands after the catalogue swap (WS1), which changed both
+// the exercises and the starter plan the demo fabricates its twelve weeks from. Hand-checked
+// rather than copied off a failing run: 5963.75 is the sum of w×r over the fourteen completed
+// sets of that session, '1h 7m' is its own start-to-end, 78.7 is the weigh-in it was logged
+// at and 1.5 is 78.5 − 77.
+const NEWEST_WORKOUT = { date: '2026-07-24', name: 'Squat & Pull Day', volume: 5963.75, bw: 78.7, sets_done: 14, sets_total: 14, duration: '1h 7m' }
+const LATEST_BW = { date: '2026-07-27', weight: 78.5, delta: 1.5 }
+
+/* Which exercise tops the 1RM table is a property of the seed, not a fact worth pinning by
+   hand: the id used to be the old dataset's leg press, and when the catalogue changed that
+   single constant turned a dozen assertions red for the wrong reason. It is derived here
+   instead, while the *numbers* the tool reports stay checked against the formula written out
+   in the test — which is what "hand-computed" was always supposed to mean. */
+function bestAcrossHistory(id) {
+  const sets = []
+  S.workouts.forEach(w => (w.entries || []).filter(e => e.id === id).forEach(e => sets.push(...(e.sets || []))))
+  return bestSetOf({ id, sets })
+}
+function topExerciseId() {
+  const ids = new Set()
+  S.workouts.forEach(w => (w.entries || []).forEach(e => ids.add(e.id)))
+  return [...ids].map(id => ({ id, est: bestAcrossHistory(id)?.est ?? -1 })).sort((a, b) => b.est - a.est)[0].id
+}
+const nameOfRoutine = id => S.routines.find(r => r.id === id).name
 
 const byName = Object.fromEntries(TOOLS.map(t => [t.name, t.handler]))
 
@@ -62,7 +79,7 @@ describe('list_routines', () => {
     const r = call('list_routines')
     expect(r.unit).toBe('kg')
     expect(r.routines.length).toBe(3)
-    expect(r.routines.map(x => x.name).sort()).toEqual(['Leg Day', 'Pull Day', 'Push Day'])
+    expect(r.routines.map(x => x.name).sort()).toEqual(S.routines.map(x => x.name).sort())
     r.routines.forEach(rn => {
       expect(typeof rn.id).toBe('string')
       expect(rn.exercise_count).toBeGreaterThan(0)
@@ -94,10 +111,10 @@ describe('list_routines', () => {
 /* ---------- get_routine ---------- */
 
 describe('get_routine', () => {
-  test('returns the full exercise list for Push Day with per-exercise summaries', () => {
-    const push = call('list_routines').routines.find(x => x.name === 'Push Day')
+  test('returns the full exercise list for a routine with per-exercise summaries', () => {
+    const push = call('list_routines').routines[0]
     const r = call('get_routine', { routine_id: push.id })
-    expect(r.name).toBe('Push Day')
+    expect(r.name).toBe(push.name)
     expect(r.exercises.length).toBe(push.exercise_count)
     expect(r.policy_name).toBeTruthy()
     r.exercises.forEach(e => {
@@ -189,7 +206,7 @@ describe('get_routine', () => {
     // Append synthetic entries the starter plan doesn't ship: a timed plank (sec, no w) and a
     // cardio treadmill block (min + speed). These exercise ids don't exist in EXDB, so exOr
     // returns a placeholder named "Unknown exercise" — that's fine, we test the cfg fields.
-    const push = S.routines.find(r => r.name === 'Push Day')
+    const push = S.routines[0]
     push.ex.push({ id: 'synth-plank', sets: 3, sec: 60, weight: 0, mode: 'time' })
     push.ex.push({ id: 'synth-treadmill', sets: 1, min: 20, speed: 8, mode: 'cardio' })
     const r = call('get_routine', { routine_id: push.id })
@@ -215,20 +232,19 @@ describe('get_week_plan', () => {
       .toEqual(['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'])
   })
 
-  test('today is the pinned Monday, and Push Day is scheduled', () => {
+  test("today is the pinned Monday, and Monday's routine is scheduled", () => {
     const r = call('get_week_plan')
     expect(r.today).toBe(FAKE_TODAY_ISO)
-    const push = S.routines.find(x => x.name === 'Push Day')
-    expect(r.today_routine_id).toBe(push.id)
-    expect(r.today_routine_name).toBe('Push Day')
+    expect(r.today_routine_id).toBe(S.week[1])
+    expect(r.today_routine_name).toBe(nameOfRoutine(S.week[1]))
   })
 
-  test('week[1]/[3]/[5] map to Push/Pull/Leg, other weekdays are rest', () => {
+  test('the three training days map to their routines, other weekdays are rest', () => {
     const r = call('get_week_plan')
     const byWd = Object.fromEntries(r.weekdays.map(d => [d.weekday, d]))
-    expect(byWd[1].routine_name).toBe('Push Day')
-    expect(byWd[3].routine_name).toBe('Pull Day')
-    expect(byWd[5].routine_name).toBe('Leg Day')
+    expect(byWd[1].routine_name).toBe(nameOfRoutine(S.week[1]))
+    expect(byWd[3].routine_name).toBe(nameOfRoutine(S.week[3]))
+    expect(byWd[5].routine_name).toBe(nameOfRoutine(S.week[5]))
     ;[0, 2, 4, 6].forEach(wd => {
       expect(byWd[wd].routine_id).toBeNull()
       expect(byWd[wd].routine_name).toBeNull()
@@ -249,11 +265,11 @@ describe('get_week_plan', () => {
   })
 
   test('a routine-id override on today replaces the weekday default', () => {
-    const legs = S.routines.find(r => r.name === 'Leg Day')
-    S.dayPlan[FAKE_TODAY_ISO] = legs.id
+    const other = S.routines.find(r => r.id !== S.week[1])
+    S.dayPlan[FAKE_TODAY_ISO] = other.id
     const r = call('get_week_plan')
-    expect(r.today_routine_id).toBe(legs.id)
-    expect(r.today_routine_name).toBe('Leg Day')
+    expect(r.today_routine_id).toBe(other.id)
+    expect(r.today_routine_name).toBe(other.name)
   })
 
   test('empty week + no override → today has no routine (a quiet Sunday)', () => {
@@ -387,11 +403,14 @@ describe('get_workout', () => {
     expect(w.entries[3].sets[0].label).toBe('20 min @ 8 km/h')   // cardio
   })
 
-  test('infers cardio mode from the exercise id when the target has no mode key', () => {
-    // Reproduces the review bug: the sheet saves a cardio target as {sets, min, speed} with
-    // no mode and no id. modeOf must fall through to isCardio(id), which needs the id on the
-    // cfg — entryView has to spread id into the cfg the way every app call site does.
-    const CARDIO_ID = EXDB.find(e => e.bp === 'cardio').id
+  test('with no cardio entry in the catalogue, an id alone cannot make an entry cardio', () => {
+    // This test used to pin the opposite: a cardio target saved as {sets, min, speed} with no
+    // mode relied on isCardio(id) to be read as cardio. OlyGym's catalogue is Olympic
+    // weightlifting — ten families, none of them cardio — and isCardio resolves against it, so
+    // that fallback can never fire here. A target without a mode is read as reps; a custom
+    // cardio exercise is saved with an explicit mode, which the label test above covers.
+    const CARDIO_ID = 'synth-cardio'
+    S.customEx = [{ id: CARDIO_ID, n: 'Rower', bp: 'cardio' }]
     S.workouts = [{
       id: 'synth-cardio', d: '2026-07-25', start: 0, end: 1800000, routineId: 'x', name: 'Synth',
       bw: 78, vol: 0, prs: [],
@@ -400,8 +419,7 @@ describe('get_workout', () => {
       ]
     }]
     const w = call('get_workout', { date: '2026-07-25' })
-    expect(w.entries[0].mode).toBe('cardio')
-    expect(w.entries[0].sets[0].label).toBe('20 min @ 8 km/h')
+    expect(w.entries[0].mode).toBe('reps')
   })
 })
 
@@ -464,24 +482,28 @@ describe('estimate_1rm', () => {
     const r = call('estimate_1rm', {})
     const top = r.pr_table[0]
     // Demo seed's hardest set: sled 45° leg press at 152.5×12 (r=12 hits estimate1RM's REP_CAP).
-    expect(top.exId).toBe(LEG_PRESS_ID)
-    expect(top.w).toBe(LEG_PRESS_BEST.w)
-    expect(top.r).toBe(LEG_PRESS_BEST.r)
-    expect(top.est).toBeCloseTo(LEG_PRESS_BEST.epley, 1)
+    const topId = topExerciseId()
+    const best = bestAcrossHistory(topId)
+    expect(top.exId).toBe(topId)
+    expect(top.w).toBe(best.w)
+    expect(top.r).toBe(best.r)
+    expect(top.est).toBeCloseTo(best.w * (1 + best.r / 30), 1)   // Epley, written out
   })
 
   test('per-exercise trend + best, with formula honours (Epley vs Brzycki numbers diverge)', () => {
-    const epley = call('estimate_1rm', { exercise_id: LEG_PRESS_ID, formula: 'epley' })
-    expect(epley.exercise.id).toBe(LEG_PRESS_ID)
+    const topId = topExerciseId()
+    const best = bestAcrossHistory(topId)
+    const epley = call('estimate_1rm', { exercise_id: topId, formula: 'epley' })
+    expect(epley.exercise.id).toBe(topId)
     expect(epley.formula).toBe('epley')
     expect(Array.isArray(epley.trend)).toBe(true)
     expect(epley.best).toBeTruthy()
-    expect(epley.best.w).toBe(LEG_PRESS_BEST.w)
-    expect(epley.best.r).toBe(LEG_PRESS_BEST.r)
-    expect(epley.best.est).toBeCloseTo(LEG_PRESS_BEST.epley, 1)
-    const brz = call('estimate_1rm', { exercise_id: LEG_PRESS_ID, formula: 'brzycki' })
+    expect(epley.best.w).toBe(best.w)
+    expect(epley.best.r).toBe(best.r)
+    expect(epley.best.est).toBeCloseTo(best.w * (1 + best.r / 30), 1)
+    const brz = call('estimate_1rm', { exercise_id: topId, formula: 'brzycki' })
     expect(brz.formula).toBe('brzycki')
-    expect(brz.best.est).toBeCloseTo(LEG_PRESS_BEST.brzycki, 1)
+    expect(brz.best.est).toBeCloseTo(best.w * 36 / (37 - best.r), 1)   // Brzycki, written out
     // Distinct formulas must produce distinct estimates for this set.
     expect(epley.best.est).not.toBeCloseTo(brz.best.est, 1)
   })
@@ -489,7 +511,8 @@ describe('estimate_1rm', () => {
   test('exercises with no reps-mode history get null best + empty trend (not a 0 estimate)', () => {
     S.workouts = []
     _seedStateForTests(S)
-    const r = call('estimate_1rm', { exercise_id: LEG_PRESS_ID })
+    // Any id will do — the point is that there is no history behind it at all.
+    const r = call('estimate_1rm', { exercise_id: EXDB[0].id })
     expect(r.best).toBeNull()
     expect(r.trend).toEqual([])
     const table = call('estimate_1rm', {}).pr_table
@@ -504,7 +527,7 @@ describe('estimate_1rm', () => {
       id: 'w-ramp', d: '2026-07-26', name: 'Legs', start: 1000, end: 1000 + 30 * 60000,
       vol: 0, prs: [],
       entries: [{
-        id: LEG_PRESS_ID, target: { sets: 2, reps: 5, mode: 'reps' },
+        id: topExerciseId(), target: { sets: 2, reps: 5, mode: 'reps' },
         sets: [
           { w: 200, r: 5, done: true, phase: 'warmup' },  // mistyped/greedy ramp row
           { w: 100, r: 5, done: true }                     // the only real work set
@@ -516,11 +539,11 @@ describe('estimate_1rm', () => {
     const app = bestSetOf(S.workouts[0].entries[0])
     expect(app.w).toBe(100)                                // the app ignores the 200 kg warm-up
 
-    const best = call('estimate_1rm', { exercise_id: LEG_PRESS_ID }).best
+    const best = call('estimate_1rm', { exercise_id: topExerciseId() }).best
     expect(best.w).toBe(100)
     expect(best.est).toBeCloseTo(app.est, 1)
 
-    const row = call('estimate_1rm', {}).pr_table.find(p => p.exId === LEG_PRESS_ID)
+    const row = call('estimate_1rm', {}).pr_table.find(p => p.exId === topExerciseId())
     expect(row.w).toBe(100)
     expect(row.est).toBeCloseTo(app.est, 1)
   })
@@ -533,13 +556,13 @@ describe('estimate_1rm', () => {
       id: 'w-highrep', d: '2026-07-26', name: 'Accessories', start: 1000, end: 1000 + 20 * 60000,
       vol: 0, prs: [],
       entries: [{
-        id: LEG_PRESS_ID, target: { sets: 2, reps: 20, mode: 'reps' },
+        id: topExerciseId(), target: { sets: 2, reps: 20, mode: 'reps' },
         sets: [{ w: 40, r: 20, done: true }, { w: 40, r: 18, done: true }]
       }]
     }]
     _seedStateForTests(S)
 
-    const capped = call('estimate_1rm', { exercise_id: LEG_PRESS_ID })
+    const capped = call('estimate_1rm', { exercise_id: topExerciseId() })
     expect(capped.best).toBeNull()
     expect(capped.no_estimate_reason).toMatch(/above the \d+-rep cap/)
 
@@ -554,7 +577,7 @@ describe('estimate_1rm', () => {
 
   test('all three formulas are accepted', () => {
     ['epley', 'brzycki', 'lombardi'].forEach(f => {
-      const r = call('estimate_1rm', { exercise_id: LEG_PRESS_ID, formula: f })
+      const r = call('estimate_1rm', { exercise_id: topExerciseId(), formula: f })
       expect(r.formula).toBe(f)
       expect(r.best).not.toBeNull()
     })
@@ -688,6 +711,9 @@ describe('preview_session', () => {
   // so the arithmetic below is checkable by hand.
   // Linear by default: with progression off the app opens the routine's own numbers (see the
   // two tests at the end), so history-vs-plan precedence is only observable under a policy.
+  // A real catalogue entry ('bench press'), so the name the tool resolves is the catalogue's
+  // own — the fixture used to carry the old dataset's '0025' / 'barbell bench press'.
+  const BENCH = EXDB.find(e => e.n === 'bench press').id
   function only(cfg, { prog = 'linear', workouts = [], exWeights = {}, routine = {} } = {}) {
     S.routines = [{ id: 'r-preview', name: 'Preview', emoji: 'barbell', prog, ex: [cfg], ...routine }]
     S.week = { [WD]: 'r-preview' }
@@ -698,16 +724,16 @@ describe('preview_session', () => {
   }
 
   test('defaults to the routine scheduled for today', () => {
-    only({ id: '0025', sets: 3, reps: 8, weight: 50 })
+    only({ id: BENCH, sets: 3, reps: 8, weight: 50 })
     const r = call('preview_session')
     expect(r.date).toBe(FAKE_TODAY_ISO)
     expect(r.routine_name).toBe('Preview')
     expect(r.exercises).toHaveLength(1)
-    expect(r.exercises[0].name).toBe('barbell bench press')
+    expect(r.exercises[0].name).toBe('bench press')
   })
 
   test('with no history and no confirmed weight, the routine\'s own number is what opens', () => {
-    only({ id: '0025', sets: 3, reps: 8, weight: 50 })
+    only({ id: BENCH, sets: 3, reps: 8, weight: 50 })
     const e = call('preview_session').exercises[0]
     expect(e.weight_source).toBe('routine_plan')
     expect(e.opening_sets.map(s => s.w)).toEqual([50, 50, 50])
@@ -717,7 +743,7 @@ describe('preview_session', () => {
   })
 
   test('a confirmed working weight beats the routine\'s number', () => {
-    only({ id: '0025', sets: 2, reps: 8, weight: 50 }, { exWeights: { '0025': { w: 72.5, d: '2026-07-20' } } })
+    only({ id: BENCH, sets: 2, reps: 8, weight: 50 }, { exWeights: { [BENCH]: { w: 72.5, d: '2026-07-20' } } })
     const e = call('preview_session').exercises[0]
     expect(e.weight_source).toBe('confirmed_weight')
     expect(e.opening_sets.every(s => s.w === 72.5)).toBe(true)
@@ -727,14 +753,14 @@ describe('preview_session', () => {
   test('the progression policy beats both, and its reason is reported', () => {
     // Every rep hit at 60 last time under linear progression → +2.5, regardless of the 100
     // the routine stores.
-    only({ id: '0025', sets: 3, reps: 5, weight: 100 }, {
+    only({ id: BENCH, sets: 3, reps: 5, weight: 100 }, {
       prog: 'linear',
-      exWeights: { '0025': { w: 100, d: '2026-07-20' } },
+      exWeights: { [BENCH]: { w: 100, d: '2026-07-20' } },
       workouts: [{
         id: 'w1', d: '2026-07-20', routineId: 'r-preview', name: 'Preview',
         entries: [{
-          id: '0025',
-          target: { id: '0025', sets: 3, reps: 5, weight: 60 },
+          id: BENCH,
+          target: { id: BENCH, sets: 3, reps: 5, weight: 60 },
           sets: [{ w: 60, r: 5, done: true }, { w: 60, r: 5, done: true }, { w: 60, r: 5, done: true }]
         }]
       }]
@@ -749,18 +775,18 @@ describe('preview_session', () => {
 
     expect(out.overridden_count).toBe(1)
     expect(out.overridden[0]).toMatchObject({
-      name: 'barbell bench press', planned_weight: 100, opening_weight: 62.5
+      name: 'bench press', planned_weight: 100, opening_weight: 62.5
     })
     expect(out.overridden[0].reason).toMatch(/Every rep last time/)
   })
 
   test('reps carry from the last session even when the routine asks for something else', () => {
-    only({ id: '0025', sets: 2, reps: 12, weight: 60 }, {
+    only({ id: BENCH, sets: 2, reps: 12, weight: 60 }, {
       workouts: [{
         id: 'w1', d: '2026-07-20', routineId: 'r-preview', name: 'Preview',
         entries: [{
-          id: '0025',
-          target: { id: '0025', sets: 2, reps: 5, weight: 60 },
+          id: BENCH,
+          target: { id: BENCH, sets: 2, reps: 5, weight: 60 },
           sets: [{ w: 60, r: 5, done: true }, { w: 60, r: 5, done: true }]
         }]
       }]
@@ -772,13 +798,13 @@ describe('preview_session', () => {
   })
 
   test('planned drop sets show up on the opening rows', () => {
-    only({ id: '0025', sets: 2, reps: 10, weight: 50, intensifier: { type: 'dropset', count: 1, pct: 20 } })
+    only({ id: BENCH, sets: 2, reps: 10, weight: 50, intensifier: { type: 'dropset', count: 1, pct: 20 } })
     const e = call('preview_session').exercises[0]
     expect(e.opening_sets.every(s => s.type === 'dropset')).toBe(true)
   })
 
   test('an explicit routine_id overrides the schedule', () => {
-    only({ id: '0025', sets: 3, reps: 8, weight: 50 })
+    only({ id: BENCH, sets: 3, reps: 8, weight: 50 })
     const other = { id: 'r-other', name: 'Other', prog: 'off', ex: [{ id: '0043', sets: 5, reps: 5, weight: 80 }] }
     S.routines.push(other)
     _seedStateForTests(S)
@@ -786,7 +812,7 @@ describe('preview_session', () => {
   })
 
   test('a rest day returns no exercises rather than an error', () => {
-    only({ id: '0025', sets: 3, reps: 8, weight: 50 })
+    only({ id: BENCH, sets: 3, reps: 8, weight: 50 })
     S.week = {}
     _seedStateForTests(S)
     const r = call('preview_session')
@@ -795,12 +821,12 @@ describe('preview_session', () => {
   })
 
   test('with progression off the routine\'s own numbers open, whatever history says (matches session-start.js)', () => {
-    only({ id: '0025', sets: 3, reps: 8, weight: 50 }, {
+    only({ id: BENCH, sets: 3, reps: 8, weight: 50 }, {
       prog: 'off',
-      exWeights: { '0025': { w: 72.5, d: '2026-07-20' } },
+      exWeights: { [BENCH]: { w: 72.5, d: '2026-07-20' } },
       workouts: [{
         id: 'w1', d: '2026-07-20', routineId: 'r-preview', name: 'Preview',
-        entries: [{ id: '0025', target: { id: '0025', sets: 3, reps: 5, weight: 60 }, sets: [{ w: 60, r: 5, done: true }] }]
+        entries: [{ id: BENCH, target: { id: BENCH, sets: 3, reps: 5, weight: 60 }, sets: [{ w: 60, r: 5, done: true }] }]
       }]
     })
     const out = call('preview_session')
@@ -814,11 +840,11 @@ describe('preview_session', () => {
   })
 
   test('a deload routine (excludeFromProgression) opens its own numbers even under a policy', () => {
-    only({ id: '0025', sets: 3, reps: 5, weight: 50 }, {
+    only({ id: BENCH, sets: 3, reps: 5, weight: 50 }, {
       prog: 'linear', routine: { excludeFromProgression: true },
       workouts: [{
         id: 'w1', d: '2026-07-20', routineId: 'r-preview', name: 'Preview',
-        entries: [{ id: '0025', target: { id: '0025', sets: 3, reps: 5, weight: 60 }, sets: [{ w: 60, r: 5, done: true }, { w: 60, r: 5, done: true }, { w: 60, r: 5, done: true }] }]
+        entries: [{ id: BENCH, target: { id: BENCH, sets: 3, reps: 5, weight: 60 }, sets: [{ w: 60, r: 5, done: true }, { w: 60, r: 5, done: true }, { w: 60, r: 5, done: true }] }]
       }]
     })
     const e = call('preview_session').exercises[0]
@@ -828,11 +854,11 @@ describe('preview_session', () => {
   })
 
   test('a timed exercise that progressed is listed as overridden too', () => {
-    only({ id: '0025', mode: 'time', sets: 3, sec: 30, inc: 10 }, {
+    only({ id: BENCH, mode: 'time', sets: 3, sec: 30, inc: 10 }, {
       prog: 'time',
       workouts: [{
         id: 'w1', d: '2026-07-20', routineId: 'r-preview', name: 'Preview',
-        entries: [{ id: '0025', target: { id: '0025', mode: 'time', sets: 3, sec: 30 }, sets: [{ sec: 45, done: true }, { sec: 45, done: true }, { sec: 45, done: true }] }]
+        entries: [{ id: BENCH, target: { id: BENCH, mode: 'time', sets: 3, sec: 30 }, sets: [{ sec: 45, done: true }, { sec: 45, done: true }, { sec: 45, done: true }] }]
       }]
     })
     const out = call('preview_session')
@@ -844,7 +870,7 @@ describe('preview_session', () => {
   })
 
   test('an unknown routine_id is an error, not an empty session', () => {
-    only({ id: '0025', sets: 3, reps: 8, weight: 50 })
+    only({ id: BENCH, sets: 3, reps: 8, weight: 50 })
     expect(() => call('preview_session', { routine_id: 'nope' })).toThrow(/no routine with id/)
   })
 })

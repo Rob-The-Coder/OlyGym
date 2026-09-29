@@ -6,6 +6,7 @@
    an operator opened the dashboard to stop stays un-disableable. Real server.js in a child. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { EX_LOADED } from './helpers.mjs';
 import crypto from 'node:crypto';
 import net from 'node:net';
 import fs from 'node:fs';
@@ -62,7 +63,7 @@ async function startServer(t) {
 
 // One good entry of each kind, so every case below can say what survived as well as what did not.
 const okW = { id: 'w1', name: 'Fine', d: '2026-09-18', start: 1, end: 2, entries: [{ id: 'e', sets: [{ w: 10, r: 5, done: true }] }] };
-const okR = { id: 'r1', name: 'Full body', emoji: '💪', ex: [{ id: '0001', sets: 3, reps: 10 }] };
+const okR = { id: 'r1', name: 'Full body', emoji: '💪', ex: [{ id: EX_LOADED, sets: 3, reps: 10 }] };
 const okB = { d: '2026-09-01', w: 80 };
 
 /* The shapes v1.3.7 accepted through PUT /api/data, one per line. `null` is the one the field

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { EX_LOADED } from './helpers.mjs';
 import { buildPrompt, buildPromptParts, taskOf } from '../coach/core/prompt.js';
 import { SCHEMAS } from '../coach/core/schemas.js';
 import { build, FULL_DETAIL_SESSIONS } from '../coach/core/payload.js';
@@ -7,13 +8,13 @@ import { chatCompletionsSpec } from '../coach/core/adapters/openai.js';
 import { validatePlan } from '../coach/core/validate.js';
 
 const S = (workouts = []) => ({
-  lang: 'en', unit: 'kg', routines: [{ id: 'r1', name: 'A', ex: [{ id: '0001', sets: 3, reps: 8 }] }],
+  lang: 'en', unit: 'kg', routines: [{ id: 'r1', name: 'A', ex: [{ id: EX_LOADED, sets: 3, reps: 8 }] }],
   week: { 1: 'r1' }, workouts, bodyweight: [],
   coach: { consent: { agreedAt: 'x', version: 1 }, profile: { goal: 'muscle', equipment: [] }, log: [] }
 });
 const workout = (d, done = true) => ({
   d, start: 1, end: 60001, name: 'A',
-  entries: [{ id: '0001', target: { sets: 3, reps: 8, weight: 60 }, sets: [{ done, w: 60, r: 8, rir: 2 }] }]
+  entries: [{ id: EX_LOADED, target: { sets: 3, reps: 8, weight: 60 }, sets: [{ done, w: 60, r: 8, rir: 2 }] }]
 });
 
 test('the rules half of the prompt is byte-identical across jobs of the same task', () => {
@@ -60,7 +61,7 @@ test('the create schema requires what the week resolves through: a routine id, a
 
   const noId = {
     coach_contract: 1,
-    routines: [{ name: 'r1', ex: [{ id: '0001', sets: 3, reps: 8 }] }],
+    routines: [{ name: 'r1', ex: [{ id: EX_LOADED, sets: 3, reps: 8 }] }],
     week: { 1: 'r1' }
   };
   const checked = validatePlan(noId, { daysPerWeek: 1 });

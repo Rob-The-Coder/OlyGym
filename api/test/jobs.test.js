@@ -8,7 +8,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { tempData, writeState, sampleState } from './helpers.mjs';
+import { tempData, writeState, sampleState, EX_LOADED } from './helpers.mjs';
 
 const DIR = tempData();
 const cfg = await import('../coach/config.js');
@@ -286,9 +286,9 @@ test('a job interrupted by a restart is reported as failed, not left spinning', 
 });
 
 test('the plan fingerprint moves when the plan does, and only then', () => {
-  const plan = payload.canonicalPlan({ routines: [{ id: 'r1', name: 'A', ex: [{ id: '0001', sets: 3, reps: 10 }] }], week: { 1: 'r1' } });
-  const same = payload.canonicalPlan({ routines: [{ id: 'r1', name: 'A', ex: [{ id: '0001', sets: 3, reps: 10, weight: 0 }] }], week: { 1: 'r1' } });
-  const moved = payload.canonicalPlan({ routines: [{ id: 'r1', name: 'A', ex: [{ id: '0001', sets: 4, reps: 10 }] }], week: { 1: 'r1' } });
+  const plan = payload.canonicalPlan({ routines: [{ id: 'r1', name: 'A', ex: [{ id: EX_LOADED, sets: 3, reps: 10 }] }], week: { 1: 'r1' } });
+  const same = payload.canonicalPlan({ routines: [{ id: 'r1', name: 'A', ex: [{ id: EX_LOADED, sets: 3, reps: 10, weight: 0 }] }], week: { 1: 'r1' } });
+  const moved = payload.canonicalPlan({ routines: [{ id: 'r1', name: 'A', ex: [{ id: EX_LOADED, sets: 4, reps: 10 }] }], week: { 1: 'r1' } });
   assert.equal(jobs.hashPlan(plan), jobs.hashPlan(same));
   assert.notEqual(jobs.hashPlan(plan), jobs.hashPlan(moved));
 });
@@ -299,7 +299,7 @@ test('the fingerprint covers every field canonicalPlan reports, including the v1
   // ceiling raised by hand read as "plan untouched" — on exactly the exercises where that
   // ceiling is how progression works.
   const of = ex => payload.canonicalPlan({ routines: [{ id: 'r1', name: 'A', ex: [ex] }], week: { 1: 'r1' } });
-  const base = { id: '0001', sets: 3, reps: 10, repsMin: 8, repsMax: 20, bodyweight: true };
+  const base = { id: EX_LOADED, sets: 3, reps: 10, repsMin: 8, repsMax: 20, bodyweight: true };
   const h = ex => jobs.hashPlan(of(ex));
 
   assert.equal(h(base), h({ ...base }), 'the same plan hashes the same');

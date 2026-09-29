@@ -11,7 +11,8 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { tempData } from './helpers.mjs';
+import { libraryName } from '../coach/core/library.js';
+import { tempData, EX_LOADED, EX_OTHER, EX_SIDE, EX_THIRD, EX_TIMED } from './helpers.mjs';
 
 tempData();
 const { validatePlan, validateReview, CHANGE_TYPES } = await import('../coach/core/validate.js');
@@ -19,28 +20,28 @@ const { validatePlan, validateReview, CHANGE_TYPES } = await import('../coach/co
 const PLAN = {
   routines: [{
     id: 'r1', name: 'Full body A',
-    ex: [{ id: '0001', sets: 3, reps: 10 }, { id: '0007', sets: 3, sec: 45 }]
+    ex: [{ id: EX_LOADED, sets: 3, reps: 10 }, { id: EX_TIMED, sets: 3, sec: 45 }]
   }, {
-    id: 'r2', name: 'Full body B', ex: [{ id: '0009', sets: 3, reps: 8 }]
+    id: 'r2', name: 'Full body B', ex: [{ id: EX_OTHER, sets: 3, reps: 8 }]
   }, {
     // The v1.2.4 shapes, as cleanEx would hand them over: a unilateral exercise whose reps are
     // the total across both sides, and a bodyweight one with a rep ceiling.
     id: 'r3', name: 'Legs',
     ex: [
-      { id: '0043', sets: 3, reps: 16, side: true },
-      { id: '0001', sets: 3, reps: 12, repsMin: 8, repsMax: 20, bodyweight: true }
+      { id: EX_SIDE, sets: 3, reps: 16, side: true },
+      { id: EX_LOADED, sets: 3, reps: 12, repsMin: 8, repsMax: 20, bodyweight: true }
     ]
   }],
   week: { 1: 'r1', 3: 'r2' }
 };
-const change = over => ({ id: 'c1', type: 'sets', target: { routineId: 'r1', exId: '0001' }, before: 3, after: 4, why: 'stalled twice', ...over });
+const change = over => ({ id: 'c1', type: 'sets', target: { routineId: 'r1', exId: EX_LOADED }, before: 3, after: 4, why: 'stalled twice', ...over });
 const review = changes => validateReview({ coach_contract: 1, summary: 's', changes }, PLAN);
 
 /* ---------------- created plans ---------------- */
 
 test('a plan referencing an unknown exercise is rejected, not quietly trimmed', () => {
   const r = validatePlan({
-    routines: [{ name: 'A', ex: [{ id: '0001', sets: 3, reps: 10 }, { id: 'not-a-real-id', sets: 3, reps: 10 }] }]
+    routines: [{ name: 'A', ex: [{ id: EX_LOADED, sets: 3, reps: 10 }, { id: 'not-a-real-id', sets: 3, reps: 10 }] }]
   });
   assert.equal(r.ok, false);
   assert.ok(r.errors.some(e => e.includes('not-a-real-id')));
@@ -49,22 +50,22 @@ test('a plan referencing an unknown exercise is rejected, not quietly trimmed', 
 test('a plan may reference a custom exercise it defines in the same answer', () => {
   const r = validatePlan({
     routines: [{ name: 'A', ex: [{ id: 'cx1', sets: 3, reps: 10 }] }],
-    customEx: [{ id: 'cx1', n: 'Sandbag carry', bp: 'back' }]
+    customEx: [{ id: 'cx1', n: 'Sandbag carry', bp: 'Carries' }]
   });
   assert.equal(r.ok, true);
   assert.equal(r.bundle.customEx[0].n, 'Sandbag carry');
 });
 
 test('the week may only point at routines the plan actually defines', () => {
-  const r = validatePlan({ routines: [{ id: 'r1', name: 'A', ex: [{ id: '0001', sets: 3, reps: 10 }] }], week: { 1: 'ghost' } });
+  const r = validatePlan({ routines: [{ id: 'r1', name: 'A', ex: [{ id: EX_LOADED, sets: 3, reps: 10 }] }], week: { 1: 'ghost' } });
   assert.equal(r.ok, false);
   assert.ok(r.errors.some(e => e.includes('ghost')));
 });
 
 test('proposed baselines are capped at what the lifter has actually handled', () => {
   const r = validatePlan(
-    { routines: [{ id: 'r1', name: 'A', ex: [{ id: '0001', sets: 3, reps: 10, weight: 100 }] }] },
-    { workingWeights: [{ id: '0001', best: 40 }] }
+    { routines: [{ id: 'r1', name: 'A', ex: [{ id: EX_LOADED, sets: 3, reps: 10, weight: 100 }] }] },
+    { workingWeights: [{ id: EX_LOADED, best: 40 }] }
   );
   assert.equal(r.ok, true);
   assert.equal(r.bundle.routines[0].ex[0].weight, 40, 'optimism is clamped to evidence');
@@ -72,7 +73,7 @@ test('proposed baselines are capped at what the lifter has actually handled', ()
 
 test('a plan that ignores the requested number of training days is rejected', () => {
   const r = validatePlan(
-    { routines: [{ id: 'r1', name: 'A', ex: [{ id: '0001', sets: 3, reps: 10 }] }], week: { 1: 'r1', 2: 'r1', 3: 'r1', 4: 'r1' } },
+    { routines: [{ id: 'r1', name: 'A', ex: [{ id: EX_LOADED, sets: 3, reps: 10 }] }], week: { 1: 'r1', 2: 'r1', 3: 'r1', 4: 'r1' } },
     { daysPerWeek: 3 }
   );
   assert.equal(r.ok, false);
@@ -80,7 +81,7 @@ test('a plan that ignores the requested number of training days is rejected', ()
 });
 
 test('an unknown progression policy is rejected', () => {
-  const r = validatePlan({ routines: [{ name: 'A', prog: 'vibes', ex: [{ id: '0001', sets: 3, reps: 10 }] }] });
+  const r = validatePlan({ routines: [{ name: 'A', prog: 'vibes', ex: [{ id: EX_LOADED, sets: 3, reps: 10 }] }] });
   assert.equal(r.ok, false);
   assert.ok(r.errors.some(e => e.includes('vibes')));
 });
@@ -91,8 +92,8 @@ test('a created plan carries the rep ceiling and the two flags through unchanged
   const r = validatePlan({
     routines: [{
       id: 'r1', name: 'A', ex: [
-        { id: '0001', sets: 3, reps: 12, repsMin: 8, repsMax: 20, bodyweight: true },
-        { id: '0043', sets: 3, reps: 16, side: true }
+        { id: EX_LOADED, sets: 3, reps: 12, repsMin: 8, repsMax: 20, bodyweight: true },
+        { id: EX_SIDE, sets: 3, reps: 16, side: true }
       ]
     }]
   });
@@ -105,25 +106,25 @@ test('a created plan carries the rep ceiling and the two flags through unchanged
 });
 
 test('unilateral reps are a total across both sides, so an odd one is refused', () => {
-  const odd = validatePlan({ routines: [{ id: 'r1', name: 'A', ex: [{ id: '0043', sets: 3, reps: 15, side: true }] }] });
+  const odd = validatePlan({ routines: [{ id: 'r1', name: 'A', ex: [{ id: EX_SIDE, sets: 3, reps: 15, side: true }] }] });
   assert.equal(odd.ok, false);
   assert.ok(odd.errors.some(e => e.includes('even')));
   // The same number is perfectly fine on an exercise that is not per-side.
-  assert.equal(validatePlan({ routines: [{ id: 'r1', name: 'A', ex: [{ id: '0043', sets: 3, reps: 15 }] }] }).ok, true);
+  assert.equal(validatePlan({ routines: [{ id: 'r1', name: 'A', ex: [{ id: EX_SIDE, sets: 3, reps: 15 }] }] }).ok, true);
 });
 
 test('a rep ceiling below its own floor is refused at both ends', () => {
-  const created = validatePlan({ routines: [{ id: 'r1', name: 'A', ex: [{ id: '0001', sets: 3, reps: 10, repsMin: 12, repsMax: 8 }] }] });
+  const created = validatePlan({ routines: [{ id: 'r1', name: 'A', ex: [{ id: EX_LOADED, sets: 3, reps: 10, repsMin: 12, repsMax: 8 }] }] });
   assert.equal(created.ok, false);
   assert.ok(created.errors.some(e => e.includes('repsMax')));
   // …and on review, checked against the floor the plan already has (r3's second exercise: 8).
-  const tgt = { routineId: 'r3', exId: '0001' };
+  const tgt = { routineId: 'r3', exId: EX_LOADED };
   assert.equal(review([change({ type: 'repsMax', target: tgt, after: 6 })]).ok, false);
   assert.equal(review([change({ type: 'repsMax', target: tgt, after: 25 })]).ok, true);
 });
 
 test('a review cannot prescribe an odd total on a per-side exercise', () => {
-  const tgt = { routineId: 'r3', exId: '0043' };
+  const tgt = { routineId: 'r3', exId: EX_SIDE };
   assert.equal(review([change({ type: 'reps', target: tgt, after: 17 })]).ok, false);
   assert.equal(review([change({ type: 'reps', target: tgt, after: 18 })]).ok, true);
   // The rule follows the plan, not the change: the same value on r1's 0001 is fine.
@@ -140,9 +141,9 @@ test('an invented change type does nothing at all', () => {
 });
 
 test('every change must target something that exists', () => {
-  assert.equal(review([change({ target: { routineId: 'ghost', exId: '0001' } })]).ok, false);
+  assert.equal(review([change({ target: { routineId: 'ghost', exId: EX_LOADED } })]).ok, false);
   assert.equal(review([change({ target: { routineId: 'r1', exId: '9999' } })]).ok, false, 'exercise not in that routine');
-  assert.equal(review([change({ target: { routineId: 'r2', exId: '0001' } })]).ok, false, 'right exercise, wrong routine');
+  assert.equal(review([change({ target: { routineId: 'r2', exId: EX_LOADED } })]).ok, false, 'right exercise, wrong routine');
 });
 
 test('a change without a rationale is rejected', () => {
@@ -161,16 +162,16 @@ test('values are type-checked per change type', () => {
 });
 
 test('adding an exercise requires a real library id', () => {
-  const ok = review([change({ type: 'add-exercise', target: { routineId: 'r1' }, after: { id: '0009', sets: 3, reps: 12 } })]);
+  const ok = review([change({ type: 'add-exercise', target: { routineId: 'r1' }, after: { id: EX_OTHER, sets: 3, reps: 12 } })]);
   assert.equal(ok.ok, true);
-  assert.equal(ok.proposal.changes[0].after.name, 'assisted chest dip (kneeling)');
+  assert.equal(ok.proposal.changes[0].after.name, libraryName(EX_OTHER));
   assert.equal(review([change({ type: 'add-exercise', target: { routineId: 'r1' }, after: { id: 'made-up' } })]).ok, false);
 });
 
 test('an added exercise may declare itself bodyweight, per-side and capped', () => {
   const r = review([change({
     type: 'add-exercise', target: { routineId: 'r1' },
-    after: { id: '0043', sets: 3, reps: 16, side: true, bodyweight: true, repsMin: 10, repsMax: 24 }
+    after: { id: EX_SIDE, sets: 3, reps: 16, side: true, bodyweight: true, repsMin: 10, repsMax: 24 }
   })]);
   assert.equal(r.ok, true);
   assert.deepEqual(
@@ -179,31 +180,31 @@ test('an added exercise may declare itself bodyweight, per-side and capped', () 
   );
   // And the parity rule applies to what it declares about itself.
   assert.equal(review([change({
-    type: 'add-exercise', target: { routineId: 'r1' }, after: { id: '0043', sets: 3, reps: 15, side: true }
+    type: 'add-exercise', target: { routineId: 'r1' }, after: { id: EX_SIDE, sets: 3, reps: 15, side: true }
   })]).ok, false);
 });
 
 test('a reorder must be a permutation of what is already there', () => {
-  assert.equal(review([change({ type: 'reorder', target: { routineId: 'r1' }, after: ['0007', '0001'] })]).ok, true);
-  assert.equal(review([change({ type: 'reorder', target: { routineId: 'r1' }, after: ['0007'] })]).ok, false, 'dropping one is not a reorder');
-  assert.equal(review([change({ type: 'reorder', target: { routineId: 'r1' }, after: ['0007', '0009'] })]).ok, false, 'nor is smuggling one in');
+  assert.equal(review([change({ type: 'reorder', target: { routineId: 'r1' }, after: [EX_TIMED, EX_LOADED] })]).ok, true);
+  assert.equal(review([change({ type: 'reorder', target: { routineId: 'r1' }, after: [EX_TIMED] })]).ok, false, 'dropping one is not a reorder');
+  assert.equal(review([change({ type: 'reorder', target: { routineId: 'r1' }, after: [EX_TIMED, EX_OTHER] })]).ok, false, 'nor is smuggling one in');
   // The one that satisfies both a length check and a membership check while still deleting an
   // exercise — and reorder is the change type the review screen shows no diff for.
-  assert.equal(review([change({ type: 'reorder', target: { routineId: 'r1' }, after: ['0001', '0001'] })]).ok, false, 'naming one twice drops the other');
+  assert.equal(review([change({ type: 'reorder', target: { routineId: 'r1' }, after: [EX_LOADED, EX_LOADED] })]).ok, false, 'naming one twice drops the other');
 });
 
 test('a superset needs a partner that is not itself', () => {
-  assert.equal(review([change({ type: 'superset', after: { link: true, with: '0007' } })]).ok, true);
-  assert.equal(review([change({ type: 'superset', after: { link: true, with: '0001' } })]).ok, false, 'the anchor cannot be its own partner');
+  assert.equal(review([change({ type: 'superset', after: { link: true, with: EX_TIMED } })]).ok, true);
+  assert.equal(review([change({ type: 'superset', after: { link: true, with: EX_LOADED } })]).ok, false, 'the anchor cannot be its own partner');
   assert.equal(review([change({ type: 'superset', after: { link: false } })]).ok, true, 'unlinking needs no partner');
 });
 
 test('a new routine is refused whole when it names an exercise nobody has', () => {
   const withEx = ex => review([change({ type: 'add-routine', target: {}, after: { name: 'C', ex } })]);
-  assert.equal(withEx([{ id: '0001', sets: 3, reps: 10 }]).ok, true);
+  assert.equal(withEx([{ id: EX_LOADED, sets: 3, reps: 10 }]).ok, true);
   // Not trimmed to the exercises that did resolve: that would hand someone a routine they were
   // never shown, under the summary of the one they were.
-  const r = withEx([{ id: '0001', sets: 3, reps: 10 }, { id: 'not-a-real-exercise', sets: 3, reps: 10 }]);
+  const r = withEx([{ id: EX_LOADED, sets: 3, reps: 10 }, { id: 'not-a-real-exercise', sets: 3, reps: 10 }]);
   assert.equal(r.ok, false);
   assert.match(r.errors.join(' '), /not-a-real-exercise/, 'and the repair round is told which one');
 });
@@ -222,7 +223,7 @@ test('before is read off the plan, never taken from the answer', () => {
   assert.equal(typed.proposal.changes[0].before, 3);
 
   // Structural changes have no scalar to compare; null is what the client reads as "skip".
-  const structural = review([change({ type: 'reorder', target: { routineId: 'r1' }, before: 'anything', after: ['0007', '0001'] })]);
+  const structural = review([change({ type: 'reorder', target: { routineId: 'r1' }, before: 'anything', after: [EX_TIMED, EX_LOADED] })]);
   assert.equal(structural.proposal.changes[0].before, null);
 
   // And a field the plan does not carry reads as absent rather than as the model's guess.
@@ -259,21 +260,21 @@ test('one bad change fails the whole set — nothing is ever half-applied', () =
 
 test('every allowed change type has a validator that accepts a well-formed instance', () => {
   const good = {
-    'add-exercise': change({ type: 'add-exercise', target: { routineId: 'r1' }, after: { id: '0009', sets: 3, reps: 10 } }),
+    'add-exercise': change({ type: 'add-exercise', target: { routineId: 'r1' }, after: { id: EX_OTHER, sets: 3, reps: 10 } }),
     'remove-exercise': change({ type: 'remove-exercise' }),
-    'swap-exercise': change({ type: 'swap-exercise', after: { id: '0009' } }),
+    'swap-exercise': change({ type: 'swap-exercise', after: { id: EX_OTHER } }),
     sets: change({ type: 'sets', after: 4 }),
     reps: change({ type: 'reps', after: 12 }),
     repsMin: change({ type: 'repsMin', after: 8 }),
     repsMax: change({ type: 'repsMax', after: 20 }),
-    sec: change({ type: 'sec', target: { routineId: 'r1', exId: '0007' }, after: 60 }),
+    sec: change({ type: 'sec', target: { routineId: 'r1', exId: EX_TIMED }, after: 60 }),
     cardio: change({ type: 'cardio', after: { min: 25, speed: 9 } }),
-    reorder: change({ type: 'reorder', target: { routineId: 'r1' }, after: ['0007', '0001'] }),
-    superset: change({ type: 'superset', after: { link: true, with: '0007' } }),
+    reorder: change({ type: 'reorder', target: { routineId: 'r1' }, after: [EX_TIMED, EX_LOADED] }),
+    superset: change({ type: 'superset', after: { link: true, with: EX_TIMED } }),
     'routine-prog': change({ type: 'routine-prog', target: { routineId: 'r1' }, after: 'double' }),
     'exercise-prog': change({ type: 'exercise-prog', after: 'greyskull' }),
     inc: change({ type: 'inc', after: 2.5 }),
-    'add-routine': change({ type: 'add-routine', target: {}, after: { name: 'C', ex: [{ id: '0001', sets: 3, reps: 10 }] } }),
+    'add-routine': change({ type: 'add-routine', target: {}, after: { name: 'C', ex: [{ id: EX_LOADED, sets: 3, reps: 10 }] } }),
     'remove-routine': change({ type: 'remove-routine', target: { routineId: 'r2' } }),
     'rename-routine': change({ type: 'rename-routine', target: { routineId: 'r1' }, after: 'Upper' }),
     week: change({ type: 'week', target: { weekday: 2 }, after: 'r1' })
@@ -292,8 +293,8 @@ test('two routines cannot answer to the same id', () => {
   // two it meant — and the client resolves it by whichever happened to be found first.
   const r = validatePlan({
     routines: [
-      { id: 'r1', name: 'A', ex: [{ id: '0001', sets: 3, reps: 10 }] },
-      { id: 'r1', name: 'B', ex: [{ id: '0002', sets: 3, reps: 10 }] }
+      { id: 'r1', name: 'A', ex: [{ id: EX_LOADED, sets: 3, reps: 10 }] },
+      { id: 'r1', name: 'B', ex: [{ id: EX_THIRD, sets: 3, reps: 10 }] }
     ],
     week: { 1: 'r1' }
   });
@@ -304,8 +305,8 @@ test('two routines cannot answer to the same id', () => {
 test('an auto-assigned routine id cannot collide with an explicit one', () => {
   const r = validatePlan({
     routines: [
-      { name: 'A', ex: [{ id: '0001', sets: 3, reps: 10 }] },   // becomes "r0"
-      { id: 'r0', name: 'B', ex: [{ id: '0002', sets: 3, reps: 10 }] }
+      { name: 'A', ex: [{ id: EX_LOADED, sets: 3, reps: 10 }] },   // becomes "r0"
+      { id: 'r0', name: 'B', ex: [{ id: EX_THIRD, sets: 3, reps: 10 }] }
     ]
   });
   assert.equal(r.ok, false);
@@ -315,7 +316,7 @@ test('one exercise cannot appear twice in the same routine', () => {
   // A duplicate makes every later reorder unsatisfiable — it must list each id exactly once —
   // and makes a targeted change resolve to whichever copy comes first.
   const r = validatePlan({
-    routines: [{ name: 'A', ex: [{ id: '0001', sets: 3, reps: 10 }, { id: '0001', sets: 4, reps: 8 }] }]
+    routines: [{ name: 'A', ex: [{ id: EX_LOADED, sets: 3, reps: 10 }, { id: EX_LOADED, sets: 4, reps: 8 }] }]
   });
   assert.equal(r.ok, false);
   assert.ok(r.errors.some(e => e.includes('twice')));
@@ -325,7 +326,7 @@ test('a plan with no week at all does not satisfy a requested day count', () => 
   // The day-count check used to be skipped entirely when the week was empty, so "four days a
   // week" was answered with a plan that schedules nothing.
   const r = validatePlan(
-    { routines: [{ id: 'r1', name: 'A', ex: [{ id: '0001', sets: 3, reps: 10 }] }] },
+    { routines: [{ id: 'r1', name: 'A', ex: [{ id: EX_LOADED, sets: 3, reps: 10 }] }] },
     { daysPerWeek: 4 }
   );
   assert.equal(r.ok, false);
@@ -336,7 +337,7 @@ test('a starting weight is dropped when there is nothing logged to justify it', 
   // With no working weights the FR-20 cap has nothing to clamp against, so an invented number
   // used to pass straight through to a lifter the model has never seen.
   const r = validatePlan(
-    { routines: [{ id: 'r1', name: 'A', ex: [{ id: '0001', sets: 3, reps: 10, weight: 100 }] }], week: { 1: 'r1' } },
+    { routines: [{ id: 'r1', name: 'A', ex: [{ id: EX_LOADED, sets: 3, reps: 10, weight: 100 }] }], week: { 1: 'r1' } },
     { daysPerWeek: 1 }
   );
   assert.equal(r.ok, true);
@@ -350,13 +351,13 @@ test('a starting weight survives only where that exercise has actually been lift
     {
       routines: [{
         id: 'r1', name: 'A', ex: [
-          { id: '0001', sets: 3, reps: 10, weight: 50 },    // trained: capped, kept
-          { id: '0002', sets: 3, reps: 10, weight: 100 }    // never trained: dropped
+          { id: EX_LOADED, sets: 3, reps: 10, weight: 50 },    // trained: capped, kept
+          { id: EX_THIRD, sets: 3, reps: 10, weight: 100 }    // never trained: dropped
         ]
       }],
       week: { 1: 'r1' }
     },
-    { daysPerWeek: 1, workingWeights: [{ id: '0001', best: 60 }] }
+    { daysPerWeek: 1, workingWeights: [{ id: EX_LOADED, best: 60 }] }
   );
   assert.equal(r.ok, true);
   assert.equal(r.bundle.routines[0].ex[0].weight, 50);
@@ -365,8 +366,8 @@ test('a starting weight survives only where that exercise has actually been lift
 
 test('a starting weight above what they have handled is pulled back down to it', () => {
   const r = validatePlan(
-    { routines: [{ id: 'r1', name: 'A', ex: [{ id: '0001', sets: 3, reps: 10, weight: 200 }] }], week: { 1: 'r1' } },
-    { daysPerWeek: 1, workingWeights: [{ id: '0001', best: 60 }] }
+    { routines: [{ id: 'r1', name: 'A', ex: [{ id: EX_LOADED, sets: 3, reps: 10, weight: 200 }] }], week: { 1: 'r1' } },
+    { daysPerWeek: 1, workingWeights: [{ id: EX_LOADED, best: 60 }] }
   );
   assert.equal(r.bundle.routines[0].ex[0].weight, 60);
 });
@@ -375,8 +376,8 @@ test('a custom exercise may not claim a library id', () => {
   // The approval card resolves the id against the catalogue and shows that exercise; mergePlan
   // remaps it to the model's invention. What was approved would not be what got applied.
   const r = validatePlan({
-    routines: [{ name: 'A', ex: [{ id: '0001', sets: 3, reps: 10 }] }],
-    customEx: [{ id: '0001', n: 'Bench Press', bp: 'chest' }]
+    routines: [{ name: 'A', ex: [{ id: EX_LOADED, sets: 3, reps: 10 }] }],
+    customEx: [{ id: EX_LOADED, n: 'Bench Press', bp: 'Accessory - Upper Body' }]
   });
   assert.equal(r.ok, false);
   assert.ok(r.errors.some(e => e.includes('already a library exercise id')));
@@ -386,14 +387,14 @@ test('ids that are prototype keys are refused', () => {
   // plan-share.js uses bare object literals for its id maps: writing __proto__ is ignored and
   // reading it back yields Object.prototype, which persists into synced state as {}.
   const r = validatePlan({
-    routines: [{ id: '__proto__', name: 'A', ex: [{ id: '0001', sets: 3, reps: 10 }] }],
+    routines: [{ id: '__proto__', name: 'A', ex: [{ id: EX_LOADED, sets: 3, reps: 10 }] }],
     week: { 1: '__proto__' }
   });
   assert.equal(r.ok, false);
 });
 
 test('a load step has an upper bound', () => {
-  const r = validatePlan({ routines: [{ name: 'A', ex: [{ id: '0001', sets: 3, reps: 10, inc: 500 }] }] });
+  const r = validatePlan({ routines: [{ name: 'A', ex: [{ id: EX_LOADED, sets: 3, reps: 10, inc: 500 }] }] });
   assert.equal(r.ok, true);
   assert.equal(r.bundle.routines[0].ex[0].inc, undefined);   // absurd step dropped, plan kept
 });
