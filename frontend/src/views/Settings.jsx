@@ -17,7 +17,7 @@ import { MOBILE, isAndroid, shareExport, syncReminder } from '../lib/mobile.js'
 import { checkForUpdate, downloadAndInstall } from '../lib/update.js'
 import { forgetCoach } from '../lib/coach-api.js'
 import { ConnectSheet } from './MobileOnboarding.jsx'
-import { starterPlanSheet, confirmSheet, importFromApp, importFromHevy, equipmentProfileSheet, menuSheet, askAddDeviceData } from '../sheets.jsx'
+import { starterPlanSheet, confirmSheet, importFromApp, importFromHevy, importCoachPlan, equipmentProfileSheet, menuSheet, askAddDeviceData } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Section, Row, SelectRow, Switch, Segmented, Button, TextField } from '../components/ui.jsx'
 
@@ -30,6 +30,7 @@ export default function Settings() {
   const toast = useUI(s => s.toast)
   const fileRef = useRef(null)
   const importRef = useRef(null)
+  const coachRef = useRef(null)
   const wakeOK = wakeLockSupported()
 
   // Two honest choices on a unit switch (issue #22): convert the numbers, or keep them and only
@@ -401,6 +402,9 @@ export default function Settings() {
       <Row icon="key" iconTint="var(--teal)" title={t('Import from Hevy')}
         subtitle={t('Pull your history with a Hevy Pro API key')}
         accessory="chevron" onClick={importFromHevy} />
+      <Row icon="upload" iconTint="var(--teal)" title={t('Import a coach’s plan')}
+        subtitle={t('An Excel or CSV week: his exercises, sets, reps and loads, read and reviewed before they land in your plan')}
+        accessory="chevron" onClick={() => coachRef.current.click()} />
       <Row icon="upload" iconTint="var(--blue)" title={t('Import backup')} accessory="chevron" onClick={() => fileRef.current.click()} />
       <Row icon="download" iconTint="var(--blue)" title={t('Export backup (JSON)')} accessory="chevron" onClick={doExport} />
       {MOBILE && <Row icon="history" iconTint="var(--blue)" title={t('Auto-backup on changes')}
@@ -413,6 +417,8 @@ export default function Settings() {
     {/* Reset after reading so picking the same file twice still fires onChange. */}
     <input ref={importRef} type="file" accept=".csv,.xml,text/csv,text/xml" style={{ display: 'none' }}
       onChange={ev => { const f = ev.target.files[0]; if (f) importFromApp(f); ev.target.value = '' }} />
+    <input ref={coachRef} type="file" accept=".xlsx,.csv" style={{ display: 'none' }}
+      onChange={ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) importCoachPlan(f) }} />
 
     {/* "Add to Home screen" makes no sense inside the native app */}
     {!MOBILE && <Section title={t('Tip')}>

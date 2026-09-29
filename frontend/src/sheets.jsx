@@ -20,7 +20,9 @@ import { glyphOf, GLYPH_GROUPS, DEFAULT_GLYPH } from './lib/glyphs.js'
 import BodyMap from './components/BodyMap.jsx'
 import MuscleExplorer from './components/MuscleExplorer.jsx'
 import { exerciseMuscleSnapshot, loadOfWorkouts, MUSCLES, MUSCLE_NAME, normalizeMuscleGroups, hasExplicitMuscleMetadata, inMuscleOrder } from './lib/muscles.js'
-import { parseImport, mergeImport } from './lib/import-csv.js'
+import { parseImport, mergeImport, parseCSV } from './lib/import-csv.js'
+import { readXlsx } from './lib/xlsx.js'
+import CoachImport from './components/CoachImport.jsx'
 import { importHevyData, HevyApiError, HEVY_DEV_SETTINGS, mergeHevyRoutines } from './lib/import-hevy.js'
 import { buildPlanBundle, parsePlan, mergePlan, printPlan, planPrintHTML } from './lib/plan-share.js'
 import { estimate1RM, best1RM, is1RMRecord, REP_CAP } from './lib/onerm.js'
@@ -1512,10 +1514,38 @@ export const effortPickerSheet = (kind, value, onPick) =>
 /* ============================ share / print / import a plan ============================ */
 export const planToolsSheet = () => ui().openSheet(close => <PlanTools close={close} />)
 
+/* ============================ the coach's spreadsheet ============================ */
+// The reading lives in lib/plan-aliases.js and lib/import-plan.js; this is the way in. The review
+// screen is where a wrong guess gets fixed, and the fix is remembered in S.planAliases — the same
+// Italian phrases come back every week, so the second week arrives already corrected.
+export function coachPlanSheet(sheets) {
+  // The picker stacks on top of the review (that is how the add-to-routine flow wants it); a
+  // correction pops whatever was opened for it, so the review comes back into view.
+  const pick = onPick => {
+    const before = ui().sheets.length
+    exercisePicker(ex => { onPick(ex); ui().sheets.slice(before).forEach(s => ui().closeSheet(s.id)) })
+  }
+  ui().openSheet(close => <CoachImport sheets={sheets} close={close} pick={pick} menu={menuSheet} />)
+}
+
+/** Read a coach's workbook (one sheet per week) or a CSV, then show the review. */
+export function importCoachPlan(file) {
+  const sheets = /\.csv$/i.test(file.name || '')
+    ? file.text().then(text => [{ name: String(file.name).replace(/\.[a-z]+$/i, ''), grid: parseCSV(text) }])
+    : file.arrayBuffer().then(buf => readXlsx(buf)).then(wb => wb.sheets)
+  sheets.then(all => {
+    // A sheet with nothing in it is a tab the coach never used.
+    const usable = (all || []).filter(s => Array.isArray(s.grid) && s.grid.some(r => r.some(c => c)))
+    if (!usable.length) { toast(t('That file has no training in it')); return }
+    coachPlanSheet(usable)
+  }).catch(() => toast(t('Could not read that file — a coach’s plan is an .xlsx or .csv file.')))
+}
+
 function PlanTools({ close }) {
   const st = useStore(s => s.S)
   const user = useStore(s => s.user)
   const fileRef = useRef(null)
+  const coachRef = useRef(null)
   const hasRoutines = (st.routines || []).some(r => r.ex && r.ex.length)
 
   const exportFile = async () => {
@@ -1555,6 +1585,10 @@ function PlanTools({ close }) {
     <h4 className="sec">{t('Got a plan from a friend?')}</h4>
     <Button variant="ghost" icon="folder" onClick={() => fileRef.current?.click()}>{t('Import a plan file')}</Button>
     <input ref={fileRef} type="file" accept="application/json,.json" onChange={pickFile} hidden />
+    <h4 className="sec">{t('Training from a coach?')}</h4>
+    <Button variant="ghost" icon="upload" onClick={() => coachRef.current?.click()}>{t('Import a coach’s plan')}</Button>
+    <div className="dim small" style={{ margin: '7px 2px 0', lineHeight: 1.4 }}>{t('His spreadsheet, one sheet per week — read, reviewed and turned into routines.')}</div>
+    <input ref={coachRef} type="file" accept=".xlsx,.csv" onChange={ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) { close(); importCoachPlan(f) } }} hidden />
   </>
 }
 
