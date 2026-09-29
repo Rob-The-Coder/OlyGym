@@ -157,16 +157,47 @@
   background: color-mix(in srgb,var(--m3-surface-container-low) 96%, transparent);
   box-shadow: 0 1px 0 var(--m3-outline-variant) inset;
 }
-#tabbar button{position:relative;font-size:11px;gap:2px;color:var(--label-2)}
+/* padding-top is dropped and the indicator extends by the same amount above *and*
+   below: with the old 3px of padding inside the button the pill had 3px of slack over
+   the icon and none under the label, which read as a pill sitting too high. */
+#tabbar button{position:relative;font-size:11px;gap:2px;color:var(--label-2);padding-top:0}
 /* The indicator wraps icon *and* label, not just the icon: a pill around the icon alone
    left the top of the label poking out of it, which read as a half-covered tab. `inset`
    rather than a fixed box keeps it correct whatever the label's height ends up being in
    another language. */
 #tabbar button::before{
-  content:'';position:absolute;z-index:0;inset:-3px 0;border-radius:20px;
+  content:'';position:absolute;z-index:0;inset:-5px 0;border-radius:18px;
   background:transparent;transition:background var(--fast) var(--ease);
 }
 #tabbar button.on:not(.start)::before{background:color-mix(in srgb,var(--acc) 24%,transparent)}
+
+/* The bar's vertical padding was 7px over the tabs and 9px under them, and on a phone
+   the bottom also carries the safe-area inset — so the indicator could not be
+   symmetric: it clipped the top and floated at the bottom. Same 8px above and below
+   leaves it 3px of air on both sides; the device's safe-area inset stays underneath the
+   bar's visual box, where it belongs. */
+/* The taps stretch to whatever height the bar's content box ends up with and keep their
+   content at the bottom, so the indicator's box *is* the content box: any leftover pixel
+   is shared between the two sides instead of all landing above the icon. */
+#tabbar button:not(.start){ align-self:stretch; justify-content:flex-end }
+
+@media (max-width:999px){ #tabbar{ padding-top:8px; padding-bottom:calc(8px + var(--sab)) } }
+/* On a wide screen the bar floats, so it is a shape the eye can compare with the
+   indicator inside it. Three things make them match:
+
+   - a floating surface in M3 carries elevation, not a hairline border (the 0.5px border
+     was also rounding to a whole pixel on one edge only, which kept the last pixel of
+     asymmetry alive);
+   - the padding is the same on all four sides (10px), so the gap between the bar's
+     outline and the indicator's is uniform — 5px everywhere, not 10 at the sides and 3
+     over the top;
+   - 28px of corner on a 58px-tall bar is a capsule (radius = half the height), which is
+     why the ends read as semicircles. 20px keeps the sides more vertical, and the
+     indicator follows at 15px (20 − the 5px gap) so the two curves stay concentric. */
+@media (min-width:1000px){
+  #tabbar{ border:0; border-radius:20px; padding:10px }
+  #tabbar button::before{ inset:-5px; border-radius:15px }
+}
 #tabbar button.on{color:var(--label)}
 #tabbar button .icn{position:relative;z-index:1;font-size:22px;color:var(--label-2)}
 #tabbar button.on .icn{color:var(--label)}
@@ -429,15 +460,57 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
 #tabbar button:not(.on)::before { transform: scale(.72) }
 #tabbar button.on:not(.start)::before { transform: scale(1) }
 
+/* The Start button's disc is 52px against a tab's 22px icon, so the button was 68px
+   tall where a tab is 38: it alone set the bar's height and left 10px of slack above
+   the four tabs, which is exactly why the active pill hung at the bottom with a gap
+   over it. Taking the disc out of the flow makes the tabs the tallest thing in the
+   bar, so the pill fills it (2px of air above, 1px below, measured) while the disc
+   stays pixel-for-pixel where it was. */
+#tabbar button.start { position: relative; margin-top: 0 }
+#tabbar button.start .cir {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: calc(100% + 2px);
+}
+
 /* --- the Start FAB compresses and rounds off ------------------------------- */
 #tabbar button.start .cir {
   transition: transform var(--m3-dur-spatial) var(--m3-spring),
               border-radius var(--m3-dur-spatial) var(--m3-spring),
               background var(--fast) var(--ease);
 }
-#tabbar button.start:active .cir { transform: scale(.94); border-radius:var(--m3-shape-xl) }
+#tabbar button.start:active .cir { transform: translateX(-50%) scale(.94); border-radius:var(--m3-shape-xl) }
 
 /* --- entrances: sheets and dialogs settle instead of snapping -------------- */
 .sheet { animation: sheetup var(--m3-dur-enter) var(--m3-emph-dec) }
 .center { animation: pop var(--m3-dur-enter) var(--m3-emph-dec) }
 #app.vfade { animation: viewfade var(--m3-dur-spatial) var(--m3-emph-dec) }
+
+/* --- the rest timer's bar becomes M3 Expressive's wavy indicator ------------- */
+/* A sine drawn on the fill with a mask, so the accent stays a live variable (a
+   data-URI background could not follow the accent picker). The bar goes from 4 to
+   6px: at 4 there is no room for a wave to read, and this is the one bar in the app
+   that is decorative rather than informational. The fill still advances by width, so
+   the countdown is exactly as accurate as before. */
+#timer .bar{height:6px}
+#timer .bar i{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='6'%3E%3Cpath d='M-5 3 Q 0 0 5 3 T 15 3 T 25 3' fill='none' stroke='%23fff' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='6'%3E%3Cpath d='M-5 3 Q 0 0 5 3 T 15 3 T 25 3' fill='none' stroke='%23fff' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  -webkit-mask-repeat:repeat-x;mask-repeat:repeat-x;
+  -webkit-mask-size:20px 100%;mask-size:20px 100%;
+  animation:m3flow 2.4s linear infinite;
+}
+/* the wave drifts, which is what makes it read as flowing rather than as a squiggle */
+@keyframes m3flow{from{-webkit-mask-position:0 0;mask-position:0 0}to{-webkit-mask-position:20px 0;mask-position:20px 0}}
+
+/* The workout header's progress bar (sets done / total) is the other real progress
+   indicator in the app, so it gets the same wave. `.mrow .bar` in the muscle balance
+   is a *data* bar — it shows how much each muscle got, not how far along something is —
+   and stays a straight line on purpose. */
+.wprog{height:6px}
+.wprog i{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='6'%3E%3Cpath d='M-5 3 Q 0 0 5 3 T 15 3 T 25 3' fill='none' stroke='%23fff' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='6'%3E%3Cpath d='M-5 3 Q 0 0 5 3 T 15 3 T 25 3' fill='none' stroke='%23fff' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  -webkit-mask-repeat:repeat-x;mask-repeat:repeat-x;
+  -webkit-mask-size:20px 100%;mask-size:20px 100%;
+  animation:m3flow 2.4s linear infinite;
+}
