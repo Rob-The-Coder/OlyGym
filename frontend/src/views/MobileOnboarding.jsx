@@ -1,5 +1,5 @@
 // Mobile build only, first launch: the choice useStore.boot() couldn't make on its own — keep
-// everything on this device, or connect to a self-hosted openGym server instead. See
+// everything on this device, or connect to a self-hosted OlyGym server instead. See
 // lib/remote.js for the pairing flow this hands off to.
 import { useState, useRef, useEffect } from 'react'
 import { useStore } from '../store/useStore.js'
@@ -26,7 +26,7 @@ export function ConnectSheet({ close }) {
   return <>
     <h3>{t('Connect to my server')}</h3>
     <div className="muted small" style={{ marginBottom: 14 }}>
-      {t('Open Settings → “Pair the mobile app” on the openGym site you’re already signed into, then enter its address and the code shown there.')}
+      {t('Open Settings → “Pair the mobile app” on the OlyGym site you’re already signed into, then enter its address and the code shown there.')}
     </div>
     <input ref={ref} className="input" placeholder={t('Server address (e.g. gym.example.com)')} value={url}
       onChange={e => setUrl(e.target.value)} autoCapitalize="none" autoCorrect="off" inputMode="url" />
@@ -48,12 +48,12 @@ export default function MobileOnboarding() {
   return (
     <div className="narrow" style={wrap}>
       {head}
-      <div className="muted" style={{ marginBottom: 34 }}>{t('How do you want to use openGym?')}</div>
+      <div className="muted" style={{ marginBottom: 34 }}>{t('How do you want to use OlyGym?')}</div>
       <Button variant="primary" icon="lock" onClick={() => chooseLocalMode()}>{t('Use on this device')}</Button>
       <div style={{ height: 10 }} />
       <Button icon="rocket" onClick={() => useUI.getState().openSheet(close => <ConnectSheet close={close} />)}>{t('Connect to my server')}</Button>
       <div className="dim small" style={{ marginTop: 26, lineHeight: 1.5 }}>
-        {t('Local keeps everything on this phone. Connecting syncs to your own openGym server instead — you can switch later in Settings.')}
+        {t('Local keeps everything on this phone. Connecting syncs to your own OlyGym server instead — you can switch later in Settings.')}
       </div>
     </div>
   )
