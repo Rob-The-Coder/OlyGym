@@ -375,3 +375,69 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
 .tile .l{font-size:12px;font-weight:500;letter-spacing:.03em}
 .tile .v{font-size:30px;font-weight:500;letter-spacing:-.012em}
 .tile.tappable:active{background:color-mix(in srgb,var(--label) 10%,transparent)}
+
+/* ============================================================================
+   Motion — Material 3 Expressive
+   ----------------------------------------------------------------------------
+   Expressive is mostly a way of moving: springs with a little overshoot, longer
+   spatial transitions, and a press that compresses and springs back. The visual
+   language was already here (large radii, tonal surfaces, outlined chips,
+   connected button groups, the navigation bar's pill), so this block adds only
+   the movement, and touches nothing at rest.
+
+   `prefers-reduced-motion` still wins: index.css turns every animation and
+   transition off for those readers with !important, and nothing here overrides
+   that.
+   ============================================================================ */
+:root {
+  /* A spring with a gentle overshoot — the shape Expressive uses for spatial
+     changes. Too much bounce reads as a toy on a training log, so this is the
+     soft end of the spec. */
+  --m3-spring:      cubic-bezier(.34, 1.32, .64, 1);
+  --m3-spring-soft: cubic-bezier(.22, 1.18, .36, 1);
+  /* Emphasized decelerate: fast out of the gate, long settle — entrance motion. */
+  --m3-emph-dec:    cubic-bezier(.05, .7, .1, 1);
+  --m3-dur-spatial: 350ms;
+  --m3-dur-enter:   400ms;
+}
+
+/* --- press: state layer *and* a compress that springs back ------------------ */
+/* index.css scaled buttons flatly (.975/.92) and had to go; Expressive brings
+   the compression back, but on a spring and shallower, so it reads as weight
+   rather than as a size change. */
+.btn, .chip, .iconbtn {
+  transition: transform var(--m3-dur-spatial) var(--m3-spring),
+              background var(--fast) var(--ease),
+              filter var(--fast) var(--ease);
+}
+.btn:active, .chip:active, .iconbtn:active { transform: scale(.96) }
+
+/* --- controls that move on their own --------------------------------------- */
+/* The segmented thumb travels further and settles; the switch knob overshoots
+   the way a physical toggle does. */
+.seg-sel { transition: transform var(--m3-dur-spatial) var(--m3-emph-dec) }
+.sw .knob {
+  transition: transform var(--m3-dur-spatial) var(--m3-spring),
+              width var(--fast) var(--ease);
+}
+
+/* --- the navigation bar's indicator grows into place ----------------------- */
+#tabbar button::before {
+  transition: background var(--fast) var(--ease),
+              transform var(--m3-dur-spatial) var(--m3-spring);
+}
+#tabbar button:not(.on)::before { transform: scale(.72) }
+#tabbar button.on:not(.start)::before { transform: scale(1) }
+
+/* --- the Start FAB compresses and rounds off ------------------------------- */
+#tabbar button.start .cir {
+  transition: transform var(--m3-dur-spatial) var(--m3-spring),
+              border-radius var(--m3-dur-spatial) var(--m3-spring),
+              background var(--fast) var(--ease);
+}
+#tabbar button.start:active .cir { transform: scale(.94); border-radius:var(--m3-shape-xl) }
+
+/* --- entrances: sheets and dialogs settle instead of snapping -------------- */
+.sheet { animation: sheetup var(--m3-dur-enter) var(--m3-emph-dec) }
+.center { animation: pop var(--m3-dur-enter) var(--m3-emph-dec) }
+#app.vfade { animation: viewfade var(--m3-dur-spatial) var(--m3-emph-dec) }
