@@ -280,3 +280,38 @@
 :root[data-theme="light"] .searchf .field{background:var(--m3-surface-container-high)}
 .searchf .lead{left:16px;font-size:18px}
 .searchf .clear{right:12px;width:24px;height:24px}
+
+/* ============================================================================
+   Type
+   ----------------------------------------------------------------------------
+   Chosen with the user on 2026-09-29 from three scales drawn side by side
+   (oly-media-preview-type.png): M3's sizes with a little more presence than M3
+   itself — display type at 500 rather than 400, and a slight negative tracking
+   instead of none, because on a dark background 400 at 32px reads thinner than
+   it does on paper.
+
+   Roles, so the next screen has something to follow:
+     screen title      headline-large   32/500   (was 34/700)
+     sheet title       title-large      22/500   (was 20/600)
+     row title         body-large       16/400   (lists said 17)
+     row subtitle      body-medium      14/400   (was 13)
+     big number        display-small    34/500   (was 30/600)
+     section label     label-medium     12/500   (was 13/400)
+     button / chip     label-large      14/500   (already)
+     tab label         label-small      11/500   (already)
+   ============================================================================ */
+.hdr h1{font-size:32px;font-weight:500;letter-spacing:-.01em}
+/* index.css steps the title down on a narrow phone; that rule is in a media query
+   and this file outranks it, so the step has to be restated here or it is lost. */
+@media (max-width:420px){.hdr h1{font-size:30px}}
+
+.hdr .sub{font-size:16px;letter-spacing:-.002em}
+.sheet h3{font-size:22px;font-weight:500;letter-spacing:-.008em}
+
+.lrow-t{font-size:16px;letter-spacing:-.006em}
+.lrow-s{font-size:14px}
+.lrow-v{font-size:16px}
+.item .ss{font-size:14px}
+
+.card .big{font-size:34px;font-weight:500;letter-spacing:-.012em}
+.sect-t{font-size:12px;font-weight:500;letter-spacing:.03em}
