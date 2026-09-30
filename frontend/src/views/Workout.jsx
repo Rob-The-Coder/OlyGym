@@ -73,7 +73,18 @@ function Elapsed({ start }) {
 // drops everything that is not a set you are logging — media, tag chips, the note lines, the
 // "last time" recap and the progression line — leaving the name, the ⋯ menu and the sets.
 // Nothing dropped is lost: it is all still on the ⋯ menu, or one ⋮ switch back to list/cards.
-function ExerciseBlock({ entryIdx, compact, dense, onToggle, onToggleSide, onField, onAddSet, onRemoveSet, onAddWarmup, onRemoveSetAt, onStartTimed, onPairPrev, onPairNext, onSetRowRef, onProgressionSettings, onSwap, onMoveUp, onMoveDown, canMoveUp, canMoveDown, onRemoveExercise, busy }) {
+// What a complex shares: the sets the coach wrote once and the load that goes on every movement
+// ("3+3 @ 30kg"). Shown on the group's heading — a member repeats it only when they disagree,
+// which is exactly the "each card says 3x3 30kg" the coach's sheet never says.
+function sharedScheme(entries) {
+  // The prescribed numbers live on `target`; `sets` on an active entry is the list of set rows.
+  const head = entries[0]?.target
+  if (!head) return null
+  const same = entries.every(e => (e.target?.sets || 0) === (head.sets || 0) && (e.target?.weight || 0) === (head.weight || 0))
+  return same ? { sets: head.sets || 1, weight: head.weight || 0 } : null
+}
+
+function ExerciseBlock({ entryIdx, step, compact, dense, onToggle, onToggleSide, onField, onAddSet, onRemoveSet, onAddWarmup, onRemoveSetAt, onStartTimed, onPairPrev, onPairNext, onSetRowRef, onProgressionSettings, onSwap, onMoveUp, onMoveDown, canMoveUp, canMoveDown, onRemoveExercise, busy }) {
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
   const working = useUI(s => s.work)
@@ -223,8 +234,8 @@ function ExerciseBlock({ entryIdx, compact, dense, onToggle, onToggleSide, onFie
       onProgressionSettings && { icon: 'chartLine', label: t('Progression settings'), sub: guidance ? t(guidance.policyLabel) : undefined, onClick: onProgressionSettings },
       barInfo && { icon: 'barbell', label: t('Bar weight'), sub: barInfo.text, onClick: () => barWeightSheet(entry.id) },
       { icon: 'flame', label: t('Add warm-up set'), onClick: onAddWarmup },
-      onPairPrev && { icon: 'link', label: t('Make superset with previous'), onClick: onPairPrev },
-      onPairNext && { icon: 'link', label: t('Make superset with next'), onClick: onPairNext },
+      onPairPrev && { icon: 'link', label: t('Make complex with previous'), onClick: onPairPrev },
+      onPairNext && { icon: 'link', label: t('Make complex with next'), onClick: onPairNext },
       onSwap && { icon: 'shuffle', label: t('Swap exercise'), onClick: onSwap, disabled: busy },
       onMoveUp && { icon: 'chevronUp', label: t('Move up'), onClick: onMoveUp, disabled: busy || !canMoveUp },
       onMoveDown && { icon: 'chevronDown', label: t('Move down'), onClick: onMoveDown, disabled: busy || !canMoveDown },
@@ -368,7 +379,12 @@ function ExerciseBlock({ entryIdx, compact, dense, onToggle, onToggleSide, onFie
   return <>
     {!dense && <Media ex={ex} key={entry.id} compact={compact} minimizable />}
     <div className="row between" style={{ marginBottom: 6 }}>
-      <div style={{ fontSize: (compact || dense) ? 17 : 20, fontWeight: 600, letterSpacing: '-.02em', textTransform: 'capitalize', lineHeight: 1.2 }}>{exerciseNameFor(ex)}</div>
+      {/* A complex numbers its movements: the number sits beside the exercise, centred on its
+          name line, so the set table below keeps every pixel of its width. */}
+      <div className="row" style={{ gap: 8, minWidth: 0, alignItems: 'center' }}>
+        {step != null && <span className="cx-step">{step}</span>}
+        <div style={{ fontSize: (compact || dense) ? 17 : 20, fontWeight: 600, letterSpacing: '-.02em', textTransform: 'capitalize', lineHeight: 1.2 }}>{exerciseNameFor(ex)}</div>
+      </div>
       <div className="row" style={{ gap: 2, flex: 'none' }}>
         {entry.note && <button className="iconbtn" aria-label={t('Note')} title={t('Note')} style={{ color: 'var(--acc)' }}
           onClick={() => exerciseNoteSheet(entryIdx)}><Icon name="pencil" /></button>}
@@ -376,8 +392,8 @@ function ExerciseBlock({ entryIdx, compact, dense, onToggle, onToggleSide, onFie
       </div>
     </div>
     {wc.pairButtons && !compact && !dense && (onPairPrev || onPairNext) && <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-      {onPairPrev && <Button size="xs" variant="tinted" icon="link" title={t('Make superset with previous')} onClick={onPairPrev}>{t('Make superset with previous')}</Button>}
-      {onPairNext && <Button size="xs" variant="tinted" icon="link" title={t('Make superset with next')} onClick={onPairNext}>{t('Make superset with next')}</Button>}
+      {onPairPrev && <Button size="xs" variant="tinted" icon="link" title={t('Make complex with previous')} onClick={onPairPrev}>{t('Make complex with previous')}</Button>}
+      {onPairNext && <Button size="xs" variant="tinted" icon="link" title={t('Make complex with next')} onClick={onPairNext}>{t('Make complex with next')}</Button>}
     </div>}
     {/* compact view drops everything from here to the sets card — it is all still on the ⋯ menu
         (note, details, history, bar weight, progression) or is display-only (tags, "last time"). */}
@@ -750,6 +766,10 @@ function ActiveWorkout() {
       { icon: 'list', label: t('Layout'), sub: LAYOUT_LABEL[workoutView] || LAYOUT_LABEL.cards, onClick: openLayoutMenu },
     ],
   })
+  // The heading of a complex card: the sets and load its exercises share, in the account's unit.
+  const schemeFor = unit => sharedScheme(unit.map(i => A.entries[i]))
+  const schemeText = scheme => [t(scheme.sets === 1 ? '{0} set' : '{0} sets', scheme.sets), scheme.weight ? fmtNum(scheme.weight) + ' ' + S.unit : null].filter(Boolean).join(' · ')
+
   const onSwipePointerDown = event => {
     if (swipe.current || (event.pointerType && event.pointerType !== 'touch' && event.pointerType !== 'pen')) return
     if (event.target.closest?.(SWIPE_IGNORED_TARGETS)) return
@@ -833,7 +853,7 @@ function ActiveWorkout() {
       useUI.getState().openSheet(close => (
         <div>
           <h3>{t('Remove exercise')}</h3>
-          <div className="muted small" style={{ marginBottom: 12 }}>{t('Which exercise in this superset do you want to remove?')}</div>
+          <div className="muted small" style={{ marginBottom: 12 }}>{t('Which exercise in this complex do you want to remove?')}</div>
           <div className="list">
             {unit.map(idx => <div key={idx} className="item" onClick={() => { close(); confirmRemoveExercise(idx) }}>
               <div className="grow"><div className="tt">{exerciseNameFor(exOr(A.entries[idx]?.id))}</div></div>
@@ -997,22 +1017,25 @@ function ActiveWorkout() {
           const isCur = u.includes(cur)
           return <section key={u.join('-')} className={'wl-unit' + (isCur ? ' cur' : '')} data-exidx={u[0]}>
             <div className="wl-hd">
-              <span className="muted small">{multi ? t('Superset {0} / {1}', ui + 1, units.length) : t('Exercise {0} / {1}', ui + 1, units.length)}</span>
+              <span className="muted small">{multi ? t('Complex {0} / {1}', ui + 1, units.length) : t('Exercise {0} / {1}', ui + 1, units.length)}</span>
               {isCur
                 ? <span className="tag acc">{t('Current')}</span>
                 : <button className="chip" onClick={() => focusUnit(u[0])}>{t('Set current')}</button>}
             </div>
             {multi ? (
               <div className="ss-card">
-                <div className="ss-hd" style={{ justifyContent: 'space-between' }}>
-                  <span className="row" style={{ gap: 5 }}><Icon name="link" />{t('Superset · do these back-to-back, rest when done')}</span>
-                  <Button size="xs" variant="ghost" icon="link" title={t('Unpair')} onClick={() => unpairAt(u[0])}>{t('Unpair')}</Button>
+                <div className="ss-hd">
+                  <span className="row" style={{ gap: 5 }}><Icon name="link" />{t('Complex')}</span>
+                  <span className="row" style={{ gap: 8 }}>
+                    {schemeFor(u) && <span className="ss-load">{schemeText(schemeFor(u))}</span>}
+                    <Button size="xs" variant="ghost" icon="link" title={t('Unpair')} onClick={() => unpairAt(u[0])}>{t('Unpair')}</Button>
+                  </span>
                 </div>
                 {u.map((idx, k) => {
                   const entry = A.entries[idx]
                   return <div key={idx} ref={el => bindExRef(entry, el)} className="ss-ex" data-exidx={idx}>
-                    {k > 0 && <div className="ss-amp">+</div>}
-                    <ExerciseBlock entryIdx={idx} compact dense={dense} onSetRowRef={(setIdx, el) => bindSetRef(entry, setIdx, el)}
+                    <div className="ss-amp">{k > 0 && <span className="ss-plus">+</span>}</div>
+                    <ExerciseBlock entryIdx={idx} step={k + 1} compact dense={dense} onSetRowRef={(setIdx, el) => bindSetRef(entry, setIdx, el)}
                       {...blockProps(idx)} />
                   </div>
                 })}
@@ -1027,7 +1050,7 @@ function ActiveWorkout() {
         })}
       </div>
     ) : <>
-      <div className="muted small" style={{ marginBottom: 6 }}>{isSuperset ? t('Superset {0} / {1}', unitIdx + 1, units.length) : t('Exercise {0} / {1}', unitIdx + 1, units.length)}</div>
+      <div className="muted small" style={{ marginBottom: 6 }}>{isSuperset ? t('Complex {0} / {1}', unitIdx + 1, units.length) : t('Exercise {0} / {1}', unitIdx + 1, units.length)}</div>
       <div className="workout-swipe-surface" data-testid="workout-swipe-surface"
         onPointerDown={onSwipePointerDown}
         onPointerUp={event => finishSwipe(event, true)}
@@ -1037,15 +1060,18 @@ function ActiveWorkout() {
         }}>
       {isSuperset ? (
         <div className="ss-card">
-          <div className="ss-hd" style={{ justifyContent: 'space-between' }}>
-            <span className="row" style={{ gap: 5 }}><Icon name="link" />{t('Superset · do these back-to-back, rest when done')}</span>
-            <Button size="xs" variant="ghost" icon="link" title={t('Unpair')} onClick={() => unpairAt(cur)}>{t('Unpair')}</Button>
+          <div className="ss-hd">
+            <span className="row" style={{ gap: 5 }}><Icon name="link" />{t('Complex')}</span>
+            <span className="row" style={{ gap: 8 }}>
+              {schemeFor(unit) && <span className="ss-load">{schemeText(schemeFor(unit))}</span>}
+              <Button size="xs" variant="ghost" icon="link" title={t('Unpair')} onClick={() => unpairAt(cur)}>{t('Unpair')}</Button>
+            </span>
           </div>
           {unit.map((idx, k) => {
             const entry = A.entries[idx]
             return <div key={idx} ref={el => bindExRef(entry, el)} className="ss-ex" data-exidx={idx}>
-              {k > 0 && <div className="ss-amp">+</div>}
-              <ExerciseBlock entryIdx={idx} compact onSetRowRef={(setIdx, el) => bindSetRef(entry, setIdx, el)}
+              <div className="ss-amp">{k > 0 && <span className="ss-plus">+</span>}</div>
+              <ExerciseBlock entryIdx={idx} step={k + 1} compact onSetRowRef={(setIdx, el) => bindSetRef(entry, setIdx, el)}
                 {...blockProps(idx)} />
             </div>
           })}

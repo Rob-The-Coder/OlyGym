@@ -202,7 +202,7 @@ describe('remove-exercise locale coverage', () => {
     'The sets you logged for this exercise in this session will be lost.',
     'This removes the exercise from your current session.',
     'Remove',
-    'Which exercise in this superset do you want to remove?'
+    'Which exercise in this complex do you want to remove?'
   ]
   const packs = import.meta.glob('../locales/*.js', { eager: true, import: 'default' })
   // Every non-English language has its own pack (English is the source, so it has none),

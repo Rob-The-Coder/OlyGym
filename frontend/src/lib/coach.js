@@ -613,7 +613,7 @@ export function changeTitle(c, S) {
     case 'exercise-prog': return t('{0}: progression', ex)
     case 'routine-prog': return t('Routine progression')
     case 'reorder': return t('Reorder exercises')
-    case 'superset': return c.after?.link ? t('Superset {0} with {1}', ex, exTitle(c.after.with)) : t('Unlink superset on {0}', ex)
+    case 'superset': return c.after?.link ? t('Complex {0} with {1}', ex, exTitle(c.after.with)) : t('Unlink complex on {0}', ex)
     case 'add-routine': return t('Add routine “{0}”', c.after?.name)
     case 'remove-routine': return t('Remove a routine')
     case 'rename-routine': return t('Rename routine to “{0}”', c.after)

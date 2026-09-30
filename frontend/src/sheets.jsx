@@ -20,7 +20,9 @@ import { glyphOf, GLYPH_GROUPS, DEFAULT_GLYPH } from './lib/glyphs.js'
 import BodyMap from './components/BodyMap.jsx'
 import MuscleExplorer from './components/MuscleExplorer.jsx'
 import { exerciseMuscleSnapshot, loadOfWorkouts, MUSCLES, MUSCLE_NAME, normalizeMuscleGroups, hasExplicitMuscleMetadata, inMuscleOrder } from './lib/muscles.js'
-import { parseImport, mergeImport } from './lib/import-csv.js'
+import { parseImport, mergeImport, parseCSV } from './lib/import-csv.js'
+import { readXlsx } from './lib/xlsx.js'
+import CoachImport from './components/CoachImport.jsx'
 import { importHevyData, HevyApiError, HEVY_DEV_SETTINGS, mergeHevyRoutines } from './lib/import-hevy.js'
 import { buildPlanBundle, parsePlan, mergePlan, printPlan, planPrintHTML } from './lib/plan-share.js'
 import { estimate1RM, best1RM, is1RMRecord, REP_CAP } from './lib/onerm.js'
@@ -1512,10 +1514,68 @@ export const effortPickerSheet = (kind, value, onPick) =>
 /* ============================ share / print / import a plan ============================ */
 export const planToolsSheet = () => ui().openSheet(close => <PlanTools close={close} />)
 
+/* ============================ the complex ============================ */
+// A complex is one card in the routine, and its sets and load belong to the whole thing: on the
+// sheet the coach writes "3+3 @ 30kg" once, not once per movement. The rows keep their own reps
+// (that is what makes a complex a complex), so this sheet only writes the two shared numbers.
+export const complexConfigSheet = (routineId, unitIndex) =>
+  ui().openSheet(close => <ComplexConfig routineId={routineId} unitIndex={unitIndex} close={close} />)
+
+function ComplexConfig({ routineId, unitIndex, close }) {
+  const st = useStore(s => s.S)
+  const update = useStore(s => s.update)
+  const r = st.routines.find(x => x.id === routineId)
+  const unit = r ? (supersetUnits(r.ex)[unitIndex] || []) : []
+  const first = unit.length ? r.ex[unit[0]] : null
+  if (!first) return <><h3>{t('Complex')}</h3><Button variant="primary" onClick={close}>{t('Done')}</Button></>
+  // Read from the store on every render, so the steppers and the rows behind the sheet agree.
+  const apply = patch => update(s => {
+    const routine = s.routines.find(x => x.id === routineId)
+    const members = supersetUnits(routine.ex)[unitIndex] || []
+    members.forEach(i => { routine.ex[i] = { ...routine.ex[i], ...patch } })
+  })
+  return <>
+    <h3>{t('Complex')}</h3>
+    <div className="muted small" style={{ marginBottom: 14 }}>{t('Sets and load are the same for every exercise in the complex — each one keeps its own reps.')}</div>
+    <Stepper label={t('Sets')} value={first.sets || 1} step={1} decimal={false} onChange={v => apply({ sets: v })} />
+    <Stepper label={t('Weight ({0})', st.unit)} value={first.weight || 0} step={2.5} onChange={v => apply({ weight: v })} />
+    <div style={{ height: 10 }} />
+    <Button variant="primary" onClick={close}>{t('Done')}</Button>
+  </>
+}
+
+/* ============================ the coach's spreadsheet ============================ */
+// The reading lives in lib/plan-aliases.js and lib/import-plan.js; this is the way in. The review
+// screen is where a wrong guess gets fixed, and the fix is remembered in S.planAliases — the same
+// Italian phrases come back every week, so the second week arrives already corrected.
+export function coachPlanSheet(sheets) {
+  // The picker stacks on top of the review (that is how the add-to-routine flow wants it); a
+  // correction pops whatever was opened for it, so the review comes back into view.
+  const pick = onPick => {
+    const before = ui().sheets.length
+    exercisePicker(ex => { onPick(ex); ui().sheets.slice(before).forEach(s => ui().closeSheet(s.id)) })
+  }
+  ui().openSheet(close => <CoachImport sheets={sheets} close={close} pick={pick} menu={menuSheet} />)
+}
+
+/** Read a coach's workbook (one sheet per week) or a CSV, then show the review. */
+export function importCoachPlan(file) {
+  const sheets = /\.csv$/i.test(file.name || '')
+    ? file.text().then(text => [{ name: String(file.name).replace(/\.[a-z]+$/i, ''), grid: parseCSV(text) }])
+    : file.arrayBuffer().then(buf => readXlsx(buf)).then(wb => wb.sheets)
+  sheets.then(all => {
+    // A sheet with nothing in it is a tab the coach never used.
+    const usable = (all || []).filter(s => Array.isArray(s.grid) && s.grid.some(r => r.some(c => c)))
+    if (!usable.length) { toast(t('That file has no training in it')); return }
+    coachPlanSheet(usable)
+  }).catch(() => toast(t('Could not read that file — a coach’s plan is an .xlsx or .csv file.')))
+}
+
 function PlanTools({ close }) {
   const st = useStore(s => s.S)
   const user = useStore(s => s.user)
   const fileRef = useRef(null)
+  const coachRef = useRef(null)
   const hasRoutines = (st.routines || []).some(r => r.ex && r.ex.length)
 
   const exportFile = async () => {
@@ -1555,6 +1615,10 @@ function PlanTools({ close }) {
     <h4 className="sec">{t('Got a plan from a friend?')}</h4>
     <Button variant="ghost" icon="folder" onClick={() => fileRef.current?.click()}>{t('Import a plan file')}</Button>
     <input ref={fileRef} type="file" accept="application/json,.json" onChange={pickFile} hidden />
+    <h4 className="sec">{t('Training from a coach?')}</h4>
+    <Button variant="ghost" icon="upload" onClick={() => coachRef.current?.click()}>{t('Import a coach’s plan')}</Button>
+    <div className="dim small" style={{ margin: '7px 2px 0', lineHeight: 1.4 }}>{t('His spreadsheet, one sheet per week — read, reviewed and turned into routines.')}</div>
+    <input ref={coachRef} type="file" accept=".xlsx,.csv" onChange={ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) { close(); importCoachPlan(f) } }} hidden />
   </>
 }
 
@@ -1996,7 +2060,7 @@ function TopWeight({ entryIdx, close }) {
   }
   return <>
     <h3 className="capitalize row" style={{ gap: 8 }}><Icon name="checkCircle" style={{ color: 'var(--acc)' }} />{t('{0} done', exerciseNameFor(ex))}</h3>
-    <div className="muted small">{t('Confirm the weight you worked with — your highest becomes the default next time.')}{!unitDone && unit.length > 1 ? ' ' + t('Then finish the superset partner.') : ''}</div>
+    <div className="muted small">{t('Confirm the weight you worked with — your highest becomes the default next time.')}{!unitDone && unit.length > 1 ? ' ' + t('Then finish the complex partner.') : ''}</div>
     <WeightInput value={v} setValue={setV} unit={st.unit} />
     <div style={{ height: 10 }} />
     {prevBest > 0 ? <div className="small dim" style={{ textAlign: 'center', marginBottom: 12 }}>{t('Previous best:')} {fmtNum(prevBest)} {st.unit}{maxSet > prevBest && <span style={{ color: 'var(--yellow)' }}> — {t('new record!')}</span>}</div> : <div style={{ height: 4 }} />}

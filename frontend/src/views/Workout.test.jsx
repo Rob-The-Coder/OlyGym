@@ -1139,8 +1139,32 @@ describe('workout list view', () => {
     expect(units()[0].querySelector('.ss-card')).toBeTruthy()
     expect(units()[1].querySelector('.ss-card')).toBeNull()
     expect(units().map(u => u.querySelector('.wl-hd .muted')?.textContent)).toEqual([
-      'Superset 1 / 2', 'Exercise 2 / 2',
+      'Complex 1 / 2', 'Exercise 2 / 2',
     ])
+  })
+
+  it('heads a complex with the sets and load its exercises share, and numbers them', async () => {
+    await mount([
+      exercise('muscle-snatch', [false], { sg: 'g1', target: { mode: 'reps', reps: 3, sets: 3, weight: 30, bodyweight: false } }),
+      exercise('overhead-squat', [false], { sg: 'g1', target: { mode: 'reps', reps: 3, sets: 3, weight: 30, bodyweight: false } }),
+    ], 0, { workoutView: 'list' })
+
+    const card = units()[0].querySelector('.ss-card')
+    expect(card.querySelector('.ss-hd').textContent).toContain('Complex')
+    // "3+3 @ 30kg" on the sheet is written once, on the group — not twice on its members.
+    expect(card.querySelector('.ss-hd .ss-load').textContent).toBe('3 sets · 30 kg')
+    // The number sits beside the exercise, on its name line; the "+" between them keeps the
+    // same left edge, so the two read as one column.
+    expect([...card.querySelectorAll('.cx-step')].map(x => x.textContent)).toEqual(['1', '2'])
+    expect([...card.querySelectorAll('.ss-amp')].map(x => x.querySelector('.ss-plus')?.textContent || '')).toEqual(['', '+'])
+  })
+
+  it('says nothing about a shared scheme when the members disagree', async () => {
+    await mount([
+      exercise('muscle-snatch', [false], { sg: 'g1', target: { mode: 'reps', reps: 3, sets: 3, weight: 30, bodyweight: false } }),
+      exercise('overhead-squat', [false], { sg: 'g1', target: { mode: 'reps', reps: 3, sets: 3, weight: 40, bodyweight: false } }),
+    ], 0, { workoutView: 'list' })
+    expect(units()[0].querySelector('.ss-card .ss-hd .ss-load')).toBeNull()
   })
 
   it('defaults to cards when the setting is absent (pre-existing profiles)', async () => {
@@ -1284,7 +1308,7 @@ describe('workout controls: the more menu and the set menu', () => {
     await act(async () => { container.querySelector('button[aria-label="More"]').dispatchEvent(new dom.Event('click', { bubbles: true })) })
     expect(mocks.menuSheet).toHaveBeenCalledOnce()
     expect(lastMenu().items.filter(Boolean).map(it => it.label)).toEqual(expect.arrayContaining([
-      'Add note', 'Details', 'Add warm-up set', 'Make superset with next', 'Swap exercise', 'Move up', 'Move down', 'Remove exercise',
+      'Add note', 'Details', 'Add warm-up set', 'Make complex with next', 'Swap exercise', 'Move up', 'Move down', 'Remove exercise',
     ]))
     expect(item('Move up').disabled).toBe(true)
     expect(item('Move down').disabled).toBe(false)
@@ -1328,7 +1352,7 @@ describe('workout controls: the more menu and the set menu', () => {
       wc: { setShortcuts: true, pairButtons: true, exerciseButtons: true },
     })
     const labels = [...container.querySelectorAll('button')].map(b => b.textContent.trim())
-    expect(labels).toEqual(expect.arrayContaining(['+ Drop', 'Add warm-up set', 'Remove set', 'Make superset with next', 'Move up', 'Swap exercise', 'Remove exercise']))
+    expect(labels).toEqual(expect.arrayContaining(['+ Drop', 'Add warm-up set', 'Remove set', 'Make complex with next', 'Move up', 'Swap exercise', 'Remove exercise']))
   })
 
   it('drops the +/- buttons when steppers are off and keeps the number field', async () => {

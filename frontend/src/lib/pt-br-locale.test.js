@@ -31,7 +31,7 @@ describe('Brazilian Portuguese locale', () => {
     expect(inherited).toHaveLength(660)
     // If this fails, review the changed keys and wording before accepting a new hash. From
     // frontend/: node scripts/pt-br-inheritance-fingerprint.mjs --list
-    expect(fingerprint, 'pt-PT inheritance changed; review the inherited pt-BR wording').toBe('723f65fd13d7842a9af6033ed2f4965e88dd92f2721d6567fa4e2bda374660eb')
+    expect(fingerprint, 'pt-PT inheritance changed; review the inherited pt-BR wording').toBe('daa7282679fd5b7c9c2256b85bee93b02c619a88f7783014e0041915a4b8dbac')
   })
 
   test('does not leak European Portuguese UI terms', () => {
@@ -42,7 +42,7 @@ describe('Brazilian Portuguese locale', () => {
     expect(ptBR.Save).toBe('Salvar')
     expect(ptBR.Settings).toBe('Configurações')
     expect(ptBR['Delete workout']).toBe('Excluir treino')
-    expect(ptBR.Superset).toBe('Superset')
+    expect(ptBR.Complex).toBe('Superset')
     expect(ptBR['Guest mode — data lives only in this browser.']).toContain('visitante')
     expect(ptBR['Sign in with passkey']).toContain('chave de acesso')
     expect(ptBR.band).toBe('elástico')

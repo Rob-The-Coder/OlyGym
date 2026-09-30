@@ -25,6 +25,10 @@ export const DEF = {
   theme: 'dark', accent: 'lime', body: 'male', targetW: null,
   bodyweight: [], routines: [], week: {}, dayPlan: {},
   exWeights: {}, workouts: [], active: null, customEx: [], gifSize: 'full',
+  // Corrections to the reading of a coach's spreadsheet, keyed by the words he wrote (see
+  // lib/plan-aliases.js). Kept in the synced state on purpose: every week's sheet repeats the same
+  // Italian phrases, so a fix made once has to be there the next time round. Absent reads as empty.
+  planAliases: {},
   // The demo video of each exercise, a layer of its own, next to the poster frame `gifSize`
   // governs: 'button' (the badge on the poster opens it — the default, and what a profile written
   // before this setting existed reads as), 'inline' (the player loads with the exercise) or 'off'

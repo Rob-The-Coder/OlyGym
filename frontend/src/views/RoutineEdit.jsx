@@ -1,14 +1,14 @@
 import { useNavigate, useParams } from 'react-router-dom'
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import { exOr } from '../lib/exercises.js'
 import { activeProfile, exAvailable } from '../lib/equipment.js'
-import { uid } from '../lib/format.js'
+import { uid, fmtNum } from '../lib/format.js'
 import { t, exerciseNameFor } from '../lib/i18n.js'
-import { supersetUnits, moveSupersetUnit, cleanupSg, exLine, defaultConfig } from '../lib/history.js'
+import { supersetUnits, moveSupersetUnit, cleanupSg, exLine, defaultConfig, modeOf, fmtSec, isPerSide, sideReps } from '../lib/history.js'
 import { Thumb } from '../components/Media.jsx'
-import { glyphPicker, exercisePicker, exConfigSheet, confirmSheet } from '../sheets.jsx'
+import { glyphPicker, exercisePicker, exConfigSheet, complexConfigSheet, confirmSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { glyphOf } from '../lib/glyphs.js'
 import { Button, Row, SelectRow, Switch } from '../components/ui.jsx'
@@ -17,6 +17,7 @@ import { copyRoutine } from '../lib/routines.js'
 import { POLICIES_FOR, POLICY_NAME, POLICY_DESC } from '../lib/progression.js'
 import BodyMap from '../components/BodyMap.jsx'
 import { loadOfRoutine, rankOf, MUSCLE_NAME } from '../lib/muscles.js'
+import { tappable } from '../lib/use-sheet-keyboard.js'
 
 export const ROUTINE_LONG_PRESS_MS = 380
 export const ROUTINE_DRAG_SLOP = 8
@@ -38,6 +39,17 @@ export function reorderRoutineUnit(exercises, sourceIndex, targetSlot) {
   exercises.splice(insertAt, 0, ...moved)
   cleanupSg(exercises)
   return true
+}
+
+// Inside a complex the card carries the sets and the load, so a row only says what makes it
+// different: its own reps. "10/side", "0:45", "20 min @ 8 km/h" read the same as everywhere else.
+function repLabel(e) {
+  const mode = modeOf(e)
+  if (mode === 'cardio') return `${e.min || 20} min @ ${fmtNum(e.speed || 8)} km/h`
+  if (mode === 'time') return fmtSec(e.sec || 45)
+  if (isPerSide(e)) return t('{0}/side', fmtNum(sideReps(e.reps ?? 10)))
+  const n = fmtNum(e.reps ?? 10)
+  return `${n} ${e.reps === 1 ? t('rep') : t('reps')}`
 }
 
 function unitGeometry(list, exercises) {
@@ -340,8 +352,6 @@ export default function RoutineEdit() {
 
   const units = supersetUnits(r.ex)
   const unitIndex = new Map(units.flatMap((unit, index) => unit.map(i => [i, index])))
-  const unitFirst = new Set(units.filter(u => u.length > 1).map(u => u[0]))
-  const inSS = new Set(units.filter(u => u.length > 1).flat())
   const profile = activeProfile(S)
   const missingCount = profile ? r.ex.filter(e => !exAvailable(S, exOr(e.id))).length : 0
 
@@ -382,35 +392,67 @@ export default function RoutineEdit() {
     </div>}
 
     {r.ex.length ? <div ref={reorder.listRef} onClickCapture={reorder.onClickCapture}
-      className={'list routine-list' + (reorder.drag ? ' is-reordering' : '')}>{r.ex.map((e, i) => {
-      // An unresolvable id is shown rather than skipped — hiding it left an entry you
-      // could neither see nor delete, but that still turned up in the workout.
-      const ex = exOr(e.id)
-      const noEquip = profile && !exAvailable(S, ex)
-      const linkedPrev = i > 0 && e.sg && r.ex[i - 1].sg === e.sg
-      const isDragging = reorder.drag && i >= reorder.drag.first && i <= reorder.drag.last
-      return <div key={i} data-routine-row data-ex-index={i}
-        className={'routine-drag-row' + (isDragging ? ' is-dragging' : '')}
-        style={isDragging ? { transform: `translate3d(0, ${reorder.drag.deltaY}px, 0)` } : undefined}>
-        {unitFirst.has(i) && <div className="ss-label"><Icon name="link" />{t('Superset')}</div>}
-        <SwipeToDelete className={'item' + (inSS.has(i) ? ' in-ss' : '')}
+      className={'list routine-list' + (reorder.drag ? ' is-reordering' : '')}>{units.map((unit, u) => {
+      // A complex is ONE card: heading with the sets and the load it shares, then its exercises.
+      // The heading is a promise the data has to keep, so when the members disagree about sets or
+      // load the rows fall back to spelling out their own scheme (an import always shares them).
+      const dragging = reorder.drag && unit.some(index => index >= reorder.drag.first && index <= reorder.drag.last)
+      const lift = dragging ? { transform: `translate3d(0, ${reorder.drag.deltaY}px, 0)` } : undefined
+      const head = r.ex[unit[0]]
+      const shared = unit.every(index => r.ex[index].sets === head.sets && (r.ex[index].weight || 0) === (head.weight || 0))
+
+      const row = (e, i, inside) => {
+        // An unresolvable id is shown rather than skipped — hiding it left an entry you
+        // could neither see nor delete, but that still turned up in the workout.
+        const ex = exOr(e.id)
+        const noEquip = profile && !exAvailable(S, ex)
+        const linkedPrev = i > 0 && e.sg && r.ex[i - 1].sg === e.sg
+        return <SwipeToDelete className={'item' + (inside ? ' cx-item' : '')}
           deleteLabel={t('Remove from routine')}
           onDelete={() => edit(x => { x.splice(i, 1); cleanupSg(x) })}
           onClick={() => {
             exConfigSheet(ex, e, cfg => edit(x => { x[i] = { id: x[i].id, sg: x[i].sg, ...cfg } }), () => edit(x => { x.splice(i, 1); cleanupSg(x) }), r)
           }}>
           <Thumb ex={ex} />
-          <div className="grow"><div className="tt capitalize">{exerciseNameFor(ex)}</div><div className="ss">{exLine(e, S.unit)}</div>
+          <div className="grow"><div className="tt capitalize">{exerciseNameFor(ex)}</div>
+            {inside && shared
+              ? <div className="cx-reps">{repLabel(e)}</div>
+              : <div className="ss">{exLine(e, S.unit)}</div>}
             {e.note && <div className="small dim" style={{ marginTop: 2 }}>{e.note}</div>}</div>
           {noEquip && <span className="tag" style={{ color: 'var(--orange)', borderColor: 'var(--orange)' }} title={t('Needs {0} — not in your active profile', t(ex.eq))}><Icon name="warning" /></span>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 'none', alignItems: 'center' }}>
-            {i > 0 && <button className={'iconbtn' + (linkedPrev ? ' on-ss' : '')} title={t('Superset with exercise above')} style={{ width: 32, height: 28, borderRadius: 8, fontSize: 15 }} onClick={ev => { ev.stopPropagation(); toggleLink(i) }}><Icon name="link" /></button>}
+            {i > 0 && <button className={'iconbtn' + (linkedPrev ? ' on-ss' : '')} title={t('Complex with exercise above')} style={{ width: 32, height: 28, borderRadius: 8, fontSize: 15 }} onClick={ev => { ev.stopPropagation(); toggleLink(i) }}><Icon name="link" /></button>}
             <div style={{ display: 'flex', gap: 2 }}>
               <button className="iconbtn" aria-label={t('Move up')} title={t('Move up')} disabled={unitIndex.get(i) === 0} style={{ width: 28, height: 24, borderRadius: 7, fontSize: 12 }} onClick={ev => { ev.stopPropagation(); move(i, -1) }}><Icon name="chevronUp" /></button>
               <button className="iconbtn" aria-label={t('Move down')} title={t('Move down')} disabled={unitIndex.get(i) === units.length - 1} style={{ width: 28, height: 24, borderRadius: 7, fontSize: 12 }} onClick={ev => { ev.stopPropagation(); move(i, 1) }}><Icon name="chevronDown" /></button>
             </div>
           </div>
         </SwipeToDelete>
+      }
+
+      if (unit.length === 1) {
+        const i = unit[0]
+        return <div key={i} data-routine-row data-ex-index={i}
+          className={'routine-drag-row' + (dragging ? ' is-dragging' : '')} style={lift}>
+          {row(r.ex[i], i, false)}
+        </div>
+      }
+
+      return <div key={unit[0]} className={'cx-card routine-drag-row' + (dragging ? ' is-dragging' : '')} style={lift}>
+        <div className="cx-head" {...tappable(() => complexConfigSheet(r.id, u))}>
+          <Icon name="link" className="cx-ico" />
+          <span className="cx-title">{t('Complex')}</span>
+          <span className="cx-load">{shared
+            ? [t((head.sets || 1) === 1 ? '{0} set' : '{0} sets', head.sets || 1), head.weight ? fmtNum(head.weight) + ' ' + S.unit : null].filter(Boolean).join(' · ')
+            : t('{0} exercises', unit.length)}</span>
+        </div>
+        {unit.map((i, k) => <Fragment key={i}>
+          {k > 0 && <div className="cx-plus" aria-hidden="true">+</div>}
+          <div data-routine-row data-ex-index={i} className={'cx-row' + (dragging ? ' is-dragging' : '')}>
+            <span className="cx-step">{k + 1}</span>
+            {row(r.ex[i], i, true)}
+          </div>
+        </Fragment>)}
       </div>
     })}{reorder.drag && <div className="routine-drop-indicator" data-testid="routine-drop-indicator"
       aria-hidden="true" style={{ top: `${reorder.drag.indicatorTop}px` }} />}</div> : <div className="empty"><div className="ico"><Icon name="dumbbell" /></div>{t('No exercises yet — add your first one.')}</div>}
@@ -429,7 +471,7 @@ export default function RoutineEdit() {
       </div>
     })()}
 
-    <div className="small dim row" style={{ margin: '10px 2px', gap: 5 }}><Icon name="link" style={{ fontSize: 13 }} />{t('Tap the link button on an exercise to superset it with the one above — you’ll do them back-to-back.')}</div>
+    <div className="small dim row" style={{ margin: '10px 2px', gap: 5 }}><Icon name="link" style={{ fontSize: 13 }} />{t('Tap the link button on an exercise to make a complex with the one above — you’ll do them back-to-back.')}</div>
     <Button variant="primary" onClick={() => exercisePicker((ex, quick) => {
       if (quick) {
         edit(x => x.push({ id: ex.id, ...defaultConfig(ex.id) }))
