@@ -1,25 +1,14 @@
 <div align="center">
 
-<img src="assets/banner.png" alt="openGym" width="720">
+<img src="assets/banner.png" alt="OlyGym" width="720">
 
 <br>
 
-**A self-hosted gym & body-weight tracker you actually own.**
+**A self-hosted Olympic weightlifting tracker you actually own.**
 
-Plan your week, run guided workouts, track every set and your body weight over time —
-on your phone, synced across devices, behind your own passkey login.
+Plan your week the way your coach writes it, run guided workouts, track every lift and your
+body weight over time — on your phone, synced across devices, behind your own passkey login.
 No account on someone else's server, no subscription, no ads. Just `docker compose up`.
-
-<br>
-
-> ### This repository is OlyGym
->
-> A personal fork of [openGym](https://github.com/DuarteSantos8/openGym) aimed at **Olympic
-> weightlifting**: the exercise catalogue is Catalyst Athletics' 624 lifts, the demo video of each
-> one is a hotlinked YouTube frame, and the coach's own training plan can be imported from an
-> Excel workbook. The text in this README still describes the upstream project — same software,
-> same self-hosting story — and the app itself calls itself OlyGym. Upstream's marketing site
-> under `website/` is untouched and not deployed by this fork.
 
 <br>
 
@@ -29,17 +18,6 @@ No account on someone else's server, no subscription, no ads. Just `docker compo
 ![React](https://img.shields.io/badge/React-19-38bdf8?style=flat-square&logo=react&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-compose-2496ED?style=flat-square&logo=docker&logoColor=white)
 ![No tracking](https://img.shields.io/badge/telemetry-none-f472b6?style=flat-square)
-<br>
-[![Pipeline](https://gitlab.com/DuarteSantos8/opengym/badges/main/pipeline.svg?style=flat-square)](https://gitlab.com/DuarteSantos8/opengym/-/pipelines)
-[![Coverage](https://gitlab.com/DuarteSantos8/opengym/badges/main/coverage.svg?job=test:frontend&style=flat-square)](https://gitlab.com/DuarteSantos8/opengym/-/pipelines?ref=main)
-[![Release](https://img.shields.io/github/v/release/DuarteSantos8/openGym?style=flat-square)](https://github.com/DuarteSantos8/openGym/releases)
-![Last commit](https://img.shields.io/github/last-commit/DuarteSantos8/openGym?style=flat-square)
-[![GitHub stars](https://img.shields.io/github/stars/DuarteSantos8/openGym?style=flat-square&logo=github&logoColor=white)](https://github.com/DuarteSantos8/openGym/stargazers)
-[![Issues](https://img.shields.io/github/issues/DuarteSantos8/openGym?style=flat-square)](https://github.com/DuarteSantos8/openGym/issues)
-[![Tests](https://github.com/DuarteSantos8/openGym/actions/workflows/test.yml/badge.svg)](https://github.com/DuarteSantos8/openGym/actions/workflows/test.yml)
-[![Mirror](https://github.com/DuarteSantos8/openGym/actions/workflows/mirror.yml/badge.svg)](https://github.com/DuarteSantos8/openGym/actions/workflows/mirror.yml)
-[![Discord](https://img.shields.io/badge/Discord-join-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.gg/e62jY6fwVb)
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-support-FFDD00?style=flat-square&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/duartesantos)
 
 </div>
 
@@ -48,62 +26,84 @@ No account on someone else's server, no subscription, no ads. Just `docker compo
 <div align="center">
 <table>
 <tr>
-<td align="center"><img src="assets/screenshots/home.png" alt="Home" width="230"><br><sub><b>Home</b> — today's workout & weight</sub></td>
-<td align="center"><img src="assets/screenshots/workout.png" alt="Workout" width="230"><br><sub><b>Guided workout</b> — animated demos & sets</sub></td>
-<td align="center"><img src="assets/screenshots/stats.png" alt="Stats" width="230"><br><sub><b>Stats</b> — heatmap, charts & PRs</sub></td>
+<td align="center"><img src="assets/screenshots/home.png" alt="Home" width="230"><br><sub><b>Home</b> — today's session & weight</sub></td>
+<td align="center"><img src="assets/screenshots/workout.png" alt="Workout" width="230"><br><sub><b>Guided workout</b> — a complex, its sets and its video</sub></td>
+<td align="center"><img src="assets/screenshots/stats.png" alt="Stats" width="230"><br><sub><b>Stats</b> — heatmap, muscle balance & PRs</sub></td>
 </tr>
 </table>
 </div>
 
-<div align="center">
+<br>
 
-### [🌐 opengym.duarte-santos.ch](https://opengym.duarte-santos.ch) · [📦 Source on GitHub](https://github.com/DuarteSantos8/openGym) · [🦊 GitLab mirror](https://gitlab.com/DuarteSantos8/opengym)
+## What this is
 
-Screenshots, docs and the APK download live on the site.<br>
-<sub>Want to poke at it first? The <a href="https://opengym.duarte-santos.ch/demo/">in-browser
-demo</a> is the real app with example data — no account, nothing to install.</sub>
+**OlyGym is a personal fork of [openGym](https://github.com/DuarteSantos8/openGym)** — same
+software, same self-hosting story, pointed hard at Olympic weightlifting. It exists because the
+training did not fit the tool: the catalogue was generic gym work, the plan lived in a coach's
+spreadsheet, and neither wanted to be a feature request.
 
-</div>
+What is different here:
+
+- 🏋️ **A weightlifting catalogue** — [Catalyst Athletics](https://www.catalystathletics.com/exercises/)'
+  **624 lifts and drills**, in ten movement families (snatch, clean, jerk, squats and pulls, trunk,
+  plyometrics, accessories, carries), with their descriptions and muscle tags. Not a generic gym
+  dataset with the barbell work bolted on
+- 🎬 **The demo video is a layer of its own** — every exercise shows the poster frame of its video,
+  hotlinked from YouTube by your browser. Tap it and the player opens; or have it load with the
+  exercise, or keep it off entirely. This fork ships **no media at all**
+- 📋 **Your coach's plan, imported** — point the app at his Excel workbook: one sheet per week, his
+  exercises, sets, reps and loads. His Italian gym shorthand (*strappo*, *girata*, *spinta in
+  piedi*, `1+2`) is matched against the catalogue, and anything the catalogue has no word for stays
+  in a note, in his words. You review every row before it becomes a routine, and a correction you
+  make once is remembered for the next week
+- 🧩 **A complex is one thing** — the movements he writes with `+` are one card with one set count
+  and one load, in the routine editor and in the workout, because that is how they are trained
+- 🎨 **Material 3 Expressive** — tonal surfaces, springs and flowing progress bars, a tab bar with a
+  real indicator, light and dark themes and eight accents over a hand-drawn icon set
+- ✍️ **The name, everywhere the reader meets it** — the app, the passkey prompt, the push
+  notifications and the docs all say OlyGym. Upstream's marketing site under `website/` is untouched
+  and not deployed here
+
+Everything else in this README describes the software both projects share.
 
 ## Why
 
 Most workout apps lock your data behind a login on their servers, nag you to upgrade, or
-disappear when the startup does. openGym is the opposite: **it runs on your box, your data
+disappear when the startup does. OlyGym is the opposite: **it runs on your box, your data
 stays in a folder you control, and it's yours to fork.** It still feels modern — installable
 as a home-screen app, passkey sign-in, offline support, sync across your phone and laptop.
 
 ## Features
 
 - ⚖️ **Body-weight tracking** — interactive chart with a goal line you set, gains/losses colored by whether they move toward it
-- 🏋️ **Weekly plan** — a routine per weekday, over a library of **1,324 exercises** (searchable, with animated demos), browsable **by muscle** on a body map
+- 🏋️ **Weekly plan** — a routine per weekday, over the catalogue of **624 Catalyst lifts** (searchable, with the poster frame of each video), browsable **by muscle** on a body map
 - ✨ **Four starter plans** — Push/Pull/Legs, Upper/Lower, Full Body, 5×5; loaded as ordinary routines you can edit, and a routine can be copied in one tap
 - 🗓️ **Reschedule any day** — sick, missed a session, or fewer gym days this week? Move a workout to another day without touching your weekly plan
 - 📅 **Your week starts where you say** — Monday or Sunday, in Settings. The weekly plan, the day strip on Home, the calendar and every "this week" total follow it, so the app reads the way the calendar on your wall does
-- 🧭 **A workout screen that gets out of the way** — one ⋯ menu per exercise (note, details, progression, bar weight, warm-up, superset, swap, move, remove), the set number as the set's own menu (drop set, rest-pause burst, remove), and a scrollable **list view** of the whole session with the header pinned. Four switches under Settings → Workout controls bring any of the old button rows back
+- 🧭 **A workout screen that gets out of the way** — one ⋯ menu per exercise (note, details, progression, bar weight, warm-up, complex, swap, move, remove), the set number as the set's own menu (drop set, rest-pause burst, remove), and a scrollable **list view** of the whole session with the header pinned. Four switches under Settings → Workout controls bring any of the old button rows back
 - 🌈 **Colour-coded RIR / RPE** — one tap logs how hard a set was, with a sentence per level ("one more rep in the tank"); the same colour whether you think in RIR or RPE, a free field for in-between values
 - 📖 **History without leaving the workout** — the exercise's last sessions and a progress line, from the ⋯ menu or the exercise details
 - ⭐ **Favourite exercises** — star what you use, it sorts first in the picker and the library
 - ▶️ **Guided workouts** — it knows what day it is and starts today's session; asks your body weight first, pre-fills your weights from last time, rest timer, PR detection, per-exercise weight tracking. On a rest day it doesn't just say "rest day" — it names when your next session is and what it is
-- 🙈 **Animations are your call** — the exercise demos can be full size, small, or hidden entirely during a workout. Hidden collapses the media rather than leaving a gap, for anyone who finds a looping GIF between sets more distracting than useful
+- 🙈 **Media is your call** — the frame can be full size, small, or hidden entirely during a workout; hidden collapses it rather than leaving a gap. The video itself can be a button, inline, or off — for anyone who finds a looping demo between sets more distracting than useful
 - ☀️ **The screen stays awake while you train** — no unlocking the phone and finding your place again between every set. On for as long as a workout is running, released the moment you finish it, and switchable off in Settings
-- 🔗 **Supersets** — plan them into a routine or pair two exercises *mid-session* with “make superset with previous/next”, then work through the group back-to-back with a single rest at the end of each round. Unpair at any time; a group of one dissolves itself
+- 🔗 **Complexes and supersets** — plan them into a routine or pair two exercises *mid-session* with "make complex with previous/next", then work through the group back-to-back with a single rest at the end of each round. A complex shows as one card with its shared sets and load and its movements numbered inside; unpair at any time, and a group of one dissolves itself
 - 🔥 **Warm-up sets** — mark the ramp-up rows as warm-ups and they stay out of the numbers that should not see them: no effect on your estimated 1RM, your progression, or the fatigue map, while still being there in the session where you need them. A weight change cascades down the rows that share their phase, not across the divide
-- ➖ **Change your mind mid-session** — add an exercise you decided to do, or remove one you didn't, without ending the workout. Removing a member of a superset asks which one
+- ➖ **Change your mind mid-session** — add an exercise you decided to do, or remove one you didn't, without ending the workout. Removing a member of a complex asks which one
 - ⏱️ **Timed exercises** — planks, hangs, wall sits and loaded carries are logged by time, not reps, with a work timer that counts the set itself (separate from the rest timer) and logs the time you actually held. They can carry weight too
-- ⏲️ **Rest per exercise** — heavy triples and curls don't want the same break: give any exercise its own rest time and it overrides the global timer for that exercise (a superset rests once, taking the longest). Travels with shared plans
+- ⏲️ **Rest per exercise** — heavy triples and curls don't want the same break: give any exercise its own rest time and it overrides the global timer for that exercise (a complex rests once, taking the longest). Travels with shared plans
 - 🧘 **Planned deloads** — flag a routine as excluded from automatic progression: its sessions open with the routine's own target weights, stay in your history and statistics, and never become the baseline your next regular session progresses from
 - 📈 **Progression that follows a rule** — pick one per routine, override it per exercise: linear, **Greyskull LP** (AMRAP top set, double jumps, 10 % resets), double progression through a **visible rep range** (both bounds editable, per-side exercises step in twos), or adding time. Your weights are already right when the session opens, and every target says *why* it's that number. Missed reps never advance the load, stalls trigger a deload, and bodyweight exercises progress in reps instead
 - 💪 **Estimated 1RM** — per exercise, from your best eligible set (it names which one), with its own progress curve and a calculator for sets you haven't done. Won't guess above 12 reps
 - 🎯 **Effort per set, in your scale** — an optional third column rating how hard a set was, as **RIR** (reps left in the tank) or **RPE** (the same judgement on a 10-point scale). Off by default; each set keeps the scale it was logged with, and nothing else reads the value — your progression and 1RM are unaffected
-- 💪 **Bodyweight exercises, logged as bodyweight** — push-ups, pull-ups, dips and 300-odd others arrive knowing they carry no load, so there's no weight column and no working-weight prompt: one stepper, log the reps. Add a dip belt and it reads as an addition, and progression goes back to following the weight. Without one, reps climb — and past a ceiling you set, a set is added instead of a rep, up to the point where the honest advice is load or a harder variation
+- 💪 **Bodyweight exercises, logged as bodyweight** — pull-ups, dips, push-ups and the rest arrive knowing they carry no load, so there's no weight column and no working-weight prompt: one stepper, log the reps. Add a dip belt and it reads as an addition, and progression goes back to following the weight. Without one, reps climb — and past a ceiling you set, a set is added instead of a rep, up to the point where the honest advice is load or a harder variation
 - ↔️ **Reps per side** — for lunges, single-arm rows and the rest. You log the total, the app shows the split ("8 per side"), and the target steps in twos so it never lands on a number one side can't have
 - 🏋️ **Plate math for barbell work** — barbell, EZ, trap bar and Smith machine carry a bar weight (20 kg / 45 lb and friends, or your own per exercise), and the workout screen tells you what goes on each side: *Bar 20 kg · 30 kg per side*. You still log the total, so your history, progression and 1RM keep meaning exactly what they always did
 - 📝 **Log a past workout** — forgot your phone, trained on paper, or switched apps? Add a session after the fact from History: date, start time, duration, routine or freestyle, then the normal workout screen — weights, reps, RIR/RPE, timed sets and all. If that day already has a workout you choose: replace it, keep both, or cancel. Backfilled sessions never claim PRs against workouts that came later
 - 🎲 **Freestyle sessions** — train without a plan and pick exercises as you go. Each one arrives prefilled from the last time you did it — same sets, same reps and weight by position — so an unplanned session doesn't start by asking you to retype last week
-- 🏃 **Cardio** — log time + speed, not just weight × reps
 - 📤 **Share a plan** — send someone your routines and week schedule as a small file (no workouts, no weigh-ins), or print it as a clean PDF. Importing merges, so their plan is never overwritten
 - 🔧 **Filter by equipment** — narrow the library to what you actually own; the options adapt to what you've picked, so every combination on screen has results behind it
-- ✨ **Your own exercises** — a name and a body part is enough; they behave like built-in ones everywhere, with an optional description instead of an animation
+- ✨ **Your own exercises** — a name and a body part is enough; they behave like built-in ones everywhere, with an optional description instead of a video
 - 🟩 **Activity heatmap** — a GitHub-style year view, shaded by time spent training
 - 💪 **Muscle map, three ways** — a front-and-back body diagram you can read as **Balance** (where the volume went, over a week, a month or all time — naming the muscles you *haven't* trained), **Fatigue** (what is still recovering, weighted by how close each set was to your maximum, decaying smoothly rather than expiring at a window edge) or **Strength** (how long since you trained each muscle, and behind every one the exercises that built it with their estimated 1RM). It previews what a routine hits while you build it, and shows what you just trained when you finish. Male or female figure, your pick
 - 📳 **See the timer end, not just hear it** — an opt-in screen flash when a rest or work timer finishes, for loud gyms and headphones
@@ -114,20 +114,19 @@ as a home-screen app, passkey sign-in, offline support, sync across your phone a
 - 🌍 **14 languages** — full UI translation (EN, DE, ES, FR, IT, PT (Portugal), PT (Brazil), PL, TR, RU, ZH, KO, HI, TH, HU); exercise instructions localized in 12 of them and built-in exercise names shown bilingually in PT-BR and HU, all loaded on demand so the app stays fast
 - 📥 **Bring your history with you** — import from **FitNotes** (Android and iOS), **Strong** and **Hevy** (CSV or directly with a [Hevy Pro API key](https://hevy.com/settings?developer)), or body weight straight out of an **Apple Health** export. Exercise names are matched against the library and anything unrecognised becomes one of your own exercises, so nothing in the file is dropped
 - 📦 **Yours to keep** — one-tap JSON export/import, guest mode, **no telemetry**; switching kg ↔ lb offers to convert every stored number
-- 🤖 **Ask an AI about your training** (optional) — an [MCP server](mcp/README.md) lets a client like Claude Desktop or Cursor read your history in your own words: *"what did I bench last week?"*. Read-only, spawned locally by the client, nothing leaves your box. Not in the Docker build — if you don't use an AI assistant, it isn't there
+- 🤖 **Ask an AI about your training** (optional) — an [MCP server](mcp/README.md) lets a client like Claude Desktop or Cursor read your history in your own words: *"what did I snatch last week?"*. Read-only, spawned locally by the client, nothing leaves your box. Not in the Docker build — if you don't use an AI assistant, it isn't there
 - 🧠 **An AI coach that writes your plan** (optional, off by default) — answer a handful of questions and it designs a week of routines; later it reads what you actually logged and proposes changes, each one with the evidence behind it. You approve every change and can undo it. It runs on **your** server under **your** provider account — Anthropic, OpenAI, Gemini or any OpenAI-compatible endpoint (Ollama on your LAN counts) with a pasted API key on the default image, or the Claude Agent SDK / Codex CLI on a separate build. The phone app can use your instance or its own key. See [docs/AI_COACH.md](docs/AI_COACH.md)
-- 📱 **Standalone Android app** — the whole tracker as a sideloadable APK: no account, no server, data on the phone, native workout reminders, and an **in-app update check** that downloads the next signed APK and verifies its checksum ([download](https://opengym.duarte-santos.ch))
+- 📱 **Standalone mobile app** — the whole tracker wrapped by Capacitor: no account, no server, data on the phone, native workout reminders. This fork publishes no APK; build your own with **[docs/MOBILE.md](docs/MOBILE.md)**
 
 ## Quick start (self-host)
 
 You need [Docker](https://docs.docker.com/get-docker/) with Compose.
 
 ```bash
-git clone https://github.com/DuarteSantos8/openGym
-cd openGym
+git clone https://github.com/Rob-The-Coder/OlyGym
+cd OlyGym
 cp .env.example .env
-docker compose pull   # grab prebuilt images (amd64 + arm64) — skip to build from source instead
-docker compose up -d
+docker compose up -d --build
 ```
 
 Open **http://localhost:8080**, tap **Create profile**, and you're in. Nothing is downloaded: each
@@ -137,12 +136,13 @@ exercise shows the poster frame of its demo video, hotlinked from YouTube by you
 > [Catalyst Athletics](https://www.catalystathletics.com/exercises/) — names, descriptions and the
 > link to each exercise's video — and the videos are theirs, hosted on YouTube. This fork ships no
 > media at all: the frame is fetched at runtime and nothing is stored. Their text and videos are
-> under neither openGym's AGPL nor any license granted to you — see [NOTICE.md](NOTICE.md).
-The prebuilt images are published twice, from the same tag: `registry.gitlab.com/duartesantos8/opengym/{api,web}`
-(what `docker-compose.yml` pulls) and `ghcr.io/duartesantos8/opengym-{api,web}` on GitHub — swap the
-`image:` lines if you prefer GHCR. Prefer building the images yourself instead of pulling from a
-registry? Drop the `pull` step and run `docker compose up -d --build` — you don't need Node or
-a build step locally either way.
+> under neither this project's AGPL nor any license granted to you — see [NOTICE.md](NOTICE.md).
+
+The images are not published to a registry by this fork, so the quick start builds them. Upstream
+publishes its own under `registry.gitlab.com/duartesantos8/opengym/{api,web}` and
+`ghcr.io/duartesantos8/opengym-{api,web}`; point the `image:` lines in `docker-compose.yml` at those
+if you would rather pull — they are upstream's build, without the catalogue and the interface of
+this fork.
 
 > Want it reachable from your phone over the internet with passkeys? You'll need an HTTPS
 > domain — a two-line change in `.env`. See **[docs/SELF_HOSTING.md](docs/SELF_HOSTING.md)**.
@@ -154,11 +154,8 @@ no backend — everything stays on the phone, with native workout-day reminders 
 backups. Self-hosting gets you multi-device sync and profiles for friends & family; the
 mobile app is the install-and-done flavor.
 
-- **Android:** [**download the APK**](https://opengym.duarte-santos.ch) — or straight from
-  [GitLab's package registry](https://gitlab.com/DuarteSantos8/opengym/-/packages) or the
-  [GitHub release](https://github.com/DuarteSantos8/openGym/releases/latest), where every
-  build sits next to its `.sha256` — and sideload it; openGym is deliberately not on the Play
-  Store. Or build it yourself: **[docs/MOBILE.md](docs/MOBILE.md)**.
+- **Android:** build it and sideload it — openGym is deliberately not on the Play Store, and this
+  fork publishes no APK of its own. **[docs/MOBILE.md](docs/MOBILE.md)**
 - **iPhone:** Apple doesn't allow installing apps outside the App Store, so there is no iOS
   download. Self-host and add it to your home screen from Safari (it's a full PWA), or build
   the native app onto your own device from Xcode — see **[docs/MOBILE.md](docs/MOBILE.md)**.
@@ -178,11 +175,20 @@ mobile app is the install-and-done flavor.
                                         └──────────────────────────┘
 ```
 
-- **frontend/** — React + Vite (React Router + Zustand), built to static files **inside Docker**
+- **frontend/** — React + Vite (React Router + Zustand), built to static files **inside Docker**.
+  The Material 3 Expressive layer is one stylesheet (`src/m3.css`) loaded after the base one, so
+  upstream's styles stay untouched and merges stay cheap
 - **api/** — Node with no framework, two dependencies (`@simplewebauthn/server` for passkeys, `web-push` for notifications), storing everything as plain JSON files under `./data`
 - **web/** — a multi-stage image that builds the frontend and serves it with nginx, proxying `/api` to the backend so it's all on **one origin** (passkeys require this)
+- **scripts/oly-catalogue/** — the generator that turns Catalyst's public exercise pages into the catalogue this fork ships, with a `--check` mode so the data can never drift from the script that produced it
 
-The full HTTP API is documented as an OpenAPI spec in [`api/openapi.yaml`](api/openapi.yaml) — browsable at [opengym.duarte-santos.ch/api.html](https://opengym.duarte-santos.ch/api.html).
+The training logic — progression rules, 1RM estimation, how a logged session is read back, how the
+coach's spreadsheet becomes routines — lives in pure functions under `frontend/src/lib/` with tests
+next to them: `npm test` in `frontend/`. Vitest is a dev dependency; the app itself ships no runtime
+dependencies beyond React, the router and Zustand. Reading an `.xlsx` uses the platform's own
+`DecompressionStream` and `DOMParser` rather than a spreadsheet library.
+
+The full HTTP API is documented as an OpenAPI spec in [`api/openapi.yaml`](api/openapi.yaml).
 
 ## Your data
 
@@ -204,7 +210,7 @@ All via `.env` (see `.env.example`):
 | `NGINX_PORT`  | Port the web container listens on, inside the container | `80`                 |
 | `BACKEND`     | Name of the API service that `/api` is proxied to — change it if yours isn't called `api` | `api` |
 | `PORT`        | Port the API listens on; the web container proxies to the same value | `3000`  |
-| `RP_NAME`     | Name shown in the passkey prompt                     | `openGym`               |
+| `RP_NAME`     | Name shown in the passkey prompt                     | `OlyGym`                |
 | `SESSION_DAYS`| How long a sign-in lasts, in days                    | `90`                    |
 | `ADMIN_UIDS`  | User ids that get the admin dashboard (comma-separated) | *(none)*             |
 | `INVITE_ONLY` | Require an invite code to create a profile           | *(off)*                 |
@@ -223,13 +229,11 @@ host side of that volume, not the variable.
 
 ## Roadmap
 
-The plan lives in [ROADMAP.md](ROADMAP.md), and the
-[GitHub milestones](https://github.com/DuarteSantos8/openGym/milestones) hold the issues. **A release every
-two weeks**, each one small and themed: the promised items, editing finished workouts, the session queue,
-programmes and phases, the progression engine, cardio — then **v1.4.0, the foundation: storage moves to a
-database and search is rebuilt, the one compatibility break** — then accounts (password and OIDC login,
-trainer role, MCP write), the iOS app, the Android and health items, and what all of that unlocks
-(pictures for custom exercises, catalogue work, skins, social). Ideas and pull requests welcome.
+The plan for the software itself is upstream's, in [ROADMAP.md](ROADMAP.md): a release every two
+weeks, then the storage and search rebuild, accounts, the health items, and what those unlock. This
+fork follows it and merges what arrives — its own work is the weightlifting catalogue, the
+interface, the video layer, the coach's spreadsheet and the branding, all listed under
+[What this is](#what-this-is).
 
 ## Tech
 
@@ -238,11 +242,6 @@ WebAuthn · exercise data from [Catalyst Athletics](https://www.catalystathletic
 demo videos on YouTube, frames hotlinked at runtime (see [License](#license)).
 No database server, no cloud dependencies — the frontend builds inside Docker, so self-hosting
 stays a one-command `docker compose up`.
-
-The training logic — progression rules, 1RM estimation, how a logged session is read back —
-lives in pure functions under `frontend/src/lib/` with tests next to them: `npm test` in
-`frontend/`. Vitest is a dev dependency; the app itself ships no runtime dependencies beyond
-React, the router and Zustand.
 
 The optional AI Coach (`api/coach/`) is built the same way round: a by-name allowlist decides
 what may leave the server, and a closed-list validator decides what may come back — the model
@@ -255,52 +254,29 @@ The same pure helpers power an optional MCP server (`mcp/`) that lets an LLM cli
 Claude Desktop read your data over stdio — see [mcp/README.md](mcp/README.md). Opt-in, not
 in the Docker build.
 
-## Community
+## Credits & upstream
 
-- **[Discord](https://discord.gg/e62jY6fwVb)** — release announcements, self-hosting help and
-  the back-and-forth that would be a slow issue thread. Quickest way to get an answer.
-- **[Issues](https://github.com/DuarteSantos8/openGym/issues)** — bugs, questions, self-hosting
-  help and ideas. (Issues still open on the GitLab mirror are read too.) Label a question
-  `question` and an idea `idea`, and it gets treated as one rather than as agreed-on work. Use
-  an issue over the Discord for anything the next person should be able to find by searching.
-- **Login trouble?** Most of it is an `RP_ID`/`ORIGIN` mismatch — check
-  [docs/SELF_HOSTING.md](docs/SELF_HOSTING.md) before opening an issue.
-- **[Pull requests](https://github.com/DuarteSantos8/openGym/pulls)** — see
-  [CONTRIBUTING.md](CONTRIBUTING.md). Merge requests already open on the GitLab mirror are still
-  reviewed and land on `main` here; new work, please, as a pull request.
+OlyGym is **[openGym](https://github.com/DuarteSantos8/openGym)** by **Duarte Santos** — the app,
+the API, the AI Coach, the MCP bridge and the deployment story are his work, under the AGPL. Nothing
+here would exist without it, and this fork tracks it rather than forking away from it:
 
-> **GitHub is home; GitLab is a mirror.** `github.com/DuarteSantos8/openGym` was offline from
-> 2026-08-19 to 2026-09-10 while the account was suspended, and the project lived on GitLab in the
-> meantime. It is back, and [gitlab.com/DuarteSantos8/opengym](https://gitlab.com/DuarteSantos8/opengym)
-> is now kept in sync by a GitHub Actions workflow on every push to `main` and every `v*` tag —
-> nothing is pushed or merged there by hand. The mirror stays because its CI builds the release
-> artefacts: the signed APK, the multi-arch images (GitLab registry, mirrored to GHCR) and the SBOMs.
-> (gitea.com/DuarteSantos/openGym is a plain mirror.) In [CHANGELOG.md](CHANGELOG.md), `!NN` is a
-> GitLab merge request from those weeks; `#NN` refers to whichever tracker the report came through.
+- **[github.com/DuarteSantos8/openGym](https://github.com/DuarteSantos8/openGym)** — source, releases and issues
+- **[gitlab.com/DuarteSantos8/opengym](https://gitlab.com/DuarteSantos8/opengym)** — the mirror whose CI builds the release artefacts (signed APK, multi-arch images, SBOMs)
+- **[opengym.duarte-santos.ch](https://opengym.duarte-santos.ch)** — upstream's site, its in-browser
+  demo and the APK download; its [Discord](https://discord.gg/e62jY6fwVb) and its
+  [coffee button](https://buymeacoffee.com/duartesantos) are upstream's too, and belong to upstream
+- **[CONTRIBUTING.md](CONTRIBUTING.md)**, [CHANGELOG.md](CHANGELOG.md), [ROADMAP.md](ROADMAP.md) — upstream's, kept as they are
 
-## Contributing
-
-Issues and PRs welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Good first issues: more starter
-plans, exercise-data languages, import from other trackers. **A ⭐ helps more people find it.**
-
-openGym is free and stays free: AGPL, no subscription, no paid tier, nothing held back for
-sponsors. If it replaced a paid tracker for you and you want to chip in, there's a coffee button
-below (and a badge at the top) — a star, a bug report or a merge request is worth just as much.
-
-<a href="https://buymeacoffee.com/duartesantos" target="_blank">
-  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
-       alt="Buy Me A Coffee"
-       style="height: 60px !important;width: 217px !important;">
-</a>
+This fork is personal: no releases of its own, no APK, no Discord, and issues are upstream's to
+answer. Bug reports and pull requests that belong to the software itself are upstream's.
 
 ## License
 
-**openGym's own code** is [GNU AGPL v3.0](LICENSE) — free and open source. You can self-host,
-use, modify and share it; if you run a modified version as a network service, you must offer that
-version's source under the same license. Nobody can turn openGym into a closed, proprietary
-product.
+**The code** is [GNU AGPL v3.0](LICENSE) — free and open source. You can self-host, use, modify and
+share it; if you run a modified version as a network service, you must offer that version's source
+under the same license. Nobody can turn it into a closed, proprietary product.
 
-**Third-party content is not, and openGym cannot sublicense it.** The exercise catalogue in this
+**Third-party content is not, and this project cannot sublicense it.** The exercise catalogue in this
 fork — names, movement categories, equipment, descriptions and the link to each demo video — comes
 from [Catalyst Athletics](https://www.catalystathletics.com/exercises/), taken from their public
 exercise pages; every entry cites the page it came from. Neither that text nor their videos are
