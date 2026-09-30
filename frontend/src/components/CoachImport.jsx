@@ -113,7 +113,7 @@ export default function CoachImport({ sheets, close, pick, menu }) {
         return <div key={entry.key} className="item" {...tappable(() => rowMenu(entry))}>
           <div className="grow">
             <div className="tt">{entry.custom ? entry.name : exerciseNameFor(exOr(entry.id))}</div>
-            <div className="ss">{exLine(cfg, unit)}{entry.sg ? ' · ' + t('superset') : ''}</div>
+            <div className="ss">{exLine(cfg, unit)}{entry.sg ? ' · ' + t('Complex') : ''}</div>
             {entry.note && <div className="ss dim" style={{ marginTop: 2 }}>{entry.note}</div>}
             <div className="mchips" style={{ marginTop: 4 }}>
               {entry.tier === 3 && <span className="mchip">{t('New exercise')}</span>}

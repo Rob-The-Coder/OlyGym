@@ -487,7 +487,7 @@ function WorkoutControlsSheet() {
       <Row icon="bolt" iconTint="var(--orange)" title={t('Drop and burst shortcuts on every set')}>
         <Switch checked={wc.setShortcuts} onChange={v => set('setShortcuts', v)} />
       </Row>
-      <Row icon="link" iconTint="var(--blue)" title={t('Superset buttons in the exercise header')}>
+      <Row icon="link" iconTint="var(--blue)" title={t('Complex buttons in the exercise header')}>
         <Switch checked={wc.pairButtons} onChange={v => set('pairButtons', v)} />
       </Row>
       <Row icon="shuffle" iconTint="var(--teal)" title={t('Move, swap and remove buttons below the exercise')}>

@@ -325,7 +325,7 @@ function routineHTML(r, unit) {
       return `<div class="ex"><div class="ex-row"><div class="ex-n">${esc(name)}${part}</div><div class="ex-s">${esc(scheme(e, unit))}</div></div>${note}</div>`
     }).join('')
     return u.length > 1
-      ? `<div class="ss"><div class="ss-tag">${esc(t('Superset'))}</div><div class="ss-items">${items}</div></div>`
+      ? `<div class="ss"><div class="ss-tag">${esc(t('Complex'))}</div><div class="ss-items">${items}</div></div>`
       : items
   }).join('')
   const count = exCount(r.ex.length)

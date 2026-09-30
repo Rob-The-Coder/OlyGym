@@ -1514,6 +1514,36 @@ export const effortPickerSheet = (kind, value, onPick) =>
 /* ============================ share / print / import a plan ============================ */
 export const planToolsSheet = () => ui().openSheet(close => <PlanTools close={close} />)
 
+/* ============================ the complex ============================ */
+// A complex is one card in the routine, and its sets and load belong to the whole thing: on the
+// sheet the coach writes "3+3 @ 30kg" once, not once per movement. The rows keep their own reps
+// (that is what makes a complex a complex), so this sheet only writes the two shared numbers.
+export const complexConfigSheet = (routineId, unitIndex) =>
+  ui().openSheet(close => <ComplexConfig routineId={routineId} unitIndex={unitIndex} close={close} />)
+
+function ComplexConfig({ routineId, unitIndex, close }) {
+  const st = useStore(s => s.S)
+  const update = useStore(s => s.update)
+  const r = st.routines.find(x => x.id === routineId)
+  const unit = r ? (supersetUnits(r.ex)[unitIndex] || []) : []
+  const first = unit.length ? r.ex[unit[0]] : null
+  if (!first) return <><h3>{t('Complex')}</h3><Button variant="primary" onClick={close}>{t('Done')}</Button></>
+  // Read from the store on every render, so the steppers and the rows behind the sheet agree.
+  const apply = patch => update(s => {
+    const routine = s.routines.find(x => x.id === routineId)
+    const members = supersetUnits(routine.ex)[unitIndex] || []
+    members.forEach(i => { routine.ex[i] = { ...routine.ex[i], ...patch } })
+  })
+  return <>
+    <h3>{t('Complex')}</h3>
+    <div className="muted small" style={{ marginBottom: 14 }}>{t('Sets and load are the same for every exercise in the complex — each one keeps its own reps.')}</div>
+    <Stepper label={t('Sets')} value={first.sets || 1} step={1} decimal={false} onChange={v => apply({ sets: v })} />
+    <Stepper label={t('Weight ({0})', st.unit)} value={first.weight || 0} step={2.5} onChange={v => apply({ weight: v })} />
+    <div style={{ height: 10 }} />
+    <Button variant="primary" onClick={close}>{t('Done')}</Button>
+  </>
+}
+
 /* ============================ the coach's spreadsheet ============================ */
 // The reading lives in lib/plan-aliases.js and lib/import-plan.js; this is the way in. The review
 // screen is where a wrong guess gets fixed, and the fix is remembered in S.planAliases — the same
@@ -2030,7 +2060,7 @@ function TopWeight({ entryIdx, close }) {
   }
   return <>
     <h3 className="capitalize row" style={{ gap: 8 }}><Icon name="checkCircle" style={{ color: 'var(--acc)' }} />{t('{0} done', exerciseNameFor(ex))}</h3>
-    <div className="muted small">{t('Confirm the weight you worked with — your highest becomes the default next time.')}{!unitDone && unit.length > 1 ? ' ' + t('Then finish the superset partner.') : ''}</div>
+    <div className="muted small">{t('Confirm the weight you worked with — your highest becomes the default next time.')}{!unitDone && unit.length > 1 ? ' ' + t('Then finish the complex partner.') : ''}</div>
     <WeightInput value={v} setValue={setV} unit={st.unit} />
     <div style={{ height: 10 }} />
     {prevBest > 0 ? <div className="small dim" style={{ textAlign: 'center', marginBottom: 12 }}>{t('Previous best:')} {fmtNum(prevBest)} {st.unit}{maxSet > prevBest && <span style={{ color: 'var(--yellow)' }}> — {t('new record!')}</span>}</div> : <div style={{ height: 4 }} />}
