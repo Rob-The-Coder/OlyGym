@@ -374,10 +374,13 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
 .coach-cta:active{transform:none;background:color-mix(in srgb,var(--acc) 22%,var(--m3-surface-container))}
 .coach-cta-av{border-radius:var(--m3-shape-l)}
 
-/* M3's empty state: the glyph sits in a large tonal circle instead of floating. */
+/* M3's empty state: the glyph sits in a large tonal circle instead of floating.
+   `align-items` matters: index.css centres the glyph horizontally only, and a fixed-size SVG in a
+   flex row aligns to the top — the icon sat 18px high in its own circle (QA 2026-09-30). */
 .empty .ico{
   width:64px;height:64px;border-radius:var(--m3-shape-full);margin:0 auto 14px;
   background:var(--m3-surface-container-high);color:var(--label-2);font-size:28px;
+  display:flex;align-items:center;justify-content:center;
 }
 
 /* Muscle chips in the editor are the same idea as .tag, so they get the same
