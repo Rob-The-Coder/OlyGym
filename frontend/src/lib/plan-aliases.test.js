@@ -46,6 +46,23 @@ describe('matchComponent — the confirmed glossary', () => {
     expect(match('Spinte strappo no piedi').id).toBe(idOf('snatch push press'))
   })
 
+  it('reads \u00abdi forza\u00bb as the muscle version, not the power one', () => {
+    // The user's correction (2026-09-30): "strappo di forza" is a muscle snatch — the bar never
+    // comes back down to the thighs and the knees do not re-bend. It used to read as power snatch.
+    expect(match('Strappo di forza').id).toBe(idOf('muscle snatch'))
+    expect(match('strappi di forza').id).toBe(idOf('muscle snatch'))
+    expect(match('Girata di forza').id).toBe(idOf('muscle clean'))
+    // Still a push press: this one the user confirmed, and it is the same two words.
+    expect(match('Spinte di forza').id).toBe(idOf('push press'))
+  })
+
+  it('keeps the coach\u2019s tempo words on a muscle snatch', () => {
+    const paused = match('strappo di forza con pausa sotto e sopra ginocchio di 5 secondi')
+    expect(paused.tier).toBe(2)
+    expect(paused.id).toBe(idOf('muscle snatch'))
+    expect(paused.note).toBe('strappo di forza con pausa sotto e sopra ginocchio di 5 secondi')
+  })
+
   it('takes the grip from the lift that follows a pull, a deadlift or an RDL', () => {
     // «tirate slancio» is a clean pull, not a "pull" plus a clean and jerk.
     expect(match('Tirate slancio').id).toBe(idOf('clean pull'))

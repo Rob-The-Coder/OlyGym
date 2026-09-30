@@ -71,7 +71,9 @@ const GLOSSARY = {
   incastro: '', cavalletti: 'rack', carico: '',
   'in buca': 'pause', 'stop in buca': 'pause', 'stop sopra ginocchio': 'pause',
   'stop pre': 'pause', 'stop post': 'pause', stop: 'pause', pausa: 'pause', fermo: 'pause',
-  alta: 'high', alte: 'high', georgiane: 'georgian', velocita: 'speed', 'di forza': 'power',
+  alta: 'high', alte: 'high', georgiane: 'georgian', velocita: 'speed',
+  'strappo di forza': 'muscle snatch', 'strappi di forza': 'muscle snatch',
+  'girata di forza': 'muscle clean', 'girate di forza': 'muscle clean',
   // words that are structure, tempo or noise rather than an exercise
   e: 'and', di: '', del: '', della: '', delle: '', dalla: '', dal: '', da: '', dai: '',
   con: 'with', presa: '', muovere: '', muovo: '',
