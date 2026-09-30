@@ -1153,8 +1153,9 @@ describe('workout list view', () => {
     expect(card.querySelector('.ss-hd').textContent).toContain('Complex')
     // "3+3 @ 30kg" on the sheet is written once, on the group — not twice on its members.
     expect(card.querySelector('.ss-hd .ss-load').textContent).toBe('3 sets · 30 kg')
-    expect([...card.querySelectorAll('.ss-amp .cx-step')].map(x => x.textContent)).toEqual(['1', '2'])
-    // The "+" sits in the number's column, between the two movements.
+    // The number sits beside the exercise, on its name line; the "+" between them keeps the
+    // same left edge, so the two read as one column.
+    expect([...card.querySelectorAll('.cx-step')].map(x => x.textContent)).toEqual(['1', '2'])
     expect([...card.querySelectorAll('.ss-amp')].map(x => x.querySelector('.ss-plus')?.textContent || '')).toEqual(['', '+'])
   })
 

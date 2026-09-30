@@ -84,7 +84,7 @@ function sharedScheme(entries) {
   return same ? { sets: head.sets || 1, weight: head.weight || 0 } : null
 }
 
-function ExerciseBlock({ entryIdx, compact, dense, onToggle, onToggleSide, onField, onAddSet, onRemoveSet, onAddWarmup, onRemoveSetAt, onStartTimed, onPairPrev, onPairNext, onSetRowRef, onProgressionSettings, onSwap, onMoveUp, onMoveDown, canMoveUp, canMoveDown, onRemoveExercise, busy }) {
+function ExerciseBlock({ entryIdx, step, compact, dense, onToggle, onToggleSide, onField, onAddSet, onRemoveSet, onAddWarmup, onRemoveSetAt, onStartTimed, onPairPrev, onPairNext, onSetRowRef, onProgressionSettings, onSwap, onMoveUp, onMoveDown, canMoveUp, canMoveDown, onRemoveExercise, busy }) {
   const S = useStore(s => s.S)
   const update = useStore(s => s.update)
   const working = useUI(s => s.work)
@@ -379,7 +379,12 @@ function ExerciseBlock({ entryIdx, compact, dense, onToggle, onToggleSide, onFie
   return <>
     {!dense && <Media ex={ex} key={entry.id} compact={compact} minimizable />}
     <div className="row between" style={{ marginBottom: 6 }}>
-      <div style={{ fontSize: (compact || dense) ? 17 : 20, fontWeight: 600, letterSpacing: '-.02em', textTransform: 'capitalize', lineHeight: 1.2 }}>{exerciseNameFor(ex)}</div>
+      {/* A complex numbers its movements: the number sits beside the exercise, centred on its
+          name line, so the set table below keeps every pixel of its width. */}
+      <div className="row" style={{ gap: 8, minWidth: 0, alignItems: 'center' }}>
+        {step != null && <span className="cx-step">{step}</span>}
+        <div style={{ fontSize: (compact || dense) ? 17 : 20, fontWeight: 600, letterSpacing: '-.02em', textTransform: 'capitalize', lineHeight: 1.2 }}>{exerciseNameFor(ex)}</div>
+      </div>
       <div className="row" style={{ gap: 2, flex: 'none' }}>
         {entry.note && <button className="iconbtn" aria-label={t('Note')} title={t('Note')} style={{ color: 'var(--acc)' }}
           onClick={() => exerciseNoteSheet(entryIdx)}><Icon name="pencil" /></button>}
@@ -1029,8 +1034,8 @@ function ActiveWorkout() {
                 {u.map((idx, k) => {
                   const entry = A.entries[idx]
                   return <div key={idx} ref={el => bindExRef(entry, el)} className="ss-ex" data-exidx={idx}>
-                    <div className="ss-amp">{k > 0 && <span className="ss-plus">+</span>}<span className="cx-step">{k + 1}</span></div>
-                    <ExerciseBlock entryIdx={idx} compact dense={dense} onSetRowRef={(setIdx, el) => bindSetRef(entry, setIdx, el)}
+                    <div className="ss-amp">{k > 0 && <span className="ss-plus">+</span>}</div>
+                    <ExerciseBlock entryIdx={idx} step={k + 1} compact dense={dense} onSetRowRef={(setIdx, el) => bindSetRef(entry, setIdx, el)}
                       {...blockProps(idx)} />
                   </div>
                 })}
@@ -1065,8 +1070,8 @@ function ActiveWorkout() {
           {unit.map((idx, k) => {
             const entry = A.entries[idx]
             return <div key={idx} ref={el => bindExRef(entry, el)} className="ss-ex" data-exidx={idx}>
-              <div className="ss-amp">{k > 0 && <span className="ss-plus">+</span>}<span className="cx-step">{k + 1}</span></div>
-              <ExerciseBlock entryIdx={idx} compact onSetRowRef={(setIdx, el) => bindSetRef(entry, setIdx, el)}
+              <div className="ss-amp">{k > 0 && <span className="ss-plus">+</span>}</div>
+              <ExerciseBlock entryIdx={idx} step={k + 1} compact onSetRowRef={(setIdx, el) => bindSetRef(entry, setIdx, el)}
                 {...blockProps(idx)} />
             </div>
           })}

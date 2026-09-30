@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { t } from '../lib/i18n.js'
 
 // Swipe-left-to-reveal-delete, same touch/mouse-drag shape Modals.jsx already uses for
@@ -29,6 +29,11 @@ const REVEAL = 76
 export default function SwipeToDelete({ children, onDelete, deleteLabel, className, onClick }) {
   const outerRef = useRef(null)
   const rowRef = useRef(null)
+  // The red button is only put on screen once a swipe is actually going horizontal. Left on at
+  // rest it bleeds a red arc out of the row's rounded corner: the row is opaque and covers it, but
+  // at fractional device pixels Chrome's compositor shows a sliver of the layer underneath, which
+  // is exactly the "strange red outline" this used to be reported as (QA WS5, second round).
+  const [armed, setArmed] = useState(false)
   const drag = useRef({ startX: null, startY: null, delta: 0, open: false, axis: null })
 
   const setX = (x, animate) => {
@@ -47,6 +52,7 @@ export default function SwipeToDelete({ children, onDelete, deleteLabel, classNa
       d.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
     }
     if (d.axis === 'y') return
+    if (!armed) setArmed(true)
     ev?.preventDefault?.()
     d.delta = dx
     const base = d.open ? -REVEAL : 0
@@ -59,6 +65,7 @@ export default function SwipeToDelete({ children, onDelete, deleteLabel, classNa
     const traveled = (d.open ? -REVEAL : 0) + d.delta
     d.open = traveled < -REVEAL / 2
     setX(d.open ? -REVEAL : 0, true)
+    if (!d.open) setArmed(false)
     d.startX = null
   }
 
@@ -79,10 +86,13 @@ export default function SwipeToDelete({ children, onDelete, deleteLabel, classNa
       onMouseUp={end}
       onMouseLeave={() => { if (drag.current.startX !== null) end() }}>
       <button className="swipe-del" aria-label={deleteLabel || t('Delete')}
-        style={{ position: 'absolute', inset: '0 0 0 auto', width: REVEAL, background: 'var(--red)', color: '#fff', fontSize: 12, fontWeight: 600 }}
-        onClick={() => { setX(0, true); drag.current.open = false; onDelete() }}>{t('Delete')}</button>
+        style={{
+          position: 'absolute', inset: '0 0 0 auto', width: REVEAL, background: 'var(--red)', color: '#fff',
+          fontSize: 12, fontWeight: 600, opacity: armed ? 1 : 0, pointerEvents: armed ? 'auto' : 'none'
+        }}
+        onClick={() => { setX(0, true); drag.current.open = false; setArmed(false); onDelete() }}>{t('Delete')}</button>
       <div ref={rowRef} className={className}
-        onClick={e => { if (drag.current.open) { e.stopPropagation(); setX(0, true); drag.current.open = false; return } onClick && onClick(e) }}
+        onClick={e => { if (drag.current.open) { e.stopPropagation(); setX(0, true); drag.current.open = false; setArmed(false); return } onClick && onClick(e) }}
         style={{ background: 'var(--surface)', position: 'relative' }}>
         {children}
       </div>

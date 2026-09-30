@@ -535,7 +535,11 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
 .cx-head .cx-load{
   margin-left:auto;color:var(--label);text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:600;
 }
-.cx-row{position:relative}
+/* Number on the left, the exercise beside it on the right, the number centred on the exercise's
+   own height. The row is the flex container, so the badge and the "+" below it share one column. */
+.cx-row{position:relative;display:flex;align-items:center;gap:10px;padding:0 0 0 14px}
+.cx-row>.item,.cx-row>div{flex:1;min-width:0}
+.cx-card .cx-item{padding-left:6px}
 .cx-row .cx-step{
   width:24px;height:24px;flex:none;border-radius:var(--m3-shape-full);display:grid;place-items:center;
   background:color-mix(in srgb,var(--acc) 22%,transparent);color:var(--acc);font-size:12px;font-weight:600;
@@ -553,5 +557,7 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
    load, and the exercises numbered in a rail with the "+" sitting under the numbers. */
 .ss-hd{justify-content:space-between;text-align:left;margin-bottom:8px}
 .ss-hd .ss-load{color:var(--label);font-size:13.5px;font-weight:600;letter-spacing:0}
+/* The "+" stands in the numbers' column: both are the first thing inside .ss-card's padding, so
+   the separator takes no inset of its own and the two line up at every width. */
 .ss-amp{display:flex;align-items:center;gap:6px;margin:12px 0 6px;text-align:left}
 .ss-amp .ss-plus{font-size:15px;font-weight:600;color:var(--label-3)}
