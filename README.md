@@ -12,12 +12,10 @@ No account on someone else's server, no subscription, no ads. Just `docker compo
 
 <br>
 
-[![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-a3e635?style=flat-square)](LICENSE)
-![Self-hosted](https://img.shields.io/badge/self--hosted-%F0%9F%8F%A0-60a5fa?style=flat-square)
-![PWA](https://img.shields.io/badge/PWA-installable-a78bfa?style=flat-square)
-![React](https://img.shields.io/badge/React-19-38bdf8?style=flat-square&logo=react&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-compose-2496ED?style=flat-square&logo=docker&logoColor=white)
-![No tracking](https://img.shields.io/badge/telemetry-none-f472b6?style=flat-square)
+<!-- One drawn image, not six shields.io requests: a renderer can only scale it down, never stack
+     it one per line, and nothing here depends on the network. Source: assets/badges.svg — edit the
+     text there and re-render it the way assets/banner.png is made. -->
+<img src="assets/badges.png" alt="License: AGPL-3.0 · self-hosted · PWA installable · React 19 · Docker Compose · no telemetry" width="682" height="22">
 
 </div>
 
