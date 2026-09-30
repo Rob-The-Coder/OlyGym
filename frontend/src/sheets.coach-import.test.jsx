@@ -66,8 +66,8 @@ describe('the coach’s plan review', () => {
     // Both components of the complex, and the exercise the catalogue's own name matched.
     expect(text).toContain('snatch')
     expect(text).toContain('hang snatch')
-    // "Strappo no piedi" has no catalogue name: the base is proposed and his words are kept.
-    expect(text).toContain('Strappo no piedi')
+    // "Strappo no piedi" is Catalyst's "snatch with no jump": his words are a catalogue exercise.
+    expect(text).toContain('snatch with no jump')
     // The primer line is not an exercise and does not appear as one.
     expect(text).not.toContain('Snatch primer')
   })
@@ -76,7 +76,7 @@ describe('the coach’s plan review', () => {
     coachPlanSheet([week])
     const host = renderTop()
     const tiles = [...host.querySelectorAll('.tile')].map(t => [t.querySelector('.l').textContent, t.querySelector('.v').textContent])
-    expect(tiles).toEqual([['Days', '2'], ['Exercises', '5'], ['New', '1'], ['To check', '2']])
+    expect(tiles).toEqual([['Days', '2'], ['Exercises', '5'], ['New', '1'], ['To check', '1']])
   })
 
   it('puts a correction from a previous week on screen', () => {
@@ -125,7 +125,7 @@ describe('correcting a row', () => {
     coachPlanSheet([week])
     const review = renderTop()
     const rows = [...review.querySelectorAll('.list .item')]
-    const row = rows.find(x => /Strappo no piedi/.test(x.textContent))
+    const row = rows.find(x => /snatch with no jump/i.test(x.textContent))
     expect(row, 'the row the catalogue could not name is the one to correct').toBeTruthy()
     act(() => row.click())
 

@@ -64,8 +64,10 @@ const GLOSSARY = {
   'sosp alta': 'hang', 'sosp bassa': 'low hang', sosp: 'hang', 'da sosp': 'hang',
   'dai blocchi': 'block', blocchi: 'block', 'da blocco': 'block',
   'dal deficit': 'on riser', 'da deficit': 'on riser', deficit: 'on riser',
-  'no piedi': 'no foot', 'touch n go': 'touch and go', tng: 'touch and go',
-  'in continuita': 'touch and go', 'con ritorno': '', 'in piedi': 'from power position',
+  // «no piedi» is Catalyst's "with no jump" (feet flat, no stomp), and «in piedi» is the power
+  // version caught standing — not "from power position", which is the *hips* (see «inguine»).
+  'no piedi': 'with no jump', 'touch n go': 'touch and go', tng: 'touch and go',
+  'in continuita': 'touch and go', 'con ritorno': '', 'in piedi': 'power',
   inguine: 'from power position', spaccata: 'split', 'spinta strappo': 'snatch push press',
   'spinte strappo': 'snatch push press', spinta: 'jerk', spinte: 'jerk',
   incastro: '', cavalletti: 'rack', carico: '',
@@ -96,6 +98,15 @@ const MEANINGFUL = new Set([
   'impugnatura', 'parallelo', 'testa', 'petto', 'disco', 'max', 'continuita', 'ginocchio', 'gin',
   'buca', 'sopra', 'sotto', 'prima', 'pre', 'post', 'fermo', 'ferma', 'isometrico'
 ])
+
+// Where the bar starts, or how the feet are allowed to work: a component made of nothing but one of
+// these is its own movement of the complex, not a note on the one above. "+ sosp bassa" after
+// "strappo" is a snatch from the low hang. A style word — "touch n go", "dinamiche", "con ritorno" —
+// is not: the catalogue has no exercise named after it, and the note is where it belongs.
+const POSITION = new Set(['hang', 'low hang', 'block', 'on riser', 'power', 'from power position', 'with no jump', 'with no contact'])
+// …and the words those phrases are made of, for peeling them off a name word by word.
+const POSITION_WORD = new Set([...POSITION].flatMap(p => p.split(' ')))
+const isPosition = text => words(translate(text)).some(w => POSITION.has(w))
 
 // Words that mean "this is an exercise", in the coach's language or in the catalogue's. A
 // component with none of these describes the exercise above it instead of naming a new one.
@@ -303,6 +314,28 @@ export function matchComponent(raw, aliases = {}) {
 }
 
 /**
+ * A component that names no lift of its own but does name a position — "+ sosp bassa", "+ dai
+ * blocchi" — is the exercise above, done from there: a movement of the complex in its own right.
+ * The lift comes from the component above (its head, not its full name, so "strappo sosp alta"
+ * followed by "sosp bassa" is a snatch from the low hang, not a hang snatch from the low hang).
+ * When Catalyst has that name it is used; when it does not — it has no low hang at all — the
+ * movement is one of the user's own exercises, under the name the coach's words describe.
+ */
+function promote(part, last, aliases) {
+  // The lift it is a position of: the exercise above with its own position words taken off, so
+  // "stacchi slancio da sosp alta" (a hang clean deadlift) followed by "sosp bassa" is a clean
+  // deadlift from the low hang — the grip and the lift travel, the hang does not.
+  const lift = words(last.name).filter(w => !POSITION_WORD.has(w)).join(' ') || headOf(last.raw).english
+  if (!lift) return null
+  const candidate = [translate(part), lift].filter(Boolean).join(' ')
+  const known = bestMatch(words(candidate))
+  if (known && known.cover === exerciseWords(words(candidate)).length) {
+    return { tier: known.extra ? 2 : 1, id: known.entry.ex.id, name: known.entry.ex.n, bp: known.entry.ex.bp, exact: !known.extra, note: known.extra ? part : '', raw: part }
+  }
+  return { tier: 3, id: '', name: candidate, bp: last.bp || DEFAULT_BP, exact: false, note: part, raw: part }
+}
+
+/**
  * Match a whole row: the complexes split on "+", a component that names no exercise folded into
  * the note of the one before it.
  *
@@ -318,9 +351,11 @@ export function matchName(rawName, aliases = {}) {
     const hit = matchComponent(part, aliases)
     if (hit.fragment) {
       const last = items[items.length - 1]
-      // "+ sosp bassa", "touch n go", "due normali": the coach describing what he just named.
-      if (last) last.note = [last.note, part].filter(Boolean).join(' · ')
-      else ignored.push(part)
+      if (!last) { ignored.push(part); continue }
+      const promoted = last && isPosition(part) ? promote(part, last, aliases) : null
+      if (promoted) { items.push(promoted); continue }
+      // "+ touch n go", "dinamiche", "due normali": the coach describing what he just named.
+      last.note = [last.note, part].filter(Boolean).join(' · ')
       continue
     }
     items.push({ tier: hit.tier, id: hit.id, name: hit.name, bp: hit.bp, note: hit.note, exact: hit.exact, raw: hit.raw })

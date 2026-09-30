@@ -81,7 +81,9 @@ describe('matchComponent — the confirmed glossary', () => {
     expect(match('Strappo da sosp alta').id).toBe(idOf('hang snatch'))
     expect(match('Strappo dai blocchi').id).toBe(idOf('block snatch'))
     expect(match('Strappo dall\u2019inguine').id).toBe(idOf('snatch from power position'))
-    expect(match('Strappo in piedi').id).toBe(idOf('snatch from power position'))
+    // «in piedi» is the power version caught standing; «inguine» is the hips (from power position).
+    expect(match('Strappo in piedi').id).toBe(idOf('power snatch'))
+    expect(match('Strappo dall\u2019inguine').id).toBe(idOf('snatch from power position'))
     expect(match('Gambe avanti stop in buca').id).toBe(idOf('pause front squat'))
     expect(match('Gambe dietro stop a parallelo').id).toBe(idOf('pause parallel back squat'))
     expect(match('Strappo no contact').id).toBe(idOf('snatch with no contact'))
@@ -96,12 +98,17 @@ describe('matchComponent — the confirmed glossary', () => {
 })
 
 describe('matchComponent — the three tiers', () => {
-  it('level 2: the base lift plus the coach\u2019s own words', () => {
-    const noFeet = match('Strappo no piedi')
-    expect(noFeet.tier).toBe(2)
-    expect(noFeet.id).toBe(idOf('snatch'))
-    expect(noFeet.note).toBe('Strappo no piedi')
+  it('reads \u00abno piedi\u00bb as Catalyst\u2019s "with no jump"', () => {
+    // The user's correction (2026-09-30): "no piedi" is the feet staying flat, no jump and no
+    // stomp — an exercise Catalyst names, not a note on a plain snatch.
+    expect(match('Strappo no piedi').id).toBe(idOf('snatch with no jump'))
+    expect(match('Strappo no piedi').tier).toBe(1)
+    expect(match('Girata no piedi').id).toBe(idOf('clean with no jump'))
+    expect(match('Girata in piedi no piedi').id).toBe(idOf('power clean with no jump'))
+    expect(match('Girata in piedi').id).toBe(idOf('power clean'))
+  })
 
+  it('level 2: the base lift plus the coach\u2019s own words', () => {
     // "sosp bassa" (a low hang) has no Catalyst name: the catalogue's hang snatch is the base and
     // the coach's words say which hang he wanted.
     const lowHang = match('Strappo sosp bassa')
@@ -164,10 +171,27 @@ describe('matchName', () => {
     expect(items.map(i => i.name)).toEqual(['snatch', 'hang snatch'])
   })
 
-  it('folds a fragment into the exercise before it', () => {
+  it('makes a position its own movement of the complex', () => {
+    // The user's correction: "Strappo + strappo sosp alta + sosp bassa" is three movements —
+    // snatch, hang snatch, low hang snatch — and Catalyst has no low hang at all, so the third is
+    // the user's own exercise, named after what the coach's words describe.
     const { items, ignored } = matchName('Strappo + strappo sosp alta + sosp bassa')
+    expect(items.map(i => i.name)).toEqual(['snatch', 'hang snatch', 'low hang snatch'])
+    expect(items[2].tier).toBe(3)
+    expect(items[2].id).toBe('')
+    expect(items[2].note).toBe('sosp bassa')
+    expect(ignored).toEqual([])
+  })
+
+  it('carries the lift and the grip down into the next position', () => {
+    const { items } = matchName('Stacchi slancio + stacchi slancio da sosp alta + sosp bassa')
+    expect(items.map(i => i.name)).toEqual(['clean deadlift', 'hang clean deadlift', 'low hang clean deadlift'])
+  })
+
+  it('folds a fragment that names no position into the exercise before it', () => {
+    const { items, ignored } = matchName('Strappo + strappo sosp alta + touch n go')
     expect(items).toHaveLength(2)
-    expect(items[1].note).toBe('sosp bassa')
+    expect(items[1].note).toBe('touch n go')
     expect(ignored).toEqual([])
   })
 

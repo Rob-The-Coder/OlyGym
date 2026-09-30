@@ -114,11 +114,11 @@ describe('reviewWeek', () => {
   })
 
   it('keeps what the catalogue has no word for in the note', () => {
-    // "no piedi" has no Catalyst equivalent: the bar-movement instruction stays on the row.
+    // "no piedi" IS a Catalyst exercise ("snatch with no jump"), so it arrives as one; the load
+    // that is a sentence, which has no equivalent at all, is what stays in the note.
     const noFeet = review.days[1].entries[0]
-    expect(noFeet.name).toBe('snatch')
-    expect(noFeet.tier).toBe(2)
-    expect(noFeet.note).toContain('Strappo no piedi')
+    expect(noFeet.name).toBe('snatch with no jump')
+    expect(noFeet.tier).toBe(1)
     // A load that is a sentence stays a note too, even though the weight came out of it.
     expect(noFeet.weight).toBe(null)
     expect(noFeet.note).toContain('Due a 65kg, due a 70kg')
