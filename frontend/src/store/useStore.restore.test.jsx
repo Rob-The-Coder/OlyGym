@@ -12,7 +12,7 @@ import { api } from '../lib/api.js'
 import { DEF, hasData, restoredStateFor, useStore } from './useStore.js'
 
 const clone = value => JSON.parse(JSON.stringify(value))
-const routine = id => ({ id, name: id, ex: [] })
+const week = id => ({ id, startIso: '2026-01-05', name: '', days: [{ dow: 1, name: id, ex: [] }] })
 const workout = id => ({ id, d: '2026-09-01', entries: [] })
 const httpError = status => Object.assign(new Error('HTTP ' + status), { status })
 
@@ -29,8 +29,8 @@ afterEach(() => {
 
 describe('saved workout state sync and restore', () => {
   it('returns null for an older or dirty local state', () => {
-    const local = { ...clone(DEF), _ts: 20, routines: [routine('local')] }
-    const remote = { ...clone(DEF), _ts: 10, routines: [routine('remote')] }
+    const local = { ...clone(DEF), _ts: 20, weeks: [week('local')] }
+    const remote = { ...clone(DEF), _ts: 10, weeks: [week('remote')] }
 
     expect(restoredStateFor(local, remote)).toBeNull()
     expect(restoredStateFor(local, { ...remote, _ts: 30 }, true)).toBeNull()
@@ -39,31 +39,31 @@ describe('saved workout state sync and restore', () => {
   it('overlays defaults and carries the device-local active workout', () => {
     const active = { id: 'active-1', routineId: 'local', entries: [] }
     const local = { ...clone(DEF), active }
-    const restored = restoredStateFor(local, { _ts: 20, routines: [routine('remote')] })
+    const restored = restoredStateFor(local, { _ts: 20, weeks: [week('remote')] })
 
-    expect(restored.routines.map(r => r.id)).toEqual(['remote'])
+    expect(restored.weeks.map(r => r.id)).toEqual(['remote'])
     expect(restored.active).toEqual(active)
     expect(restored.restSec).toBe(90)
   })
 
   it('adopts a newer clean remote state while preserving a local active workout', async () => {
     const active = { id: 'active-1', d: '2026-08-29', routineId: 'local', name: 'Local', entries: [] }
-    const local = { ...clone(DEF), _ts: 10, routines: [routine('local')], active }
-    const remote = { ...clone(DEF), _ts: 20, routines: [routine('remote')], active: null }
+    const local = { ...clone(DEF), _ts: 10, weeks: [week('local')], active }
+    const remote = { ...clone(DEF), _ts: 20, weeks: [week('remote')], active: null }
     useStore.setState({ S: local, user: { id: 'user-1' }, ready: true })
     api.mockResolvedValue({ state: remote })
 
     await useStore.getState().pullState()
 
-    expect(useStore.getState().S.routines.map(r => r.id)).toEqual(['remote'])
+    expect(useStore.getState().S.weeks.map(r => r.id)).toEqual(['remote'])
     expect(useStore.getState().S.active).toEqual(active)
     expect(JSON.parse(localStorage.getItem('gym_state_v1')).active).toEqual(active)
     expect(api).toHaveBeenCalledTimes(1)
   })
 
   it('pushes local data instead of replacing it when the local state is newer', async () => {
-    const local = { ...clone(DEF), _ts: 20, routines: [routine('local')] }
-    const remote = { ...clone(DEF), _ts: 10, routines: [routine('remote')] }
+    const local = { ...clone(DEF), _ts: 20, weeks: [week('local')] }
+    const remote = { ...clone(DEF), _ts: 10, weeks: [week('remote')] }
     useStore.setState({ S: local, user: { id: 'user-1' }, ready: true })
     api.mockResolvedValueOnce({ state: remote }).mockResolvedValueOnce({})
 
@@ -71,15 +71,15 @@ describe('saved workout state sync and restore', () => {
 
     expect(api).toHaveBeenCalledTimes(2)
     expect(api.mock.calls[1][0]).toBe('/api/data')
-    expect(JSON.parse(api.mock.calls[1][1].body).state.routines.map(r => r.id)).toEqual(['local'])
-    expect(useStore.getState().S.routines.map(r => r.id)).toEqual(['local'])
+    expect(JSON.parse(api.mock.calls[1][1].body).state.weeks.map(r => r.id)).toEqual(['local'])
+    expect(useStore.getState().S.weeks.map(r => r.id)).toEqual(['local'])
   })
 
   // A dirty copy is one the server has not seen yet — not one that outranks the server's. With a
   // revision in the answer the two are merged and the merge is pushed against that revision.
   it('merges a dirty local state with the server copy and pushes the merge', async () => {
-    const local = { ...clone(DEF), _ts: 10, routines: [routine('local')] }
-    const remote = { ...clone(DEF), _ts: 20, routines: [routine('remote')], _rev: 3 }
+    const local = { ...clone(DEF), _ts: 10, weeks: [week('local')] }
+    const remote = { ...clone(DEF), _ts: 20, weeks: [week('remote')], _rev: 3 }
     localStorage.setItem('gym_dirty', '1')
     useStore.setState({ S: local, user: { id: 'user-1' }, ready: true })
     api.mockResolvedValueOnce({ state: remote, rev: 3 }).mockResolvedValueOnce({ ok: true, rev: 4 })
@@ -89,8 +89,8 @@ describe('saved workout state sync and restore', () => {
     expect(api).toHaveBeenCalledTimes(2)
     const put = JSON.parse(api.mock.calls[1][1].body)
     expect(put.baseRev).toBe(3)
-    expect(put.state.routines.map(r => r.id).sort()).toEqual(['local', 'remote'])
-    expect(useStore.getState().S.routines.map(r => r.id).sort()).toEqual(['local', 'remote'])
+    expect(put.state.weeks.map(r => r.id).sort()).toEqual(['local', 'remote'])
+    expect(useStore.getState().S.weeks.map(r => r.id).sort()).toEqual(['local', 'remote'])
     expect(localStorage.getItem('gym_dirty')).toBeNull()
     expect(JSON.parse(localStorage.getItem('gym_sync'))).toEqual({ rev: 4, ts: useStore.getState().S._ts })
   })
@@ -98,8 +98,8 @@ describe('saved workout state sync and restore', () => {
   // A server from before revisions answers without one; then the old rule holds and the dirty
   // copy is pushed as it is.
   it('pushes a dirty local state as-is to a server without revisions', async () => {
-    const local = { ...clone(DEF), _ts: 10, routines: [routine('local')] }
-    const remote = { ...clone(DEF), _ts: 20, routines: [routine('remote')] }
+    const local = { ...clone(DEF), _ts: 10, weeks: [week('local')] }
+    const remote = { ...clone(DEF), _ts: 20, weeks: [week('remote')] }
     localStorage.setItem('gym_dirty', '1')
     useStore.setState({ S: local, user: { id: 'user-1' }, ready: true })
     api.mockResolvedValueOnce({ state: remote }).mockResolvedValueOnce({})
@@ -107,34 +107,34 @@ describe('saved workout state sync and restore', () => {
     await useStore.getState().pullState()
 
     expect(api).toHaveBeenCalledTimes(2)
-    expect(JSON.parse(api.mock.calls[1][1].body).state.routines.map(r => r.id)).toEqual(['local'])
-    expect(useStore.getState().S.routines.map(r => r.id)).toEqual(['local'])
+    expect(JSON.parse(api.mock.calls[1][1].body).state.weeks.map(r => r.id)).toEqual(['local'])
+    expect(useStore.getState().S.weeks.map(r => r.id)).toEqual(['local'])
   })
 
   it('restores a remote state over defaults when the local profile is empty', async () => {
-    const remote = { _ts: 30, routines: [routine('remote')], workouts: [] }
+    const remote = { _ts: 30, weeks: [week('remote')], workouts: [] }
     api.mockResolvedValue({ state: remote })
 
     await useStore.getState().pullState()
 
-    expect(useStore.getState().S.routines.map(r => r.id)).toEqual(['remote'])
+    expect(useStore.getState().S.weeks.map(r => r.id)).toEqual(['remote'])
     expect(useStore.getState().S.restSec).toBe(90)
     expect(useStore.getState().S.lang).toBe('en')
   })
 
   it('keeps the local saved state when the restore request fails', async () => {
-    const local = { ...clone(DEF), _ts: 10, routines: [routine('local')] }
+    const local = { ...clone(DEF), _ts: 10, weeks: [week('local')] }
     useStore.setState({ S: local, user: { id: 'user-1' }, ready: true })
     api.mockRejectedValue(new Error('offline'))
 
     await useStore.getState().pullState()
 
-    expect(useStore.getState().S.routines.map(r => r.id)).toEqual(['local'])
+    expect(useStore.getState().S.weeks.map(r => r.id)).toEqual(['local'])
     expect(api).toHaveBeenCalledTimes(1)
   })
 
   it('an adopted server state keeps the timestamp it came with', async () => {
-    const remote = { ...clone(DEF), _ts: 20, routines: [routine('remote')] }
+    const remote = { ...clone(DEF), _ts: 20, weeks: [week('remote')] }
     useStore.setState({ S: clone(DEF), user: { id: 'user-1' }, ready: true })
     api.mockResolvedValue({ state: remote })
 
@@ -169,7 +169,7 @@ describe('signing in as a different profile', () => {
   const active = { id: 'A-active', d: '2026-09-01', routineId: 'A', name: 'A', entries: [] }
   const signInAsAThenExpire = () => {
     useStore.getState().setUser({ id: 'A', name: 'A' })
-    useStore.getState().replaceState({ ...clone(DEF), _ts: 20, routines: [routine('A-routine')], bodyweight: [{ d: '2026-09-01', kg: 80 }], active })
+    useStore.getState().replaceState({ ...clone(DEF), _ts: 20, weeks: [week('A-routine')], bodyweight: [{ d: '2026-09-01', kg: 80 }], active })
     useStore.getState().setUser(null)
     expect(hasData(useStore.getState().S)).toBe(true)
   }
@@ -182,37 +182,37 @@ describe('signing in as a different profile', () => {
     await useStore.getState().pullState()
 
     expect(api).toHaveBeenCalledTimes(1)   // the GET only — nothing was pushed under B
-    expect(useStore.getState().S.routines).toEqual([])
+    expect(useStore.getState().S.weeks).toEqual([])
     expect(useStore.getState().S.bodyweight).toEqual([])
     expect(useStore.getState().S.active).toBeNull()
-    expect(JSON.parse(localStorage.getItem('gym_state_v1')).routines).toEqual([])
+    expect(JSON.parse(localStorage.getItem('gym_state_v1')).weeks).toEqual([])
     expect(localStorage.getItem('gym_owner')).toBe('B')
   })
 
   it('adopts the new profile own state even when it is older or a push failed after expiry', async () => {
     signInAsAThenExpire()
     localStorage.setItem('gym_dirty', '1')   // a debounced push that hit the 401
-    const remoteB = { ...clone(DEF), _ts: 10, routines: [routine('B-routine')], active: null }
+    const remoteB = { ...clone(DEF), _ts: 10, weeks: [week('B-routine')], active: null }
     api.mockResolvedValue({ state: remoteB })
 
     useStore.getState().setUser({ id: 'B', name: 'B' })
     await useStore.getState().pullState()
 
     expect(api).toHaveBeenCalledTimes(1)
-    expect(useStore.getState().S.routines.map(r => r.id)).toEqual(['B-routine'])
+    expect(useStore.getState().S.weeks.map(r => r.id)).toEqual(['B-routine'])
     expect(useStore.getState().S.active).toBeNull()   // A's in-progress workout is not carried over
     expect(localStorage.getItem('gym_dirty')).toBeNull()
   })
 
   it('the same profile signing in again keeps and pushes its newer local copy', async () => {
     signInAsAThenExpire()
-    api.mockResolvedValueOnce({ state: { ...clone(DEF), _ts: 10, routines: [routine('remote')] } }).mockResolvedValueOnce({})
+    api.mockResolvedValueOnce({ state: { ...clone(DEF), _ts: 10, weeks: [week('remote')] } }).mockResolvedValueOnce({})
 
     useStore.getState().setUser({ id: 'A', name: 'A' })
     await useStore.getState().pullState()
 
     expect(api).toHaveBeenCalledTimes(2)
-    expect(JSON.parse(api.mock.calls[1][1].body).state.routines.map(r => r.id)).toEqual(['A-routine'])
+    expect(JSON.parse(api.mock.calls[1][1].body).state.weeks.map(r => r.id)).toEqual(['A-routine'])
     expect(useStore.getState().S.active).toEqual(active)
   })
 
@@ -222,7 +222,7 @@ describe('signing in as a different profile', () => {
     vi.useFakeTimers()
     try {
       useStore.getState().setUser({ id: 'A', name: 'A' })
-      useStore.getState().replaceState({ ...clone(DEF), _ts: 20, routines: [routine('A-routine')], active }, true)   // arms a push
+      useStore.getState().replaceState({ ...clone(DEF), _ts: 20, weeks: [week('A-routine')], active }, true)   // arms a push
       api.mockResolvedValue({})
 
       // B's setUser in the other tab: it wiped the copy, wrote defaults, then recorded the owner.
@@ -236,12 +236,12 @@ describe('signing in as a different profile', () => {
       expect(useStore.getState().S.active).toBeNull()
 
       vi.advanceTimersByTime(3000)   // the push armed under A must not fire under B's cookie
-      useStore.getState().update(s => { s.routines.push(routine('typed-after')) })
+      useStore.getState().update(s => { s.weeks.push(week('typed-after')) })
       vi.advanceTimersByTime(3000)
       await useStore.getState().pushState()
 
       expect(api).not.toHaveBeenCalled()
-      expect(JSON.parse(localStorage.getItem('gym_state_v1')).routines.map(r => r.id)).toEqual(['typed-after'])
+      expect(JSON.parse(localStorage.getItem('gym_state_v1')).weeks.map(r => r.id)).toEqual(['typed-after'])
     } finally { vi.useRealTimers() }
   })
 
@@ -249,7 +249,7 @@ describe('signing in as a different profile', () => {
   // the owner go while gym_state_v1 still holds A's copy — it must not keep that copy either way.
   it('a tab still holding the previous profile drops its data when that profile signs out elsewhere', async () => {
     useStore.getState().setUser({ id: 'A', name: 'A' })
-    useStore.getState().replaceState({ ...clone(DEF), _ts: 20, routines: [routine('A-routine')], bodyweight: [{ d: '2026-09-01', kg: 80 }], active })
+    useStore.getState().replaceState({ ...clone(DEF), _ts: 20, weeks: [week('A-routine')], bodyweight: [{ d: '2026-09-01', kg: 80 }], active })
     api.mockResolvedValue({ state: null })
 
     localStorage.removeItem('gym_owner')   // gym_state_v1 still holds A's copy at this instant
@@ -271,7 +271,7 @@ describe('signing in as a different profile', () => {
   // before the owner is removed — the same order setUser uses when it records a new owner.
   it('signing out removes the owner only after the wiped copy is written', async () => {
     useStore.getState().setUser({ id: 'A', name: 'A' })
-    useStore.getState().replaceState({ ...clone(DEF), _ts: 20, routines: [routine('A-routine')] })
+    useStore.getState().replaceState({ ...clone(DEF), _ts: 20, weeks: [week('A-routine')] })
     api.mockResolvedValue({})
 
     const desc = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
@@ -293,18 +293,18 @@ describe('signing in as a different profile', () => {
     expect(writes.lastIndexOf('removeItem gym_owner')).toBeGreaterThan(writes.lastIndexOf('setItem gym_state_v1'))
     expect(writes.lastIndexOf('removeItem gym_owner')).toBeGreaterThan(writes.lastIndexOf('removeItem gym_state_v1'))
     expect(localStorage.getItem('gym_owner')).toBeNull()
-    expect(JSON.parse(localStorage.getItem('gym_state_v1')).routines).toEqual([])
+    expect(JSON.parse(localStorage.getItem('gym_state_v1')).weeks).toEqual([])
   })
 
   it('a storage event for another key or the same profile changes nothing', () => {
     useStore.getState().setUser({ id: 'A', name: 'A' })
-    useStore.getState().replaceState({ ...clone(DEF), _ts: 20, routines: [routine('A-routine')] })
+    useStore.getState().replaceState({ ...clone(DEF), _ts: 20, weeks: [week('A-routine')] })
 
     window.dispatchEvent(new StorageEvent('storage', { key: 'gym_state_v1', newValue: '{}' }))
     window.dispatchEvent(new StorageEvent('storage', { key: 'gym_owner', oldValue: 'A', newValue: 'A' }))
 
     expect(useStore.getState().user).toEqual({ id: 'A', name: 'A' })
-    expect(useStore.getState().S.routines.map(r => r.id)).toEqual(['A-routine'])
+    expect(useStore.getState().S.weeks.map(r => r.id)).toEqual(['A-routine'])
   })
 
   it('guest data built after a sign-out still moves into a newly created profile', async () => {
@@ -314,7 +314,7 @@ describe('signing in as a different profile', () => {
     expect(localStorage.getItem('gym_owner')).toBeNull()
     expect(hasData(useStore.getState().S)).toBe(false)
 
-    useStore.getState().update(s => { s.routines.push(routine('guest')) }, false)
+    useStore.getState().update(s => { s.weeks.push(week('guest')) }, false)
     api.mockClear()
     useStore.getState().setUser({ id: 'B', name: 'B' })
     expect(hasData(useStore.getState().S)).toBe(true)   // what the register sheet checks before pushing
@@ -322,13 +322,13 @@ describe('signing in as a different profile', () => {
 
     expect(api).toHaveBeenCalledTimes(1)
     expect(api.mock.calls[0][1].method).toBe('PUT')
-    expect(JSON.parse(api.mock.calls[0][1].body).state.routines.map(r => r.id)).toEqual(['guest'])
+    expect(JSON.parse(api.mock.calls[0][1].body).state.weeks.map(r => r.id)).toEqual(['guest'])
   })
 })
 
 describe('push failures', () => {
   it('says once that the server refused the upload as too large, and keeps the copy dirty', async () => {
-    useStore.setState({ S: { ...clone(DEF), routines: [routine('local')] }, user: { id: 'user-1' }, ready: true })
+    useStore.setState({ S: { ...clone(DEF), weeks: [week('local')] }, user: { id: 'user-1' }, ready: true })
 
     api.mockRejectedValueOnce(httpError(401))
     await useStore.getState().pushState()

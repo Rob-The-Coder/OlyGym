@@ -237,7 +237,7 @@ describe('importHevyData', () => {
 
     const result = await importHevyData('test-key-not-stored', { unit: 'kg' })
     expect(result.workouts.workouts).toHaveLength(1)
-    expect(result.routines.routines).toHaveLength(0)
+    expect(result.routines.routineCount).toBe(0)
     expect(result.bodyweight.bodyweight).toHaveLength(0)
     expect(calls.every(c => c.key === 'test-key-not-stored')).toBe(true)
   })
@@ -282,13 +282,15 @@ describe('parseHevyRoutines', () => {
     ],
   }
 
-  it('builds OlyGym routine configs from Hevy sets', () => {
+  it('builds OlyGym routine configs from Hevy sets, as one week of days', () => {
     const parsed = parseHevyRoutines([ROUTINE], TEMPLATES, { unit: 'kg' })
-    expect(parsed.routines).toHaveLength(1)
-    expect(parsed.routines[0].name).toBe('Oberkörper 2')
+    expect(parsed.routineCount).toBe(1)
+    expect(parsed.week.days).toHaveLength(1)
+    expect(parsed.week.days[0].name).toBe('Oberkörper 2')
+    expect(parsed.week.days[0].dow).toBe(1)
     expect(parsed.exerciseCount).toBe(3)
 
-    const [cardio, split, lunge] = parsed.routines[0].ex
+    const [cardio, split, lunge] = parsed.week.days[0].ex
     // No cardio entry in the catalogue any more: the distance template arrives as a custom, still
     // logged in cardio mode.
     expect(parsed.customEx.find(c => c.id === cardio.id).bp).toBe('cardio')
@@ -300,25 +302,36 @@ describe('parseHevyRoutines', () => {
     expect(split.sg).toBe(lunge.sg)
   })
 
-  it('mergeHevyRoutines replaces a routine it imported before instead of duplicating it', () => {
-    const parsed = parseHevyRoutines([ROUTINE], TEMPLATES, { unit: 'kg' })
-    const S = { routines: [], customEx: [] }
-    expect(mergeHevyRoutines(S, parsed)).toEqual({ added: 1, updated: 0 })
-    expect(S.routines).toHaveLength(1)
-    expect(S.routines[0].hevyId).toBe(ROUTINE.id)
-    const firstId = S.routines[0].id
-    S.routines[0].name = 'renamed locally'
-    expect(mergeHevyRoutines(S, parsed)).toEqual({ added: 0, updated: 1 })
-    expect(S.routines).toHaveLength(1)
-    expect(S.routines[0].id).toBe(firstId)
-    expect(S.routines[0].name).toBe(ROUTINE.title)
+  it('puts each Hevy routine on its own day, Monday/Wednesday/Friday first', () => {
+    const parsed = parseHevyRoutines([ROUTINE, { ...ROUTINE, id: 'r2', title: 'Push' }], TEMPLATES, { unit: 'kg' })
+    expect(parsed.week.days.map(d => [d.dow, d.name])).toEqual([[1, 'Oberkörper 2'], [3, 'Push']])
   })
 
-  it('mergeHevyRoutines still adds a routine that carries no Hevy id', () => {
-    const parsed = parseHevyRoutines([{ ...ROUTINE, id: undefined }], TEMPLATES, { unit: 'kg' })
-    const S = { routines: [], customEx: [] }
-    mergeHevyRoutines(S, parsed); mergeHevyRoutines(S, parsed)
-    expect(S.routines).toHaveLength(2)
+  it('merges the imported week into state as a new dated week', () => {
+    const parsed = parseHevyRoutines([ROUTINE], TEMPLATES, { unit: 'kg' })
+    const S = { weeks: [], customEx: [] }
+    expect(mergeHevyRoutines(S, parsed)).toEqual({ added: 1, updated: 0 })
+    expect(S.weeks).toHaveLength(1)
+    expect(S.weeks[0].days).toHaveLength(1)
+    expect(S.weeks[0].days[0].name).toBe('Oberkörper 2')
+    expect(S.weeks[0].startIso).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    // The customs the week references are stored once, with the ids the days point at.
+    const custom = S.customEx.find(c => c.id === S.weeks[0].days[0].ex[0].id)
+    expect(custom).toBeTruthy()
+    expect(custom.bp).toBe('cardio')
+    // A second import adds a second week rather than rewriting the first.
+    const firstId = S.weeks[0].id
+    mergeHevyRoutines(S, parsed)
+    expect(S.weeks).toHaveLength(2)
+    expect(S.weeks[0].id).toBe(firstId)
+    expect(S.customEx.filter(c => c.id === custom.id)).toHaveLength(1)
+  })
+
+  it('changes nothing for a Hevy account with no routines', () => {
+    const parsed = parseHevyRoutines([], TEMPLATES, { unit: 'kg' })
+    const S = { weeks: [], customEx: [] }
+    expect(mergeHevyRoutines(S, parsed)).toEqual({ added: 0, updated: 0 })
+    expect(S.weeks).toEqual([])
   })
 })
 

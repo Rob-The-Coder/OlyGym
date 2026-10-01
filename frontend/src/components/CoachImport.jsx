@@ -13,28 +13,24 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
-import { Button, Segmented, Switch } from './ui.jsx'
+import { Button, Segmented } from './ui.jsx'
 import Icon from './Icon.jsx'
 import { t, exerciseNameFor } from '../lib/i18n.js'
 import { exOr } from '../lib/exercises.js'
 import { exLine } from '../lib/history.js'
 import { DAYS } from '../lib/format.js'
 import { normName } from '../lib/plan-aliases.js'
-import { bundleFromWeek, reviewWeek } from '../lib/import-plan.js'
-import { mergePlan, parsePlan } from '../lib/plan-share.js'
+import { WEEK_PLAN, bundleFromWeek, reviewWeek } from '../lib/import-plan.js'
+import { mergeWeek } from '../lib/plan-share.js'
 import { convertWeight } from '../lib/units.js'
 import { nav } from '../lib/nav.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
-
-// Monday, Wednesday, Friday: where a three-day program normally goes.
-const WEEK_PLAN = [1, 3, 5]
 
 export default function CoachImport({ sheets, close, pick, menu }) {
   const st = useStore(s => s.S)
   const update = useStore(s => s.update)
   const [week, setWeek] = useState(0)
   const [dayIdx, setDayIdx] = useState(0)
-  const [schedule, setSchedule] = useState(false)
   // The review is derived, never stored: correcting a row rewrites S.planAliases and the whole
   // week is read again, so one fix covers every row that repeats those words.
   const aliases = st.planAliases || {}
@@ -62,19 +58,11 @@ export default function CoachImport({ sheets, close, pick, menu }) {
   })
 
   const apply = () => {
-    // The sheet is in kilos whatever unit the account is in: parsePlan converts on the way in.
-    const bundle = bundleFromWeek(review, { unit: 'kg', days: schedule ? WEEK_PLAN : null })
-    let added = 0
-    try {
-      const parsed = parsePlan(bundle, unit)
-      added = parsed.routineCount
-      update(s => { mergePlan(s, parsed, { schedule }) })
-    } catch (e) {
-      useUI.getState().toast(t('Could not read that plan'))
-      return
-    }
+    // The sheet is in kilos whatever unit the account is in: bundleFromWeek converts on the way in.
+    const wk = bundleFromWeek(review, { unit })
+    update(s => { mergeWeek(s, wk) })
     close()
-    useUI.getState().toast(t('Added {0} routines to your plan', added))
+    useUI.getState().toast(t('Added the week to your plan'))
     nav('/plan')
   }
 
@@ -131,14 +119,13 @@ export default function CoachImport({ sheets, close, pick, menu }) {
 
     <div className="row between" style={{ padding: '12px 2px', gap: 12, borderTop: '1px solid var(--sep)', marginTop: 8 }}>
       <div>
-        <div className="tt" style={{ fontSize: 15 }}>{t('Train it {0}', WEEK_PLAN.map(d => DAYS[d]).join(' / '))}</div>
-        <div className="small dim">{t('Puts the three days on Monday, Wednesday and Friday.')}</div>
+        <div className="tt" style={{ fontSize: 15 }}>{t('Train it {0}', WEEK_PLAN.slice(0, Math.max(1, review.days.length)).map(d => DAYS[d]).join(' / '))}</div>
+        <div className="small dim">{t('The week lands on those days of this week’s plan.')}</div>
       </div>
-      <Switch checked={schedule} onChange={setSchedule} />
     </div>
 
     <Button variant="primary" onClick={apply} disabled={!review.days.length}>
-      {t('Add {0} routines to my plan', review.days.length)}
+      {t('Add the week to my plan')}
     </Button>
     <div style={{ height: 8 }} />
     <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>

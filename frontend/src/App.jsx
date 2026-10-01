@@ -27,7 +27,7 @@ import MobileOnboarding from './views/MobileOnboarding.jsx'
 import Home from './views/Home.jsx'
 import CheckIn from './views/CheckIn.jsx'
 import Plan from './views/Plan.jsx'
-import RoutineEdit from './views/RoutineEdit.jsx'
+import WeekEdit from './views/WeekEdit.jsx'
 import Workout from './views/Workout.jsx'
 import Stats from './views/Stats.jsx'
 import History from './views/History.jsx'
@@ -35,9 +35,6 @@ import Library from './views/Library.jsx'
 import Muscles from './views/Muscles.jsx'
 import Settings from './views/Settings.jsx'
 import Admin from './views/Admin.jsx'
-import CoachChat from './views/CoachChat.jsx'
-import CoachIntake from './views/CoachIntake.jsx'
-import CoachSetup from './views/CoachSetup.jsx'
 
 // last known scrollY per route, so back-navigation can put the page where it was
 const scrollPositions = new Map()
@@ -151,28 +148,20 @@ function Shell() {
                   catch-all redirect below. */}
               {S.checkIn !== false && <Route path="/checkin" element={<CheckIn />} />}
               <Route path="/plan" element={<Plan />} />
-              <Route path="/plan/r/:id" element={<RoutineEdit />} />
+              <Route path="/plan/w/:id" element={<WeekEdit />} />
               <Route path="/workout" element={<Workout />} />
               <Route path="/stats" element={<Stats />} />
               <Route path="/history" element={<History />} />
               <Route path="/library" element={<Library />} />
               <Route path="/muscles" element={<Muscles />} />
               <Route path="/settings" element={<Settings />} />
-              {/* The Coach screens gate themselves on the instance config; the routes exist
-                  unconditionally so a deep link from a notification lands somewhere sane
-                  rather than on the catch-all. */}
-              <Route path="/coach" element={<CoachChat />} />
-              <Route path="/coach/intake" element={<CoachIntake />} />
-              <Route path="/coach/proposal" element={<Navigate to="/coach" replace />} />
-              <Route path="/coach/setup" element={<CoachSetup />} />
               <Route path="/admin" element={user?.admin ? <Admin /> : <Navigate to="/home" replace />} />
               <Route path="*" element={<Navigate to="/home" replace />} />
             </Routes>
           )}
         </ErrorBoundary>
       </div>
-      {/* The chat owns the bottom of the screen: its composer sits where the tabs would be. */}
-      {loc.pathname !== '/coach' && <TabBar onStart={startFlow} />}
+      <TabBar onStart={startFlow} />
       <RestTimer />
       <Modals />
       <Toast />

@@ -7,7 +7,7 @@ import {
   fmt, setLabel, exLine, muscleName, policyName, friendlyDuration, ratio, muscleOrder
 } from './labels.js'
 import {
-  modeOf, workoutVolume, setsDone, effectiveRoutine, effectiveRoutineId, lastEntryFor
+  modeOf, workoutVolume, setsDone, lastEntryFor
 } from '../../frontend/src/lib/history.js'
 import { exOr } from '../../frontend/src/lib/exercises.js'
 import { isWarmupRow } from '../../frontend/src/lib/workout-model.js'
@@ -19,6 +19,22 @@ import { policyFor } from '../../frontend/src/lib/progression.js'
 import { buildSessionEntries } from '../../frontend/src/lib/session-start.js'
 
 /* ---------- helpers ---------- */
+
+// The routine scheduled for a date in the state file mcp reads. The app itself moved to the
+// dated-weeks model (S.weeks, resolved by frontend/src/lib/weeks.js) and no longer exports a
+// schedule lookup, but the state files this bridge opens are still written as routines + week +
+// dayPlan by the plan producers (importer, plan files, demo), so the schedule is resolved the
+// way that state records it. A profile whose plan lives in S.weeks reports a rest day here.
+const scheduledRoutineId = (S, iso) => {
+  const ov = S.dayPlan?.[iso]
+  if (ov === 'rest') return null
+  if (ov && (S.routines || []).some(r => r.id === ov)) return ov
+  return [].concat(S.week?.[new Date(iso + 'T12:00:00').getDay()] || [])[0] ?? null
+}
+const scheduledRoutine = (S, iso) => {
+  const id = scheduledRoutineId(S, iso)
+  return id ? (S.routines || []).find(r => r.id === id) || null : null
+}
 
 // A custom exercise lives in S.customEx and is merged into EXIDX by registerCustom() at
 // store load (useStore.js:54). The MCP server deliberately never calls it: http.js serves
@@ -181,8 +197,8 @@ export const getWeekPlan = {
           override_for_today_or_null: overrideForToday
         }
       }),
-      today_routine_id: effectiveRoutineId(S, isoToday),
-      today_routine_name: effectiveRoutine(S, isoToday)?.name || null
+      today_routine_id: scheduledRoutineId(S, isoToday),
+      today_routine_name: scheduledRoutine(S, isoToday)?.name || null
     }
   }
 }
@@ -459,7 +475,7 @@ export const previewSession = {
       r = (S.routines || []).find(x => x.id === routine_id)
       if (!r) { const e = new Error(`no routine with id ${JSON.stringify(routine_id)}`); e.code = 'ENOENT'; throw e }
     } else {
-      r = effectiveRoutine(S, iso)
+      r = scheduledRoutine(S, iso)
       if (!r) return { date: iso, routine_id: null, routine_name: null, rest_day: true, note: 'no routine is scheduled for this date (rest day)', exercises: [] }
     }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { nextTrainingDay, modeOf, isTimed, fmtSec, setLabel, defaultConfig, buildSets, freestyleConfig, exLine, workoutVolume, bestWeightFor, bestWeightForEntry, effortOf, stepEffort, capEffort, isBw, isPerSide, sideReps, repStep, cascadeWeight, insertWarmupRow, removeRowAt, workSetsDone, setsDone, setsDoneActive, setUnits, doneUnits, setUnitsTotal, pairAdjacent, unpairSuperset, supersetUnits, applyIntensifierPlan, pinnedNoteFor, exNoteFor, effectiveRoutineIds, effectiveRoutines, effectiveRoutineId, effectiveRoutine, lastEntryFor, entryExcluded } from './history.js'
+import { nextTrainingDay, modeOf, isTimed, fmtSec, setLabel, defaultConfig, buildSets, freestyleConfig, exLine, workoutVolume, bestWeightFor, bestWeightForEntry, effortOf, stepEffort, capEffort, isBw, isPerSide, sideReps, repStep, cascadeWeight, insertWarmupRow, removeRowAt, workSetsDone, setsDone, setsDoneActive, setUnits, doneUnits, setUnitsTotal, pairAdjacent, unpairSuperset, supersetUnits, applyIntensifierPlan, pinnedNoteFor, exNoteFor, effectiveDay, lastEntryFor, entryExcluded } from './history.js'
 import { makeSideSet, setSideField, toggleSide } from './workout-model.js'
 import { EXDB, registerCustom } from './exercises.js'
 
@@ -893,53 +893,49 @@ describe('warm-up rows identified by phase alone', () => {
   })
 })
 
-describe('nextTrainingDay', () => {
-  // 2026-08-18 is a Tuesday; the week map is keyed by getDay(), so 0 is Sunday.
-  const TUE = '2026-08-18'
-  const base = (over = {}) => ({
-    dayPlan: {},
-    routines: [{ id: 'r1', name: 'A', ex: [{ id: '0001' }] }, { id: 'r2', name: 'B', ex: [{ id: '0002' }] }],
-    week: {},
-    ...over
-  })
+// Weeks are concrete now: a date is planned only if a week covers it and that week has a day
+// on its weekday. 2026-08-18 is a Tuesday; 2026-08-17 is the Monday of its week.
+const TUE = '2026-08-18'
+const MONDAY = '2026-08-17'
+const week = (days, startIso = MONDAY) => [{ id: 'w1', startIso, name: '', days }]
+const dayOn = (dow, name, ex = [{ id: '0001' }]) => ({ dow, name, ex })
 
-  it('finds the next scheduled day and names its routine', () => {
-    const S = base({ week: { 4: 'r2' } })                 // Thursday
-    expect(nextTrainingDay(S, TUE)).toMatchObject({ iso: '2026-08-20', weekday: 4 })
-    expect(nextTrainingDay(S, TUE).routine.name).toBe('B')
+describe('nextTrainingDay', () => {
+  it('finds the next day that has exercises, and returns the day itself', () => {
+    const S = { weeks: week([dayOn(4, 'B', [{ id: '0002' }])]) }   // Thursday
+    const nd = nextTrainingDay(S, TUE)
+    expect(nd).toMatchObject({ iso: '2026-08-20', weekday: 4 })
+    expect(nd.day.name).toBe('B')
   })
 
   it('looks forward only — today itself is never the answer', () => {
-    // Only Tuesday is scheduled and today is Tuesday, so the next one is a week out. (The UI
+    // Only Tuesday is planned and today is Tuesday, so the next one is a week out. (The UI
     // cannot reach this: a day with a session takes the other branch and never asks.)
-    const S = base({ week: { 2: 'r1' } })
+    const S = { weeks: [{ id: 'w1', startIso: MONDAY, days: [dayOn(2, 'A')] }, { id: 'w2', startIso: '2026-08-24', days: [dayOn(2, 'A')] }] }
     expect(nextTrainingDay(S, TUE)).toMatchObject({ iso: '2026-08-25', weekday: 2 })
   })
 
   it('wraps around the end of the week', () => {
-    const S = base({ week: { 1: 'r1' } })                 // Monday, six days on
+    const S = { weeks: [{ id: 'w1', startIso: MONDAY, days: [dayOn(1, 'A')] }, { id: 'w2', startIso: '2026-08-24', days: [dayOn(1, 'A')] }] }
     expect(nextTrainingDay(S, TUE)).toMatchObject({ iso: '2026-08-24', weekday: 1 })
   })
 
-  it('is null when every day is rest', () => {
-    expect(nextTrainingDay(base(), TUE)).toBeNull()
+  it('is null when every day is rest, or no week covers the dates', () => {
+    expect(nextTrainingDay({ weeks: week([]) }, TUE)).toBeNull()
+    expect(nextTrainingDay({ weeks: [] }, TUE)).toBeNull()
   })
 
-  it('skips a day whose routine no longer exists', () => {
-    const S = base({ week: { 3: 'gone', 5: 'r1' } })
-    expect(nextTrainingDay(S, TUE)).toMatchObject({ iso: '2026-08-21', weekday: 5 })
-  })
-
-  it('skips a routine with no exercises — starting it would open an empty session', () => {
-    const S = base({ routines: [{ id: 'r1', name: 'A', ex: [] }, { id: 'r2', name: 'B', ex: [{ id: '1' }] }], week: { 3: 'r1', 5: 'r2' } })
+  it('skips a day with no exercises — starting it would open an empty session', () => {
+    const S = { weeks: week([dayOn(3, 'A', []), dayOn(5, 'B')]) }
     expect(nextTrainingDay(S, TUE)).toMatchObject({ weekday: 5 })
+    expect(nextTrainingDay(S, TUE).day.name).toBe('B')
   })
 
-  it('respects a per-date override in both directions', () => {
-    const moved = base({ week: {}, dayPlan: { '2026-08-19': 'r1' } })
-    expect(nextTrainingDay(moved, TUE)).toMatchObject({ iso: '2026-08-19' })
-    const off = base({ week: { 3: 'r1', 5: 'r2' }, dayPlan: { '2026-08-19': 'rest' } })
-    expect(nextTrainingDay(off, TUE)).toMatchObject({ weekday: 5 })
+  it('stops at a gap between weeks rather than inventing a day', () => {
+    // The Thursday of this week is planned, next week is missing entirely.
+    const S = { weeks: week([dayOn(4, 'B')]) }
+    expect(nextTrainingDay(S, TUE)).toMatchObject({ weekday: 4 })
+    expect(nextTrainingDay(S, '2026-08-20')).toBeNull()
   })
 })
 
@@ -972,56 +968,6 @@ describe('exNoteFor', () => {
     expect(exNoteFor({ exNotes: { '0025': ' seat 4, pin 7 ' } }, '0025')).toBe('seat 4, pin 7')
     expect(exNoteFor({ exNotes: { '0025': '   ' } }, '0025')).toBeNull()
     expect(exNoteFor({}, '0025')).toBeNull()
-  })
-})
-
-describe('nextTrainingDay', () => {
-  // 2026-08-18 is a Tuesday; the week map is keyed by getDay(), so 0 is Sunday.
-  const TUE = '2026-08-18'
-  const base = (over = {}) => ({
-    dayPlan: {},
-    routines: [{ id: 'r1', name: 'A', ex: [{ id: '0001' }] }, { id: 'r2', name: 'B', ex: [{ id: '0002' }] }],
-    week: {},
-    ...over
-  })
-
-  it('finds the next scheduled day and names its routine', () => {
-    const S = base({ week: { 4: 'r2' } })                 // Thursday
-    expect(nextTrainingDay(S, TUE)).toMatchObject({ iso: '2026-08-20', weekday: 4 })
-    expect(nextTrainingDay(S, TUE).routine.name).toBe('B')
-  })
-
-  it('looks forward only — today itself is never the answer', () => {
-    // Only Tuesday is scheduled and today is Tuesday, so the next one is a week out. (The UI
-    // cannot reach this: a day with a session takes the other branch and never asks.)
-    const S = base({ week: { 2: 'r1' } })
-    expect(nextTrainingDay(S, TUE)).toMatchObject({ iso: '2026-08-25', weekday: 2 })
-  })
-
-  it('wraps around the end of the week', () => {
-    const S = base({ week: { 1: 'r1' } })                 // Monday, six days on
-    expect(nextTrainingDay(S, TUE)).toMatchObject({ iso: '2026-08-24', weekday: 1 })
-  })
-
-  it('is null when every day is rest', () => {
-    expect(nextTrainingDay(base(), TUE)).toBeNull()
-  })
-
-  it('skips a day whose routine no longer exists', () => {
-    const S = base({ week: { 3: 'gone', 5: 'r1' } })
-    expect(nextTrainingDay(S, TUE)).toMatchObject({ iso: '2026-08-21', weekday: 5 })
-  })
-
-  it('skips a routine with no exercises — starting it would open an empty session', () => {
-    const S = base({ routines: [{ id: 'r1', name: 'A', ex: [] }, { id: 'r2', name: 'B', ex: [{ id: '1' }] }], week: { 3: 'r1', 5: 'r2' } })
-    expect(nextTrainingDay(S, TUE)).toMatchObject({ weekday: 5 })
-  })
-
-  it('respects a per-date override in both directions', () => {
-    const moved = base({ week: {}, dayPlan: { '2026-08-19': 'r1' } })
-    expect(nextTrainingDay(moved, TUE)).toMatchObject({ iso: '2026-08-19' })
-    const off = base({ week: { 3: 'r1', 5: 'r2' }, dayPlan: { '2026-08-19': 'rest' } })
-    expect(nextTrainingDay(off, TUE)).toMatchObject({ weekday: 5 })
   })
 })
 
@@ -1086,53 +1032,19 @@ describe('per-side set counters', () => {
   })
 })
 
-// ---- combine routines: plural planner resolver + per-entry noProg (ENG-9) ----
-describe('effectiveRoutineIds / effectiveRoutines', () => {
-  const routines = [{ id: 'r1', name: 'A', ex: [{ id: '1' }] }, { id: 'r2', name: 'B', ex: [{ id: '2' }] }]
-  const S = (week, dayPlan = {}) => ({ routines, week, dayPlan })
-  const ISO = '2026-08-19'                       // a Wednesday → getDay() 3
+// The dated-weeks reader the session path uses in place of the old routine resolver.
+describe('effectiveDay', () => {
+  it('is the day planned for a date, and null for a rest day or a date outside every week', () => {
+    const S = { weeks: week([dayOn(3, 'A')]) }                  // Wednesday
+    expect(effectiveDay(S, '2026-08-19').name).toBe('A')
+    expect(effectiveDay(S, '2026-08-20')).toBe(null)            // Thursday: rest
+    expect(effectiveDay({ weeks: [] }, '2026-08-19')).toBe(null)
+    expect(effectiveDay({ weeks: week([dayOn(3, 'A')], '2026-08-24') }, '2026-08-19')).toBe(null)
+  })
 
-  it('reads a bare-string weekday value as a one-element list (tolerant reader)', () => {
-    expect(effectiveRoutineIds(S({ 3: 'r1' }), ISO)).toEqual(['r1'])
-  })
-  it('resolves a multi-id array and filters out routines that no longer exist', () => {
-    expect(effectiveRoutineIds(S({ 3: ['r1', 'gone', 'r2'] }), ISO)).toEqual(['r1', 'r2'])
-    expect(effectiveRoutines(S({ 3: ['r1', 'r2'] }), ISO).map(r => r.name)).toEqual(['A', 'B'])
-  })
-  it('treats [], a stray empty array and an absent key all as rest', () => {
-    expect(effectiveRoutineIds(S({ 3: [] }), ISO)).toEqual([])
-    expect(effectiveRoutineIds(S({}), ISO)).toEqual([])
-  })
-  it('a scalar dayPlan override wins and stays scalar; "rest" is empty', () => {
-    expect(effectiveRoutineIds(S({ 3: ['r1', 'r2'] }, { [ISO]: 'r2' }), ISO)).toEqual(['r2'])
-    expect(effectiveRoutineIds(S({ 3: ['r1', 'r2'] }, { [ISO]: 'rest' }), ISO)).toEqual([])
-  })
-  it('the singular wrappers return [0] ?? null', () => {
-    expect(effectiveRoutineId(S({ 3: ['r1', 'r2'] }), ISO)).toBe('r1')
-    expect(effectiveRoutine(S({ 3: ['r1', 'r2'] }), ISO).name).toBe('A')
-    expect(effectiveRoutineId(S({}), ISO)).toBe(null)
-    expect(effectiveRoutine(S({}), ISO)).toBe(null)
-  })
-})
-
-describe('nextTrainingDay on a combined day', () => {
-  const TUE = '2026-08-18'
-  it('is trainable when any one routine of the day has exercises; return shape carries routines', () => {
-    const S = {
-      routines: [{ id: 'r1', name: 'A', ex: [] }, { id: 'r2', name: 'B', ex: [{ id: '1' }] }],
-      week: { 3: ['r1', 'r2'] }, dayPlan: {},
-    }
-    const nd = nextTrainingDay(S, TUE)
-    expect(nd).toMatchObject({ weekday: 3 })
-    expect(nd.routines.map(r => r.name)).toEqual(['A', 'B'])
-    expect(nd.routine.name).toBe('A')
-  })
-  it('skips a day whose every routine is empty', () => {
-    const S = {
-      routines: [{ id: 'r1', name: 'A', ex: [] }, { id: 'r2', name: 'B', ex: [] }, { id: 'r3', name: 'C', ex: [{ id: '1' }] }],
-      week: { 3: ['r1', 'r2'], 5: ['r3'] }, dayPlan: {},
-    }
-    expect(nextTrainingDay(S, TUE)).toMatchObject({ weekday: 5 })
+  it('does not read the legacy routine fields at all', () => {
+    const S = { routines: [{ id: 'r1', name: 'A', ex: [{ id: '1' }] }], week: { 3: ['r1'] }, dayPlan: {}, weeks: [] }
+    expect(effectiveDay(S, '2026-08-19')).toBe(null)
   })
 })
 

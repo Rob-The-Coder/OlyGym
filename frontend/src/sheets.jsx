@@ -3,8 +3,8 @@ import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { EXDB, EXIDX, BODYPARTS, isCardio, isBodyweightEq, allExercises, equipmentOf, smOf, searchExercises, exOr, isAssisted, betterWeight, beatsWeight } from './lib/exercises.js'
 import { activeProfile, exAvailable, ALL_EQUIPMENT, newProfile } from './lib/equipment.js'
-import { fmtDate, fmtNum, capWords, fmtVol, fmtDur, durPart, todayISO, isoOf, uid, exCount, routineCount, DAYN, DAYS, weekOrder, weekStartOf, weekDayOffset, MONTHS_LONG, ACCENTS } from './lib/format.js'
-import { lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, effectiveRoutineIds, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, EFFORT, capEffort, stepEffort, isBw, isPerSide, sideReps, workSetsDone, applyIntensifierPlan, MAX_PLANNED_WARMUPS, NOTE_MAX } from './lib/history.js'
+import { fmtDate, fmtNum, fmtVol, fmtDur, durPart, todayISO, isoOf, uid, exCount, DAYN, DAYS, weekOrder, weekStartOf, weekDayOffset, MONTHS_LONG, ACCENTS } from './lib/format.js'
+import { lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, effectiveDay, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, EFFORT, capEffort, stepEffort, isBw, isPerSide, sideReps, workSetsDone, applyIntensifierPlan, MAX_PLANNED_WARMUPS, NOTE_MAX } from './lib/history.js'
 import { usesBar, barWeightFor, defaultBarWeight, hasBarOverride, isNoBar } from './lib/bar.js'
 import { toScale, rirOf, EFFORT_PRESETS, effortColor } from './lib/effort.js'
 import { beep, vibrate } from './lib/sound.js'
@@ -37,8 +37,8 @@ import { nextUnfinishedUnit } from './lib/supersetFlow.js'
 import { swapActiveExercise } from './lib/active-exercise-swap.js'
 import { useSheetKeyboard, useRevealActiveChip, tappable } from './lib/use-sheet-keyboard.js'
 import { isFav, toggleFav, sortFavouritesFirst } from './lib/favourites.js'
-import { buildSessionEntries } from './lib/session-start.js'
-import { buildCombinedEntries, deriveSessionName } from './lib/session-merge.js'
+import { buildDayEntries } from './lib/session-merge.js'
+import { weekFor } from './lib/weeks.js'
 import { workoutsOn, backfillStart, backfillEnd, completeBackfill } from './lib/backfill.js'
 
 const S = () => useStore.getState().S
@@ -109,18 +109,17 @@ const PLAN_COPY = {
   '5x5': () => ({ name: t('5×5'), about: t('Five sets of five on the main barbell lifts.') })
 }
 
-// Adds the plan's routines and puts them on its weekdays. Existing routines are never touched
-// and only the weekdays the plan asks for are reassigned; an id with no plan behind it changes
-// nothing at all. planId is deliberately required — a default invites `onClick={loadStarterPlan}`,
-// which hands the click event in as the plan and silently loads nothing.
+// Adds the plan's days as a fresh dated week. Existing weeks are never touched, and an id with
+// no plan behind it changes nothing at all. planId is deliberately required — a default invites
+// `onClick={loadStarterPlan}`, which hands the click event in as the plan and silently loads
+// nothing.
 export function loadStarterPlan(planId) {
-  const plan = buildStarterPlan(planId)
-  if (!plan) return false
+  if (!starterPlanDays(planId)) return false
+  const name = PLAN_COPY[planId]().name
   update(st => {
-    st.routines.push(...plan.routines)
-    plan.schedule.forEach(({ day, routineId }) => { st.week[day] = [routineId] })
+    ;(st.weeks || (st.weeks = [])).push(buildStarterPlan(planId, { name, weekStart: weekStartOf(st) }))
   })
-  toast(t('{0} loaded', PLAN_COPY[planId]().name))
+  toast(t('{0} loaded', name))
   return true
 }
 
@@ -128,18 +127,18 @@ export function loadStarterPlan(planId) {
 const dayList = days => new Intl.ListFormat(dateLocale()).format(days.map(d => t(DAYN[d])))
 
 function StarterPlanChooser({ close }) {
-  const week = useStore(s => s.S.week)
-  const routines = useStore(s => s.S.routines)
+  const st = useStore(s => s.S)
   const choose = (id, name) => {
     const days = starterPlanDays(id)
     close()
-    // A confirmation is only worth showing when one of those days is actually occupied — by a
-    // routine that still exists, not by a stale id the Plan already shows as "Rest".
-    const taken = day => [].concat(week[day] || []).some(id => routines.some(r => r.id === id))
+    // A confirmation is only worth showing when one of those days is already taken in the week
+    // the plan would land in.
+    const current = weekFor(st, todayISO())
+    const taken = day => (current?.days || []).some(d => d.dow === day && (d.ex || []).length)
     if (!days.some(taken)) { loadStarterPlan(id); return }
     confirmSheet({
       title: t('Load {0}?', name),
-      message: t('The new plan will be scheduled on {0}. Existing routines are kept — only those days of the weekly plan change.', dayList(days)),
+      message: t('A new week will be added on {0}. Nothing you already have is changed.', dayList(days)),
       confirmText: t('Load plan'),
       onConfirm: () => loadStarterPlan(id)
     })
@@ -395,14 +394,17 @@ function HevyImportSheet({ close }) {
     try {
       const data = await importHevyData(key, { unit: st.unit, onProgress: setProgress })
       wipeKey()
-      const empty = !data.workouts.workouts.length && !data.routines.routines.length && !data.bodyweight.bodyweight.length
+      // The payload names Hevy's own three groups; `hevyRoutines` is the parsed routine list
+      // (routineCount/exerciseCount/unmatchedNames), not a plan in this app's state.
+      const { workouts: hevyWorkouts, routines: hevyRoutines, bodyweight: hevyBody } = data
+      const empty = !hevyWorkouts.workouts.length && !hevyRoutines.routineCount && !hevyBody.bodyweight.length
       if (empty) {
         toast(t('Nothing to import from Hevy'))
         return
       }
-      setWantWorkouts(!!data.workouts.workouts.length)
-      setWantRoutines(!!data.routines.routines.length)
-      setWantBody(!!data.bodyweight.bodyweight.length)
+      setWantWorkouts(!!hevyWorkouts.workouts.length)
+      setWantRoutines(!!hevyRoutines.routineCount)
+      setWantBody(!!hevyBody.bodyweight.length)
       setPayload(data)
     } catch (e) {
       if (e instanceof HevyApiError && e.message === 'auth') toast(t('That Hevy API key was refused'))
@@ -417,21 +419,22 @@ function HevyImportSheet({ close }) {
 
   const doImport = () => {
     if (!payload) return
+    const { workouts: hevyWorkouts, routines: hevyRoutines, bodyweight: hevyBody } = payload
     const parts = []
     let addedW = 0, addedR = 0, addedB = 0
     update(s => {
-      if (wantWorkouts && payload.workouts.workouts.length) {
-        const res = mergeImport(s, payload.workouts)
+      if (wantWorkouts && hevyWorkouts.workouts.length) {
+        const res = mergeImport(s, hevyWorkouts)
         addedW = res.added
         parts.push(t('{0} workouts imported', res.added))
       }
-      if (wantRoutines && payload.routines.routines.length) {
-        const res = mergeHevyRoutines(s, payload.routines)
+      if (wantRoutines && hevyRoutines.routineCount) {
+        const res = mergeHevyRoutines(s, hevyRoutines)
         addedR = res.added
-        parts.push(t('{0} routines imported', res.added))
+        parts.push(t('{0} routines imported', hevyRoutines.routineCount))
       }
-      if (wantBody && payload.bodyweight.bodyweight.length) {
-        const res = mergeImport(s, payload.bodyweight)
+      if (wantBody && hevyBody.bodyweight.length) {
+        const res = mergeImport(s, hevyBody)
         addedB = res.added
         parts.push(t('{0} weigh-ins imported', res.added))
       }
@@ -472,15 +475,13 @@ function HevyImportSheet({ close }) {
     </>
   }
 
-  const w = payload.workouts
-  const r = payload.routines
-  const b = payload.bodyweight
+  const { workouts: w, routines: r, bodyweight: b } = payload
   const haveW = w.workouts.filter(x => st.workouts.some(y => y.d === x.d)).length
   const freshW = w.workouts.length - haveW
   const haveB = b.bodyweight.filter(x => st.bodyweight.some(y => y.d === x.d)).length
   const freshB = b.bodyweight.length - haveB
-  // Routines are always added as new copies (same as plan import).
-  const freshR = r.routines.length
+  // Routines always arrive as a fresh week (same as plan import).
+  const freshR = r.routineCount
   const canImport = (wantWorkouts && freshW > 0) || (wantRoutines && freshR > 0) || (wantBody && freshB > 0)
   const unmatched = [...new Set([
     ...(wantWorkouts ? w.unmatchedNames : []),
@@ -496,7 +497,7 @@ function HevyImportSheet({ close }) {
 
     <div className="tiles" style={{ textAlign: 'left' }}>
       <div className="tile"><div className="l">{t('Workouts')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{w.workouts.length}</div></div>
-      <div className="tile"><div className="l">{t('Routines')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{r.routines.length}</div></div>
+      <div className="tile"><div className="l">{t('Routines')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{r.routineCount}</div></div>
       <div className="tile"><div className="l">{t('Exercises matched')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{w.matched + r.matched}</div></div>
       <div className="tile"><div className="l">{t('Added as your own')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{w.created + r.created}</div></div>
     </div>
@@ -508,10 +509,10 @@ function HevyImportSheet({ close }) {
       </div>
       <Switch checked={wantWorkouts} onChange={setWantWorkouts} />
     </div>}
-    {r.routines.length > 0 && <div className="row between" style={{ padding: '10px 2px', borderTop: '1px solid var(--sep)', gap: 12 }}>
+    {r.routineCount > 0 && <div className="row between" style={{ padding: '10px 2px', borderTop: '1px solid var(--sep)', gap: 12 }}>
       <div>
         <div className="tt" style={{ fontSize: 15 }}>{t('Import routines')}</div>
-        <div className="small dim">{t('{0} routines · {1} exercises — added as new plans', freshR, r.exerciseCount)}</div>
+        <div className="small dim">{t('{0} routines · {1} exercises — added as a new week', freshR, r.exerciseCount)}</div>
       </div>
       <Switch checked={wantRoutines} onChange={setWantRoutines} />
     </div>}
@@ -685,7 +686,6 @@ function ExerciseDetail({ ex, close }) {
     </div>
     {ex.desc && <div className="exnote">{ex.desc}</div>}
     {best > 0 && <div className="small row" style={{ marginBottom: 6, gap: 5 }}><Icon name="trophy" style={{ fontSize: 14, color: 'var(--yellow)' }} />{t('Best:')} <b className="accent" style={{ whiteSpace: 'nowrap' }}>{fmtNum(best)} {st.unit}</b>{last ? ` · ${t('last')} ${fmtDate(last.d)}: ${last.sets.map(s => setLabel(ex.id, s, last.target)).join(', ')}` : ''}</div>}
-    <Button variant="primary" icon="plus" style={{ margin: '10px 0 4px' }} onClick={() => addToRoutineSheet(ex)}>{t('Add to my plan')}</Button>
     {last && <Button icon="history" style={{ marginTop: 4 }} onClick={() => exerciseHistorySheet(ex.id)}>{t('History')}</Button>}
     {ex.custom && <div className="row" style={{ gap: 8, marginTop: 8 }}>
       <Button icon="pencil" style={{ flex: 1 }} onClick={() => { close(); customExSheet(ex) }}>{t('Edit')}</Button>
@@ -753,39 +753,6 @@ function ExerciseHistory({ exId }) {
   </>
 }
 export const exerciseHistorySheet = exId => ui().openSheet(close => <ExerciseHistory exId={exId} close={close} />)
-
-/* ============================ add to routine ============================ */
-function AddToRoutine({ ex, close }) {
-  const st = useStore(s => s.S)
-  const pick = rid => {
-    close()
-    const isNew = rid === '_new'
-    exConfigSheet(ex, null, cfg => {
-      update(s => {
-        let r = isNew ? { id: uid(), name: t('New routine'), emoji: DEFAULT_GLYPH, ex: [] } : s.routines.find(x => x.id === rid)
-        if (isNew) s.routines.push(r)
-        if (r) r.ex.push({ id: ex.id, ...cfg })
-      })
-      const r = isNew ? S().routines[S().routines.length - 1] : st.routines.find(x => x.id === rid)
-      toast(t('“{0}” added to {1}', capWords(exerciseNameFor(ex)), r ? r.name : t('routine')))
-      if (isNew && r) nav('/plan/r/' + r.id)
-    }, null, isNew ? null : st.routines.find(x => x.id === rid))
-  }
-  return <>
-    <h3 className="capitalize">{t('Add “{0}”', exerciseNameFor(ex))}</h3>
-    <div className="muted small" style={{ marginBottom: 12 }}>{t('Pick a routine — sets, reps & weight come next.')}</div>
-    <div className="list">
-      {st.routines.map(r => <div key={r.id} className="item" {...tappable(() => pick(r.id))}>
-        <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
-        <div className="grow"><div className="tt">{r.name}</div><div className="ss">{exCount(r.ex.length)}</div></div>
-        {r.ex.some(e => e.id === ex.id) && <span className="tag">{t('already in')}</span>}<Icon name="plus" className="chev" />
-      </div>)}
-      <div className="item" {...tappable(() => pick('_new'))}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="sparkles" /></span>
-        <div className="grow"><div className="tt">{t('New routine')}</div><div className="ss">{t('Create one and start with this exercise')}</div></div><Icon name="plus" className="chev" /></div>
-    </div>
-  </>
-}
-export const addToRoutineSheet = ex => ui().openSheet(close => <AddToRoutine ex={ex} close={close} />)
 
 /* ============================ custom exercises (issue #11) ============================ */
 // Name + body part is all it takes — the exercise then behaves like any built-in one
@@ -897,7 +864,11 @@ export function deleteCustomEx(ex, afterDelete) {
           if (!e.muscleSnapshot || !Object.keys(e.muscleSnapshot).length) e.muscleSnapshot = snapshot
         }))
         s.customEx = (s.customEx || []).filter(x => x.id !== ex.id)
-        s.routines.forEach(r => { r.ex = r.ex.filter(e => e.id !== ex.id); cleanupSg(r.ex) })
+        ;(s.weeks || []).forEach(w => (w.days || []).forEach(d => {
+          if (!d.ex) return
+          d.ex = d.ex.filter(e => e.id !== ex.id)
+          cleanupSg(d.ex)
+        }))
         delete s.exWeights[ex.id]
         s.favEx = (s.favEx || []).filter(id => id !== ex.id)
       })
@@ -908,10 +879,12 @@ export function deleteCustomEx(ex, afterDelete) {
 }
 
 /* ============================ exercise picker ============================ */
-// Exercises already used in your routines or past workouts (for the "Chosen" filter + a marker).
+/** Every exercise in the plan — the days of every dated week, flattened. */
+const plannedEx = st => (st.weeks || []).flatMap(w => (w.days || []).flatMap(d => d.ex || []))
+// Exercises already used in your plan or past workouts (for the "Chosen" filter + a marker).
 function usageMap(st) {
   const u = {}
-  st.routines.forEach(r => r.ex.forEach(e => { u[e.id] = (u[e.id] || 0) + 1 }))
+  plannedEx(st).forEach(e => { u[e.id] = (u[e.id] || 0) + 1 })
   st.workouts.forEach(w => w.entries.forEach(e => { u[e.id] = (u[e.id] || 0) + 1 }))
   return u
 }
@@ -1008,10 +981,13 @@ export const exercisePicker = onPick => ui().openSheet(close => <ExercisePicker 
 export function swapActiveWorkoutExercise(index) {
   const active = S().active
   if (!active?.entries?.[index]) return
+  // The slot's plan is the one the session was started from — the day behind it (null for a
+  // freestyle session). Every entry in a session shares that one day.
+  const day = active.weekId != null ? effectiveDay(S(), active.d) : null
 
   // The "+" on a picker row commits with the default config, exactly as it does in the add
   // flows; tapping the row still opens the config sheet first.
-  const picker = exercisePicker((ex, quick) => quick ? swapTo(ex, defaultConfig(ex.id)) : exConfigSheet(ex, null, cfg => swapTo(ex, cfg), null, null))
+  const picker = exercisePicker((ex, quick) => quick ? swapTo(ex, defaultConfig(ex.id)) : exConfigSheet(ex, null, cfg => swapTo(ex, cfg), null, day))
   function swapTo(ex, cfg) {
     // The picker is a chooser here, not a stack you keep adding from: one swap, then back to
     // the workout. (The add flow deliberately leaves it open.)
@@ -1020,22 +996,17 @@ export function swapActiveWorkoutExercise(index) {
     const st = S()
     const current = st.active?.entries?.[index]
     if (!current) return
-    // A swap is an in-place substitution — routine identity is unchanged, so the replacement
-    // keeps the slot's own `rid` and reads its prescription from that routine (not a
-    // session-wide one). A slot with no `rid` is freestyle.
-    const slotRoutine = current.rid ? st.routines.find(r => r.id === current.rid) : null
-    const freestyle = !slotRoutine
+    const freestyle = !day
     // Same rows the add flow builds: last time's loads and, in a planned session, the
     // prescription — swapping barbell for dumbbell bench must not start you at an empty bar.
     const step = modeOf(full) === 'reps' ? weightIncrement(full, st.unit) : defaultIncrement(ex.id, st.unit)
-    const plan = freestyle ? null : nextPrescription(st, full, slotRoutine)
+    const plan = freestyle ? null : nextPrescription(st, full, day)
     const built = buildSets(st, full, { step, ...(freestyle ? { preferLast: true } : {}), ...(plan?.kind === 'off' ? { useTarget: true } : {}) })
     const replacement = {
       id: ex.id,
       target: { ...cfg },
       plan,
       sets: applyIntensifierPlan(freestyle ? built : applyPrescription(built, plan, step), full),
-      ...(current.rid ? { rid: current.rid } : {}),
     }
 
     const apply = options => {
@@ -1516,24 +1487,31 @@ export const effortPickerSheet = (kind, value, onPick) =>
 export const planToolsSheet = () => ui().openSheet(close => <PlanTools close={close} />)
 
 /* ============================ the complex ============================ */
-// A complex is one card in the routine, and its sets and load belong to the whole thing: on the
-// sheet the coach writes "3+3 @ 30kg" once, not once per movement. The rows keep their own reps
-// (that is what makes a complex a complex), so this sheet only writes the two shared numbers.
-export const complexConfigSheet = (routineId, unitIndex) =>
-  ui().openSheet(close => <ComplexConfig routineId={routineId} unitIndex={unitIndex} close={close} />)
+// A complex is one card in a day, and its sets and load belong to the whole thing: the coach
+// writes "3+3 @ 30kg" once, not once per movement. The rows keep their own reps (that is what
+// makes a complex a complex), so this sheet only writes the two shared numbers.
+//
+// `target` says where the superset lives: a day of the dated weeks — what a session is built
+// from — addressed as { weekId, dayIndex }.
+export const complexConfigSheet = (target, unitIndex) =>
+  ui().openSheet(close => <ComplexConfig target={target} unitIndex={unitIndex} close={close} />)
 
-function ComplexConfig({ routineId, unitIndex, close }) {
+function ComplexConfig({ target, unitIndex, close }) {
   const st = useStore(s => s.S)
   const update = useStore(s => s.update)
-  const r = st.routines.find(x => x.id === routineId)
-  const unit = r ? (supersetUnits(r.ex)[unitIndex] || []) : []
-  const first = unit.length ? r.ex[unit[0]] : null
+  // The exercise list the superset lives in, read fresh on every render so the steppers and the
+  // rows behind the sheet agree; the same lookup repeats inside the writer because the store
+  // replaces the state tree on every update.
+  const locate = s => (s.weeks || []).find(w => w.id === target?.weekId)?.days?.[target?.dayIndex]?.ex
+  const ex = locate(st)
+  const unit = ex ? (supersetUnits(ex)[unitIndex] || []) : []
+  const first = unit.length ? ex[unit[0]] : null
   if (!first) return <><h3>{t('Complex')}</h3><Button variant="primary" onClick={close}>{t('Done')}</Button></>
-  // Read from the store on every render, so the steppers and the rows behind the sheet agree.
   const apply = patch => update(s => {
-    const routine = s.routines.find(x => x.id === routineId)
-    const members = supersetUnits(routine.ex)[unitIndex] || []
-    members.forEach(i => { routine.ex[i] = { ...routine.ex[i], ...patch } })
+    const list = locate(s)
+    if (!list) return
+    const members = supersetUnits(list)[unitIndex] || []
+    members.forEach(i => { list[i] = { ...list[i], ...patch } })
   })
   return <>
     <h3>{t('Complex')}</h3>
@@ -1602,7 +1580,7 @@ function PlanTools({ close }) {
   const user = useStore(s => s.user)
   const fileRef = useRef(null)
   const coachRef = useRef(null)
-  const hasRoutines = (st.routines || []).some(r => r.ex && r.ex.length)
+  const hasRoutines = (st.weeks || []).some(w => (w.days || []).some(d => d.ex && d.ex.length))
 
   const exportFile = async () => {
     const bundle = buildPlanBundle(st, user?.name ? t('{0}’s plan', user.name) : '')
@@ -1653,110 +1631,32 @@ function PlanTools({ close }) {
 export const planImportSheet = bundle => ui().openSheet(close => <PlanImport bundle={bundle} close={close} />)
 
 function PlanImport({ bundle, close }) {
-  const [schedule, setSchedule] = useState(false)
   const apply = () => {
-    update(s => mergePlan(s, bundle, { schedule }))
+    update(s => mergePlan(s, bundle))
     close()
-    toast(t(bundle.routineCount === 1 ? 'Added {0} routine to your plan' : 'Added {0} routines to your plan', bundle.routineCount))
+    toast(t(bundle.weekCount === 1 ? 'Added {0} week to your plan' : 'Added {0} weeks to your plan', bundle.weekCount))
     nav('/plan')
   }
   return <>
     <h3>{bundle.name ? t('Import “{0}”', bundle.name) : t('Import this plan')}</h3>
     <div className="muted small" style={{ marginBottom: 14 }}>
-      {routineCount(bundle.routineCount)}
+      {t(bundle.weekCount === 1 ? '{0} week' : '{0} weeks', bundle.weekCount)}
       {' · ' + exCount(bundle.exerciseCount)}
-      {bundle.scheduledDays > 0
-        ? ' · ' + t(bundle.scheduledDays === 1 ? 'scheduled on {0} day' : 'scheduled on {0} days', bundle.scheduledDays)
+      {bundle.dayCount > 0
+        ? ' · ' + t(bundle.dayCount === 1 ? '{0} day' : '{0} days', bundle.dayCount)
         : ''}
     </div>
-    <div className="dim small" style={{ marginBottom: 14, lineHeight: 1.4 }}>{t('These are added as new routines — nothing you already have is changed.')}</div>
+    <div className="dim small" style={{ marginBottom: 14, lineHeight: 1.4 }}>{t('These are added as new weeks — nothing you already have is changed.')}</div>
     {bundle.dropped > 0 && <div className="small" style={{ color: 'var(--yellow)', marginBottom: 14, lineHeight: 1.4 }}>
       {t(bundle.dropped === 1
         ? '{0} exercise in the file isn’t in your library and was left out.'
         : '{0} exercises in the file aren’t in your library and were left out.', bundle.dropped)}
-    </div>}
-    {bundle.scheduledDays > 0 && <div className="row between" style={{ padding: '10px 2px', borderTop: '1px solid var(--sep)', borderBottom: '1px solid var(--sep)', marginBottom: 16, gap: 12 }}>
-      <div><div className="tt" style={{ fontSize: 15 }}>{t('Use this weekly schedule')}</div><div className="small dim">{t('Replaces your current Mon–Sun assignments.')}</div></div>
-      <Switch checked={schedule} onChange={setSchedule} />
     </div>}
     <Button variant="primary" onClick={apply}>{t('Add to my plan')}</Button>
     <div style={{ height: 8 }} />
     <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
   </>
 }
-
-/* ============================ day override / assign ============================ */
-function DayOverride({ iso, close }) {
-  const st = useStore(s => s.S)
-  const wd = new Date(iso + 'T12:00:00').getDay()
-  const weeklyNames = [].concat(st.week[wd] || []).map(id => st.routines.find(r => r.id === id)?.name).filter(Boolean)
-  const hasOvr = st.dayPlan[iso] !== undefined
-  // A weekday can hold several routines; the per-date override stays single-pick, so picking
-  // one here collapses a combined day to it (docs/COMBINE_ROUTINES.md §8). The check marks
-  // show everything currently planned for the day.
-  const effIds = effectiveRoutineIds(st, iso)
-  const set = v => {
-    update(s => { if (!v) delete s.dayPlan[iso]; else s.dayPlan[iso] = v })
-    close()
-    toast(v === '' ? t('Back to weekly plan') : v === 'rest' ? t('{0} set to rest', fmtDate(iso)) : t('{0} planned for {1}', (st.routines.find(r => r.id === v) || {}).name, fmtDate(iso)))
-  }
-  return <>
-    <h3>{fmtDate(iso, true)}</h3>
-    <div className="muted small" style={{ marginBottom: 12 }}>{t('Weekly plan:')} {weeklyNames.length ? deriveSessionName(weeklyNames) : t('Rest')}{hasOvr && <span style={{ color: 'var(--orange)' }}> · {t('changed for this day')}</span>}<br />{t('Sick, missed a day or want a different session? Pick what to train instead.')}</div>
-    <div className="list">
-      {st.routines.map(r => <div key={r.id} className="item" {...tappable(() => set(r.id))}>
-        <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
-        <div className="grow"><div className="tt">{r.name}</div><div className="ss">{exCount(r.ex.length)}</div></div>
-        {effIds.includes(r.id) && <Icon name="check" className="accent" />}</div>)}
-      <div className="item" {...tappable(() => set('rest'))}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="moon" /></span><div className="grow"><div className="tt">{t('Rest / skip this day')}</div></div>{effIds.length === 0 && <Icon name="check" className="accent" />}</div>
-      {hasOvr && <div className="item" {...tappable(() => set(''))}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="reset" /></span><div className="grow"><div className="tt">{t('Back to weekly plan')}</div></div></div>}
-    </div>
-  </>
-}
-export const dayOverrideSheet = iso => ui().openSheet(close => <DayOverride iso={iso} close={close} />)
-
-function DayAssign({ day, close }) {
-  const st = useStore(s => s.S)
-  // A weekday holds a routine-id list; this single-pick sheet sets an empty day to exactly one
-  // routine (or rest). The inline ＋ Add routine on the Plan screen is what appends to a
-  // populated day.
-  const cur = [].concat(st.week[day] || [])
-  const set = v => { update(s => { if (v) s.week[day] = [v]; else delete s.week[day] }); close() }
-  return <>
-    <h3>{t(DAYN[day])}</h3>
-    <div className="list">
-      <div className="item" {...tappable(() => set(''))}><span className="lrow-i" style={{ background: 'var(--surface-3)' }}><Icon name="moon" /></span><div className="grow"><div className="tt">{t('Rest day')}</div></div>{!cur.length && <Icon name="check" className="accent" />}</div>
-      {st.routines.map(r => <div key={r.id} className="item" {...tappable(() => set(r.id))}>
-        <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
-        <div className="grow"><div className="tt">{r.name}</div><div className="ss">{exCount(r.ex.length)}</div></div>
-        {cur.includes(r.id) && <Icon name="check" className="accent" />}</div>)}
-    </div>
-  </>
-}
-export const dayAssignSheet = day => ui().openSheet(close => <DayAssign day={day} close={close} />)
-
-// ＋ Add routine on a populated weekday: single-pick, appends to the day's list. A routine
-// already on that day is disabled; picking one closes the sheet.
-function DayAddRoutine({ day, close }) {
-  const st = useStore(s => s.S)
-  const on = new Set([].concat(st.week[day] || []))
-  const add = id => { update(s => { s.week[day] = [...[].concat(s.week[day] || []), id] }); close() }
-  return <>
-    <h3>{t('Add routine')}</h3>
-    <div className="list">
-      {st.routines.map(r => {
-        const already = on.has(r.id)
-        return <div key={r.id} className={'item' + (already ? ' disabled' : '')} aria-disabled={already || undefined}
-          {...tappable(already ? null : () => add(r.id))}>
-          <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
-          <div className="grow"><div className="tt">{r.name}</div><div className="ss">{exCount(r.ex.length)}</div></div>
-          {already ? <span className="tag">{t('already added')}</span> : <Icon name="chevronRight" className="chev" />}
-        </div>
-      })}
-    </div>
-  </>
-}
-export const dayAddRoutineSheet = day => ui().openSheet(close => <DayAddRoutine day={day} close={close} />)
 
 /* ============================ workout detail ============================ */
 function WorkoutDetail({ w, close }) {
@@ -1789,8 +1689,10 @@ function WorkoutDetail({ w, close }) {
       if (text) rec.note = text; else delete rec.note
     })
   }, [])
-  // A combined session's entries carry a `rid`; group them into per-routine sections in merge
-  // order. A legacy single-routine workout (one routineIds, or no rid anywhere) renders flat.
+  // A legacy workout listed several routines and stamped each entry's `rid`, so it reads back as
+  // per-routine sections. A workout logged since the dated-weeks model carries `weekId`/`dow` and
+  // its entries have no `rid` at all, so it falls through to the flat list below — one day is one
+  // session and there is nothing left to group by.
   const entryRow = (e, i) => {
     const ex = EXIDX[e.id]
     return <div key={i} className="row" style={{ marginBottom: 12, alignItems: 'flex-start' }}>
@@ -1804,6 +1706,7 @@ function WorkoutDetail({ w, close }) {
   }
   const groups = []
   w.entries.forEach((e, i) => {
+    // Legacy shape only — see above.
     const key = e.rid || '__none'
     let g = groups.find(x => x.key === key)
     if (!g) { g = { key, rid: e.rid || null, items: [] }; groups.push(g) }
@@ -1814,13 +1717,14 @@ function WorkoutDetail({ w, close }) {
     <h3>{w.name}</h3>
     <div className="muted small" style={{ marginBottom: 12 }}>{[fmtDate(w.d, true), ...durPart(w.end - w.start), fmtVol(w.vol, st.unit), ...(w.bw ? [fmtNum(w.bw) + ' ' + st.unit] : [])].join(' · ')}</div>
     {grouped ? groups.map(g => {
-      const r = g.rid ? st.routines.find(x => x.id === g.rid) : null
+      // A group's routine is long gone from the profile (the legacy routine model is), so the
+      // section shows the session's own stored name and the default glyph.
       const setN = g.items.reduce((n, [e]) => n + e.sets.filter(s => s.done && !isWarmupRow(s)).length, 0)
       const vol = workoutVolume({ entries: g.items.map(([e]) => e) })
       return <div key={g.key}>
         <div className="row between" style={{ margin: '2px 0 8px', paddingBottom: 6, borderBottom: '1px solid var(--sep)' }}>
           <div className="row" style={{ gap: 7, fontWeight: 600 }}>
-            {r && <Icon name={glyphOf(r.emoji)} />}{r ? r.name : t('Freestyle')}
+            <Icon name={DEFAULT_GLYPH} />{g.rid ? w.name : t('Freestyle')}
           </div>
           <div className="small dim">{t('{0} sets', setN)} · {fmtVol(vol, st.unit)}</div>
         </div>
@@ -1855,12 +1759,14 @@ function Calendar({ start, close }) {
   for (let i = 0; i < startOffset; i++) cells.push(<div key={'e' + i} />)
   for (let d = 1; d <= daysIn; d++) {
     const iso = y + '-' + String(mo + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0')
-    const ws = byDay[iso], planned = effectiveRoutineIds(st, iso).length > 0, ovr = st.dayPlan[iso] !== undefined
-    const dotCls = ws ? 'done' : ovr && planned ? 'ovr' : planned ? 'plan' : ''
-    cells.push(<button key={d} className={'cal-d' + (ws ? ' has' : '') + (iso === todayISO() ? ' today' : '')} onClick={() => {
-      if (!ws) { close(); dayOverrideSheet(iso); return }
-      if (ws.length === 1) { close(); workoutDetailSheet(ws[0]); return }
-      close(); ui().openSheet(c2 => <><h3>{fmtDate(iso, true)}</h3><div className="list">{ws.map(w => <WorkoutRow key={w.id} w={w} onClick={() => { c2(); workoutDetailSheet(w) }} />)}</div></>)
+    const dayws = byDay[iso], planned = effectiveDay(st, iso) != null
+    const dotCls = dayws ? 'done' : planned ? 'plan' : ''
+    cells.push(<button key={d} className={'cal-d' + (dayws ? ' has' : '') + (iso === todayISO() ? ' today' : '')} onClick={() => {
+      // A day with nothing trained is where a session would be planned — the plan is the dated
+      // weeks now, so that is where an unplanned day sends you.
+      if (!dayws) { close(); nav('/plan'); return }
+      if (dayws.length === 1) { close(); workoutDetailSheet(dayws[0]); return }
+      close(); ui().openSheet(c2 => <><h3>{fmtDate(iso, true)}</h3><div className="list">{dayws.map(w => <WorkoutRow key={w.id} w={w} onClick={() => { c2(); workoutDetailSheet(w) }} />)}</div></>)
     }}><span>{d}</span><i className={dotCls} /></button>)
   }
   return <>
@@ -1874,7 +1780,6 @@ function Calendar({ start, close }) {
     <div className="cal-legend">
       <span><i style={{ background: 'var(--acc)' }} />{t('Trained')}</span>
       <span><i style={{ background: 'var(--label-3)' }} />{t('Planned')}</span>
-      <span><i style={{ background: 'var(--orange)' }} />{t('Rescheduled')}</span>
     </div>
     <div className="small dim" style={{ textAlign: 'center', marginTop: 10 }}>{t('Tap a trained day for details · tap any other day to plan a session')}</div>
   </>
@@ -1884,7 +1789,9 @@ export const calendarSheet = start => ui().openSheet(close => <Calendar start={s
 /* shared small workout row (used in lists) */
 export function WorkoutRow({ w, onClick }) {
   const st = useStore(s => s.S)
-  const glyph = glyphOf((st.routines.find(r => r.id === w.routineId) || {}).emoji)
+  // A workout filed under a legacy routine has no name to look up any more — it shows its own
+  // stored name and the default glyph, like a session logged since the dated weeks.
+  const glyph = DEFAULT_GLYPH
   return <div className="item" {...tappable(onClick)}>
     <span className="lrow-i" style={{ width: 34, height: 34, borderRadius: 8, fontSize: 19 }}><Icon name={glyph} /></span>
     <div className="grow"><div className="tt">{w.name}</div>
@@ -1895,25 +1802,26 @@ export function WorkoutRow({ w, onClick }) {
 }
 
 /* ============================ workout lifecycle ============================ */
-// `routineIds` accepts `string | string[] | null` — `[r.id]` for one routine,
-// `effectiveRoutineIds(...)` for today's planned session, `[]` / null for explicit freestyle.
-export function startFlow(routineIds) {
+// `day` is a day object from the dated weeks (S.weeks[].days), or null for an explicit freestyle
+// session. A day holds the whole session, so there is nothing to merge and no per-entry routine.
+export function startFlow(day) {
   // The weigh-in is a setting (Settings → During a workout, issue #137): off goes straight
   // into the session with no body weight on it, same as "Start without weighing in".
-  if (S().weighIn === false) { beginWorkout(routineIds, null); return }
-  bwSheet({ required: true, onDone: bw => beginWorkout(routineIds, bw) })
+  if (S().weighIn === false) { beginWorkout(day, null); return }
+  bwSheet({ required: true, onDone: bw => beginWorkout(day, bw) })
 }
-export function beginWorkout(routineIds, bw) {
+export function beginWorkout(day, bw) {
   const st = S()
-  const { entries, routineIds: rids, routines } = buildCombinedEntries(st, routineIds)
+  const { entries, name } = buildDayEntries(st, day)
   update(s => {
     s.active = {
       id: uid(), d: todayISO(), start: Date.now(),
-      // A session tracks its routines as a list; per-entry `rid` carries which one each
-      // exercise came from. No top-level `excludeFromProgression` — per-entry `noProg` does it.
-      routineIds: rids,
-      name: routines.length ? deriveSessionName(routines.map(r => r.name)) : t('Freestyle'),
-      bw: bw || null, cur: 0, entries,
+      // Where the session came from: the dated week and weekday, both null for freestyle. The
+      // day's exercises are copied into `entries`; nothing here needs a per-entry routine id,
+      // and no top-level `excludeFromProgression` — per-entry `noProg` does it.
+      weekId: day ? (weekFor(st, todayISO())?.id ?? null) : null,
+      dow: day?.dow ?? null,
+      name, bw: bw || null, cur: 0, entries,
       // Snapshot the layout at start so the header ⋮ can change it for this session only —
       // changing the saved default (Settings → Workout view) mid-session leaves it alone.
       workoutView: st.workoutView || 'cards',
@@ -1933,13 +1841,14 @@ function LogPastWorkout({ close }) {
   const [date, setDate] = useState(isoOf(yesterday))
   const [time, setTime] = useState('18:00')
   const [dur, setDur] = useState(60)
-  const [routineId, setRoutineId] = useState('')
   const today = todayISO()
-  const options = [{ value: '', label: t('Freestyle') }, ...st.routines.map(r => ({ value: r.id, label: r.name }))]
+  // Whatever the dated plan has on that date, or an empty session to fill in by hand — there is
+  // no routine to pick any more, so the date alone decides what the screen opens with.
+  const planned = effectiveDay(st, date)
 
   const go = replaceId => {
     close()
-    beginBackfill({ iso: date, time, durationMin: dur, routineId: routineId || null, replaceId })
+    beginBackfill({ iso: date, time, durationMin: dur, replaceId })
   }
   const submit = () => {
     if (!date || date > today) { toast(t('Pick a day up to today')); return }
@@ -1958,7 +1867,7 @@ function LogPastWorkout({ close }) {
       <input type="time" className="timef" value={time} onChange={e => setTime(e.target.value)} /></Row>
     <Stepper label={t('Duration')} unit="min" value={dur} step={5} decimal={false} onChange={v => setDur(Math.max(1, Math.round(v)))} />
     <div style={{ height: 8 }} />
-    <SelectRow icon="dumbbell" title={t('Routine')} value={routineId} options={options} onChange={setRoutineId} />
+    <Row icon="dumbbell" title={t('Plan')} value={planned ? planned.name : t('Freestyle')} />
     <div style={{ height: 18 }} />
     <Button variant="primary" onClick={submit}>{t('Continue')}</Button>
   </>
@@ -1981,17 +1890,18 @@ export function logPastWorkoutSheet() {
   if (S().active) { toast(t('Finish the current workout first.')); return }
   ui().openSheet(close => <LogPastWorkout close={close} />)
 }
-// Backfill stays single-routine (the LogPastWorkout UI is one picker), but it emits the new
-// shape: a one-element (or empty) routine list, per-entry rid, no top-level routineId.
-function beginBackfill({ iso, time, durationMin, routineId, replaceId }) {
+// A backfilled session is the day that date is planned to have, exactly like a live start: the
+// same builder walks up to the same entries. A date with no day planned opens empty.
+function beginBackfill({ iso, time, durationMin, replaceId }) {
   const st = S()
-  const { entries, routineIds: rids, routines } = buildCombinedEntries(st, routineId ? [routineId] : [])
+  const day = effectiveDay(st, iso)
+  const { entries, name } = buildDayEntries(st, day)
   update(s => {
     s.active = {
       id: uid(), d: iso, start: backfillStart(iso, time),
-      routineIds: rids,
-      name: routines.length ? deriveSessionName(routines.map(r => r.name)) : t('Freestyle'),
-      bw: null, cur: 0, entries,
+      weekId: day ? (weekFor(st, iso)?.id ?? null) : null,
+      dow: day?.dow ?? null,
+      name, bw: null, cur: 0, entries,
       backfill: { durationMin, replaceId: replaceId || null },
       // Same layout snapshot as a live session (see beginWorkout).
       workoutView: st.workoutView || 'cards',
@@ -1999,51 +1909,6 @@ function beginBackfill({ iso, time, durationMin, routineId, replaceId }) {
   })
   useUI.getState().stopRest()
   nav('/workout')
-}
-
-/* ============================ add a routine mid-session ============================ */
-// The workout header ⋮ → Add routine. Single-pick: a routine already in the session, or one
-// with no exercises, is shown disabled and tagged. Picking one appends its entries (each
-// stamped with its `rid`), extends `s.active.routineIds`, and re-derives the session name.
-// `s.active.cur` is left where it is — the appended block is reached by scrolling / Next.
-function AddRoutineToSession({ close }) {
-  const st = useStore(s => s.S)
-  const active = st.active
-  if (!active) return null
-  const inSession = new Set([].concat(active.routineIds || []))
-  const add = r => {
-    const entries = buildSessionEntries(st, r).map(e => ({ ...e, rid: r.id }))
-    update(s => {
-      if (!s.active) return
-      s.active.entries.push(...entries)
-      s.active.routineIds = [...[].concat(s.active.routineIds || []), r.id]
-      if (!s.active.customName) {
-        s.active.name = deriveSessionName(s.active.routineIds.map(id => s.routines.find(x => x.id === id)?.name).filter(Boolean))
-      }
-    })
-    close()
-    toast(t('{0} added — {1}', r.name, exCount(r.ex.length)))
-  }
-  return <>
-    <h3>{t('Add routine')}</h3>
-    <div className="list">
-      {st.routines.map(r => {
-        const already = inSession.has(r.id)
-        const empty = !(r.ex || []).length
-        const disabled = already || empty
-        return <div key={r.id} className={'item' + (disabled ? ' disabled' : '')} aria-disabled={disabled || undefined}
-          {...tappable(disabled ? null : () => add(r))}>
-          <span className="lrow-i"><Icon name={glyphOf(r.emoji)} /></span>
-          <div className="grow"><div className="tt">{r.name}</div><div className="ss">{exCount(r.ex.length)}</div></div>
-          {already ? <span className="tag">{t('already added')}</span> : empty ? <span className="tag">{t('no exercises')}</span> : <Icon name="chevronRight" className="chev" />}
-        </div>
-      })}
-    </div>
-  </>
-}
-export function addRoutineToSessionSheet() {
-  if (!S().active) return
-  ui().openSheet(close => <AddRoutineToSession close={close} />)
 }
 
 function TopWeight({ entryIdx, close }) {

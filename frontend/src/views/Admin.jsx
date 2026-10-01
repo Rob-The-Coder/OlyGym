@@ -9,7 +9,6 @@ import { workoutVolume, setsDone } from '../lib/history.js'
 import { confirmSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Button } from '../components/ui.jsx'
-import AdminCoach from './AdminCoach.jsx'
 import '../admin.css'
 
 // Admin-only operator dashboard (owner passkey + admin flag; guarded again server-side).
@@ -29,6 +28,11 @@ const rel = ts => {
   return Math.floor(s / 86400) + ' d ago'
 }
 const dur = ms => { const m = Math.max(0, Math.floor(ms / 60000)); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min' }
+
+// How much plan this account has, in weeks. The drill-down endpoint is the one reader still on
+// the repeating model — it ships the routine list the dated weeks replaced — so a profile from
+// before the model is counted from that until the endpoint carries `weeks` too.
+const planWeeks = d => (d.weeks || []).length || (d['routines'] || []).length
 
 function UserDetail({ id, onChanged, close }) {
   const [d, setD] = useState(null)
@@ -72,7 +76,7 @@ function UserDetail({ id, onChanged, close }) {
     <div className="tiles" style={{ textAlign: 'left' }}>
       <div className="tile"><div className="l">Workouts</div><div className="v" style={{ fontSize: '1.1rem' }}>{workouts.length}</div></div>
       <div className="tile"><div className="l">Weigh-ins</div><div className="v" style={{ fontSize: '1.1rem' }}>{d.bodyweight.length}</div></div>
-      <div className="tile"><div className="l">Routines</div><div className="v" style={{ fontSize: '1.1rem' }}>{d.routines.length}</div></div>
+      <div className="tile"><div className="l">Weeks</div><div className="v" style={{ fontSize: '1.1rem' }}>{planWeeks(d)}</div></div>
       <div className="tile"><div className="l">Last sync</div><div className="v" style={{ fontSize: '.95rem' }}>{rel(d.lastSync)}</div></div>
     </div>
     {!u.admin && <>
@@ -87,7 +91,7 @@ function UserDetail({ id, onChanged, close }) {
       <button className="btn danger" style={{ margin: '14px 0 4px' }}
         onClick={() => confirmSheet({
           title: 'Delete ' + u.name + '?',
-          message: 'Everything goes: their workouts, weigh-ins, routines, passkeys and notifications. This cannot be undone, and the invite code they joined with stays used. Download their data first if they might want it.',
+          message: 'Everything goes: their workouts, weigh-ins, plan, passkeys and notifications. This cannot be undone, and the invite code they joined with stays used. Download their data first if they might want it.',
           confirmText: 'Continue',
           danger: true,
           onConfirm: () => confirmSheet({
@@ -261,10 +265,6 @@ export default function Admin() {
         <span className="adm-pill acc">{dur(Date.now() - u.live.startedAt)}</span>
       </div>)}
     </div>}
-
-    {/* The Coach setup. Renders nothing at all unless the instance offers the Coach, so an admin
-        page on a box that never enabled it is byte-for-byte the page it was before. */}
-    <AdminCoach />
 
     <InvitesCard invites={invites} reload={loadInvites} inviteOnly={inviteOnly} />
 

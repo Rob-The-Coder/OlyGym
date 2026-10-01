@@ -1,24 +1,25 @@
-// Share a weekly plan.
+// Share a plan.
 //
 // Two jobs:
-//  1. A small, self-contained file a friend can import into THEIR OlyGym — just the
-//     routines + the week schedule + the custom exercises those routines use. It never
-//     carries workouts, weigh-ins or settings, and importing MERGES (adds routines with
-//     fresh ids) so nothing the friend already has is touched.
-//  2. A clean, printable page (Save as PDF) where a single exercise never splits across
-//     a page break — each exercise, and each routine that fits, stays in one place.
+//  1. A small, self-contained file a friend can import into THEIR OlyGym — the dated weeks, the
+//     exercises they prescribe and the custom exercises those weeks use. It never carries
+//     workouts, weigh-ins or settings, and importing MERGES (adds weeks with fresh ids) so
+//     nothing the friend already has is touched.
+//  2. A clean, printable page (Save as PDF) where a single exercise never splits across a page
+//     break — each exercise, and each day that fits, stays in one place.
+//
+// The container is `weeks` (the dated-weeks model, see lib/weeks.js). Format 2 is that shape;
+// format 1 — `routines` + `week` — is still read, and its schedule becomes one week.
 
 import { EXIDX, isBodyweightEq } from './exercises.js'
 import { modeOf, fmtSec, isBw, isPerSide, sideReps, MAX_PLANNED_WARMUPS } from './history.js'
-import { deriveSessionName } from './session-merge.js'
-import { uid, todayISO, DAYN, weekOrder, weekStartOf, fmtNum, exCount } from './format.js'
+import { uid, todayISO, isoOf, startOfWeek, fmtDate, DAYN, MONDAY, fmtNum, exCount } from './format.js'
+import { weekDayForPosition } from './migrate-weeks.js'
 import { t, exerciseNameFor } from './i18n-core.js'
 import { convertWeight } from './units.js'
 import { MUSCLES, inMuscleOrder } from './muscles.js'
 
-const PLAN_FMT = 1
-const WEEK_DAYS = [1, 2, 3, 4, 5, 6, 0]   // every getDay() index; only the reader's own
-                                          // screen puts them in an order (see weekOrder)
+const PLAN_FMT = 2
 const PLAN_UNITS = new Set(['kg', 'lb'])
 
 // A plan's numbers are in the unit that wrote it. Missing unit is deliberately legacy-compatible:
@@ -37,7 +38,13 @@ function declaredPlanUnit(data) {
   return declared
 }
 
-function convertedExercise(e, sourceUnit, destinationUnit) {
+/** The first day of the week a plan written without a date should land in: this one. */
+const currentMonday = () => isoOf(startOfWeek(todayISO(), MONDAY))
+const isIsoDay = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)
+const isDow = v => Number.isInteger(v) && v >= 0 && v <= 6
+
+/** A load written in `sourceUnit` as the same prescription in `destinationUnit`. */
+export function convertedExercise(e, sourceUnit, destinationUnit) {
   if (!sourceUnit || sourceUnit === destinationUnit) return e
   const out = { ...e }
   if (out.weight != null) out.weight = convertWeight(out.weight, sourceUnit, destinationUnit)
@@ -46,15 +53,19 @@ function convertedExercise(e, sourceUnit, destinationUnit) {
   return out
 }
 
+/** The whole bundle's prescriptions, moved from its own unit into the destination's. */
 function convertedBundle(bundle, destinationUnit) {
   const sourceUnit = declaredPlanUnit(bundle)
   if (!sourceUnit || sourceUnit === destinationUnit) return bundle
   return {
     ...bundle,
     unit: destinationUnit,
-    routines: (bundle.routines || []).map(r => ({
-      ...r,
-      ex: (r.ex || []).map(e => convertedExercise(e, sourceUnit, destinationUnit))
+    weeks: (bundle.weeks || []).map(w => ({
+      ...w,
+      days: (w.days || []).map(d => ({
+        ...d,
+        ex: (d.ex || []).map(e => convertedExercise(e, sourceUnit, destinationUnit))
+      }))
     }))
   }
 }
@@ -160,27 +171,90 @@ function cleanCustom(c) {
   return o
 }
 
-/** Build the shareable bundle: every routine, the week schedule, referenced customs. */
+/** Every exercise id a set of weeks prescribes. */
+const weekExIds = weeks =>
+  new Set(weeks.flatMap(w => (w.days || []).flatMap(d => (d.ex || []).map(e => e.id))))
+
+/** Build the shareable bundle: every dated week, and the customs those weeks reference. */
 export function buildPlanBundle(S, name) {
   const unit = planUnit(S.unit == null ? 'kg' : S.unit)
   if (!unit) unitError()
-  const routines = (S.routines || []).map(r => ({
-    id: r.id, name: r.name, emoji: r.emoji,
-    ...(r.prog ? { prog: r.prog } : {}),
-    ...(r.excludeFromProgression === true ? { excludeFromProgression: true } : {}),
-    ex: (r.ex || []).map(cleanEx)
+  const weeks = (S.weeks || []).map(w => ({
+    id: w.id,
+    startIso: w.startIso,
+    name: w.name || '',
+    days: (w.days || []).map(d => ({
+      dow: d.dow,
+      name: d.name || '',
+      ...(d.excludeFromProgression === true ? { excludeFromProgression: true } : {}),
+      ex: (d.ex || []).map(cleanEx)
+    }))
   }))
-  const usedIds = new Set(routines.flatMap(r => r.ex.map(e => e.id)))
+  const usedIds = weekExIds(weeks)
   const customEx = (S.customEx || [])
     .filter(c => usedIds.has(c.id))
     .map(cleanCustom)
-  // A weekday can hold several routines (merge order preserved). `[].concat` normalises a
-  // legacy scalar id to a one-element list, so a bundle written before this change and one
-  // written after are read the same way at the other end.
-  const week = {}
-  WEEK_DAYS.forEach(d => { if (S.week?.[d]?.length) week[d] = [].concat(S.week[d]) })
-  return { opengym_plan: PLAN_FMT, exported: todayISO(), name: name || '', unit, week, routines, customEx }
+  return { opengym_plan: PLAN_FMT, exported: todayISO(), name: name || '', unit, weeks, customEx }
 }
+
+/* ----------------------------- reading a file ----------------------------- */
+
+/** The raw weeks of a format-2 file, as written — the same pass below validates them. */
+const v2Weeks = data => (Array.isArray(data.weeks) ? data.weeks : [])
+  .filter(w => w && typeof w === 'object')
+  .map(w => ({
+    id: typeof w.id === 'string' ? w.id : null,
+    startIso: isIsoDay(w.startIso) ? w.startIso : currentMonday(),
+    name: typeof w.name === 'string' ? w.name : '',
+    days: (Array.isArray(w.days) ? w.days : []).filter(d => d && typeof d === 'object').map(d => ({
+      dow: isDow(d.dow) ? d.dow : weekDayForPosition(0),
+      name: typeof d.name === 'string' ? d.name : '',
+      ...(d.excludeFromProgression === true ? { excludeFromProgression: true } : {}),
+      ex: Array.isArray(d.ex) ? d.ex : []
+    }))
+  }))
+
+/**
+ * A format-1 file's `routines` + `week` as one dated week — exported because the Coach's proposal
+ * bundle is written in that same shape and lands in the plan the same way.
+ *
+ * The scheduled routines become days on their weekday; a routine the schedule leaves out is
+ * appended on the remaining Mon/Wed/Fri-first order rather than dropped — a file that carried a
+ * routine is a file that meant to hand it over. Each day is the whole session, so several
+ * routines on one weekday become several days with the same dow (dayFor takes the first).
+ */
+export function weeksFromRoutines(data) {
+  const routines = (data.routines || []).filter(r => r && Array.isArray(r.ex))
+  const week = data.week || {}
+  const byId = new Map(routines.map(r => [r.id, r]))
+  const scheduled = new Set()
+  const days = []
+  for (const key of Object.keys(week)) {
+    const dow = Number(key)
+    if (!isDow(dow)) continue
+    for (const id of [].concat(week[key] || [])) {
+      const r = byId.get(id)
+      if (!r) continue
+      scheduled.add(id)
+      days.push(dayOfRoutine(r, dow))
+    }
+  }
+  const rest = routines.filter(r => !scheduled.has(r.id))
+  rest.forEach(r => days.push(dayOfRoutine(r, weekDayForPosition(days.length))))
+  return [{
+    id: uid(),
+    startIso: currentMonday(),
+    name: typeof data.name === 'string' ? data.name.trim() : '',
+    days
+  }]
+}
+
+const dayOfRoutine = (r, dow) => ({
+  dow,
+  name: typeof r.name === 'string' ? r.name : '',
+  ...(r.excludeFromProgression === true ? { excludeFromProgression: true } : {}),
+  ex: r.ex
+})
 
 /**
  * Validate + normalise an imported file. Throws with a friendly message if it isn't one.
@@ -188,45 +262,52 @@ export function buildPlanBundle(S, name) {
  * Every exercise id has to resolve — either to the built-in library or to a custom
  * exercise carried in the same file. An id that resolves to neither (a hand-edited file,
  * an export from a build with a different exercise dataset) is dropped here: kept, it
- * would sit invisibly in the routine and only surface as a blank screen when the routine
- * is trained.
+ * would sit invisibly in the day and only surface as a blank screen when it is trained.
+ *
+ * Format 1 (`routines` + `week`) is still accepted: its schedule becomes one week starting
+ * this Monday, so an old file lands as a plan like any other.
  */
 export function parsePlan(raw, destinationUnit = 'kg') {
   const data = typeof raw === 'string' ? JSON.parse(raw) : raw
   const destination = planUnit(destinationUnit)
-  if (!data || typeof data !== 'object' || Array.isArray(data) || !data.opengym_plan || !Array.isArray(data.routines) || !destination) {
+  const isV2 = Array.isArray(data?.weeks)
+  const isV1 = Array.isArray(data?.routines)
+  if (!data || typeof data !== 'object' || Array.isArray(data) || !data.opengym_plan || (!isV2 && !isV1) || !destination) {
     throw new Error(t('this isn’t an OlyGym plan file'))
   }
   const sourceUnit = declaredPlanUnit(data)
   const customEx = (Array.isArray(data.customEx) ? data.customEx : []).filter(c => c && c.id)
   const known = new Set(customEx.map(c => c.id))
   let dropped = 0
-  const routines = data.routines.filter(r => r && Array.isArray(r.ex)).map(r => ({
-    ...r,
-    ex: r.ex.filter(e => {
-      const ok = !!e && (known.has(e.id) || !!EXIDX[e.id])
-      if (!ok) dropped++
-      return ok
-    }).map(e => {
-      // The exercises pass through as written, so the fields that carry numbers into the
-      // planner get the same clamps on the way in that they get on the way out.
-      const warm = cleanWarmupSets(e.warmupSets)
-      const intens = cleanIntensifier(e.intensifier)
-      const rest = cleanRestSec(e.restSec)
-      const warmRest = cleanRestSec(e.warmupRestSec)
-      const { warmupSets, intensifier, restSec, warmupRestSec, ...passthrough } = e
-      return convertedExercise({ ...passthrough, ...(warm ? { warmupSets: warm } : {}), ...(intens ? { intensifier: intens } : {}), ...(rest ? { restSec: rest } : {}), ...(warmRest ? { warmupRestSec: warmRest } : {}) }, sourceUnit || destination, destination)
-    })
+  const weeks = (isV2 ? v2Weeks(data) : weeksFromRoutines(data)).map(w => ({
+    ...w,
+    days: (w.days || []).map(d => ({
+      ...d,
+      ex: (d.ex || []).filter(e => {
+        const ok = !!e && (known.has(e.id) || !!EXIDX[e.id])
+        if (!ok) dropped++
+        return ok
+      }).map(e => {
+        // The exercises pass through as written, so the fields that carry numbers into the
+        // planner get the same clamps on the way in that they get on the way out.
+        const warm = cleanWarmupSets(e.warmupSets)
+        const intens = cleanIntensifier(e.intensifier)
+        const rest = cleanRestSec(e.restSec)
+        const warmRest = cleanRestSec(e.warmupRestSec)
+        const { warmupSets, intensifier, restSec, warmupRestSec, ...passthrough } = e
+        return convertedExercise({ ...passthrough, ...(warm ? { warmupSets: warm } : {}), ...(intens ? { intensifier: intens } : {}), ...(rest ? { restSec: rest } : {}), ...(warmRest ? { warmupRestSec: warmRest } : {}) }, sourceUnit || destination, destination)
+      })
+    }))
   }))
+  const exercisesIn = w => (w.days || []).reduce((n, d) => n + d.ex.length, 0)
   return {
     name: (data.name || '').trim(),
-    routines,
-    week: data.week || {},
+    weeks,
     customEx,
     dropped,
-    routineCount: routines.length,
-    exerciseCount: routines.reduce((n, r) => n + r.ex.length, 0),
-    scheduledDays: WEEK_DAYS.filter(d => data.week?.[d]?.length).length,
+    weekCount: weeks.length,
+    dayCount: weeks.reduce((n, w) => n + w.days.length, 0),
+    exerciseCount: weeks.reduce((n, w) => n + exercisesIn(w), 0),
     // `unit` is the unit of the returned prescriptions. `sourceUnit` is null for a legacy file;
     // that absence means its numbers were intentionally treated as already in `destination`.
     unit: destination,
@@ -235,53 +316,71 @@ export function parsePlan(raw, destinationUnit = 'kg') {
   }
 }
 
+/* -------------------------------- merging -------------------------------- */
+
 /**
- * Merge a parsed bundle into a draft state `s` (call inside store.update).
- *  - customs: reuse one you already have with the same name + body part, else add it fresh
- *  - routines: always added as NEW routines (fresh ids) — never overwrites yours
- *  - schedule: optional; when on, the shared week REPLACES yours (days the shared plan
- *    leaves empty become rest days — a half-overwritten week would silently mix two plans)
+ * Reuse a custom you already have under the same name + body part, else add it fresh, and
+ * return the old-id → new-id map the exercises are remapped through. Stored exactly as the
+ * form would have created it — `custom: true` is what lets the recipient edit or delete it,
+ * and `sm` mirrors the secondaries the way the form writes them.
  */
-export function mergePlan(s, bundle, { schedule } = {}) {
-  const destination = planUnit(s.unit == null ? 'kg' : s.unit)
-  if (!destination) unitError()
-  const source = convertedBundle(bundle, destination)
+function addCustomEx(s, customs) {
   s.customEx = s.customEx || []
   const exIdMap = {}
-  ;(source.customEx || []).forEach(c => {
+  ;(customs || []).forEach(c => {
     const same = s.customEx.find(x => (x.n || '').toLowerCase() === (c.n || '').toLowerCase() && x.bp === c.bp)
     if (same) { exIdMap[c.id] = same.id; return }
     const nid = uid()
     exIdMap[c.id] = nid
-    // Stored exactly as the form would have created it — `custom: true` is what lets the recipient
-    // edit or delete it, and `sm` mirrors the secondaries the way the form writes them.
     const clean = cleanCustom(c)
     s.customEx.push({ ...clean, id: nid, ...(clean.secondaries ? { sm: clean.secondaries } : {}), custom: true })
   })
-  const ridMap = {}
-  source.routines.forEach(r => {
-    const nid = uid()
-    ridMap[r.id] = nid
-    s.routines.push({
-      id: nid,
-      name: r.name || t('Shared routine'),
-      emoji: r.emoji,
-      ...(r.prog ? { prog: r.prog } : {}),
-      ...(r.excludeFromProgression === true ? { excludeFromProgression: true } : {}),
-      ex: (r.ex || []).map(e => ({ ...e, id: exIdMap[e.id] || e.id }))
-    })
+  return exIdMap
+}
+
+/** Append one week to `s`, with a fresh id and every exercise pointed at the merged customs. */
+function pushWeek(s, week, exIdMap) {
+  s.weeks = s.weeks || []
+  s.weeks.push({
+    id: uid(),
+    startIso: isIsoDay(week.startIso) ? week.startIso : currentMonday(),
+    name: week.name || '',
+    days: (week.days || []).map(d => ({
+      dow: d.dow,
+      name: d.name || '',
+      ...(d.excludeFromProgression === true ? { excludeFromProgression: true } : {}),
+      ex: (d.ex || []).map(e => ({ ...e, id: exIdMap[e.id] || e.id }))
+    }))
   })
-  if (schedule) {
-    WEEK_DAYS.forEach(d => { delete s.week[d] })
-    Object.entries(source.week || {}).forEach(([d, val]) => {
-      // `[].concat` tolerates a pre-upgrade scalar bundle value. An element whose routine id
-      // didn't survive parsing is dropped, not written as undefined; a day that ends up empty
-      // is left absent rather than stored as `[]`.
-      const ids = [].concat(val).map(oldId => ridMap[oldId]).filter(Boolean)
-      if (ids.length) s.week[d] = ids
-    })
-  }
-  return { routines: source.routines.length }
+}
+
+/**
+ * Merge a parsed bundle into a draft state `s` (call inside store.update).
+ *  - customs: reuse one you already have with the same name + body part, else add it fresh
+ *  - weeks: every shared week is appended as a NEW week (fresh ids) — never overwrites yours
+ *
+ * A week is inherently scheduled: it is a concrete calendar week, so there is no "take the
+ * schedule or not" switch any more. The week keeps the dates it was written with.
+ */
+export function mergePlan(s, bundle) {
+  const destination = planUnit(s.unit == null ? 'kg' : s.unit)
+  if (!destination) unitError()
+  const source = convertedBundle(bundle, destination)
+  const exIdMap = addCustomEx(s, source.customEx)
+  ;(source.weeks || []).forEach(w => pushWeek(s, w, exIdMap))
+  return { weeks: (source.weeks || []).length }
+}
+
+/**
+ * Merge one already-local week (the coach's reviewed sheet, a Hevy routine list) into state.
+ * Same contract as mergePlan, without the file-parsing layer: the review is already trusted, so
+ * it is never re-serialised through parsePlan. A week built for this path carries its own
+ * `customEx` (see import-plan.js) — the id remap is what keeps them from doubling.
+ */
+export function mergeWeek(s, week) {
+  const exIdMap = addCustomEx(s, week.customEx)
+  pushWeek(s, week, exIdMap)
+  return { weeks: 1 }
 }
 
 /* ------------------------------- printable PDF ------------------------------- */
@@ -315,8 +414,8 @@ function units(ex) {
   return out
 }
 
-function routineHTML(r, unit) {
-  const rows = units(r.ex).map(u => {
+function dayHTML(day, unit) {
+  const rows = units(day.ex || []).map(u => {
     const items = u.map(e => {
       const ex = EXIDX[e.id]
       const name = ex ? exerciseNameFor(ex) : t('Unknown exercise')
@@ -328,31 +427,33 @@ function routineHTML(r, unit) {
       ? `<div class="ss"><div class="ss-tag">${esc(t('Complex'))}</div><div class="ss-items">${items}</div></div>`
       : items
   }).join('')
-  const count = exCount(r.ex.length)
+  const count = exCount((day.ex || []).length)
+  const title = day.name || t(DAYN[day.dow] ?? '')
   return `<section class="routine">
-    <div class="r-head"><h2>${esc(r.name)}</h2><span class="r-count">${esc(count)}</span></div>
+    <div class="r-head"><h2>${esc(title)}</h2><span class="r-count">${esc(count)}</span></div>
     <div class="ex-list">${rows || `<div class="ex empty">${esc(t('No exercises yet.'))}</div>`}</div>
   </section>`
 }
 
-function weekHTML(S) {
-  // The printout is read by whoever exported it, so the week runs in their order.
-  const rows = weekOrder(weekStartOf(S)).map(d => {
-    const names = [].concat(S.week?.[d] || [])
-      .map(id => S.routines.find(x => x.id === id)?.name)
-      .filter(Boolean)
-    const val = names.length ? esc(deriveSessionName(names)) : `<span class="rest">${esc(t('Rest'))}</span>`
-    return `<div class="w-row"><div class="w-day">${esc(t(DAYN[d]))}</div><div class="w-r">${val}</div></div>`
-  }).join('')
-  return `<div class="week">${rows}</div>`
+// One dated week: its own name (or the date it starts on), then each of its days.
+function weekHTML(week, unit) {
+  const days = (week.days || []).filter(d => d.ex && d.ex.length)
+  const title = week.name || t('Week of {0}', fmtDate(week.startIso, false, true))
+  const body = days.length
+    ? days.map(d => dayHTML(d, unit)).join('')
+    : `<p class="none">${esc(t('No workouts planned this week.'))}</p>`
+  return `<section class="week-block">
+    <div class="wk-head"><h2>${esc(title)}</h2><span class="wk-date">${esc(fmtDate(week.startIso, false, true))}</span></div>
+    ${body}
+  </section>`
 }
 
 /** Full self-contained HTML for the print/PDF view. */
 export function planPrintHTML(S, owner) {
   const unit = S.unit || 'kg'
-  const routines = (S.routines || []).filter(r => r.ex && r.ex.length)
-  const body = routines.length
-    ? routines.map(r => routineHTML(r, unit)).join('')
+  const weeks = (S.weeks || []).filter(w => (w.days || []).some(d => d.ex && d.ex.length))
+  const body = weeks.length
+    ? weeks.map(w => weekHTML(w, unit)).join('')
     : `<p class="none">${esc(t('No routines yet.'))}</p>`
   const sub = [owner, todayISO()].filter(Boolean).map(esc).join(' · ')
   return `<!doctype html><html><head><meta charset="utf-8">
@@ -374,12 +475,10 @@ export function planPrintHTML(S, owner) {
 
   h3.block { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #8a90a0; margin: 0 0 8px; font-weight: 700; }
 
-  .week { border: 1px solid #e4e6ec; border-radius: 10px; overflow: hidden; margin-bottom: 26px; break-inside: avoid; page-break-inside: avoid; }
-  .w-row { display: flex; align-items: baseline; padding: 8px 14px; border-top: 1px solid #eef0f4; }
-  .w-row:first-child { border-top: 0; }
-  .w-day { width: 116px; font-weight: 600; color: #16181d; flex: none; }
-  .w-r { text-transform: capitalize; }
-  .rest, .w-r .rest { color: #a2a8b6; text-transform: none; }
+  .week-block { margin-bottom: 26px; }
+  .wk-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; border-bottom: 1px solid #e4e6ec; padding-bottom: 6px; margin-bottom: 12px; break-after: avoid; page-break-after: avoid; }
+  .wk-head h2 { font-size: 19px; letter-spacing: -.01em; margin: 0; text-transform: capitalize; }
+  .wk-date { font-size: 12px; color: #8a90a0; white-space: nowrap; }
 
   .routine { break-inside: avoid; page-break-inside: avoid; margin-bottom: 20px; padding: 14px 16px; border: 1px solid #e4e6ec; border-radius: 12px; }
   .r-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; border-bottom: 1px solid #eef0f4; padding-bottom: 8px; margin-bottom: 8px; break-after: avoid; page-break-after: avoid; }
@@ -408,9 +507,7 @@ export function planPrintHTML(S, owner) {
     <h1>${esc(t('Weekly Training Plan'))}</h1>
     ${sub ? `<div class="sub">${sub}</div>` : ''}
   </header>
-  <h3 class="block">${esc(t('Week schedule'))}</h3>
-  ${weekHTML(S)}
-  <h3 class="block">${esc(t('Routines'))}</h3>
+  <h3 class="block">${esc(t('Your weeks'))}</h3>
   ${body}
   <footer>${esc(t('Made with OlyGym'))} · opengym.duarte-santos.ch</footer>
 </div></body></html>`

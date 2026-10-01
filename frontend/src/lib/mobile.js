@@ -11,7 +11,7 @@
 // web bundles; the Capacitor plugins are only ever imported behind it.
 import { t } from './i18n-core.js'
 import { isoOf, todayISO } from './format.js'
-import { effectiveRoutineIds } from './history.js'
+import { effectiveDay } from './history.js'
 
 export const MOBILE = import.meta.env.VITE_MOBILE === '1'
 
@@ -96,9 +96,7 @@ const LEGACY_REMINDER_IDS = Array.from({ length: 7 }, (_, d) => ({ id: 100 + d }
 export function buildReminderNotifications(S, now = new Date()) {
   const r = S?.reminder
   if (!r?.on) return []
-  const routines = Array.isArray(S.routines) ? S.routines : []
   const completed = new Set((S.workouts || []).map(w => w.d))
-  const state = { ...S, routines, week: S.week || {}, dayPlan: S.dayPlan || {} }
   const [hour, minute] = (r.time || '08:00').split(':').map(Number)
   if (!Number.isInteger(hour) || !Number.isInteger(minute)) return []
   const date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12)
@@ -108,10 +106,10 @@ export function buildReminderNotifications(S, now = new Date()) {
     day.setDate(date.getDate() + offset)
     const iso = isoOf(day)
     if (completed.has(iso)) continue
-    // A weekday can hold several routines; name them all, or fall back to a count.
-    const dayRoutines = effectiveRoutineIds(state, iso).map(id => routines.find(x => x.id === id)).filter(Boolean)
-    if (!dayRoutines.length) continue
-    const label = dayRoutines.length <= 2 ? dayRoutines.map(r => r.name).join(' + ') : t('{0} routines', dayRoutines.length)
+    // One day is the whole session, so the reminder names that day (a rest day gets none).
+    const planned = effectiveDay(S, iso)
+    if (!planned) continue
+    const label = planned.name || t('Workout')
     const at = new Date(day)
     at.setHours(hour, minute, 0, 0)
     if (at <= now) continue

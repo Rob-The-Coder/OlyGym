@@ -63,7 +63,7 @@ describe('buildSessionEntries', () => {
     expect(normal.every(e => e.noProg === undefined)).toBe(true)
   })
 
-  it('does not stamp rid — that is the merge helper’s job', () => {
+  it('does not stamp a routine id — a day is atomic, so there is nothing to stamp', () => {
     const r = { id: 'r', prog: 'off', ex: [{ id: '0025', sets: 3, reps: 5, weight: 60 }] }
     expect(buildSessionEntries(st, r)[0].rid).toBeUndefined()
   })

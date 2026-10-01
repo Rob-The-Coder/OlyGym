@@ -4,7 +4,7 @@ import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
-import { renameWorkoutSheet, addRoutineToSessionSheet } from '../sheets.jsx'
+import { renameWorkoutSheet } from '../sheets.jsx'
 import { buildCompletedWorkout } from './finish-workout.js'
 
 const mounted = []
@@ -88,35 +88,4 @@ describe('rename workout', () => {
     expect(active.customName).toBe(true)
   })
 
-  it('preserves custom renamed title when another routine is added to the session', () => {
-    useStore.setState(s => ({
-      S: {
-        ...s.S,
-        routines: [
-          { id: 'r1', name: 'Routine 1', ex: [{ id: 'bench_press' }] },
-          { id: 'r2', name: 'Routine 2', ex: [{ id: 'squat' }] },
-        ],
-        active: {
-          id: 'w1',
-          d: '2026-08-25',
-          start: 1,
-          name: 'My Special Workout',
-          customName: true,
-          routineIds: ['r1'],
-          entries: [{ id: 'bench_press', sets: [] }],
-        },
-      },
-    }))
-
-    const host = render(() => addRoutineToSessionSheet())
-    // Click on Routine 2
-    const items = [...host.querySelectorAll('.item')].filter(el => !el.classList.contains('disabled'))
-    expect(items.length).toBeGreaterThan(0)
-    act(() => { items[0].click() })
-
-    const active = useStore.getState().S.active
-    // The name should remain 'My Special Workout' instead of being overwritten with 'Routine 1 + Routine 2'
-    expect(active.name).toBe('My Special Workout')
-    expect(active.routineIds).toContain('r2')
-  })
 })

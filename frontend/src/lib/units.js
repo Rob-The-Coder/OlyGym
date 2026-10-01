@@ -73,7 +73,7 @@ export function convertStateUnit(S, to) {
   if (S.targetW != null) out.targetW = bw(S.targetW)
   if (S.exWeights) out.exWeights = Object.fromEntries(Object.entries(S.exWeights).map(([k, v]) => [k, v && typeof v === 'object' ? { ...v, w: c(v.w) } : c(v)]))
   if (S.barWeights) out.barWeights = Object.fromEntries(Object.entries(S.barWeights).map(([k, v]) => [k, c(v)]))
-  if (Array.isArray(S.routines)) out.routines = S.routines.map(r => ({ ...r, ex: (r.ex || []).map(cfg => convTarget(cfg, from, to)) }))
+  if (Array.isArray(S.weeks)) out.weeks = S.weeks.map(w => ({ ...w, days: (w.days || []).map(d => ({ ...d, ex: (d.ex || []).map(cfg => convTarget(cfg, from, to)) })) }))
   if (Array.isArray(S.workouts)) out.workouts = S.workouts.map(convSession)
   if (S.active) out.active = convSession(S.active)
   return out

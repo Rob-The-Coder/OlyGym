@@ -10,10 +10,9 @@ export function buildCompletedWorkout(active, { end = Date.now(), prs = [], snap
       sets: entry.sets,
       topW: bestWeightForEntry(entry) || null,
       target: entry.target || null,
-      // Which routine this entry came from, and whether it counts for progression. Written
-      // only when set/true, so a single-routine non-excluded session is byte-for-byte the
-      // shape it always was. Without this the whitelist drops both at finish.
-      ...(entry.rid ? { rid: entry.rid } : {}),
+      // Whether this entry counts for progression. Written only when true, so a normal session
+      // is byte-for-byte the shape it always was. Without this the whitelist drops it at finish.
+      // There is no `rid`: a day is atomic, so there is nothing to group entries by.
       ...(entry.noProg === true ? { noProg: true } : {}),
     }
     const snapshot = typeof snapshotFor === 'function' ? snapshotFor(entry) : null
@@ -32,7 +31,6 @@ export function buildCompletedWorkout(active, { end = Date.now(), prs = [], snap
   }).filter(entry => entry.sets.some(hasCompletedWork))
 
   const sessionNote = (active?.note || '').trim()
-  const routineIds = [].concat(active?.routineIds ?? (active?.routineId ? [active.routineId] : []))
   // Legacy `w.excludeFromProgression` mirror: kept for older builds and external readers, but
   // it only makes sense when the *whole* session is excluded. Derived from the completed
   // entries, not read from `active` (which no longer carries the flag). A mixed session omits
@@ -44,8 +42,11 @@ export function buildCompletedWorkout(active, { end = Date.now(), prs = [], snap
     d: active.d,
     start: active.start,
     end,
-    routineIds,
-    routineId: routineIds[0] ?? null,
+    // Where the session came from in the dated weeks: the week it belongs to and the weekday it
+    // was planned on, both null for freestyle. Older records carry `routineIds`/`routineId`
+    // instead and are still read that way; nothing writes those any more.
+    weekId: active.weekId ?? null,
+    dow: active.dow ?? null,
     name: active.name,
     bw: active.bw,
     entries,
