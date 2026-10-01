@@ -1571,6 +1571,7 @@ export async function importCoachPlanFromDrive() {
     if (!usable.length) { toast(t('That file has no training in it')); return }
     coachPlanSheet(usable)
   } catch (e) {
+    console.error('importCoachPlanFromDrive failed:', e)
     toast(t('Could not read that file. A coach’s plan is an .xlsx, .csv or Google Sheets file.'))
   }
 }
