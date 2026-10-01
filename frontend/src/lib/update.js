@@ -1,14 +1,18 @@
-// Update check — compares the installed version (__APP_VERSION__) against
-// the latest release tag on GitLab and optionally downloads + installs the APK.
+// Update check — compares the installed version (__APP_VERSION__) against the newest release
+// tag on GitHub and optionally downloads + installs the APK.
 //
-// The GitLab releases API is public for this project, so no token is needed.
-// On Android (Capacitor), the APK asset is downloaded to the cache directory
-// and handed to the system installer via a content:// URI.
+// The GitHub Releases API is public, needs no token, and answers with CORS headers, so the
+// check runs from the app's WebView. The APK *file* does not: github.com redirects to
+// release-assets.githubusercontent.com, which sends no Access-Control-Allow-Origin, so a
+// fetch() of the binary is blocked in a WebView. downloadAndInstall() hands the URL to the
+// system browser when that happens — a browser is not bound by CORS, downloads the file and
+// lets Android install it.
 
 import { MOBILE } from './mobile.js'
 
-const GITLAB_PROJECT_ID = 'DuarteSantos8%2Fopengym'
-const RELEASES_URL = `https://gitlab.com/api/v4/projects/${GITLAB_PROJECT_ID}/releases`
+const REPO = 'Rob-The-Coder/OlyGym'
+const RELEASES_API = `https://api.github.com/repos/${REPO}/releases?per_page=1`
+export const RELEASES_PAGE = `https://github.com/${REPO}/releases/latest`
 
 /**
  * Compares two semver strings (e.g. "1.2.11" vs "1.3.0").
@@ -25,15 +29,20 @@ function compareSemver(a, b) {
   return 0
 }
 
+function noUpdate() {
+  return { hasUpdate: false, latestVersion: __APP_VERSION__, apkUrl: null, hashUrl: null, apkSha256: null }
+}
+
 /**
- * Checks the GitLab releases API for a newer version.
- * Returns { hasUpdate, latestVersion, apkUrl, hashUrl } or throws on network failure.
+ * Checks the GitHub releases API for a newer version.
+ * Returns { hasUpdate, latestVersion, apkUrl, hashUrl, apkSha256 } or throws on network failure.
  *   - hasUpdate: true if the latest release tag is newer than the running build
  *   - latestVersion: the semver string of the latest release (without "v" prefix)
  *   - apkUrl: direct download URL of the first .apk asset, or null
- *   - hashUrl: direct download URL of the .apk.sha256 hash file, or null
+ *   - hashUrl: download URL of a .sha256 asset published beside it, or null
+ *   - apkSha256: the checksum GitHub computed for the APK upload, or null
  */
-// One request per app session: Settings is opened often, gitlab.com does not need to hear
+// One request per app session: Settings is opened often, github.com does not need to hear
 // about it every time. The promise is cached, a failure is not.
 let cached = null
 export function resetUpdateCheck() { cached = null }
@@ -42,27 +51,31 @@ export async function checkForUpdate() {
   return cached
 }
 async function fetchLatest() {
-  const res = await fetch(RELEASES_URL + '?per_page=1')
-  if (!res.ok) throw new Error(`GitLab API ${res.status}`)
+  const res = await fetch(RELEASES_API)
+  // 404 is a repo that is gone or not public; an empty array is one with no releases yet.
+  // Neither is an error worth showing anyone, and both mean "nothing to offer".
+  if (res.status === 404) return noUpdate()
+  if (!res.ok) throw new Error(`GitHub API ${res.status}`)
   const releases = await res.json()
-  if (!releases.length) return { hasUpdate: false, latestVersion: __APP_VERSION__, apkUrl: null, hashUrl: null }
+  if (!releases.length) return noUpdate()
 
   const latest = releases[0]
   const latestVersion = latest.tag_name.replace(/^v/, '')
-  const hasUpdate = compareSemver(latestVersion, __APP_VERSION__) > 0
+  const assets = latest.assets || []
 
-  // Find the APK asset among the release links (generic package links) or assets.sources
-  let apkUrl = null
-  let hashUrl = null
-  if (latest.assets?.links?.length) {
-    const apkLink = latest.assets.links.find(l => /\.apk$/i.test(l.url) || /\.apk$/i.test(l.direct_asset_url))
-    if (apkLink) apkUrl = apkLink.direct_asset_url || apkLink.url
-    // Look for a matching .sha256 hash file
-    const hashLink = latest.assets.links.find(l => /\.apk\.sha256$/i.test(l.url) || /\.apk\.sha256$/i.test(l.direct_asset_url) || /sha256/i.test(l.name))
-    if (hashLink) hashUrl = hashLink.direct_asset_url || hashLink.url
+  // Asset names are file names. `.apk.sha256` must not be mistaken for the APK itself.
+  const apk = assets.find(a => /\.apk$/i.test(a.name || ''))
+  const hash = assets.find(a => /\.apk\.sha256$/i.test(a.name || '') || /sha256/i.test(a.name || ''))
+
+  return {
+    hasUpdate: compareSemver(latestVersion, __APP_VERSION__) > 0,
+    latestVersion,
+    apkUrl: apk?.browser_download_url || null,
+    hashUrl: hash?.browser_download_url || null,
+    // GitHub hashes every uploaded asset, so the checksum arrives with the release JSON —
+    // no second request, and none of the CORS trouble of fetching a .sha256 file.
+    apkSha256: apk?.digest?.startsWith('sha256:') ? apk.digest.slice(7) : null,
   }
-
-  return { hasUpdate, latestVersion, apkUrl, hashUrl }
 }
 
 /**
@@ -80,20 +93,29 @@ export async function sha256(buffer) {
  * Only works on the MOBILE (Capacitor) build with Android.
  *
  * @param {string} url - Direct download URL for the APK
- * @param {string|null} expectedHash - Expected SHA-256 hex string (from .sha256 asset), or null to skip verification
+ * @param {string|null} expectedHash - Expected SHA-256 hex string, or null to skip verification
  * @param {function|null} onProgress - Called with (received, total) bytes during download, or null
  */
 export async function downloadAndInstall(url, expectedHash = null, onProgress = null) {
   if (!MOBILE) {
     // On web, just open the release page
-    window.open('https://gitlab.com/DuarteSantos8/opengym/-/releases', '_blank', 'noopener')
+    window.open(RELEASES_PAGE, '_blank', 'noopener')
     return
   }
 
   const { Filesystem, Directory } = await import('@capacitor/filesystem')
 
   // Download with progress tracking via ReadableStream
-  const res = await fetch(url)
+  let res
+  try {
+    res = await fetch(url)
+  } catch (e) {
+    // A host that serves its files without CORS headers (GitHub's release CDN does) leaves the
+    // WebView unable to read the body at all. The system browser has no such limit: it downloads
+    // the APK and the notification/tap hands it to the installer — the same file, one tap later.
+    window.open(url, '_blank', 'noopener')
+    return
+  }
   if (!res.ok) throw new Error(`Download failed: ${res.status}`)
 
   const total = parseInt(res.headers.get('content-length') || '0', 10)
@@ -134,7 +156,7 @@ export async function downloadAndInstall(url, expectedHash = null, onProgress = 
     reader.readAsDataURL(blob)
   })
 
-  const fileName = 'opengym-update.apk'
+  const fileName = 'olygym-update.apk'
   await Filesystem.writeFile({
     path: fileName,
     directory: Directory.Cache,

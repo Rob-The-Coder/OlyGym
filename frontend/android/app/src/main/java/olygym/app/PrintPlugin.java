@@ -1,4 +1,4 @@
-package ch.duartesantos.opengym;
+package olygym.app;
 
 import android.content.Context;
 import android.print.PrintAttributes;

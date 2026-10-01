@@ -14,7 +14,7 @@ import { wakeLockSupported } from '../lib/wakelock.js'
 import { t, LANGS, INSTR_LANGS } from '../lib/i18n.js'
 import { DEMO, REPO } from '../lib/demo.js'
 import { MOBILE, isAndroid, shareExport, syncReminder } from '../lib/mobile.js'
-import { checkForUpdate, downloadAndInstall } from '../lib/update.js'
+import { checkForUpdate, downloadAndInstall, RELEASES_PAGE } from '../lib/update.js'
 import { forgetCoach } from '../lib/coach-api.js'
 import { ConnectSheet } from './MobileOnboarding.jsx'
 import { starterPlanSheet, confirmSheet, importFromApp, importFromHevy, importCoachPlan, equipmentProfileSheet, menuSheet, askAddDeviceData } from '../sheets.jsx'
@@ -57,13 +57,13 @@ export default function Settings() {
     // The in-app updater installs an .apk, so it only applies to the native Android build.
     // On iOS and the web this check is skipped and the update row never appears. isAndroid()
     // already answers false off the mobile build; the MOBILE check on top keeps the web bundle
-    // from even asking (and from calling gitlab.com on every Settings visit).
+    // from even asking (and from calling github.com on every Settings visit).
     if (!MOBILE) return
     isAndroid().then(ok => { setAndroid(ok); if (ok) checkForUpdate().then(setUpdateInfo).catch(() => {}) })
   }, [])
 
   // The same check, on demand: the automatic one is silent when it finds nothing or cannot
-  // reach gitlab.com, and a person who taps "Check for updates" deserves an answer either way.
+  // reach github.com, and a person who taps "Check for updates" deserves an answer either way.
   const checkNow = async () => {
     if (checking) return
     setChecking(true)
@@ -95,10 +95,12 @@ export default function Settings() {
             return <DownloadProgress ref={fn => { setProgress = fn }} />
           }, { locked: true })
           try {
-            // The release always publishes the checksum next to the APK. Without it the file is
-            // not installed — a sideloaded binary is exactly the thing that should be verified.
-            let expectedHash = null
-            if (updateInfo.hashUrl) {
+            // GitHub hashes every uploaded asset, so the checksum usually comes with the release
+            // JSON the check already fetched (apkSha256). A .sha256 published beside the APK is
+            // the fallback for hosts that do not. Without one the file is not installed — a
+            // sideloaded binary is exactly the thing that should be verified.
+            let expectedHash = updateInfo.apkSha256 || null
+            if (!expectedHash && updateInfo.hashUrl) {
               try {
                 const hashRes = await fetch(updateInfo.hashUrl)
                 if (hashRes.ok) expectedHash = (await hashRes.text()).split(/\s/)[0]
@@ -117,7 +119,7 @@ export default function Settings() {
       })
     } else {
       // Update available but no APK asset — open the releases page
-      window.open('https://gitlab.com/DuarteSantos8/opengym/-/releases', '_blank', 'noopener')
+      window.open(RELEASES_PAGE, '_blank', 'noopener')
     }
   }
 
