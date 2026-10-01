@@ -17,7 +17,7 @@ import { MOBILE, isAndroid, shareExport, syncReminder } from '../lib/mobile.js'
 import { checkForUpdate, downloadAndInstall, RELEASES_PAGE } from '../lib/update.js'
 import { forgetCoach } from '../lib/coach-api.js'
 import { ConnectSheet } from './MobileOnboarding.jsx'
-import { starterPlanSheet, confirmSheet, importFromApp, importFromHevy, importCoachPlan, equipmentProfileSheet, menuSheet, askAddDeviceData } from '../sheets.jsx'
+import { starterPlanSheet, confirmSheet, importFromApp, importFromHevy, importCoachPlan, importCoachPlanFromDrive, equipmentProfileSheet, menuSheet, askAddDeviceData } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Section, Row, SelectRow, Switch, Segmented, Button, TextField } from '../components/ui.jsx'
 
@@ -405,8 +405,11 @@ export default function Settings() {
         subtitle={t('Pull your history with a Hevy Pro API key')}
         accessory="chevron" onClick={importFromHevy} />
       <Row icon="upload" iconTint="var(--teal)" title={t('Import a coach’s plan')}
-        subtitle={t('An Excel or CSV week: his exercises, sets, reps and loads, read and reviewed before they land in your plan')}
+        subtitle={t('An Excel, CSV or Google Sheets week: his exercises, sets, reps and loads, read and reviewed before they land in your plan')}
         accessory="chevron" onClick={() => coachRef.current.click()} />
+      <Row icon="folder" iconTint="var(--teal)" title={t('Import from Google Drive')}
+        subtitle={t('Pick a Google Sheets plan shared with you, straight from Drive')}
+        accessory="chevron" onClick={importCoachPlanFromDrive} />
       <Row icon="upload" iconTint="var(--blue)" title={t('Import backup')} accessory="chevron" onClick={() => fileRef.current.click()} />
       <Row icon="download" iconTint="var(--blue)" title={t('Export backup (JSON)')} accessory="chevron" onClick={doExport} />
       {MOBILE && <Row icon="history" iconTint="var(--blue)" title={t('Auto-backup on changes')}

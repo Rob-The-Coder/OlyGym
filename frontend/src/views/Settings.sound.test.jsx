@@ -43,7 +43,7 @@ vi.mock('../lib/mobile.js', () => ({ MOBILE: false, isAndroid: () => Promise.res
 vi.mock('./MobileOnboarding.jsx', () => ({ ConnectSheet: () => null }))
 vi.mock('../sheets.jsx', () => ({
   starterPlanSheet: vi.fn(), confirmSheet: vi.fn(), importFromApp: vi.fn(),
-  importFromHevy: vi.fn(), equipmentProfileSheet: vi.fn(),
+  importFromHevy: vi.fn(), equipmentProfileSheet: vi.fn(), importCoachPlanFromDrive: vi.fn(),
 }))
 // The real module decides "supported" from navigator.audioSession, which each test sets up;
 // unlock is spied on so the Sounds switch can be checked for its tap-time side effect.
