@@ -1,6 +1,7 @@
 package olygym.app;
 
 import android.app.Activity;
+import android.util.Log;
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
@@ -25,6 +26,7 @@ import java.util.Collections;
 @CapacitorPlugin(name = "Drive")
 public class DrivePlugin extends Plugin {
 
+    private static final String TAG = "CoachImport";
     private static final Scope DRIVE_FILE = new Scope("https://www.googleapis.com/auth/drive.file");
 
     private PluginCall pendingCall;
@@ -49,6 +51,11 @@ public class DrivePlugin extends Plugin {
                 "application/vnd.google-apps.spreadsheet,"
                 + "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv")
             .setOptOutIncludingGrantedScopes(true)
+            // Force the consent UI every time. Without this a cached grant resolves silently
+            // (hasResolution() == false) and PICKER_OAUTH_TRIGGER never fires, so no file is
+            // picked and picked_file_ids comes back null. The Picker only runs inside a consent
+            // resolution, and drive.file is granted per picked file, so every import needs it.
+            .setPrompt(AuthorizationRequest.Prompt.CONSENT)
             .build();
 
         pendingCall = call;
@@ -65,6 +72,7 @@ public class DrivePlugin extends Plugin {
             })
             .addOnFailureListener(e -> {
                 pendingCall = null;
+                Log.e(TAG, "authorize failed", e);
                 call.reject("Google sign-in is unavailable: " + e.getMessage());
             });
     }
@@ -81,6 +89,7 @@ public class DrivePlugin extends Plugin {
             resolve(call, Identity.getAuthorizationClient(getActivity())
                 .getAuthorizationResultFromIntent(result.getData()));
         } catch (ApiException e) {
+            Log.e(TAG, "getAuthorizationResultFromIntent failed", e);
             call.reject("Cancelled or refused", e);
         }
     }
