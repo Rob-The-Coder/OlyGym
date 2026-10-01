@@ -4,6 +4,12 @@ import { parseHTML } from 'linkedom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Workout from './Workout.jsx'
 import { nextPrescription } from '../lib/progression.js'
+import { todayISO } from '../lib/format.js'
+
+// A session started from a day records the date it opened on, so a "planned" fixture needs a
+// week covering today with a day on today's weekday.
+const TODAY_ISO = todayISO()
+const TODAY_DOW = new Date(TODAY_ISO + 'T12:00:00').getDay()
 
 const mocks = vi.hoisted(() => {
   const state = {
@@ -81,7 +87,6 @@ vi.mock('../sheets.jsx', () => ({
   renameWorkoutSheet: mocks.renameWorkoutSheet,
   effortPickerSheet: mocks.effortPickerSheet,
   exerciseHistorySheet: mocks.exerciseHistorySheet,
-  addRoutineToSessionSheet: vi.fn(),
 }))
 vi.mock('../components/Media.jsx', () => ({ default: () => null }))
 // api.js reads navigator.userAgent at module scope. This file installs its own DOM inside the
@@ -457,8 +462,8 @@ describe('Workout add exercise flow', () => {
   it.each([
     ['freestyle', {}],
     ['planned', {
-      active: { routineId: 'routine-1' },
-      routines: [{ id: 'routine-1', ex: [] }],
+      active: { weekId: 'w1', d: TODAY_ISO },
+      weeks: [{ id: 'w1', startIso: TODAY_ISO, name: '', days: [{ dow: TODAY_DOW, name: 'Push', ex: [] }] }],
     }],
   ])('inserts after the current unit and leaves the inserted exercise selected after completion in a %s session', async (_label, overrides) => {
     await mount([
@@ -632,7 +637,9 @@ describe('progression guidance', () => {
     expect(button.getAttribute('aria-label')).toBe('Open progression settings')
     expect(mocks.exConfigSheet).toHaveBeenCalledOnce()
     expect(mocks.exConfigSheet.mock.calls[0][1]).toBe(second.target)
-    expect(mocks.exConfigSheet.mock.calls[0][4]).toBe(mocks.S.routines[0])
+    // Freestyle here (no weekId on the active session), so the sheet inherits no day rule —
+    // the entry's own `prog` is what counts.
+    expect(mocks.exConfigSheet.mock.calls[0][4]).toBe(null)
 
     mocks.exConfigSheet.mock.calls[0][2]({ ...second.target, prog: 'double', repsMin: 6 })
     expect(JSON.stringify(mocks.S.active.entries[0])).toBe(firstBefore)
@@ -1257,17 +1264,18 @@ describe('workout view header menu', () => {
   }
   const item = (menu, label) => menu.items.filter(Boolean).find(it => it.label === label)
 
-  // The header ⋮ now leads with "Add routine"; the layouts moved to a nested "Layout" sheet.
+  // The header ⋮ holds Rename workout and the layouts, which moved to a nested "Layout" sheet.
+  // "Add routine" is gone: a day is the whole session, so there is nothing to add to it.
   const openLayout = async menu => {
     await act(async () => { item(menu, 'Layout').onClick() })
     return mocks.menuSheet.mock.calls.at(-1)[0]
   }
 
-  it('includes Rename workout and Add routine, then a Layout sheet with the three layouts marked current', async () => {
-    await mount([exercise('plain-bench', [false])], 0, { active: { workoutView: 'list', routineIds: [] } })
+  it('includes Rename workout, then a Layout sheet with the three layouts marked current', async () => {
+    await mount([exercise('plain-bench', [false])], 0, { active: { workoutView: 'list' } })
 
     const menu = await openMenu()
-    expect(menu.items.filter(Boolean).map(it => it.label)).toEqual(['Rename workout', 'Add routine', 'Layout'])
+    expect(menu.items.filter(Boolean).map(it => it.label)).toEqual(['Rename workout', 'Layout'])
     expect(item(menu, 'Layout').sub).toBe('List')
 
     await act(async () => { item(menu, 'Rename workout').onClick() })
@@ -1280,7 +1288,7 @@ describe('workout view header menu', () => {
   })
 
   it('writes the layout pick onto s.active without touching the global default', async () => {
-    await mount([exercise('plain-bench', [false])], 0, { workoutView: 'cards', active: { workoutView: 'cards', routineIds: [] } })
+    await mount([exercise('plain-bench', [false])], 0, { workoutView: 'cards', active: { workoutView: 'cards' } })
 
     const layout = await openLayout(await openMenu())
     await act(async () => { item(layout, 'Compact').onClick() })

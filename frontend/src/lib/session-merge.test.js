@@ -1,44 +1,48 @@
 import { describe, it, expect } from 'vitest'
-import { buildCombinedEntries, deriveSessionName } from './session-merge.js'
+import { buildDayEntries, deriveSessionName } from './session-merge.js'
 import { buildSessionEntries } from './session-start.js'
 
-const st = {
-  unit: 'kg', workouts: [], exWeights: {},
-  routines: [
-    { id: 'r1', name: 'Strength', prog: 'off', ex: [{ id: '0025', sets: 3, reps: 5, weight: 60 }, { id: '0031', sets: 3, reps: 8, weight: 40 }] },
-    { id: 'r2', name: 'Core', prog: 'off', ex: [{ id: '0047', sets: 3, reps: 12, weight: 0 }] },
-    { id: 'rehab', name: 'Rehab', excludeFromProgression: true, ex: [{ id: '0050', sets: 2, reps: 15, weight: 5 }] },
-  ],
-}
+// A day of the dated weeks is the whole session, so this builder has nothing to merge: it builds
+// the day's entries and takes the day's name. Freestyle (no day) is the one other case.
+const st = { unit: 'kg', workouts: [], exWeights: {}, routines: [] }
+const day = (over = {}) => ({
+  dow: 1,
+  name: 'Strength',
+  ex: [{ id: '0025', sets: 3, reps: 5, weight: 60 }, { id: '0031', sets: 3, reps: 8, weight: 40 }],
+  ...over,
+})
 
-describe('buildCombinedEntries', () => {
-  it('concatenates each routine’s entries in list order, stamping rid on every one', () => {
-    const { entries, routineIds } = buildCombinedEntries(st, ['r1', 'r2'])
-    expect(entries.map(e => e.id)).toEqual(['0025', '0031', '0047'])
-    expect(entries.map(e => e.rid)).toEqual(['r1', 'r1', 'r2'])
-    expect(routineIds).toEqual(['r1', 'r2'])
+describe('buildDayEntries', () => {
+  it('builds the day’s entries and names the session after the day', () => {
+    const { entries, name } = buildDayEntries(st, day())
+    expect(entries.map(e => e.id)).toEqual(['0025', '0031'])
+    expect(name).toBe('Strength')
   })
 
-  it('de-dupes a repeated id (first wins) and drops an id with no matching routine', () => {
-    const { entries, routineIds } = buildCombinedEntries(st, ['r1', 'gone', 'r1', 'r2'])
-    expect(routineIds).toEqual(['r1', 'r2'])
-    expect(entries.map(e => e.rid)).toEqual(['r1', 'r1', 'r2'])
+  it('a null day is a freestyle session — no entries', () => {
+    expect(buildDayEntries(st, null)).toEqual({ entries: [], name: 'Freestyle' })
+    expect(buildDayEntries(st, undefined)).toEqual({ entries: [], name: 'Freestyle' })
   })
 
-  it('an empty / null list builds nothing', () => {
-    expect(buildCombinedEntries(st, [])).toMatchObject({ entries: [], routineIds: [], routines: [] })
-    expect(buildCombinedEntries(st, null)).toMatchObject({ entries: [], routineIds: [] })
+  it('an unnamed day still gets a session name', () => {
+    expect(buildDayEntries(st, day({ name: '' })).name).toBe('Freestyle')
   })
 
-  it('a single-element list matches the plain buildSessionEntries path (bar the rid stamp)', () => {
-    const combined = buildCombinedEntries(st, ['r1']).entries.map(({ rid, ...e }) => e)
-    expect(combined).toEqual(buildSessionEntries(st, st.routines[0]))
+  it('an empty day builds nothing but keeps its name', () => {
+    expect(buildDayEntries(st, day({ name: 'Mobility', ex: [] }))).toEqual({ entries: [], name: 'Mobility' })
   })
 
-  it('carries an excluded routine’s per-entry noProg through the merge', () => {
-    const { entries } = buildCombinedEntries(st, ['r1', 'rehab'])
-    expect(entries.find(e => e.id === '0050')).toMatchObject({ rid: 'rehab', noProg: true })
-    expect(entries.find(e => e.id === '0025').noProg).toBeUndefined()
+  it('is exactly the plain buildSessionEntries path, with no per-entry routine stamp', () => {
+    const d = day()
+    const { entries } = buildDayEntries(st, d)
+    expect(entries).toEqual(buildSessionEntries(st, d))
+    expect(entries.every(e => !('rid' in e))).toBe(true)
+  })
+
+  it('carries the day’s per-entry noProg through', () => {
+    const { entries } = buildDayEntries(st, day({ name: 'Rehab', excludeFromProgression: true }))
+    expect(entries.every(e => e.noProg === true)).toBe(true)
+    expect(buildDayEntries(st, day()).entries.every(e => e.noProg === undefined)).toBe(true)
   })
 })
 

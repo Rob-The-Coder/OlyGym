@@ -8,9 +8,9 @@ import { guestAllowed } from '../lib/guest.js'
 import { MOBILE, initReminderSync, nativeLoad, nativeSave, onAppActive, syncReminder, writeAutoBackup } from '../lib/mobile.js'
 import { mergeStates, localExtras } from '../lib/sync-merge.js'
 import { loadRemote, chooseLocal, forgetRemote, connect } from '../lib/remote.js'
-import { loadCoachDevice, saveCoachDevice, coachDeviceSettings } from '../lib/coach-device.js'
 
 import { WC_DEFAULT } from '../lib/workout-controls.js'
+import { migrateToWeeks, needsWeekMigration } from '../lib/migrate-weeks.js'
 
 const KEY = 'gym_state_v1'
 // Where this device stands with the server: the revision it last adopted or pushed, and its own
@@ -23,7 +23,7 @@ const POLL_MS = 30000        // while the app is open and signed in, ask the ser
 export const DEF = {
   unit: 'kg', restSec: 90, restPauseSec: 15, sound: true, soundOnSilent: false, timerFlash: false, keepAwake: true, lang: 'en',
   theme: 'dark', accent: 'lime', body: 'male', targetW: null,
-  bodyweight: [], routines: [], week: {}, dayPlan: {},
+  bodyweight: [], weeks: [],
   exWeights: {}, workouts: [], active: null, customEx: [], gifSize: 'full',
   // Corrections to the reading of a coach's spreadsheet, keyed by the words he wrote (see
   // lib/plan-aliases.js). Kept in the synced state on purpose: every week's sheet repeats the same
@@ -97,12 +97,19 @@ const clone = o => JSON.parse(JSON.stringify(o))
 function loadState() {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return Object.assign(clone(DEF), JSON.parse(raw))
+    if (!raw) return clone(DEF)
+    const state = Object.assign(clone(DEF), JSON.parse(raw))
+    // A profile saved before the dated-weeks model has a repeating plan but no weeks, so the new
+    // field is derived from it on the way in (lib/migrate-weeks.js owns that read). Additive —
+    // the old fields are left exactly as they are. Every plan producer now writes `weeks`, so this
+    // is the one-time load path for a profile from before the model, not a standing translation.
+    if (needsWeekMigration(state)) state.weeks = migrateToWeeks(state, new Date())
+    return state
   } catch (e) { /* ignore */ }
   return clone(DEF)
 }
 
-const hasData = st => !!((st.workouts || []).length || (st.routines || []).length || (st.bodyweight || []).length)
+const hasData = st => !!((st.workouts || []).length || (st.weeks || []).length || (st.bodyweight || []).length)
 
 // Decide whether a pulled account state may replace the local saved state. A local active workout
 // is deliberately carried forward: the server stores completed/saved state, while the in-progress
@@ -325,18 +332,9 @@ export const useStore = create((set, get) => {
     ready: false,
     // Server sync as the banner sees it (components/SyncBanner.jsx). Only meaningful signed in.
     sync: { offline: false, pending: localStorage.getItem('gym_dirty') === '1', lastSynced: 0 },
-    /* Instance capabilities from GET /api/config. `config.coach` is present only when the owner
-       has both enabled the Coach and connected a provider — every Coach entry point in the app
-       hangs off it via coachAvailable(), so an unconfigured instance renders exactly what it
-       always did, and a configured one is the only place any of it appears. */
+    // Instance capabilities from GET /api/config (guest mode, etc.).
     config: null,
     needsMobileOnboarding: false,   // mobile build only — set true by boot() on a genuine first launch
-    // Mobile build only: how the Coach runs on this phone — { mode: 'off'|'server'|'byok',
-    // provider, model, baseUrl } from lib/coach-device.js. Never the key, never a proposal.
-    coachLocal: null,
-    async setCoachLocal(patch) {
-      set({ coachLocal: coachDeviceSettings(await saveCoachDevice(patch)) })
-    },
 
     // Mutate a draft of S via producer fn, then persist + schedule sync.
     update(mut, push = true) {
@@ -367,8 +365,7 @@ export const useStore = create((set, get) => {
       if (get().config) return get().config
       return get().refreshConfig()
     },
-    // Always asks. The cached copy is right for one boot, but an admin can switch the Coach on
-    // while a paired phone sits on the setup screen — that screen wants today's answer.
+    // Always asks, so a paired phone re-reads what the server offers after a config change.
     async refreshConfig() {
       try { const c = await api('/api/config'); set({ config: c }); return c }
       catch { return null }
@@ -553,15 +550,12 @@ export const useStore = create((set, get) => {
       // case it behaves exactly like the signed-in web flow below, straight from here.
       if (MOBILE) {
         const remote = await loadRemote()
-        set({ coachLocal: coachDeviceSettings(await loadCoachDevice()) })
         if (remote?.mode === 'remote') {
           setRemoteAuth(remote.base, remote.token)
           try {
             const me = await api('/api/me')   // also catches a token revoked elsewhere (sign out everywhere)
             get().setUser(me.user)
-            // The paired server's /api/config, the same one the web boot reads: without it the
-            // phone never learned whether the server offers the Coach and told everyone "your
-            // server has no Coach enabled" — with the admin looking at a green test.
+            // The paired server's /api/config, the same one the web boot reads.
             await get().loadConfig()
             await get().pullState()
           } catch (e) {

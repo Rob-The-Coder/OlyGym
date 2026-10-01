@@ -7,8 +7,8 @@
  * entries and lets the newer copy decide everything that has no natural union.
  *
  * Rules, by field:
- *   - scalars and settings, `week`, `dayPlan`, `wc`, `reminder`, …: from the copy with the newer `_ts`
- *   - workouts, routines, customEx, equipProfiles, gymCards: union by id, the newer copy's version
+ *   - scalars and settings, `wc`, `reminder`, …: from the copy with the newer `_ts`
+ *   - workouts, weeks, customEx, equipProfiles, gymCards: union by id, the newer copy's version
  *     of an id that both have; workouts sorted by day and start like every other writer
  *   - bodyweight: union by day, the later-edited (`t`) entry of a day that both have
  *   - favEx: ordered set union, the newer copy first
@@ -85,7 +85,7 @@ export function mergeStates(a, b, { prefer } = {}) {
   const o = n === a ? b : a
   const out = clone(n)
   out.workouts = unionById(n.workouts, o.workouts, workoutKey).map(clone).sort(byDayStart)
-  for (const f of ['routines', 'customEx', 'equipProfiles', 'gymCards']) {
+  for (const f of ['weeks', 'customEx', 'equipProfiles', 'gymCards']) {
     if (list(n[f]).length || list(o[f]).length) out[f] = unionById(n[f], o[f]).map(clone)
   }
   out.bodyweight = mergeBodyweight(n.bodyweight, o.bodyweight).map(clone)

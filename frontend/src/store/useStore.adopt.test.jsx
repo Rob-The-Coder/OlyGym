@@ -13,7 +13,7 @@ import { api } from '../lib/api.js'
 import { DEF, useStore } from './useStore.js'
 
 const clone = value => JSON.parse(JSON.stringify(value))
-const routine = id => ({ id, name: id, ex: [] })
+const week = id => ({ id, startIso: '2026-01-05', name: '', days: [{ dow: 1, name: id, ex: [] }] })
 const workout = (id, d = '2026-09-01') => ({ id, d, start: 1, entries: [] })
 const sync = () => JSON.parse(localStorage.getItem('gym_sync'))
 const puts = () => api.mock.calls.filter(([, o]) => o?.method === 'PUT').map(([, o]) => JSON.parse(o.body))
@@ -21,9 +21,9 @@ const paths = () => api.mock.calls.map(([p]) => p)
 const signedIn = (S, extra = {}) => useStore.setState({ S, user: { id: 'user-1' }, ready: true, sync: { offline: false, pending: false, lastSynced: 0 }, ...extra })
 const netErr = () => new TypeError('Failed to fetch')
 
-const server = { ...clone(DEF), _ts: 100, unit: 'lb', restSec: 60, workouts: [workout('w1')], routines: [routine('r1')], week: { 1: ['r1'] }, _rev: 4 }
+const server = { ...clone(DEF), _ts: 100, unit: 'lb', restSec: 60, workouts: [workout('w1')], weeks: [week('r1')], week: { 1: ['r1'] }, _rev: 4 }
 // what a guest tracked after signing out: newer, one workout, its own routine and settings
-const guest = { ...clone(DEF), _ts: 900, unit: 'kg', restSec: 120, workouts: [workout('w9', '2026-09-11')], routines: [routine('rg')], week: { 2: ['rg'] }, active: { id: 'running' } }
+const guest = { ...clone(DEF), _ts: 900, unit: 'kg', restSec: 120, workouts: [workout('w9', '2026-09-11')], weeks: [week('rg')], week: { 2: ['rg'] }, active: { id: 'running' } }
 
 beforeEach(() => { localStorage.clear(); api.mockReset(); toast.mockReset(); useStore.setState({ S: clone(DEF), user: null, ready: false }) })
 afterEach(() => { vi.useRealTimers(); localStorage.clear(); useStore.setState({ S: clone(DEF), user: null, ready: false }) })
@@ -38,7 +38,7 @@ describe('adoptProfile — sign-in takes the server profile', () => {
     const S = useStore.getState().S
     expect(S.unit).toBe('lb'); expect(S.restSec).toBe(60)
     expect(S.workouts.map(w => w.id)).toEqual(['w1'])
-    expect(S.routines.map(x => x.id)).toEqual(['r1'])
+    expect(S.weeks.map(x => x.id)).toEqual(['r1'])
     expect(S.active).toEqual({ id: 'running' })   // the in-progress session stays with the device
     expect(puts()).toHaveLength(0)
     expect(sync()).toEqual({ rev: 4, ts: 100 })
@@ -53,7 +53,7 @@ describe('adoptProfile — sign-in takes the server profile', () => {
     const S = useStore.getState().S
     expect(S.unit).toBe('lb'); expect(S.week).toEqual({ 1: ['r1'] })
     expect(S.workouts.map(w => w.id)).toEqual(['w1', 'w9'])
-    expect(S.routines.map(x => x.id).sort()).toEqual(['r1', 'rg'])
+    expect(S.weeks.map(x => x.id).sort()).toEqual(['r1', 'rg'])
     expect(puts()).toHaveLength(1)
     expect(puts()[0].baseRev).toBe(4)
     expect(puts()[0].state.workouts.map(w => w.id)).toEqual(['w1', 'w9'])

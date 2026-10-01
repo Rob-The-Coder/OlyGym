@@ -139,20 +139,21 @@ export function buildDemoState() {
     workouts.push(w)
   }
 
-  // A visitor should always have something to press "Start" on, so if they land on a rest day
-  // the next routine in the rotation is moved onto today — which also shows off rescheduling.
-  const dayPlan = {}
-  const tIso = isoOf(today)
-  if (!byWeekday[today.getDay()] && !workouts.some(w => w.d === tIso)) {
-    const order = [snatchDay, cjDay, squatPullDay]
-    const lastName = workouts.length ? workouts[workouts.length - 1].name : squatPullDay.name
-    dayPlan[tIso] = order[(order.findIndex(r => r.name === lastName) + 1) % order.length].id
-  }
+  // One dated week carrying the three starter days, so the Plan tab has a real week and "today"
+  // resolves on Mon/Wed/Fri the way the old repeating schedule did.
+  const weeks = [{
+    id: uid(),
+    startIso: isoOf(new Date(monday(today))),
+    name: '',
+    days: [
+      { dow: 1, name: snatchDay.name, ex: snatchDay.ex },
+      { dow: 3, name: cjDay.name, ex: cjDay.ex },
+      { dow: 5, name: squatPullDay.name, ex: squatPullDay.ex },
+    ],
+  }]
 
   return {
-    routines: [snatchDay, cjDay, squatPullDay],
-    week: { 1: snatchDay.id, 3: cjDay.id, 5: squatPullDay.id },
-    dayPlan,
+    weeks,
     workouts, bodyweight, exWeights,
     targetW: TARGET_W,
     // The history is rated, so the demo turns the column on and the stats get a scale to

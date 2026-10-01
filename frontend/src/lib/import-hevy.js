@@ -7,7 +7,9 @@
 
 import { EXIDX } from './exercises.js'
 import { bpFromName } from './import-csv.js'
-import { uid } from './format.js'
+import { uid, todayISO, isoOf, startOfWeek, MONDAY } from './format.js'
+import { weekDayForPosition } from './migrate-weeks.js'
+import { mergeWeek } from './plan-share.js'
 import { isWarmupRow } from './workout-model.js'
 import { HEVY_ID_MAP, HEVY_TITLE_MAP } from './hevy-id-map.js'
 
@@ -302,9 +304,10 @@ export function parseHevyWorkouts(workouts, templates, { unit = 'kg' } = {}) {
 }
 
 /**
- * Hevy routine → OlyGym routine config.
- * Work sets become `sets`×`reps`/`weight`; warm-ups become `warmupSets`;
- * supersets keep adjacency via `sg`. Always imported as *new* routines.
+ * Hevy routine → one week of `S.weeks`: each Hevy routine becomes a day, on the
+ * Monday/Wednesday/Friday-first order, with the same exercise configs a routine would have had.
+ * Work sets become `sets`×`reps`/`weight`; warm-ups become `warmupSets`; supersets keep
+ * adjacency via `sg`.
  */
 export function parseHevyRoutines(routines, templates, { unit = 'kg' } = {}) {
   const R = makeResolver(templates)
@@ -360,10 +363,7 @@ export function parseHevyRoutines(routines, templates, { unit = 'kg' } = {}) {
     })
 
     out.push({
-      id: 'hr' + uid(),
       name: (r.title || 'Imported').trim() || 'Imported',
-      emoji: 'figureStrength',
-      hevyId: r.id || null,
       ex,
     })
   }
@@ -371,8 +371,15 @@ export function parseHevyRoutines(routines, templates, { unit = 'kg' } = {}) {
   return {
     kind: 'routines',
     source: 'Hevy',
-    routines: out,
+    week: {
+      id: 'hw' + uid(),
+      startIso: isoOf(startOfWeek(todayISO(), MONDAY)),
+      name: '',
+      days: out.map((r, i) => ({ dow: weekDayForPosition(i), name: r.name, ex: r.ex })),
+      customEx: R.customEx()
+    },
     customEx: R.customEx(),
+    routineCount: out.length,
     matched: R.matchedCount(),
     created: R.createdCount(),
     unmatchedNames: R.unmatchedNames(),
@@ -381,39 +388,12 @@ export function parseHevyRoutines(routines, templates, { unit = 'kg' } = {}) {
   }
 }
 
-/** Merge Hevy routines into state — always added as new routines (fresh ids). */
+/** Merge the imported Hevy week into state — appended as a new week (fresh ids). */
 export function mergeHevyRoutines(S, parsed) {
-  S.customEx = S.customEx || []
-  S.routines = S.routines || []
-  const exIdMap = {}
-  ;(parsed.customEx || []).forEach(c => {
-    const same = S.customEx.find(x => (x.n || '').toLowerCase() === (c.n || '').toLowerCase() && x.bp === c.bp)
-    if (same) { exIdMap[c.id] = same.id; return }
-    // Keep the pre-assigned id from parse so routine configs already point at it.
-    if (!S.customEx.some(x => x.id === c.id)) S.customEx.push(c)
-  })
-  // A second import must not double every plan: a routine that already carries the same Hevy
-  // id is replaced in place (its exercises re-read from Hevy), everything else is appended.
-  let added = 0, updated = 0
-  for (const r of parsed.routines || []) {
-    const ex = (r.ex || []).map(e => ({ ...e, id: exIdMap[e.id] || e.id }))
-    const existing = r.hevyId ? S.routines.find(x => x.hevyId === r.hevyId) : null
-    if (existing) {
-      existing.name = r.name
-      existing.ex = ex
-      updated++
-      continue
-    }
-    S.routines.push({
-      id: uid(),
-      name: r.name,
-      emoji: r.emoji || 'figureStrength',
-      ...(r.hevyId ? { hevyId: r.hevyId } : {}),
-      ex,
-    })
-    added++
-  }
-  return { added, updated }
+  const week = parsed?.week
+  if (!week || !(week.days || []).length) return { added: 0, updated: 0 }
+  mergeWeek(S, week)
+  return { added: 1, updated: 0 }
 }
 
 /** Body measurements from the Hevy API → `mergeImport` bodyweight shape. */

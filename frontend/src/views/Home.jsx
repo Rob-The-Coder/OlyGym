@@ -1,15 +1,15 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
-import { effectiveRoutines, effectiveRoutineIds, nextTrainingDay, streakWeeks, lastBW, setsDoneActive } from '../lib/history.js'
+import { effectiveDay, nextTrainingDay, streakWeeks, lastBW, setsDoneActive } from '../lib/history.js'
+import { weekFor } from '../lib/weeks.js'
 import { fmtNum, fmtDate, todayISO, isoOf, weekKey, weekStartOf, weekDayOffset, DAYS, DAYN } from '../lib/format.js'
 import { t, dateLocale } from '../lib/i18n.js'
-import { bwSheet, goalSheet, dayOverrideSheet, calendarSheet, startFlow, starterPlanSheet, bwDeltaColor } from '../sheets.jsx'
+import { bwSheet, goalSheet, calendarSheet, startFlow, starterPlanSheet, bwDeltaColor } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
 import { Button } from '../components/ui.jsx'
 import { tappable } from '../lib/use-sheet-keyboard.js'
-import { glyphOf } from '../lib/glyphs.js'
 
 // Home = what to do now + a quick glance. Deep charts & history live in Stats.
 export default function Home() {
@@ -19,14 +19,14 @@ export default function Home() {
   const [weekOffset, setWeekOffset] = useState(0)
 
   const today = new Date()
-  // A weekday can hold several routines. `todayRoutines` is the whole day; `routine` is the
-  // first, kept for the one-routine glyph. The derived session name joins them (§9).
-  const todayRoutines = effectiveRoutines(S, todayISO())
-  const routine = todayRoutines[0] || null
-  const todayName = todayRoutines.map(r => r.name).join(' + ')
-  const todayOvr = S.dayPlan[todayISO()] !== undefined
+  // A day is the whole session: it already holds every exercise, so there is nothing to combine
+  // and one name to show. A day planned with nothing on it is not a session to start — the same
+  // guard the tab bar and the start screen apply — so it reads as nothing to train here.
+  const todayDay = effectiveDay(S, todayISO())
+  const todayName = todayDay?.name || ''
+  const todaySession = (todayDay?.ex || []).length ? todayDay : null
   // On a rest day, saying when you train next beats leaving the row as a full stop.
-  const next = !S.active && !todayRoutines.length ? nextTrainingDay(S, todayISO()) : null
+  const next = !S.active && !todaySession ? nextTrainingDay(S, todayISO()) : null
   const bw = lastBW(S)
   const prevBW = S.bodyweight.length > 1 ? S.bodyweight[S.bodyweight.length - 2] : null
   const delta = bw && prevBW ? bw.w - prevBW.w : null
@@ -44,21 +44,25 @@ export default function Home() {
   for (let i = 0; i < 7; i++) {
     const d = new Date(wkStart); d.setDate(wkStart.getDate() + i)
     const iso = isoOf(d)
-    const eff = effectiveRoutineIds(S, iso).length > 0, ovr = S.dayPlan[iso] !== undefined, done = doneDays.has(iso)
-    const dot = done ? ' done' : ovr && eff ? ' ovr' : eff ? ' plan' : ''
-    strip.push(<div key={i} className={'wday' + (iso === todayISO() ? ' today' : '')} {...tappable(() => dayOverrideSheet(iso))}>
+    const planned = effectiveDay(S, iso) != null, done = doneDays.has(iso)
+    const dot = done ? ' done' : planned ? ' plan' : ''
+    // The strip is a glance, not an editor: a day that is planned opens nothing, and the plan
+    // itself (the dated weeks) is where a day gets changed.
+    strip.push(<div key={i} className={'wday' + (iso === todayISO() ? ' today' : '')} {...tappable(() => nav('/plan'))}>
       <div className="lbl">{t(DAYS[d.getDay()])}</div><div className="num">{d.getDate()}</div><div className={'dot' + dot} /></div>)
   }
   const wkEnd = new Date(wkStart); wkEnd.setDate(wkStart.getDate() + 6)
   const wkLabel = weekOffset === 0 ? t('This week') : `${wkStart.getDate()} ${wkStart.toLocaleDateString(dateLocale(), { month: 'short' })} – ${wkEnd.getDate()} ${wkEnd.toLocaleDateString(dateLocale(), { month: 'short' })}`
 
   const wThisWeek = S.workouts.filter(w => weekKey(w.d, ws) === weekKey(todayISO(), ws)).length
-  // Days scheduled, not routines — a combined day counts as 1, matching wThisWeek (one w).
-  const plannedPerWeek = Object.values(S.week).filter(ids => ids?.length).length
+  // Days scheduled in the week you are in, not routines — one day is one session, matching
+  // wThisWeek (one w). A date with no week covering it simply has nothing planned.
+  const plannedPerWeek = (weekFor(S, todayISO())?.days || []).length
   const bwPoints = S.bodyweight.slice(-30).map(b => ({ t: b.t || new Date(b.d).getTime(), y: b.w, d: b.d }))
 
-  // today's session shown right under the week strip
-  const onToday = () => { if (S.active) nav('/workout'); else if (todayRoutines.length) startFlow(effectiveRoutineIds(S, todayISO())); else dayOverrideSheet(todayISO()) }
+  // today's session shown right under the week strip. Nothing to train (a rest day, or a day
+  // planned empty) has no session to start, so the row is the door to the plan instead.
+  const onToday = () => { if (S.active) nav('/workout'); else if (todaySession) startFlow(todaySession); else nav('/plan') }
 
   return <div className="narrow">
     <div className="hdr">
@@ -80,21 +84,21 @@ export default function Home() {
           row keeps working, so a second session in one day is a tap away, just not urged. */}
       <div className="today-row" {...tappable(onToday)}>
         <div className="row" style={{ gap: 9, minWidth: 0 }}>
-          <span className="lrow-i" style={{ background: S.active ? 'var(--orange)' : doneToday ? 'var(--surface-3)' : routine ? 'var(--acc)' : 'var(--surface-3)' }}>
-            <Icon name={S.active ? 'timer' : doneToday ? 'checkCircle' : routine ? glyphOf(routine.emoji) : 'moon'}
+          <span className="lrow-i" style={{ background: S.active ? 'var(--orange)' : doneToday ? 'var(--surface-3)' : todaySession ? 'var(--acc)' : 'var(--surface-3)' }}>
+            <Icon name={S.active ? 'timer' : doneToday ? 'checkCircle' : todaySession ? 'dumbbell' : 'moon'}
               style={doneToday && !S.active ? { color: 'var(--green)' } : undefined} />
           </span>
           <div style={{ minWidth: 0 }}>
             <div className="lbl2">{t('Today')}</div>
             <div className="ttl">{S.active ? t('{0} — in progress', S.active.name)
               : doneToday ? (doneToday.name ? t('{0} — done', doneToday.name) : t('Workout done'))
-              : routine ? todayName : t('Rest day')}{todayOvr && routine && !doneToday ? ' · ' + t('rescheduled') : ''}</div>
-            {next && !doneToday && <div className="ss">{t('Next session: {0}, {1}', t(DAYN[next.weekday]), next.routine.name)}</div>}
+              : todayDay ? todayName : t('Rest day')}</div>
+            {next && !doneToday && <div className="ss">{t('Next session: {0}, {1}', t(DAYN[next.weekday]), next.day.name)}</div>}
           </div>
         </div>
         {S.active ? <span className="tag" style={{ color: 'var(--orange)', background: 'color-mix(in srgb,var(--orange) 16%,transparent)' }}>{t('Resume')}</span>
           : doneToday ? <span className="tag" style={{ color: 'var(--green)', background: 'color-mix(in srgb,var(--green) 16%,transparent)' }}>{t('Done')}</span>
-          : routine ? <span className="tag acc">{t('Start')}</span>
+          : todaySession ? <span className="tag acc">{t('Start')}</span>
           : <Icon name="plus" className="chev" />}
       </div>
       {/* The row above starts today's plan in one tap, and so does the Start button in the tab
@@ -127,7 +131,8 @@ export default function Home() {
       </div>
     )}
 
-    {!S.routines.length && !S.active && (
+    {/* No week planned and nothing running: the offer to build a plan. */}
+    {!(S.weeks || []).length && !S.active && (
       <div className="card">
         <div className="row" style={{ gap: 10, marginBottom: 6 }}>
           <span className="lrow-i"><Icon name="sparkles" /></span>

@@ -1,5 +1,6 @@
 // Pure helpers over the state object S (ported 1:1 from the vanilla app).
 import { todayISO, isoOf, weekKey, weekStartOf, fmtNum } from './format.js'
+import { dayFor } from './weeks.js'
 import { isCardio, isBodyweightEq, isAssisted, betterWeight } from './exercises.js'
 import { phaseForSet, modeForSet, modeForEntry, isWarmupRow, normalizeMode, completedVolumeOf, nextDropWeight, splitBurstReps, makeSideSet, isSideSet, syncSideAggregate } from './workout-model.js'
 const objectOf = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {}
@@ -221,11 +222,11 @@ export function unpairSuperset(items, idx) {
 /**
  * Is this completed entry excluded from progression / session read-back?
  *
- * "Excluded" moved from a whole-workout flag to a per-entry one (ENG-11): a rehab routine
- * combined with real work excludes only its own exercises. A legacy workout carries the
- * whole-workout flag and no per-entry field, so every one of its entries reads as excluded.
- * `noProg` is frozen onto the entry from its source routine's `excludeFromProgression` at
- * build time — editing the routine flag later never rewrites a saved session.
+ * "Excluded" moved from a whole-workout flag to a per-entry one (ENG-11): an excluded day
+ * carries only its own exercises. A legacy workout carries the whole-workout flag and no
+ * per-entry field, so every one of its entries reads as excluded.
+ * `noProg` is frozen onto the entry from its day's `excludeFromProgression` at build time —
+ * editing the day's flag later never rewrites a saved session.
  */
 export function entryExcluded(w, entry) {
   return w?.excludeFromProgression === true || entry?.noProg === true
@@ -307,48 +308,30 @@ export function bestWeightFor(S, exId) {
   return best
 }
 /**
- * The routines planned for a date, in merge order. Plural is the primary form now that a
- * weekday can hold several routines (`S.week[wd]` is `string[]`); the singular helpers below
- * are thin wrappers. `[]` — a stray empty array, or a key that is absent — all mean rest, so
- * "is this a rest day?" is `effectiveRoutineIds(S, iso).length === 0`.
+ * The day planned for a date — the day object itself, or null for a rest day, a gap between
+ * weeks, or a weekday this week leaves out. A day IS the whole session now, so "is this a rest
+ * day?" is `effectiveDay(S, iso) === null` and there is no plural form to resolve.
  *
- * `S.dayPlan[iso]` stays scalar (a routine id, the `'rest'` sentinel, or undefined): the
- * per-date override and Start-time are single-pick. All array-tolerance is on `S.week`.
+ * A thin alias for weeks.js's `dayFor`, kept here because every session-path reader already
+ * imports this module and the two must never drift.
  */
-export function effectiveRoutineIds(S, iso) {
-  const ov = S.dayPlan[iso]
-  if (ov === 'rest') return []
-  if (ov && S.routines.some(r => r.id === ov)) return [ov]
-  const wd = new Date(iso + 'T12:00:00').getDay()
-  return [].concat(S.week[wd] || []).filter(id => S.routines.some(r => r.id === id))
-}
-export function effectiveRoutines(S, iso) {
-  return effectiveRoutineIds(S, iso).map(id => S.routines.find(r => r.id === id)).filter(Boolean)
-}
-export const effectiveRoutineId = (S, iso) => effectiveRoutineIds(S, iso)[0] ?? null
-export const effectiveRoutine = (S, iso) => effectiveRoutines(S, iso)[0] ?? null
+export const effectiveDay = (S, iso) => dayFor(S, iso)
 
 /**
  * The next day that actually has something to train, looking forward from `iso` (exclusive).
  *
  * Takes a date string rather than reading the clock so callers and tests agree on "today".
- * A routine with no exercises does not count: starting one lands you in an empty session, so
- * it is not an answer to "what is next" (the same guard TabBar applies before starting). On a
- * combined day, any one routine with exercises makes the day trainable.
+ * A day with no exercises does not count: starting one lands you in an empty session, so it is
+ * not an answer to "what is next" (the same guard TabBar applies before starting).
  * Returns null when the whole week is rest.
- *
- * Return shape carries `routines` (the whole day) plus `routine` = `routines[0]` for the
- * "what's next" label.
  */
 export function nextTrainingDay(S, iso) {
   for (let i = 1; i <= 7; i++) {
     const d = new Date(iso + 'T12:00:00')
     d.setDate(d.getDate() + i)
     const nextIso = isoOf(d)
-    const routines = effectiveRoutines(S, nextIso)
-    if (routines.some(r => (r.ex || []).length)) {
-      return { iso: nextIso, weekday: d.getDay(), routines, routine: routines[0] }
-    }
+    const day = dayFor(S, nextIso)
+    if (day && (day.ex || []).length) return { iso: nextIso, weekday: d.getDay(), day }
   }
   return null
 }

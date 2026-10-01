@@ -1,27 +1,28 @@
 // @vitest-environment happy-dom
-// Home and Plan both offer the starter plan to someone who has no routines yet. Both used to
-// wire the button straight to the loader, which quietly handed the click event in as the plan
-// id and loaded nothing at all — so both entry points are pinned here.
+// Home offers the starter plan to someone who has no routines yet. It used to wire the button
+// straight to the loader, which quietly handed the click event in as the plan id and loaded
+// nothing at all — so the entry point is pinned here. (Plan's own offer went away in Stage B:
+// the weeks timeline no longer loads a repeating plan.)
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { useStore } from '../store/useStore.js'
+import { todayISO } from '../lib/format.js'
 import { starterPlanSheet } from '../sheets.jsx'
 import Home from './Home.jsx'
-import Plan from './Plan.jsx'
 
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
 vi.mock('../sheets.jsx', () => ({
-  starterPlanSheet: vi.fn(), bwSheet: vi.fn(), goalSheet: vi.fn(), dayOverrideSheet: vi.fn(),
+  starterPlanSheet: vi.fn(), bwSheet: vi.fn(), goalSheet: vi.fn(),
   calendarSheet: vi.fn(), startFlow: vi.fn(), bwDeltaColor: () => '',
-  dayAssignSheet: vi.fn(), planToolsSheet: vi.fn(),
+  planToolsSheet: vi.fn(),
 }))
 
 let host, root
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
   starterPlanSheet.mockClear()
-  useStore.setState(s => ({ S: { ...s.S, routines: [], week: {}, active: null }, user: null }))
+  useStore.setState(s => ({ S: { ...s.S, routines: [], week: {}, weeks: [], active: null }, user: null }))
   host = document.createElement('div')
   document.body.appendChild(host)
   root = createRoot(host)
@@ -33,9 +34,9 @@ afterEach(() => {
 
 const starterButton = () => [...host.querySelectorAll('button')].find(b => b.textContent === 'Load starter plan')
 
-describe.each([['Home', Home], ['Plan', Plan]])('%s empty state', (_name, View) => {
+describe('Home empty state', () => {
   it('opens the starter plan chooser instead of loading one plan blind', () => {
-    act(() => root.render(<View />))
+    act(() => root.render(<Home />))
     const button = starterButton()
     expect(button).toBeTruthy()
 
@@ -43,9 +44,12 @@ describe.each([['Home', Home], ['Plan', Plan]])('%s empty state', (_name, View) 
     expect(starterPlanSheet).toHaveBeenCalledTimes(1)
   })
 
-  it('drops the offer once the user has routines', () => {
-    useStore.setState(s => ({ S: { ...s.S, routines: [{ id: 'r', name: 'Mine', emoji: 'star', ex: [] }] } }))
-    act(() => root.render(<View />))
+  it('drops the offer for a plan built in the dated weeks, with no routines behind it', () => {
+    useStore.setState(s => ({ S: {
+      ...s.S,
+      weeks: [{ id: 'w1', startIso: todayISO(), name: '', days: [{ dow: 1, name: 'Push', ex: [{ id: '0025' }] }] }],
+    } }))
+    act(() => root.render(<Home />))
     expect(starterButton()).toBeFalsy()
   })
 })

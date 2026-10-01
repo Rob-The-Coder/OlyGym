@@ -1,24 +1,30 @@
-// Turn one week of the coach's sheet into routines this app can train.
+// Turn one week of the coach's sheet into a week of the dated plan.
 //
 // Two steps, kept apart on purpose. `reviewWeek` reads a sheet and proposes an exercise, a rep
 // scheme, a load and a note for every row — nothing is written, and the review screen renders
-// exactly this. `bundleFromWeek` turns the reviewed week into the same plan bundle a shared plan
-// file uses, so importing it goes through parsePlan/mergePlan: the routines arrive as new
-// routines, a custom exercise the coach asked for is created once, and the weights are converted
-// to whatever unit the account is in.
+// exactly this. `bundleFromWeek` turns the reviewed week into a week of `S.weeks`: each of the
+// coach's days becomes a day on Monday/Wednesday/Friday, a custom exercise the coach asked for
+// is created once, and the weights are converted to whatever unit the account is in. The screen
+// merges it straight into state with `mergeWeek` — the review is already local, so nothing is
+// re-serialised through a plan file.
 //
 // What the sheet says is kept where the catalogue has no word for it. A load written as a
 // sentence ("Trova peso congruo", "se ok ultime due a 75kg") becomes a note, and only a load the
 // text *starts* with becomes a weight: "poi togli 10kg" is an instruction, not a 10 kg bar, and a
 // wrong number nobody reads twice is worse than a note that says what the coach actually wrote.
 
-import { uid, todayISO } from './format.js'
+import { uid, todayISO, isoOf, startOfWeek, MONDAY } from './format.js'
 import { readCoachSheet, splitComplex } from './coach-sheet.js'
 import { matchName } from './plan-aliases.js'
+import { convertedExercise } from './plan-share.js'
 import { NOTE_MAX } from './history.js'
 
 export const DEFAULT_SETS = 3
 export const DEFAULT_REPS = 10
+
+// Monday, Wednesday, Friday first — where a three-day program normally goes — then the other
+// weekdays in order (see migrate-weeks.js's weekDayForPosition).
+export const WEEK_PLAN = [1, 3, 5, 2, 4, 6, 0]
 
 // "Settimana 23-29 marzo 2026" is a week, not a routine name: the day and the dates are enough.
 export function sheetLabel(name) {
@@ -162,38 +168,35 @@ function customOf(review, entry, made) {
 }
 
 /**
- * The reviewed week as a plan bundle — the same shape a shared plan file has, so it goes in
- * through parsePlan/mergePlan and arrives as new routines with fresh ids.
+ * The reviewed week as one week of `S.weeks` — the coach's days are scheduled Monday/Wednesday/
+ * Friday (or the `days` list given), each carrying the exercise configs a routine would have had.
  *
- *   days   weekday numbers (0 = Sunday) to put the routines on, in order, or null for none
+ *   unit   the account's unit; the sheet itself is always kilos, so the weights are converted here
+ *   days   weekday numbers (0 = Sunday), in order, to put the days on; defaults to WEEK_PLAN
+ *
+ * The returned week carries `customEx` — the user's own exercises it references, consumed and
+ * stripped by mergeWeek. The review is already local, so there is no plan file to parse.
  */
 export function bundleFromWeek(review, { unit = 'kg', name = '', days = null } = {}) {
   const made = new Map()
-  const routines = review.days.map(day => {
+  const dows = days && days.length ? days : WEEK_PLAN
+  const out = review.days.map((day, i) => {
     const ex = day.entries.map(entry => {
-      const out = { id: entry.custom ? customOf(review, entry, made) : entry.id, sets: entry.sets }
-      if (entry.mode === 'time') { out.mode = 'time'; out.sec = entry.sec || 45 } else { out.reps = entry.reps || DEFAULT_REPS }
-      if (entry.weight) out.weight = entry.weight
-      if (entry.side) out.side = true
-      if (entry.sg) out.sg = entry.sg
-      if (entry.note) out.note = entry.note
-      return out
+      const cfg = { id: entry.custom ? customOf(review, entry, made) : entry.id, sets: entry.sets }
+      if (entry.mode === 'time') { cfg.mode = 'time'; cfg.sec = entry.sec || 45 } else { cfg.reps = entry.reps || DEFAULT_REPS }
+      if (entry.weight) cfg.weight = entry.weight
+      if (entry.side) cfg.side = true
+      if (entry.sg) cfg.sg = entry.sg
+      if (entry.note) cfg.note = entry.note
+      return convertedExercise(cfg, 'kg', unit)
     })
-    return { id: uid(), name: day.name, ex }
-  })
-  const week = {}
-  if (days) routines.forEach((r, i) => {
-    const d = days[i]
-    if (d == null) return
-    week[d] = [].concat(week[d] || [], r.id)
+    return { dow: dows[i] ?? WEEK_PLAN[i % WEEK_PLAN.length], name: day.name, ex }
   })
   return {
-    opengym_plan: 1,
-    exported: todayISO(),
+    id: uid(),
+    startIso: isoOf(startOfWeek(todayISO(), MONDAY)),
     name: name || review.label,
-    unit,
-    week,
-    routines,
+    days: out,
     customEx: [...made.values()]
   }
 }

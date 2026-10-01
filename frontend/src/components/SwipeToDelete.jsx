@@ -12,15 +12,9 @@ import { t } from '../lib/i18n.js'
 // silently ignored, and on iOS Safari a touch that starts on a row gets claimed for page
 // scroll before a passive handler ever gets a say. Axis-locking matters just as much: this
 // only calls preventDefault once a touch has clearly gone more horizontal than vertical, so a
-// normal vertical scroll — or a long-press-then-drag reorder gesture elsewhere on the same
-// row (RoutineEdit's own drag-to-reorder) — is never hijacked; both start with the touch
-// essentially stationary or moving on the y axis, and this backs off the instant it can tell.
-// This deliberately does NOT set data-nodrag on the wrapper: that would opt every row out of
-// drag-to-reorder entirely (confirmed by RoutineEdit.drag.test.jsx failing when it was here)
-// rather than just out of this one gesture. A fast horizontal swipe cancels the reorder's
-// pending long-press before it ever fires (movement clears its slop threshold too soon), and
-// a genuine long-press-drag is vertical, so the axis lock below hands it back untouched —
-// the two are already mutually exclusive by shape, without needing to be forced apart.
+// normal vertical scroll is never hijacked — both start with the touch essentially stationary
+// or moving on the y axis, and this backs off the instant it can tell. No row here carries a
+// drag-to-reorder gesture any more, so the wrapper sets no `data-nodrag` for one to opt out of.
 //
 // The row keeps its own opaque background rather than trusting whatever sits behind it in the
 // DOM (a `.card`'s fill, usually) — without it the red button peeks out at the row's edge even

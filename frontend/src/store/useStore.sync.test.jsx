@@ -14,7 +14,7 @@ import { api } from '../lib/api.js'
 import { DEF, useStore } from './useStore.js'
 
 const clone = value => JSON.parse(JSON.stringify(value))
-const routine = id => ({ id, name: id, ex: [] })
+const week = id => ({ id, startIso: '2026-01-05', name: '', days: [{ dow: 1, name: id, ex: [] }] })
 const workout = (id, d = '2026-09-01') => ({ id, d, start: 1, entries: [] })
 const httpError = (status, data) => Object.assign(new Error(data?.error || 'HTTP ' + status), { status, data })
 const sync = () => JSON.parse(localStorage.getItem('gym_sync'))
@@ -97,18 +97,18 @@ describe('pull against a revisioned server', () => {
 
   it('a first pull with a newer server copy adopts it and starts the marker', async () => {
     signedIn(clone(DEF))
-    api.mockResolvedValueOnce({ state: { ...clone(DEF), _ts: 50, routines: [routine('r')], _rev: 5 }, rev: 5 })
+    api.mockResolvedValueOnce({ state: { ...clone(DEF), _ts: 50, weeks: [week('r')], _rev: 5 }, rev: 5 })
 
     await useStore.getState().pullState()
 
     expect(puts()).toHaveLength(0)
-    expect(useStore.getState().S.routines.map(r => r.id)).toEqual(['r'])
+    expect(useStore.getState().S.weeks.map(r => r.id)).toEqual(['r'])
     expect(sync()).toEqual({ rev: 5, ts: 50 })
   })
 
   it('a first pull with a newer local copy pushes it against the server revision', async () => {
-    signedIn({ ...clone(DEF), _ts: 500, routines: [routine('local')] })
-    api.mockResolvedValueOnce({ state: { ...clone(DEF), _ts: 50, routines: [routine('remote')], _rev: 5 }, rev: 5 })
+    signedIn({ ...clone(DEF), _ts: 500, weeks: [week('local')] })
+    api.mockResolvedValueOnce({ state: { ...clone(DEF), _ts: 50, weeks: [week('remote')], _rev: 5 }, rev: 5 })
     api.mockResolvedValueOnce({ ok: true, rev: 6 })
 
     await useStore.getState().pullState()
@@ -134,7 +134,7 @@ describe('pull against a revisioned server', () => {
 
 describe('push against a revisioned server', () => {
   it('sends the marker revision as baseRev and records the one it gets back', async () => {
-    signedIn({ ...clone(DEF), _ts: 120, routines: [routine('r')] })
+    signedIn({ ...clone(DEF), _ts: 120, weeks: [week('r')] })
     localStorage.setItem('gym_sync', JSON.stringify({ rev: 4, ts: 100 }))
     api.mockResolvedValueOnce({ ok: true, rev: 5 })
 
@@ -177,11 +177,11 @@ describe('push against a revisioned server', () => {
 
   it('a replace meant for the server goes without a baseRev, the change after it with one', async () => {
     vi.useFakeTimers()
-    signedIn({ ...clone(DEF), _ts: 100, routines: [routine('old')] })
+    signedIn({ ...clone(DEF), _ts: 100, weeks: [week('old')] })
     localStorage.setItem('gym_sync', JSON.stringify({ rev: 4, ts: 100 }))
     api.mockResolvedValueOnce({ ok: true, rev: 5 }).mockResolvedValueOnce({ ok: true, rev: 6 })
 
-    useStore.getState().replaceState({ ...clone(DEF), routines: [routine('imported')] }, true)
+    useStore.getState().replaceState({ ...clone(DEF), weeks: [week('imported')] }, true)
     await vi.advanceTimersByTimeAsync(2000)
     expect(puts()).toHaveLength(1)
     expect('baseRev' in puts()[0]).toBe(false)
@@ -194,7 +194,7 @@ describe('push against a revisioned server', () => {
   })
 
   it('a push asked for during a push runs once after it, and the caller waits for it', async () => {
-    signedIn({ ...clone(DEF), _ts: 100, routines: [routine('r')] })
+    signedIn({ ...clone(DEF), _ts: 100, weeks: [week('r')] })
     let release
     api.mockImplementationOnce(() => new Promise(r => { release = () => r({ ok: true, rev: 1 }) }))
     api.mockResolvedValue({ ok: true, rev: 2 })
@@ -213,7 +213,7 @@ describe('push against a revisioned server', () => {
   })
 
   it('a server without revisions drops the marker', async () => {
-    signedIn({ ...clone(DEF), _ts: 100, routines: [routine('r')] })
+    signedIn({ ...clone(DEF), _ts: 100, weeks: [week('r')] })
     localStorage.setItem('gym_sync', JSON.stringify({ rev: 4, ts: 100 }))
     api.mockResolvedValueOnce({ ok: true })
 
@@ -252,7 +252,7 @@ describe('ordering', () => {
       if (path === '/api/me') return { user: { id: 'user-1', name: 'One' } }
       if (path === '/api/data' && !opts) {
         useStore.getState().update(s => { s.restSec = 30 })   // a change while the pull is in flight
-        return { state: { ...clone(DEF), _ts: 10, routines: [routine('r')], _rev: 1 }, rev: 1 }
+        return { state: { ...clone(DEF), _ts: 10, weeks: [week('r')], _rev: 1 }, rev: 1 }
       }
       return { ok: true, rev: 2 }
     })
@@ -265,17 +265,17 @@ describe('ordering', () => {
     expect(puts()).toHaveLength(1)
     expect(puts()[0].baseRev).toBe(1)
     expect(puts()[0].state.restSec).toBe(30)
-    expect(puts()[0].state.routines.map(r => r.id)).toEqual(['r'])
+    expect(puts()[0].state.weeks.map(r => r.id)).toEqual(['r'])
     expect(useStore.getState().S.restSec).toBe(30)
-    expect(useStore.getState().S.routines.map(r => r.id)).toEqual(['r'])
+    expect(useStore.getState().S.weeks.map(r => r.id)).toEqual(['r'])
     expect(useStore.getState().ready).toBe(true)
   })
 
   it('a pull sends a push still waiting in the debounce first', async () => {
     vi.useFakeTimers()
-    signedIn({ ...clone(DEF), _ts: 100, routines: [routine('r')] })
+    signedIn({ ...clone(DEF), _ts: 100, weeks: [week('r')] })
     localStorage.setItem('gym_sync', JSON.stringify({ rev: 1, ts: 100 }))
-    api.mockImplementation(async (path, opts) => opts ? { ok: true, rev: 2 } : { state: { ...clone(DEF), _ts: 100, routines: [routine('r')], _rev: 2 }, rev: 2 })
+    api.mockImplementation(async (path, opts) => opts ? { ok: true, rev: 2 } : { state: { ...clone(DEF), _ts: 100, weeks: [week('r')], _rev: 2 }, rev: 2 })
 
     useStore.getState().update(s => { s.restSec = 30 })   // arms the 1.5 s push
     const pull = useStore.getState().pullState()
@@ -290,9 +290,9 @@ describe('ordering', () => {
 
   it('coming back to the tab pulls, not twice within 15 s, and going online always does', async () => {
     vi.useFakeTimers()
-    signedIn({ ...clone(DEF), _ts: 100, routines: [routine('r')] })
+    signedIn({ ...clone(DEF), _ts: 100, weeks: [week('r')] })
     localStorage.setItem('gym_sync', JSON.stringify({ rev: 1, ts: 100 }))
-    api.mockResolvedValue({ state: { ...clone(DEF), _ts: 100, routines: [routine('r')], _rev: 1 }, rev: 1 })
+    api.mockResolvedValue({ state: { ...clone(DEF), _ts: 100, weeks: [week('r')], _rev: 1 }, rev: 1 })
     const visible = () => {
       Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
       document.dispatchEvent(new Event('visibilitychange'))

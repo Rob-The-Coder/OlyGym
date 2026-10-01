@@ -3,6 +3,7 @@
    tool call without a restart. */
 import fs from 'node:fs'
 import path from 'node:path'
+import { weekFor } from '../../frontend/src/lib/weeks.js'
 
 const DATA_DIR = process.env.OPENGYM_DATA || path.join(process.cwd(), 'data')
 
@@ -62,7 +63,7 @@ export function init() {
   const file = stateFile(_uid)
   if (fs.existsSync(file)) {
     _state = readJsonOrNull(file)
-    if (_state) _state = Object.assign({}, defaultsShape(), _state)
+    if (_state) { _state = Object.assign({}, defaultsShape(), _state); deriveRoutineView(_state) }
     try { _loadedMtime = fs.statSync(file).mtimeMs } catch {}
   }
   if (_watcher) _watcher.close()
@@ -100,6 +101,7 @@ export function getState() {
       // Same shape the frontend builds on pullState — defaults merged with stored state so any
       // field the app added since the snapshot was last saved shows up undefined-safe.
       _state = Object.assign({}, defaultsShape(), fresh)
+      deriveRoutineView(_state)
       _loadedMtime = mtime
     } else if (_state === undefined) {
       _state = null  // no state file at all — never signed in on a device
@@ -122,6 +124,7 @@ export function _seedStateForTests(state) {
   _uid = 'test-uid'
   _db = { users: [{ id: _uid, name: 'Test', created: '2026-07-26T00:00:00.000Z' }], creds: [], subs: [], invites: [] }
   _state = state
+  if (_state) deriveRoutineView(_state)
   _loadedMtime = Number.MAX_SAFE_INTEGER   // never re-read from disk in a test
   if (_watcher) { _watcher.close(); _watcher = null }
 }
@@ -130,8 +133,37 @@ function defaultsShape() {
   return {
     unit: 'kg', restSec: 90, sound: true, lang: 'en',
     theme: 'dark', accent: 'lime', body: 'male', targetW: null,
-    bodyweight: [], routines: [], week: {}, dayPlan: {},
+    bodyweight: [], routines: [], week: {}, dayPlan: {}, weeks: [],
     exWeights: {}, workouts: [], customEx: [], gifSize: 'full',
     reminder: { on: false, time: '08:00', tz: null }
   }
+}
+
+// The mcp tools keep a routine-shaped contract (list_routines/get_routine/get_week_plan), but
+// the app now stores a dated-weeks plan (S.weeks). Derive a routine + week + dayPlan view of the
+// current week so those tools keep working without a rewrite. A state that already carries
+// routines (an older profile, or a test fixture) is left alone.
+function deriveRoutineView(S) {
+  if (!S || !Array.isArray(S.weeks) || !S.weeks.length) return
+  if ((S.routines || []).length) return
+  const d = new Date()
+  const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
+  const w = weekFor(S, iso)
+  if (!w) return
+  const routines = []
+  const week = {}
+  for (const day of (w.days || [])) {
+    const id = `${w.id}:${day.dow}`
+    routines.push({
+      id,
+      name: day.name || '',
+      emoji: null,
+      ex: day.ex || [],
+      ...(day.excludeFromProgression === true ? { excludeFromProgression: true } : {}),
+    })
+    week[day.dow] = id
+  }
+  S.routines = routines
+  S.week = week
+  S.dayPlan = {}
 }

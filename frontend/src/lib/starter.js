@@ -4,8 +4,8 @@
 //
 // A routine is [key, name, emoji, [[exerciseId, sets, reps], …]]. The key is what a plan's
 // schedule points at, so a weekday never depends on the position of a routine in the array.
-// Names stay canonical English — they become ordinary user routines, which are not translated.
-import { uid } from './format.js'
+// Names stay canonical English — they become ordinary user days, which are not translated.
+import { uid, isoOf, startOfWeek, MONDAY } from './format.js'
 
 // Exercise ids below are from the OlyGym catalogue (see exercises-data.js): "wl" + the
 // Catalyst Athletics exercise-page id. Snatch = wl58, Power snatch = wl61, Snatch pull = wl97,
@@ -38,8 +38,8 @@ const FIVE_BY_FIVE = [
   ['5x5-c', '5×5 C', 'barbell', [['wl77', 5, 5], ['wl183', 5, 5], ['wl39', 5, 5]]]
 ]
 
-// [weekday, routineKey] — weekday is a DAYN index, so 1 is Monday. Fixed weeks only: every
-// plan repeats the same seven days, which is all the weekly plan model can represent.
+// [weekday, routineKey] — weekday is a DAYN index, so 1 is Monday. Every plan is one concrete
+// calendar week, placed on its own weekdays.
 const PLANS = {
   ppl: { routines: PPL, schedule: [[1, 'snatch'], [3, 'cj'], [5, 'squat-pull']] },
   'upper-lower': { routines: UPPER_LOWER, schedule: [[1, 'tech-a'], [2, 'strength-a'], [4, 'tech-b'], [5, 'strength-b']] },
@@ -62,13 +62,25 @@ export const starterPlanOptions = () =>
 // The weekdays a plan would claim, or null for an unknown id.
 export const starterPlanDays = id => PLANS[id]?.schedule.map(([day]) => day) ?? null
 
-// Fresh routines plus the weekdays to put them on, or null for an unknown id — a caller that
-// treats null as "change nothing" can never half-apply a plan.
-export const buildStarterPlan = id => {
+/**
+ * One dated week of `S.weeks` for the plan, or null for an unknown id — a caller that treats
+ * null as "change nothing" can never half-apply a plan. `name` is the translated plan name (the
+ * copy lives in sheets.jsx); `now`/`weekStart` place the week in the profile's current one.
+ */
+export const buildStarterPlan = (id, { name = '', now = new Date(), weekStart = MONDAY } = {}) => {
   const plan = PLANS[id]
   if (!plan) return null
   const routines = build(plan.routines)
-  // key → the id just minted for it, so the schedule below names its routine
-  const byKey = Object.fromEntries(plan.routines.map(([key], i) => [key, routines[i].id]))
-  return { routines, schedule: plan.schedule.map(([day, key]) => ({ day, routineId: byKey[key] })) }
+  // key → the routine just built for it, so the schedule below names its exercises
+  const byKey = Object.fromEntries(plan.routines.map(([key], i) => [key, routines[i]]))
+  return {
+    id: uid(),
+    startIso: isoOf(startOfWeek(isoOf(now), weekStart)),
+    name,
+    days: plan.schedule.map(([day, key]) => {
+      const r = byKey[key]
+      return { dow: day, name: r.name, ex: r.ex }
+    }),
+    customEx: []
+  }
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { bundleFromWeek, loadWeight, reviewWeek, schemesFor, sheetLabel } from './import-plan.js'
-import { mergePlan, parsePlan } from './plan-share.js'
+import { mergeWeek } from './plan-share.js'
 import { EXDB } from './exercises-data.js'
 import { COACH_COLUMNS } from './coach-sheet.js'
 import { convertWeight } from './units.js'
@@ -150,48 +150,43 @@ describe('reviewWeek', () => {
 
 describe('bundleFromWeek', () => {
   const review = reviewWeek(week)
-  const bundle = bundleFromWeek(review, { unit: 'kg', days: [1, 3, 5] })
+  const wk = bundleFromWeek(review, { unit: 'kg' })
 
-  it('is a plan file the app already knows how to read', () => {
-    expect(bundle.opengym_plan).toBe(1)
-    expect(bundle.unit).toBe('kg')
-    const parsed = parsePlan(bundle, 'kg')
-    expect(parsed.dropped).toBe(0)
-    expect(parsed.routineCount).toBe(2)
-    expect(parsed.exerciseCount).toBe(6)
-    expect(parsed.scheduledDays).toBe(2)
+  it('is one week of the dated plan, named after the sheet', () => {
+    expect(wk.startIso).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(wk.name).toBe('23-29 marzo')
+    expect(wk.days.map(d => d.name)).toEqual(['Giorno 1 · 23-29 marzo', 'Giorno 2 · 23-29 marzo'])
+    expect(wk.days.map(d => d.ex.length)).toEqual([3, 3])
   })
 
-  it('schedules the days it was given, in order', () => {
-    expect(Object.keys(bundle.week).sort()).toEqual(['1', '3'])
-    expect(bundle.week[1]).toEqual([bundle.routines[0].id])
-    expect(bundle.week[3]).toEqual([bundle.routines[1].id])
+  it('schedules the days on the weekdays it was given, in order', () => {
+    expect(wk.days.map(d => d.dow)).toEqual([1, 3, 5].slice(0, 2))
+    expect(bundleFromWeek(review, { unit: 'kg', days: [2, 4] }).days.map(d => d.dow)).toEqual([2, 4])
   })
 
-  it('imports as new routines, with the coach\u2019s custom exercise created once', () => {
-    const s = { routines: [], customEx: [], week: {}, dayPlan: {}, unit: 'kg' }
-    const parsed = parsePlan(bundle, 'kg')
-    mergePlan(s, parsed, { schedule: true })
-    expect(s.routines.map(r => r.name)).toEqual(['Giorno 1 · 23-29 marzo', 'Giorno 2 · 23-29 marzo'])
-    expect(s.routines[0].ex[0].id).toBe(idOf('snatch'))
-    expect(s.week).toEqual({ 1: [s.routines[0].id], 3: [s.routines[1].id] })
+  it('imports as a new week, with the coach’s custom exercise created once', () => {
+    const s = { weeks: [], customEx: [] }
+    mergeWeek(s, bundleFromWeek(review, { unit: 'kg' }))
+    expect(s.weeks).toHaveLength(1)
+    expect(s.weeks[0].days.map(d => d.dow)).toEqual([1, 3])
+    expect(s.weeks[0].days[0].ex[0].id).toBe(idOf('snatch'))
     const custom = s.customEx.filter(c => c.n === 'Pogo jump')
     expect(custom).toHaveLength(1)
     expect(custom[0]).toMatchObject({ bp: 'Jumping & Plyometrics', custom: true })
-    expect(s.routines[1].ex.some(e => e.id === custom[0].id)).toBe(true)
+    expect(s.weeks[0].days[1].ex.some(e => e.id === custom[0].id)).toBe(true)
 
     // A second week with the same custom reuses it instead of making a twin.
     const other = reviewWeek({ name: 'Settimana 2', grid: week.grid })
-    mergePlan(s, parsePlan(bundleFromWeek(other, { unit: 'kg' }), 'kg'))
+    mergeWeek(s, bundleFromWeek(other, { unit: 'kg' }))
     expect(s.customEx.filter(c => c.n === 'Pogo jump')).toHaveLength(1)
-    expect(s.routines).toHaveLength(4)
+    expect(s.weeks).toHaveLength(2)
   })
 
-  it('hands its numbers over in the account\u2019s own unit', () => {
+  it('hands its numbers over in the account’s own unit', () => {
     // The sheet is in kilos. An account in pounds gets pounds, the same way a shared plan does.
-    const parsed = parsePlan(bundle, 'lb')
-    const first = parsed.routines[0].ex[0]
+    const inLb = bundleFromWeek(review, { unit: 'lb' })
+    const first = inLb.days[0].ex[0]
     expect(first.weight).toBe(convertWeight(50, 'kg', 'lb'))
-    expect(parsed.routines[0].ex[0].sets).toBe(4)
+    expect(first.sets).toBe(4)
   })
 })

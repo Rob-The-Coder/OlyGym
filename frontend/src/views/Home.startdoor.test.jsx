@@ -8,13 +8,14 @@ import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { useStore } from '../store/useStore.js'
+import { isoOf, startOfWeek, todayISO } from '../lib/format.js'
 import { startFlow } from '../sheets.jsx'
 import Home from './Home.jsx'
 
 const nav = vi.fn()
 vi.mock('react-router-dom', () => ({ useNavigate: () => nav }))
 vi.mock('../sheets.jsx', () => ({
-  starterPlanSheet: vi.fn(), bwSheet: vi.fn(), goalSheet: vi.fn(), dayOverrideSheet: vi.fn(),
+  starterPlanSheet: vi.fn(), bwSheet: vi.fn(), goalSheet: vi.fn(),
   calendarSheet: vi.fn(), startFlow: vi.fn(), bwDeltaColor: () => '',
 }))
 
@@ -64,5 +65,48 @@ describe('Home — the way to the Start screen when a plan already owns today', 
     setS({ active: { id: 'a', name: 'Push', start: Date.now(), cur: 0, entries: [] } })
     mount()
     expect(door()).toBeFalsy()
+  })
+})
+
+// The today row is the one-tap start. It follows the dated weeks (a day is the session) and
+// treats a day with nothing on it exactly like a rest day — no empty session from a stray tap.
+describe('Home — the today row', () => {
+  const TODAY_DOW = new Date(todayISO() + 'T12:00:00').getDay()
+  const todayRow = () => host.querySelector('.today-row')
+  const clickRow = () => act(() => { todayRow().dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+
+  it('starts the day planned for today', () => {
+    setS({
+      weeks: [{
+        id: 'w1', startIso: isoOf(startOfWeek(todayISO(), 1)), name: '',
+        days: [{ dow: TODAY_DOW, name: 'Push', ex: [{ id: '0025' }] }],
+      }],
+    })
+    mount()
+    clickRow()
+    expect(startFlow).toHaveBeenCalledTimes(1)
+    expect(startFlow.mock.calls[0][0]).toMatchObject({ name: 'Push' })
+  })
+
+  it('sends a rest day to the plan rather than starting an empty session', () => {
+    setS({ weeks: [] })
+    mount()
+    clickRow()
+    expect(startFlow).not.toHaveBeenCalled()
+    expect(nav).toHaveBeenCalledWith('/plan')
+  })
+
+  it('sends a day planned with no exercises to the plan too', () => {
+    setS({
+      weeks: [{
+        id: 'w1', startIso: isoOf(startOfWeek(todayISO(), 1)), name: '',
+        days: [{ dow: TODAY_DOW, name: 'New day', ex: [] }],
+      }],
+    })
+    mount()
+    expect(todayRow().textContent).toContain('New day')
+    clickRow()
+    expect(startFlow).not.toHaveBeenCalled()
+    expect(nav).toHaveBeenCalledWith('/plan')
   })
 })

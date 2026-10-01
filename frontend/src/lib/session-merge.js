@@ -1,41 +1,37 @@
-// Building one session's entries from more than one routine (the "combine routines" feature).
+// Building one session's entries from a day of the dated-weeks plan.
 //
-// A combined session is just the concatenation of the entries each routine would have built on
-// its own, with `entry.rid` stamped so a saved workout can be read back per routine. There is
-// no composite-routine object: nothing is stored that a single-routine session did not already
-// store, only widened. Every start path routes through here, including a single-routine start
-// (a one-element list) and freestyle (an empty list → no entries, no rid).
+// A day already holds the whole session (S.weeks[].days[].ex), so the old "combine several
+// routines into one session" machinery collapses: one day = one session, and there is nothing
+// to concatenate or to stamp per entry. `buildSessionEntries` does the work; this module only
+// decides what a session with no day behind it is (freestyle) and what it is called.
 //
-// Imported only by sheets.jsx and views/Workout.jsx; imports session-start.js (which pulls in
-// history.js + progression.js). Nothing in that chain imports this file, so there is no cycle.
+// Imported by sheets.jsx; imports session-start.js (which pulls in history.js + progression.js).
+// Nothing in that chain imports this file, so there is no cycle.
 import { buildSessionEntries } from './session-start.js'
+import { t } from './i18n-core.js'
 
 /**
- * Build a session's entries from an ordered list of routine ids.
- * - resolves + filters to still-existing routines, de-duplicates by id (first wins)
- * - concatenates each routine's entries in list order
- * - stamps `entry.rid` = that routine's id on every entry
+ * Build a session's entries and name from one day.
  *
- * Returns `{ entries, routineIds, routines }` — `routineIds` / `routines` are the resolved,
- * de-duplicated list, so a caller stores exactly what was built.
+ * `day` is a day object (`{ dow, name, ex, excludeFromProgression? }`) or null for freestyle —
+ * which is an empty session the user fills as they go, not a named plan.
+ *
+ * Returns `{ entries, name }`.
  */
-export function buildCombinedEntries(st, routineIds) {
-  const seen = new Set()
-  const routines = [].concat(routineIds ?? [])
-    .filter(id => id && !seen.has(id) && seen.add(id))
-    .map(id => (st.routines || []).find(r => r.id === id))
-    .filter(Boolean)
-  const entries = routines.flatMap(r =>
-    buildSessionEntries(st, r).map(e => ({ ...e, rid: r.id }))
-  )
-  return { entries, routineIds: routines.map(r => r.id), routines }
+export function buildDayEntries(st, day) {
+  return {
+    entries: day ? buildSessionEntries(st, day) : [],
+    name: day?.name || t('Freestyle'),
+  }
 }
 
 /**
- * The session name for a combined workout, from routine names in merge order (ENG-12 rule):
- *   1–3 routines → join with " + "          → "Rehab + Core"
- *   4+ routines  → first two, then "+ N more" → "Rehab + Core + 2 more"
- * An empty list returns null — not a reachable state for a saved or active session.
+ * The name for a day that holds several planned sessions, from their names in order (ENG-12
+ * rule):
+ *   1–3 names → join with " + "          → "Rehab + Core"
+ *   4+ names  → first two, then "+ N more" → "Rehab + Core + 2 more"
+ * An empty list returns null. Nothing in the session path needs this any more (a day names
+ * itself), but the printed plan still labels a legacy weekday that holds several routines.
  */
 export function deriveSessionName(names) {
   if (!names.length) return null

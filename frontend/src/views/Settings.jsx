@@ -15,7 +15,6 @@ import { t, LANGS, INSTR_LANGS } from '../lib/i18n.js'
 import { DEMO, REPO } from '../lib/demo.js'
 import { MOBILE, isAndroid, shareExport, syncReminder } from '../lib/mobile.js'
 import { checkForUpdate, downloadAndInstall, RELEASES_PAGE } from '../lib/update.js'
-import { forgetCoach } from '../lib/coach-api.js'
 import { ConnectSheet } from './MobileOnboarding.jsx'
 import { starterPlanSheet, confirmSheet, importFromApp, importFromHevy, importCoachPlan, importCoachPlanFromDrive, equipmentProfileSheet, menuSheet, askAddDeviceData } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
@@ -25,7 +24,6 @@ export default function Settings() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
   const user = useStore(s => s.user)
-  const coachLocal = useStore(s => s.coachLocal)
   const { update, replaceState, setUser, pullState, pushState, adoptProfile, signOut, signOutAll, resetDemo, disconnectServer } = useStore()
   const toast = useUI(s => s.toast)
   const fileRef = useRef(null)
@@ -141,7 +139,10 @@ export default function Settings() {
     rd.onload = () => {
       try {
         const data = JSON.parse(rd.result)
-        if (!data.workouts || !data.routines) throw new Error('not an OlyGym backup')
+        // `weeks` is the plan now; a backup from before the dated weeks carries the repeating
+        // plan instead, and loadState derives the weeks from it on the next boot.
+        const { workouts, weeks, routines: legacyPlan } = data || {}
+        if (!workouts || (!weeks && !legacyPlan)) throw new Error('not an OlyGym backup')
         confirmSheet({ title: t('Import backup?'), message: t('This replaces all current data with the backup file.'), confirmText: t('Import'), danger: true, onConfirm: () => { replaceState(Object.assign(JSON.parse(JSON.stringify(DEF)), data), true); toast(t('Backup imported')) } })
       } catch (e) { toast(t('Import failed: {0}', e.message)) }
     }
@@ -165,11 +166,7 @@ export default function Settings() {
     },
   })
   // Signed in, the empty state is pushed to the profile like any other change, so the wipe
-  // reaches the server and every device that syncs with it — the dialog has to say so. The Coach
-  // keeps its data outside S in two homes that can both be in use on one phone: a file per
-  // profile on the server, and — when it runs with the phone's own key — a file on the device.
-  // Each is cleared on its own; forgetCoach() alone would pick one by mode. A failed call must
-  // not stop the reset.
+  // reaches the server and every device that syncs with it — the dialog has to say so.
   const resetEverything = () => confirmSheet({
     title: t('Reset everything?'),
     message: user
@@ -177,8 +174,6 @@ export default function Settings() {
       : t('Deletes your plan, workouts and body weight on this device. This cannot be undone.'),
     confirmText: t('Delete everything'), danger: true,
     onConfirm: () => {
-      if (user) api('/api/coach/forget', { method: 'POST', body: '{}' }).catch(() => {})
-      if (coachLocal?.mode === 'byok') forgetCoach().catch(() => {})
       replaceState(JSON.parse(JSON.stringify(DEF)), true)
       nav('/home'); toast(t('All data reset'))
     },
@@ -226,13 +221,6 @@ export default function Settings() {
       )}
     </Section>
     {!user && !DEMO && !MOBILE && <p className="sect-f" style={{ marginTop: -18, marginBottom: 22 }}>{t('Guest mode — data lives only in this browser.')}</p>}
-
-    {/* ---------- the Coach on a phone: through the paired server, or with the user's own key ---------- */}
-    {MOBILE && <Section title={t('AI Coach')}>
-      <Row icon="sparkles" iconTint="var(--acc)" title={t('AI Coach')} accessory="chevron"
-        subtitle={coachLocal?.mode === 'server' ? t('Runs on your OlyGym server') : coachLocal?.mode === 'byok' ? t('Runs on this phone with your own API key') : t('Off — choose how the Coach should run.')}
-        onClick={() => nav('/coach/setup')} />
-    </Section>}
 
     {/* ---------- general ---------- */}
     <Section title={t('General')} footer={t('Switching the unit offers to convert every stored weight.')}>

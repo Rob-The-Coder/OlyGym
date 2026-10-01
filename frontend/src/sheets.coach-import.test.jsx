@@ -89,34 +89,36 @@ describe('the coach’s plan review', () => {
     expect(textOf(host)).toContain('push press')
   })
 
-  it('imports the week as new routines', () => {
+  it('imports the week as one dated week of the plan', () => {
     coachPlanSheet([week])
     const host = renderTop()
-    act(() => buttonByText(host, 'Add 2 routines to my plan').click())
+    act(() => buttonByText(host, 'Add the week to my plan').click())
 
     const S = useStore.getState().S
-    expect(S.routines.map(r => r.name)).toEqual(['Giorno 1 · 23-29 marzo', 'Giorno 2 · 23-29 marzo'])
-    expect(S.routines[0].ex[0].id).toBe(idOf('snatch'))
-    expect(S.routines[0].ex[0].sets).toBe(4)
-    expect(S.routines[0].ex[1].sg).toBe(S.routines[0].ex[0].sg)
+    expect(S.weeks).toHaveLength(1)
+    const days = S.weeks[0].days
+    expect(days.map(d => d.name)).toEqual(['Giorno 1 · 23-29 marzo', 'Giorno 2 · 23-29 marzo'])
+    // The coach's days land Monday/Wednesday/Friday.
+    expect(days.map(d => d.dow)).toEqual([1, 3])
+    expect(S.weeks[0].name).toBe('23-29 marzo')
+    expect(days[0].ex[0].id).toBe(idOf('snatch'))
+    expect(days[0].ex[0].sets).toBe(4)
+    expect(days[0].ex[1].sg).toBe(days[0].ex[0].sg)
     // The exercise the catalogue does not have arrives as one of the user's own.
     const custom = S.customEx.filter(c => c.n === 'Pogo jump')
     expect(custom).toHaveLength(1)
-    expect(S.routines[1].ex.some(e => e.id === custom[0].id)).toBe(true)
-    // No schedule unless the switch is on.
-    expect(S.week).toEqual({})
-    // …and the sheet is gone, with the routines waiting on the plan screen.
+    expect(days[1].ex.some(e => e.id === custom[0].id)).toBe(true)
+    // The legacy routine/week fields are gone entirely.
+    expect(S.routines).toBeUndefined()
+    // …and the sheet is gone, with the week waiting on the plan screen.
     expect(useUI.getState().sheets).toHaveLength(0)
   })
 
-  it('can put the three days on Monday, Wednesday and Friday', () => {
+  it('says the week was added', () => {
     coachPlanSheet([week])
     const host = renderTop()
-    const toggle = host.querySelector('button[role="switch"]')
-    act(() => toggle.click())
-    act(() => buttonByText(host, 'Add 2 routines to my plan').click())
-    const S = useStore.getState().S
-    expect(S.week).toEqual({ 1: [S.routines[0].id], 3: [S.routines[1].id] })
+    act(() => buttonByText(host, 'Add the week to my plan').click())
+    expect(useUI.getState().toastMsg).toBe('Added the week to your plan')
   })
 })
 

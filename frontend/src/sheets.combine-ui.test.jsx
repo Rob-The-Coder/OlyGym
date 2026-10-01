@@ -1,10 +1,13 @@
 // @vitest-environment happy-dom
+// Reading a saved workout back. A workout logged since the dated-weeks model is flat: one day is
+// one session and its entries carry no routine id. Only a LEGACY record still groups, and it does
+// so by the `rid` its entries kept.
 import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
-import { addRoutineToSessionSheet, workoutDetailSheet } from './sheets.jsx'
+import { workoutDetailSheet } from './sheets.jsx'
 import { EXDB } from './lib/exercises.js'
 
 const clone = v => JSON.parse(JSON.stringify(v))
@@ -20,7 +23,6 @@ function renderTop() {
   act(() => root.render(sheet.render(() => useUI.getState().closeSheet(sheet.id))))
   return host
 }
-const rowFor = (host, name) => [...host.querySelectorAll('.item')].find(el => el.querySelector('.tt')?.textContent === name)
 
 beforeEach(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
@@ -29,49 +31,7 @@ beforeEach(() => {
 })
 afterEach(() => { act(() => { mounted.splice(0).forEach(r => r.unmount()) }) })
 
-describe('Add routine mid-session sheet', () => {
-  const setup = () => {
-    const S = clone(useStore.getState().S)
-    S.routines = [
-      { id: 'strength', name: 'Strength', emoji: '🏋️', prog: 'off', ex: [{ id: ids[0], sets: 3, reps: 5, weight: 60 }] },
-      { id: 'core', name: 'Core', emoji: '🧘', prog: 'off', ex: [{ id: ids[1], sets: 3, reps: 12, weight: 0 }, { id: ids[2], sets: 3, reps: 10, weight: 0 }] },
-      { id: 'empty', name: 'Empty', emoji: '📝', ex: [] },
-    ]
-    S.workouts = []
-    S.active = {
-      id: 'a', d: '2026-09-06', start: 1, routineIds: ['strength'], name: 'Strength', cur: 0,
-      entries: [{ id: ids[0], rid: 'strength', target: {}, sets: [{ w: 60, r: 5, done: true }] }],
-      workoutView: 'cards',
-    }
-    useStore.setState({ S, user: null })
-  }
-
-  it('appends the picked routine’s entries with rid, updates routineIds + name, toasts', () => {
-    setup()
-    addRoutineToSessionSheet()
-    const host = renderTop()
-    act(() => { rowFor(host, 'Core').click() })
-
-    const a = useStore.getState().S.active
-    expect(a.routineIds).toEqual(['strength', 'core'])
-    expect(a.name).toBe('Strength + Core')
-    expect(a.entries.map(e => e.rid)).toEqual(['strength', 'core', 'core'])
-    expect(a.cur).toBe(0)                    // current unit is left where it was
-    expect(useUI.getState().toastMsg).toContain('Core added')
-  })
-
-  it('disables a routine already in the session and one with no exercises', () => {
-    setup()
-    addRoutineToSessionSheet()
-    const host = renderTop()
-    expect(rowFor(host, 'Strength').className).toContain('disabled')
-    expect(rowFor(host, 'Strength').textContent).toContain('already added')
-    expect(rowFor(host, 'Empty').className).toContain('disabled')
-    expect(rowFor(host, 'Empty').textContent).toContain('no exercises')
-  })
-})
-
-describe('WorkoutDetail — per-routine grouping', () => {
+describe('WorkoutDetail — legacy per-routine grouping', () => {
   const combined = {
     id: 'w', d: '2026-09-06', start: 1, end: 2, name: 'Strength + Core', vol: 500,
     routineIds: ['strength', 'core'], prs: [],
@@ -84,6 +44,14 @@ describe('WorkoutDetail — per-routine grouping', () => {
     id: 'w2', d: '2026-09-06', start: 1, end: 2, name: 'Push', vol: 100, routineIds: ['strength'], prs: [],
     entries: [{ id: ids[0], target: { reps: 5 }, sets: [{ w: 100, r: 5, done: true }] }],
   }
+  // What a session started from a day writes today: weekId/dow, no rids anywhere.
+  const current = {
+    id: 'w3', d: '2026-09-06', start: 1, end: 2, name: 'Push day', vol: 300, weekId: 'w1', dow: 3, prs: [],
+    entries: [
+      { id: ids[0], target: { reps: 5 }, sets: [{ w: 60, r: 5, done: true }] },
+      { id: ids[1], target: { reps: 12 }, sets: [{ w: 0, r: 12, done: true }] },
+    ],
+  }
 
   beforeEach(() => {
     const S = clone(useStore.getState().S)
@@ -94,7 +62,7 @@ describe('WorkoutDetail — per-routine grouping', () => {
     useStore.setState({ S, user: null })
   })
 
-  it('groups a combined workout into per-routine sections with a sets/volume subheader', () => {
+  it('groups a legacy combined workout into per-routine sections with a sets/volume subheader', () => {
     const host = (workoutDetailSheet(combined), renderTop())
     expect(host.textContent).toContain('Strength')
     expect(host.textContent).toContain('Core')
@@ -107,5 +75,11 @@ describe('WorkoutDetail — per-routine grouping', () => {
     // the only routine name that could appear is the header <h3> (w.name = "Push"); there is
     // no "Strength" subheader row
     expect(host.querySelectorAll('.row.between').length).toBe(0)
+  })
+
+  it('renders a current (weekId/dow, no rid) workout flat — one day is one session', () => {
+    const host = (workoutDetailSheet(current), renderTop())
+    expect(host.querySelectorAll('.row.between').length).toBe(0)
+    expect(host.textContent).toContain('Push day')
   })
 })

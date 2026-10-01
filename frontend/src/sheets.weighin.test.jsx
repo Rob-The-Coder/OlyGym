@@ -16,7 +16,7 @@ describe('the weigh-in before a workout is a setting', () => {
   })
 
   it('on (the default): Start opens the weigh-in and the session waits for it', () => {
-    act(() => startFlow([]))
+    act(() => startFlow(null))
     expect(useUI.getState().sheets).toHaveLength(1)
     expect(useUI.getState().sheets[0].locked).toBe(true)   // the required weigh-in, not a plain sheet
     expect(useStore.getState().S.active).toBeNull()
@@ -24,7 +24,7 @@ describe('the weigh-in before a workout is a setting', () => {
 
   it('a profile written before the setting existed still asks', () => {
     useStore.setState(s => { const S = { ...s.S }; delete S.weighIn; return { S } })
-    act(() => startFlow([]))
+    act(() => startFlow(null))
     expect(useUI.getState().sheets).toHaveLength(1)
     expect(useUI.getState().sheets[0].locked).toBe(true)
     expect(useStore.getState().S.active).toBeNull()
@@ -32,11 +32,13 @@ describe('the weigh-in before a workout is a setting', () => {
 
   it('off: Start begins the session at once, with no sheet and no body weight', () => {
     useStore.setState(s => ({ S: { ...s.S, weighIn: false } }))
-    act(() => startFlow([]))
+    act(() => startFlow(null))
     expect(useUI.getState().sheets).toHaveLength(0)
     const { active } = useStore.getState().S
     expect(active).not.toBeNull()
     expect(active.bw).toBeNull()
-    expect(active.routineIds).toEqual([])
+    // Freestyle: no day behind the session, so no week and no weekday either.
+    expect(active.weekId).toBeNull()
+    expect(active.dow).toBeNull()
   })
 })

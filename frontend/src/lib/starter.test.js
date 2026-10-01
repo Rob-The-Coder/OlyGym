@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { EXIDX } from './exercises.js'
 import { buildStarterPlan, starterPlanDays, starterPlanOptions, starterRoutines } from './starter.js'
+import { isoOf, startOfWeek, todayISO } from './format.js'
 
 // The approved prescription, written out again rather than imported: a test that reads the
 // same table as the code would pass no matter what that table said. [weekday, name, sets].
@@ -29,6 +30,8 @@ const APPROVED = {
 }
 
 const shape = r => r.ex.map(e => [e.id, e.sets, e.reps])
+// The day's exercises, whichever list they came from.
+const dayShape = d => d.ex.map(e => [e.id, e.sets, e.reps])
 
 describe('starter plan catalog', () => {
   it('offers exactly the four plans, with the day count read off the schedule', () => {
@@ -52,21 +55,27 @@ describe.each(Object.keys(APPROVED))('%s', planId => {
   const approved = APPROVED[planId]
 
   it('builds the approved exercises, sets and reps in order', () => {
-    const { routines } = buildStarterPlan(planId)
-    expect(routines.map(r => r.name)).toEqual(approved.map(([, name]) => name))
-    routines.forEach((r, i) => expect(shape(r)).toEqual(approved[i][2]))
+    const week = buildStarterPlan(planId)
+    expect(week.days.map(d => d.name)).toEqual(approved.map(([, name]) => name))
+    week.days.forEach((d, i) => expect(dayShape(d)).toEqual(approved[i][2]))
   })
 
-  it('puts each routine on its approved weekday, by identity not position', () => {
-    const { routines, schedule } = buildStarterPlan(planId)
-    const nameOf = Object.fromEntries(routines.map(r => [r.id, r.name]))
-    expect(schedule.map(({ day, routineId }) => [day, nameOf[routineId]]))
-      .toEqual(approved.map(([day, name]) => [day, name]))
+  it('puts each day on its approved weekday', () => {
+    const week = buildStarterPlan(planId)
+    expect(week.days.map(d => [d.dow, d.name])).toEqual(approved.map(([day, name]) => [day, name]))
+  })
+
+  it('is a dated week of the plan, carrying no customs', () => {
+    const week = buildStarterPlan(planId)
+    expect(week.id).toBeTruthy()
+    expect(week.startIso).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(week.startIso).toBe(isoOf(startOfWeek(todayISO(), 1)))
+    expect(week.customEx).toEqual([])
   })
 
   it('references only real exercises and starts every one at weight 0', () => {
-    for (const r of buildStarterPlan(planId).routines) {
-      for (const e of r.ex) {
+    for (const d of buildStarterPlan(planId).days) {
+      for (const e of d.ex) {
         expect(EXIDX[e.id], e.id).toBeTruthy()
         expect(e.sets).toBeGreaterThan(0)
         expect(e.reps).toBeGreaterThan(0)
@@ -78,13 +87,20 @@ describe.each(Object.keys(APPROVED))('%s', planId => {
   it('mints fresh ids and independent objects on every build', () => {
     const first = buildStarterPlan(planId)
     const second = buildStarterPlan(planId)
-    const ids = first.routines.map(r => r.id)
-    expect(new Set(ids).size).toBe(ids.length)
-    expect(second.routines.some(r => ids.includes(r.id))).toBe(false)
-    expect(first.routines[0].ex[0]).not.toBe(second.routines[0].ex[0])
+    expect(first.id).not.toBe(second.id)
+    expect(first.days[0].ex[0]).not.toBe(second.days[0].ex[0])
     // and the static definition survives a caller mutating what it got back
-    first.routines[0].ex[0].sets = 99
-    expect(buildStarterPlan(planId).routines[0].ex[0].sets).toBe(approved[0][2][0][1])
+    first.days[0].ex[0].sets = 99
+    expect(buildStarterPlan(planId).days[0].ex[0].sets).toBe(approved[0][2][0][1])
+  })
+
+  it('places the week in the profile’s current one', () => {
+    // A Sunday-start profile gets the week anchored on Sunday, or the day it is now would fall
+    // outside the week it just loaded.
+    const sunday = buildStarterPlan(planId, { now: new Date('2026-03-04T12:00:00'), weekStart: 0 })
+    expect(sunday.startIso).toBe('2026-03-01')
+    const monday = buildStarterPlan(planId, { now: new Date('2026-03-04T12:00:00'), weekStart: 1 })
+    expect(monday.startIso).toBe('2026-03-02')
   })
 })
 
