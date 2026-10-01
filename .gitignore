@@ -32,3 +32,10 @@ node_modules
 junit.xml
 coverage/
 frontend/bundle-size.json
+
+# Local Android release signing key + the APKs built with it (docs/MOBILE.md)
+android-keys/
+*.jks
+*.keystore
+*.apk
+*.idsig
