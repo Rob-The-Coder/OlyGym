@@ -22,6 +22,7 @@ import MuscleExplorer from './components/MuscleExplorer.jsx'
 import { exerciseMuscleSnapshot, loadOfWorkouts, MUSCLES, MUSCLE_NAME, normalizeMuscleGroups, hasExplicitMuscleMetadata, inMuscleOrder } from './lib/muscles.js'
 import { parseImport, mergeImport, parseCSV } from './lib/import-csv.js'
 import { readXlsx } from './lib/xlsx.js'
+import { pickFromDrive, fileMeta, exportSheetToXlsx, downloadFile } from './lib/drive.js'
 import CoachImport from './components/CoachImport.jsx'
 import { importHevyData, HevyApiError, HEVY_DEV_SETTINGS, mergeHevyRoutines } from './lib/import-hevy.js'
 import { buildPlanBundle, parsePlan, mergePlan, printPlan, planPrintHTML } from './lib/plan-share.js'
@@ -1558,17 +1559,42 @@ export function coachPlanSheet(sheets) {
   ui().openSheet(close => <CoachImport sheets={sheets} close={close} pick={pick} menu={menuSheet} />)
 }
 
-/** Read a coach's workbook (one sheet per week) or a CSV, then show the review. */
+/** Read a coach's workbook (one sheet per week) or a CSV, then show the review. The file comes
+ *  from the local file input; a native Google Sheets file goes through importCoachPlanFromDrive
+ *  instead, which exports it before handing the bytes to the same readers. */
 export function importCoachPlan(file) {
   const sheets = /\.csv$/i.test(file.name || '')
     ? file.text().then(text => [{ name: String(file.name).replace(/\.[a-z]+$/i, ''), grid: parseCSV(text) }])
     : file.arrayBuffer().then(buf => readXlsx(buf)).then(wb => wb.sheets)
-  sheets.then(all => {
+  return sheets.then(all => {
     // A sheet with nothing in it is a tab the coach never used.
     const usable = (all || []).filter(s => Array.isArray(s.grid) && s.grid.some(r => r.some(c => c)))
     if (!usable.length) { toast(t('That file has no training in it')); return }
     coachPlanSheet(usable)
-  }).catch(() => toast(t('Could not read that file — a coach’s plan is an .xlsx or .csv file.')))
+  }).catch(() => toast(t('Could not read that file. A coach’s plan is an .xlsx, .csv or Google Sheets file.')))
+}
+
+/** Pick a spreadsheet through Google's native Picker, then read it the same way as a local file.
+ *  A native Google Sheet holds no bytes of its own, so it is exported to .xlsx first; an .xlsx or
+ *  .csv already in Drive is downloaded as-is. */
+export async function importCoachPlanFromDrive() {
+  try {
+    const { token, fileId } = await pickFromDrive()
+    const meta = await fileMeta(fileId, token)
+    const name = meta.name || 'coach'
+    const base = name.replace(/\.[a-z]+$/i, '')
+    const isSheet = meta.mimeType === 'application/vnd.google-apps.spreadsheet'
+    const sheets = isSheet
+      ? (await readXlsx(await exportSheetToXlsx(fileId, token))).sheets
+      : /\.csv$/i.test(name)
+        ? [{ name: base, grid: parseCSV(await (await downloadFile(fileId, token)).text()) }]
+        : (await readXlsx(await (await downloadFile(fileId, token)).arrayBuffer())).sheets
+    const usable = (sheets || []).filter(s => Array.isArray(s.grid) && s.grid.some(r => r.some(c => c)))
+    if (!usable.length) { toast(t('That file has no training in it')); return }
+    coachPlanSheet(usable)
+  } catch (e) {
+    toast(t('Could not read that file. A coach’s plan is an .xlsx, .csv or Google Sheets file.'))
+  }
 }
 
 function PlanTools({ close }) {
@@ -1619,6 +1645,8 @@ function PlanTools({ close }) {
     <Button variant="ghost" icon="upload" onClick={() => coachRef.current?.click()}>{t('Import a coach’s plan')}</Button>
     <div className="dim small" style={{ margin: '7px 2px 0', lineHeight: 1.4 }}>{t('His spreadsheet, one sheet per week — read, reviewed and turned into routines.')}</div>
     <input ref={coachRef} type="file" accept=".xlsx,.csv" onChange={ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) { close(); importCoachPlan(f) } }} hidden />
+    <div style={{ height: 8 }} />
+    <Button variant="ghost" icon="folder" onClick={() => { close(); importCoachPlanFromDrive() }}>{t('Import from Google Drive')}</Button>
   </>
 }
 
