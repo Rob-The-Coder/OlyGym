@@ -10,7 +10,6 @@ import { exercisePicker, exConfigSheet, complexConfigSheet } from '../sheets.jsx
 import { DEF, useStore } from '../store/useStore.js'
 
 const mocks = vi.hoisted(() => ({ confirmSheet: vi.fn(), complexConfigSheet: vi.fn() }))
-vi.mock('../lib/api.js', () => ({ api: vi.fn(() => Promise.resolve({})) }))
 vi.mock('../sheets.jsx', () => ({
   exercisePicker: vi.fn(), exConfigSheet: vi.fn(), complexConfigSheet: mocks.complexConfigSheet,
   confirmSheet: mocks.confirmSheet,

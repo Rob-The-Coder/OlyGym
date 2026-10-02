@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { exerciseHistory, HISTORY_SESSIONS } from './exercise-history.js'
-import { estimate1RM } from './onerm.js'
 
 const DAY = 86400000
 const T0 = Date.UTC(2026, 0, 5, 10)
@@ -41,7 +40,6 @@ describe('exerciseHistory', () => {
     expect(h.best).toBe(60)
     expect(h.sessions[0].sets).toEqual([work(60, 5)])
     expect(h.sessions[0].volume).toBe(300)
-    expect(h.sessions[0].e1rm).toBe(estimate1RM(60, 5))
   })
 
   it('marks the PR on the session that first reached the best weight, once', () => {
@@ -62,7 +60,6 @@ describe('exerciseHistory', () => {
     expect(h.sessions[0].d).toBe(iso(13))
     expect(h.sessions.at(-1).d).toBe(iso(4))
     expect(h.points).toHaveLength(14)
-    expect(h.e1rmPoints).toHaveLength(14)
     // the record lives outside the listed window, so no listed session carries the marker
     expect(h.prId).toBe('w13')
     expect(exerciseHistory(S, 'bench', { limit: 3 }).sessions).toHaveLength(3)
@@ -85,18 +82,13 @@ describe('exerciseHistory', () => {
     expect(h.prId).toBe('w1')
   })
 
-  it('plots the longest hold for timed work and the minutes for cardio', () => {
+  it('plots the longest hold for timed work', () => {
     const hold = i => ({ id: 'h' + i, d: iso(i), start: T0 + i * DAY, entries: [{ id: 'plank', target: { mode: 'time' }, sets: [{ sec: 40 + i * 10, done: true }, { sec: 30, done: true }] }] })
-    const run = i => ({ id: 'r' + i, d: iso(i), start: T0 + i * DAY, entries: [{ id: 'run', target: { mode: 'cardio' }, sets: [{ min: 20, speed: 10, done: true }, { min: 5, speed: 12, done: true }] }] })
-    const S = { workouts: [hold(0), hold(1), run(0)] }
+    const S = { workouts: [hold(0), hold(1)] }
     const plank = exerciseHistory(S, 'plank')
     expect(plank).toMatchObject({ mode: 'time', metric: 'sec', best: 50, prId: 'h1' })
     expect(plank.points.map(p => p.y)).toEqual([40, 50])
     expect(plank.sessions[0].volume).toBeNull()
-    expect(plank.e1rmPoints).toEqual([])
-    const cardio = exerciseHistory(S, 'run')
-    expect(cardio).toMatchObject({ mode: 'cardio', metric: 'min', best: 25 })
-    expect(cardio.points[0].y).toBe(25)
   })
 
   it('gives a session logged in another mode no point, but keeps it in the list', () => {

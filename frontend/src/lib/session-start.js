@@ -4,7 +4,7 @@
 // prescription rule changes.
 // Imports both history.js and progression.js (which itself imports history.js); nothing in
 // either imports this file, so there is no cycle.
-import { buildSets, applyIntensifierPlan, modeOf } from './history.js'
+import { buildSets, modeOf } from './history.js'
 import { nextPrescription, applyPrescription, defaultIncrement, weightIncrement } from './progression.js'
 
 // Returns a bare array of session entries. "Excluded from progression" is per-entry
@@ -23,7 +23,7 @@ export function buildSessionEntries(st, day) {
     // plates exist), not the unit default; a timed exercise's `inc` is seconds, so it keeps the
     // default for its optional load.
     const step = modeOf(cfg) === 'reps' ? weightIncrement(cfg, st.unit) : defaultIncrement(cfg.id, st.unit)
-    const sets = applyIntensifierPlan(applyPrescription(buildSets(st, cfg, { step, useTarget: plan.kind === 'off' }), plan, step), cfg)
+    const sets = applyPrescription(buildSets(st, cfg, { step, useTarget: plan.kind === 'off' }), plan, step)
     const target = { ...cfg }
     if (plan.weight != null) target.weight = plan.weight
     if (plan.reps != null) target.reps = plan.reps

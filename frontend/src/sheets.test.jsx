@@ -16,7 +16,7 @@ function type(el, value) {
 }
 
 function renderConfig(onSave = vi.fn()) {
-  exConfigSheet(ex, { sets: 3, reps: 10, weight: 0, mode: 'reps', prog: 'double' }, onSave)
+  exConfigSheet(ex, { sets: 3, reps: 10, weight: 0, mode: 'reps', prog: 'linear' }, onSave)
   const sheet = useUI.getState().sheets.at(-1)
   const host = document.createElement('div')
   document.body.appendChild(host)

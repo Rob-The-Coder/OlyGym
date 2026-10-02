@@ -1,6 +1,6 @@
 import { EXIDX } from './exercises.js'
 import { MUSCLES, musclesOf } from './muscles.js'
-import { isWarmupRow, dropsOf } from './workout-model.js'
+import { isWarmupRow } from './workout-model.js'
 
 // A "normal" hard session for one muscle, in primary-set equivalents. The saturation curve
 // 1 - exp(-stimulus / REF) maps any session size onto [0,1) so volume raises the starting
@@ -67,7 +67,7 @@ function exerciseFor(entry) {
   return EXIDX[entry?.id] || entry
 }
 
-// Epley one-rep-max estimate, matching onerm.js (REP_CAP included so high-rep sets do not
+// Epley one-rep-max estimate (REP_CAP included so high-rep sets do not
 // inflate the estimate). Used only to express a set's intensity relative to the lifter's own
 // capacity - the same formula the app already shows for estimated 1RM.
 const REP_CAP = 12
@@ -178,25 +178,6 @@ function session1RMs(workout, opts = {}) {
   return best
 }
 
-// Extra tonnage from a drop-set's drops, weighted the same way as the row's own main set — a
-// drop taken near failure counts the same as any other hard rep for fatigue purposes, it just
-// carries its own (usually lighter) load.
-//
-// A rest-pause row's `clusters` are NOT extra here: the row's own `r` already is the total reps
-// across every burst (see applyIntensifierPlan/history.js), so the main tonnage term below
-// already covers it — adding clusters on top would double-count the same reps.
-function extraTonnage(ex, entry, set, workout, oneRm, opts = {}) {
-  const drops = dropsOf(set)
-  if (!drops.length) return 0
-  const isBwEx = bodyweightConfigured(ex, entry, set, workout, opts)
-  const weigh = (load, reps) => {
-    if (!(load > 0) || !(reps > 0)) return 0
-    const raw = load * reps
-    return isBwEx || !(oneRm > 0) ? raw : raw * Math.min(1, load / oneRm) ** 1.5
-  }
-  return drops.reduce((sum, d) => sum + weigh(loadKgFor(ex, entry, d, workout, opts), Number(d?.r) || 0), 0)
-}
-
 // Intensity-weighted tonnage for one completed set: load x reps x (load / exercise 1RM)^1.5.
 // The exponent saturates the "hard set" effect - a set at 90% of your 1RM counts ~0.81 of its
 // raw tonnage, one at 50% only ~0.35. Cardio, timed holds, and sets whose exercise has no
@@ -211,14 +192,13 @@ function setTonnage(ex, entry, set, workout, oneRm, opts = {}) {
   const reps = set?.r || 1
   const load = loadKgFor(ex, entry, set, workout, opts)
   const raw = load * reps
-  const extra = extraTonnage(ex, entry, set, workout, oneRm, opts)
   // A bodyweight target is already an external-load-normalised total (body mass + any added
   // load). It has no meaningful barbell-style 1RM intensity ratio in the legacy data model, so
   // retain the monotonic total-load stimulus instead of letting a newly created low 1RM shrink
   // a weighted bodyweight set below the unloaded version.
-  if (bodyweightConfigured(ex, entry, set, workout, opts)) return raw + extra
-  if (!(oneRm > 0) || !(load > 0)) return raw + extra
-  return raw * Math.min(1, load / oneRm) ** 1.5 + extra
+  if (bodyweightConfigured(ex, entry, set, workout, opts)) return raw
+  if (!(oneRm > 0) || !(load > 0)) return raw
+  return raw * Math.min(1, load / oneRm) ** 1.5
 }
 
 // One session's per-muscle stimulus, calculated only from that session. A completed zero-load

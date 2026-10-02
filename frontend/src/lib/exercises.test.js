@@ -84,7 +84,7 @@ describe('matchExercise', () => {
   })
 
   it('matches translated UI terms when a language is active', () => {
-    _setLangState('pt', {
+    _setLangState('it', {
       chest: 'peito',
       barbell: 'barra',
       dumbbell: 'halteres',
@@ -103,7 +103,7 @@ describe('matchExercise', () => {
   // it types what it sees on screen. No pack ships today (the OlyGym catalogue has none yet), so the
   // case drives the seam directly — the mechanism still has to work when one is regenerated.
   it('matches the localized exercise name as well as the English one', () => {
-    _setLangState('pt-BR', {}, null, { wl806: 'supino reto com barra' })
+    _setLangState('it', {}, null, { wl806: 'supino reto com barra' })
 
     expect(matchExercise(benchPress, 'supino')).toBe(true)
     expect(matchExercise(benchPress, 'supino barra')).toBe(true)
@@ -112,7 +112,7 @@ describe('matchExercise', () => {
   })
 
   it('rebuilds the cached haystack when the language changes', () => {
-    _setLangState('pt-BR', {}, null, { wl806: 'supino reto com barra' })
+    _setLangState('it', {}, null, { wl806: 'supino reto com barra' })
     expect(matchExercise(benchPress, 'supino')).toBe(true)
 
     _setLangState('en', null, null, null)

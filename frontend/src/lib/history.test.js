@@ -1,22 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import { nextTrainingDay, modeOf, isTimed, fmtSec, setLabel, defaultConfig, buildSets, freestyleConfig, exLine, workoutVolume, bestWeightFor, bestWeightForEntry, effortOf, stepEffort, capEffort, isBw, isPerSide, sideReps, repStep, cascadeWeight, insertWarmupRow, removeRowAt, workSetsDone, setsDone, setsDoneActive, setUnits, doneUnits, setUnitsTotal, pairAdjacent, unpairSuperset, supersetUnits, applyIntensifierPlan, pinnedNoteFor, exNoteFor, effectiveDay, lastEntryFor, entryExcluded } from './history.js'
-import { makeSideSet, setSideField, toggleSide } from './workout-model.js'
-import { EXDB, registerCustom } from './exercises.js'
+import { nextTrainingDay, modeOf, isTimed, fmtSec, setLabel, defaultConfig, buildSets, freestyleConfig, exLine, workoutVolume, bestWeightFor, bestWeightForEntry, effortOf, stepEffort, capEffort, isBw, cascadeWeight, insertWarmupRow, removeRowAt, workSetsDone, setsDone, setsDoneActive, setUnitsTotal, doneUnits, pairAdjacent, unpairSuperset, supersetUnits, pinnedNoteFor, exNoteFor, effectiveDay, lastEntryFor, entryExcluded } from './history.js'
+import { EXDB } from './exercises.js'
 
-// The OlyGym catalogue has no cardio category: cardio is reachable through imported and custom
-// exercises now (see the decision log in OLYGYM_PLAN.md). The fixture registers one, which is the
-// same path a real user takes, so every cardio assertion below still exercises live code.
-const CARDIO = 'custom-cardio'
-registerCustom([{ id: CARDIO, n: 'row erg', bp: 'cardio', eq: 'machine', custom: true, st: [] }])
-// A *loaded* lift: a barbell movement, so it is neither cardio nor bodyweight and every label test
-// takes the ordinary path instead of the bodyweight one (issue #32).
+// A *loaded* lift: a barbell movement, so every label test takes the ordinary path instead of
+// the bodyweight one (issue #32).
 const LIFT = EXDB.find(e => e.eq === 'barbell' && modeOf({ id: e.id }) === 'reps').id
 // A bodyweight movement, for the reps-only path and the "+10 kg on a dip belt" one.
 const BW = EXDB.find(e => e.eq === 'body weight' && modeOf({ id: e.id }) === 'reps').id
 
 describe('modeOf', () => {
   it('falls back to the body part when a plan has no mode — every existing plan keeps working', () => {
-    expect(modeOf({ id: CARDIO })).toBe('cardio')
     expect(modeOf({ id: LIFT })).toBe('reps')
     expect(modeOf({ id: 'no-such-exercise' })).toBe('reps')
     expect(modeOf({})).toBe('reps')
@@ -26,13 +19,13 @@ describe('modeOf', () => {
 
   it('lets an explicit mode win over the body part', () => {
     expect(modeOf({ id: LIFT, mode: 'time' })).toBe('time')
-    expect(modeOf({ id: CARDIO, mode: 'reps' })).toBe('reps')
-    expect(modeOf({ id: CARDIO, mode: 'time' })).toBe('time')
+    expect(modeOf({ id: LIFT, mode: 'reps' })).toBe('reps')
   })
 
-  it('ignores a mode it does not know rather than trusting a bad file', () => {
+  it('coerces the retired cardio mode to reps rather than trusting a bad file', () => {
+    expect(modeOf({ id: LIFT, mode: 'cardio' })).toBe('reps')
     expect(modeOf({ id: LIFT, mode: 'nonsense' })).toBe('reps')
-    expect(modeOf({ id: CARDIO, mode: '' })).toBe('cardio')
+    expect(modeOf({ id: LIFT, mode: '' })).toBe('reps')
   })
 
   it('exposes the timed check', () => {
@@ -62,14 +55,12 @@ describe('fmtSec', () => {
 describe('setLabel', () => {
   it('describes each mode in its own terms', () => {
     expect(setLabel(LIFT, { w: 60, r: 10 })).toBe('60×10')
-    expect(setLabel(CARDIO, { min: 20, speed: 9 })).toBe('20 min @ 9 km/h')
     expect(setLabel(LIFT, { sec: 45, w: 0 }, { mode: 'time' })).toBe('0:45')
     expect(setLabel(LIFT, { sec: 90, w: 20 }, { mode: 'time' })).toBe('1:30 · 20')
   })
 
   it('reads a legacy set with no config exactly as before', () => {
     expect(setLabel(LIFT, { w: 0, r: 0 })).toBe('0×0')
-    expect(setLabel(CARDIO, {})).toBe('0 min @ 0 km/h')
   })
 
   it('appends RIR when present, including a valid 0', () => {
@@ -249,10 +240,9 @@ describe('logging effort across a session', () => {
     expect(setLabel(LIFT, old)).toBe('60×10 (RIR 2)')
   })
 
-  it('never attaches effort to a mode that has no place for it', () => {
-    // cardio and timed sets have no third stepper, and their labels ignore the field even
-    // if an import or an old file put one there
-    expect(setLabel(CARDIO, { min: 20, speed: 9, rpe: 8 })).toBe('20 min @ 9 km/h')
+  it('never attaches effort to a timed set, which has no place for it', () => {
+    // a timed set has no third stepper, and its label ignores the field even if an import
+    // or an old file put one there
     expect(setLabel(LIFT, { sec: 45, rir: 2 }, { id: LIFT, mode: 'time' })).toBe('0:45')
   })
 })
@@ -260,7 +250,6 @@ describe('logging effort across a session', () => {
 describe('defaultConfig', () => {
   it('gives each mode a sensible starting point', () => {
     expect(defaultConfig(LIFT)).toEqual({ sets: 3, reps: 10, weight: 0, mode: 'reps' })
-    expect(defaultConfig(CARDIO)).toEqual({ sets: 1, min: 20, speed: 8 })
     expect(defaultConfig(LIFT, 'time')).toEqual({ sets: 3, sec: 45, weight: 0, mode: 'time' })
   })
   it('seeds the bodyweight flag from the catalogue, and only when it is true', () => {
@@ -283,27 +272,9 @@ describe('isBw', () => {
   })
 })
 
-describe('sideReps', () => {
-  it('halves the logged total, because the total is what was logged', () => {
-    expect(sideReps(16)).toBe(8)
-    expect(sideReps(0)).toBe(0)
-  })
-  it('shows an odd total as it falls rather than rounding the imbalance away', () => {
-    expect(sideReps(17)).toBe(8.5)
-  })
-})
-
 describe('exLine — per side never reaches a timed hold', () => {
   it('ignores a stale side flag on a hold, which has no reps to split', () => {
     expect(exLine({ id: LIFT, sets: 3, sec: 45, mode: 'time', side: true }, 'kg')).toBe('3 × 0:45')
-  })
-})
-
-describe('repStep', () => {
-  it('steps unilateral work in twos so the total stays splittable', () => {
-    expect(repStep({ side: true })).toBe(2)
-    expect(repStep({})).toBe(1)
-    expect(repStep(null)).toBe(1)
   })
 })
 
@@ -324,9 +295,6 @@ describe('setLabel — bodyweight', () => {
 })
 
 describe('exLine', () => {
-  it('shows the split where there is room for it, next to the total you log', () => {
-    expect(exLine({ id: LIFT, sets: 3, reps: 16, side: true }, 'kg')).toBe('3 × 16 · 8/side')
-  })
   it('marks added weight as added', () => {
     expect(exLine({ id: BW, sets: 3, reps: 8, weight: 10 }, 'kg')).toBe('3 × 8 · +10 kg')
   })
@@ -335,7 +303,6 @@ describe('exLine', () => {
     expect(exLine({ id: LIFT, sets: 3, reps: 10, weight: 60 }, 'kg')).toBe('3 × 10 · 60 kg')
     expect(exLine({ id: LIFT, sets: 3, sec: 45, mode: 'time' }, 'kg')).toBe('3 × 0:45')
     expect(exLine({ id: LIFT, sets: 2, sec: 90, weight: 20, mode: 'time' }, 'kg')).toBe('2 × 1:30 · 20 kg')
-    expect(exLine({ id: CARDIO, sets: 1, min: 20, speed: 8 }, 'kg')).toBe('1 × 20 min @ 8 km/h')
   })
 })
 
@@ -406,7 +373,7 @@ describe('freestyleConfig', () => {
     expect(workSetsDone(logged)).toBe(3)
   })
 
-  it('inherits the target for timed and cardio exercises too', () => {
+  it('inherits the target for timed exercises too', () => {
     const timed = {
       exWeights: {},
       workouts: [{
@@ -418,30 +385,12 @@ describe('freestyleConfig', () => {
         }]
       }]
     }
-    const cardio = {
-      exWeights: {},
-      workouts: [{
-        d: '2026-01-03',
-        entries: [{
-          id: CARDIO,
-          target: { sets: 2, min: 30, speed: 7 },
-          sets: [{ min: 28, speed: 7, done: true }, { min: 30, speed: 7.5, done: true }]
-        }]
-      }]
-    }
 
     const timedCfg = freestyleConfig(timed, { id: LIFT, mode: 'time', sets: 3, sec: 45, weight: 0 })
     expect(timedCfg).toEqual({ id: LIFT, mode: 'time', sets: 2, sec: 60, weight: 15 })
     expect(buildSets(timed, timedCfg)).toEqual([
       { sec: 55, w: 15, done: false },
       { sec: 60, w: 17.5, done: false }
-    ])
-
-    const cardioCfg = freestyleConfig(cardio, { id: CARDIO, sets: 1, min: 20, speed: 8 })
-    expect(cardioCfg).toEqual({ id: CARDIO, sets: 2, min: 30, speed: 7 })
-    expect(buildSets(cardio, cardioCfg)).toEqual([
-      { min: 28, speed: 7, done: false },
-      { min: 30, speed: 7.5, done: false }
     ])
   })
 
@@ -460,11 +409,6 @@ describe('buildSets', () => {
   it('builds timed sets, carrying the planned duration and load', () => {
     expect(buildSets(emptyS, { id: LIFT, mode: 'time', sets: 2, sec: 60, weight: 20 }))
       .toEqual([{ sec: 60, w: 20, done: false }, { sec: 60, w: 20, done: false }])
-  })
-
-  it('builds cardio sets unchanged', () => {
-    expect(buildSets(emptyS, { id: CARDIO, sets: 1, min: 25, speed: 9 }))
-      .toEqual([{ min: 25, speed: 9, done: false }])
   })
 
   it('carries last time\'s numbers forward within the same mode', () => {
@@ -549,7 +493,7 @@ describe('buildSets', () => {
     ])
   })
 
-  it('preserves configured load, reps, duration and cardio targets when history is present', () => {
+  it('preserves configured load, reps and duration when history is present', () => {
     const repsS = {
       exWeights: { [LIFT]: { w: 75 } },
       workouts: [{ d: '2026-01-01', entries: [{ id: LIFT, sets: [{ w: 75, r: 15, done: true }] }] }]
@@ -563,71 +507,15 @@ describe('buildSets', () => {
     }
     expect(buildSets(timedS, { id: LIFT, mode: 'time', sets: 2, sec: 30, weight: 5 }, { useTarget: true }))
       .toEqual([{ sec: 30, w: 5, done: false }, { sec: 30, w: 5, done: false }])
-
-    const cardioS = {
-      exWeights: {},
-      workouts: [{ d: '2026-01-03', entries: [{ id: CARDIO, sets: [{ min: 45, speed: 10, done: true }] }] }]
-    }
-    expect(buildSets(cardioS, { id: CARDIO, sets: 2, min: 20, speed: 8 }, { useTarget: true }))
-      .toEqual([{ min: 20, speed: 8, done: false }, { min: 20, speed: 8, done: false }])
   })
 
-})
-
-describe('applyIntensifierPlan', () => {
-  it('pre-fills every work row with a chain of drops, each pct% lighter than the one before', () => {
-    const sets = [{ w: 100, r: 8, done: false }, { w: 100, r: 8, done: false }]
-    const out = applyIntensifierPlan(sets, { intensifier: { type: 'dropset', count: 2, pct: 20 } })
-    expect(out).toEqual([
-      { w: 100, r: 8, done: false, type: 'dropset', drops: [{ w: 80, r: 8 }, { w: 64, r: 8 }] },
-      { w: 100, r: 8, done: false, type: 'dropset', drops: [{ w: 80, r: 8 }, { w: 64, r: 8 }] },
-    ])
-  })
-
-  it('collapses rest-pause to exactly two rows regardless of how many sets were configured: a warm-up at the exercise\'s own reps, then one work set whose own reps ARE the total', () => {
-    const sets = [{ w: 60, r: 8, done: false }, { w: 60, r: 8, done: false }, { w: 60, r: 8, done: false }]
-    const out = applyIntensifierPlan(sets, { reps: 8, intensifier: { type: 'restpause', totalReps: 12, restSec: 15 } })
-    expect(out).toEqual([
-      { w: 60, r: 8, done: false, phase: 'warmup' },
-      { w: 60, r: 12, done: false, type: 'restpause', clusters: [{ r: 6, restSec: 15 }, { r: 3, restSec: 15 }, { r: 2, restSec: 15 }, { r: 1, restSec: 15 }] },
-    ])
-    // the full breakdown always sums back to the row's own r — no reps missing, none double-counted
-    expect(out[1].clusters.reduce((sum, c) => sum + c.r, 0)).toBe(out[1].r)
-  })
-
-  it('the warm-up reps come from the exercise\'s own configured reps, not the rest-pause total', () => {
-    const sets = [{ w: 60, r: 8, done: false }]
-    const out = applyIntensifierPlan(sets, { reps: 5, intensifier: { type: 'restpause', totalReps: 20, restSec: 15 } })
-    expect(out[0]).toEqual({ w: 60, r: 5, done: false, phase: 'warmup' })
-  })
-
-  it('carries the prescribed weight from the built sets onto both new rows', () => {
-    const sets = [{ w: 82.5, r: 8, done: false }]
-    const out = applyIntensifierPlan(sets, { reps: 8, intensifier: { type: 'restpause', totalReps: 4, restSec: 15 } })
-    expect(out[0].w).toBe(82.5)
-    expect(out[1].w).toBe(82.5)
-  })
-
-  it('never touches a warm-up row', () => {
-    const sets = [{ w: 20, r: 8, done: false, phase: 'warmup' }, { w: 100, r: 8, done: false }]
-    const out = applyIntensifierPlan(sets, { intensifier: { type: 'dropset', count: 1, pct: 20 } })
-    expect(out[0]).toEqual({ w: 20, r: 8, done: false, phase: 'warmup' })
-    expect(out[1].type).toBe('dropset')
-  })
-
-  it('leaves sets untouched with no intensifier configured', () => {
-    const sets = [{ w: 100, r: 8, done: false }]
-    expect(applyIntensifierPlan(sets, {})).toBe(sets)
-    expect(applyIntensifierPlan(sets, { intensifier: { type: 'nonsense' } })).toBe(sets)
-  })
 })
 
 describe('workoutVolume', () => {
-  it('counts reps work and leaves timed/cardio sets out — there is no weight × reps for a hold', () => {
+  it('counts reps work and leaves timed sets out — there is no weight × reps for a hold', () => {
     const w = { entries: [
       { id: LIFT, sets: [{ w: 60, r: 10, done: true }, { w: 60, r: 10, done: false }] },
-      { id: LIFT, target: { mode: 'time' }, sets: [{ sec: 60, w: 20, done: true }] },
-      { id: CARDIO, sets: [{ min: 20, speed: 9, done: true }] }
+      { id: LIFT, target: { mode: 'time' }, sets: [{ sec: 60, w: 20, done: true }] }
     ] }
     expect(workoutVolume(w)).toBe(600)
   })
@@ -635,21 +523,6 @@ describe('workoutVolume', () => {
   it('needs no per-side case — the logged reps are already both sides (issue #31)', () => {
     const w = { entries: [{ id: LIFT, target: { side: true }, sets: [{ w: 20, r: 16, done: true }] }] }
     expect(workoutVolume(w)).toBe(320)
-  })
-
-  it('adds drop-set drops on top of the row\'s main set', () => {
-    const dropRow = { type: 'dropset', w: 100, r: 5, done: true, drops: [{ w: 80, r: 5 }, { w: 60, r: 5 }] }
-    expect(workoutVolume({ entries: [{ id: LIFT, sets: [dropRow] }] })).toBe(100 * 5 + 80 * 5 + 60 * 5)
-  })
-
-  it('counts a rest-pause row once — its own r is already the total across every burst', () => {
-    const burstRow = { type: 'restpause', w: 60, r: 20, done: true, clusters: [{ r: 10, restSec: 15 }, { r: 5, restSec: 15 }, { r: 3, restSec: 15 }, { r: 1, restSec: 15 }, { r: 1, restSec: 15 }] }
-    expect(workoutVolume({ entries: [{ id: LIFT, sets: [burstRow] }] })).toBe(60 * 20)
-  })
-
-  it('ignores drops/bursts on a row that was never checked off', () => {
-    const dropRow = { type: 'dropset', w: 100, r: 5, done: false, drops: [{ w: 80, r: 5 }] }
-    expect(workoutVolume({ entries: [{ id: LIFT, sets: [dropRow] }] })).toBe(0)
   })
 
   it('leaves an unloaded bodyweight set at zero volume rather than inventing a number', () => {
@@ -855,11 +728,9 @@ describe('session row helpers', () => {
     expect(at100[1].w).toBe(100)
   })
 
-  it('ramps a timed hold the same way and leaves cardio on the work row values', () => {
+  it('ramps a timed hold the same way', () => {
     expect(insertWarmupRow([{ sec: 45, w: 40, done: false }], 'time', { sec: 45 }, 2.5)[0])
       .toMatchObject({ sec: 45, w: 20, phase: 'warmup' })
-    expect(insertWarmupRow([{ min: 20, speed: 10, done: false }], 'cardio', { min: 20 }, 2.5)[0])
-      .toMatchObject({ min: 20, speed: 10, phase: 'warmup' })
   })
 
   it('removeRowAt never empties an entry below one row', () => {
@@ -871,8 +742,8 @@ describe('session row helpers', () => {
   })
 })
 
-// The importer writes `phase: 'warmup'` and no `warmup` boolean (import-csv.js), so anything
-// reading the raw flag counts an imported warm-up as work. Read through the model instead.
+// An importer writes `phase: 'warmup'` and no `warmup` boolean, so anything reading the raw
+// flag counts an imported warm-up as work. Read through the model instead.
 describe('warm-up rows identified by phase alone', () => {
   const imported = { w: 40, r: 10, done: true, phase: 'warmup' }
   const work = { w: 100, r: 5, done: true }
@@ -971,67 +842,6 @@ describe('exNoteFor', () => {
   })
 })
 
-/* ---------- one-sided (unilateral) sets, logged per side (issue #60) ---------- */
-
-// A per-side row carries its two sides and a scalar aggregate. These pin that the display shows
-// both sides, and — crucially — that every aggregate-reading consumer (volume, best weight, the
-// x/y-sets counters) treats the row correctly without knowing sides exist.
-describe('setLabel — per side', () => {
-  it('shows both sides so an asymmetry is visible, not a single combined total', () => {
-    const s = setSideField(setSideField(makeSideSet({ w: 15, r: 16 }), 'R', 'r', 7), 'L', 'r', 8)
-    expect(setLabel(LIFT, s, { id: LIFT, side: true })).toBe('L 15×8 · R 15×7')
-  })
-
-  it('keeps each side effort tail and reads bodyweight sides as reps alone', () => {
-    let s = makeSideSet({ w: 0, r: 16 })
-    s = setSideField(s, 'L', 'rir', 1)
-    expect(setLabel(BW, s, { id: BW, side: true })).toBe('L 8 (RIR 1) · R 8')
-  })
-})
-
-describe('per-side aggregate stays readable by existing consumers', () => {
-  it('workoutVolume counts both sides via the row total, unchanged from a straight set', () => {
-    // 15×8 per side = 15×16 total = 240, exactly what a straight {w:15,r:16} would score.
-    const side = { ...makeSideSet({ w: 15, r: 16 }), done: true }
-    const synced = toggleSide(toggleSide(makeSideSet({ w: 15, r: 16 }), 'L'), 'R') // both done
-    const w = { entries: [{ id: LIFT, sets: [synced] }] }
-    expect(synced.done).toBe(true)
-    expect(workoutVolume(w)).toBe(240)
-    // and a straight equivalent scores the same
-    expect(workoutVolume({ entries: [{ id: LIFT, sets: [{ w: 15, r: 16, done: true }] }] })).toBe(240)
-  })
-
-  it('bestWeightForEntry reads the aggregate weight of a completed per-side set', () => {
-    const s = toggleSide(toggleSide(setSideField(makeSideSet({ w: 15, r: 16 }), 'R', 'w', 17.5), 'L'), 'R')
-    expect(bestWeightForEntry({ id: LIFT, target: { id: LIFT, side: true }, sets: [s] })).toBe(17.5)
-  })
-})
-
-describe('per-side set counters', () => {
-  it('setUnits counts a per-side row as two, a straight row as one', () => {
-    expect(setUnits(makeSideSet({ w: 15, r: 16 }))).toBe(2)
-    expect(setUnits({ w: 15, r: 16 })).toBe(1)
-  })
-
-  it('doneUnits counts each finished side independently', () => {
-    const none = makeSideSet({ w: 15, r: 16 })
-    expect(doneUnits(none)).toBe(0)
-    expect(doneUnits(toggleSide(none, 'L'))).toBe(1)
-    expect(doneUnits(toggleSide(toggleSide(none, 'L'), 'R'))).toBe(2)
-    expect(doneUnits({ w: 15, r: 16, done: true })).toBe(1)
-  })
-
-  it('setUnitsTotal / setsDoneActive account for both sides across the session', () => {
-    const A = { entries: [
-      { id: LIFT, sets: [toggleSide(makeSideSet({ w: 15, r: 16 }), 'L'), makeSideSet({ w: 15, r: 16 })] }, // 2 rows × 2 sides = 4 units, 1 side done
-      { id: LIFT, sets: [{ w: 60, r: 8, done: true }] },                                                    // 1 straight, done
-    ] }
-    expect(setUnitsTotal(A.entries)).toBe(5)
-    expect(setsDoneActive(A)).toBe(2)
-    expect(setsDone({ entries: A.entries })).toBe(2)
-  })
-})
-
 // The dated-weeks reader the session path uses in place of the old routine resolver.
 describe('effectiveDay', () => {
   it('is the day planned for a date, and null for a rest day or a date outside every week', () => {
@@ -1078,17 +888,9 @@ describe('lastEntryFor / buildSets skip a noProg entry', () => {
   })
 })
 
-describe('per-side volume and legacy timed sets (QA round 2026-09-12)', () => {
-  it('sums each side of a unilateral set on its own instead of max weight × total reps', () => {
-    const w = { entries: [{ id: 'x', sets: [
-      { done: true, sides: { L: { w: 14, r: 10, done: true }, R: { w: 12.5, r: 6, done: true } }, w: 14, r: 16 },
-      { done: true, w: 100, r: 10 }
-    ] }] }
-    expect(workoutVolume(w)).toBe(14 * 10 + 12.5 * 6 + 1000)
-  })
-  it('reads a timed or cardio set saved without a target from the set itself', () => {
+describe('legacy timed sets', () => {
+  it('reads a timed set saved without a target from the set itself', () => {
     expect(setLabel('0001', { sec: 45, done: true })).toBe('0:45')
-    expect(setLabel('0001', { min: 20, speed: 8, done: true })).toBe('20 min @ 8 km/h')
     expect(setLabel('0025', { w: 60, r: 10, done: true })).toBe('60×10')
   })
 })

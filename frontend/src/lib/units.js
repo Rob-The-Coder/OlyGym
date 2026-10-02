@@ -1,8 +1,9 @@
-// Converting a profile between kg and lb. Until now the unit switch only relabelled the numbers
-// (60 kg became "60 lb", issue #22); this walks every stored weight once. Rounded to what a gym
-// can load: lb to the nearest 0.5, kg to the nearest 0.25 — enough that a value converted there
-// and back lands where it started for any plate-loadable number.
-import { isSideSet, syncSideAggregate } from './workout-model.js'
+// Converting a profile's stored weights from lb to kg, once, on the way in.
+//
+// The app logs kilos only now. A profile that was written while it still offered pounds is
+// converted exactly once (see useStore's load path) and its unit pinned to 'kg', so an old
+// number is never silently relabelled. Rounded to what a gym can load: kg to the nearest
+// 0.25, body weight to 0.1.
 import { workoutVolume } from './history.js'
 
 const LB_PER_KG = 2.2046226218
@@ -15,8 +16,7 @@ export function convertWeight(value, from, to) {
 }
 
 // Body weight is not loaded on a bar: the weigh-in sheet steps and stores it at 0.1, so plate
-// rounding would move most weigh-ins on a kg → lb → kg round trip (78.6 → 173.5 → 78.75; QA C15).
-// A tenth in either unit is fine enough that kg → lb → kg comes home for every 0.1-kg value.
+// rounding would move most weigh-ins on a kg → lb → kg round trip (QA C15).
 export function convertBodyWeight(value, from, to) {
   if (from === to || value == null || value === '' || !Number.isFinite(Number(value))) return value
   const v = Number(value)
@@ -26,11 +26,7 @@ export function convertBodyWeight(value, from, to) {
 const convSet = (set, from, to) => {
   if (!set || typeof set !== 'object') return set
   const out = { ...set }
-  if (isSideSet(set)) return syncSideAggregate({ ...set, sides: {
-    L: convSet(set.sides.L, from, to), R: convSet(set.sides.R, from, to),
-  } })
   if (out.w != null) out.w = convertWeight(out.w, from, to)
-  if (Array.isArray(out.drops)) out.drops = out.drops.map(d => ({ ...d, w: convertWeight(d.w, from, to) }))
   return out
 }
 const convTarget = (cfg, from, to) => {
@@ -60,8 +56,7 @@ export function convertStateUnit(S, to) {
   const bw = v => convertBodyWeight(v, from, to)
   // A session carries its body weight of the day and a cached total volume; History rows, the
   // detail header, the month calendar and the heatmap tooltips read those rather than summing
-  // sets, so they must move with the sets or show kg totals under an lb label (QA C11). The
-  // volume is re-added from the converted sets, so it agrees with the set list to the number.
+  // sets, so they must move with the sets. The volume is re-added from the converted sets.
   const convSession = s => {
     const out = { ...s, entries: (s.entries || []).map(e => convEntry(e, from, to)) }
     if (out.bw != null) out.bw = bw(out.bw)

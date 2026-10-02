@@ -28,7 +28,7 @@ export const toScale = (kind, rir) =>
 
 /**
  * Which scale to *label* aggregates with. The profile's own setting wins; a profile that
- * logs nothing itself but carries rated history (the imported-from-Hevy case) is shown the
+ * logs nothing itself but carries rated history (an imported case) is shown the
  * scale that history is actually written in, rather than an RIR it has never seen.
  */
 export function displayScale(S) {

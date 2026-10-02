@@ -13,10 +13,10 @@ describe('policy-labelled progression guidance', () => {
     const hold = ['Missed reps last time — same weight again ({0} of {1} to go).', 2, 3]
     const deload = ['Missed reps — reset to {0} {1} and work back up.', 55, 'kg']
 
-    expect(progressionGuidance({ policy: 'double', kind: 'hold', why: hold }))
-      .toEqual({ policyLabel: 'Double progression', why: hold })
-    expect(progressionGuidance({ policy: 'greyskull', kind: 'deload', why: deload }))
-      .toEqual({ policyLabel: 'Greyskull LP', why: deload })
+    expect(progressionGuidance({ policy: 'linear', kind: 'hold', why: hold }))
+      .toEqual({ policyLabel: 'Linear progression', why: hold })
+    expect(progressionGuidance({ policy: 'linear', kind: 'deload', why: deload }))
+      .toEqual({ policyLabel: 'Linear progression', why: deload })
   })
 
   it('labels a baseline outcome and omits policies with no visible outcome', () => {

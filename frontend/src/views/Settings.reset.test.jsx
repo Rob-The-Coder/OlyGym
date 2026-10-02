@@ -40,16 +40,11 @@ vi.mock('../store/useUI.js', () => {
   return { useUI }
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
-vi.mock('../lib/api.js', () => ({
-  api: (...a) => mocks.api(...a), webauthnOK: () => false, passkeyLogin: vi.fn(), passkeyRegister: vi.fn(), IS_ANDROID: false,
-}))
-vi.mock('../lib/push.js', () => ({ pushSupported: () => false, enablePush: vi.fn(), disablePush: vi.fn(), sendTestPush: vi.fn() }))
 vi.mock('../lib/wakelock.js', () => ({ wakeLockSupported: () => false }))
 vi.mock('../lib/mobile.js', () => ({ MOBILE: false, isAndroid: () => Promise.resolve(false), shareExport: vi.fn(), syncReminder: vi.fn() }))
-vi.mock('./MobileOnboarding.jsx', () => ({ ConnectSheet: () => null }))
 vi.mock('../sheets.jsx', () => ({
-  starterPlanSheet: vi.fn(), confirmSheet: (...a) => mocks.confirmSheet(...a), importFromApp: vi.fn(),
-  importFromHevy: vi.fn(), equipmentProfileSheet: vi.fn(), menuSheet: vi.fn(), importCoachPlanFromDrive: vi.fn(),
+  starterPlanSheet: vi.fn(), confirmSheet: (...a) => mocks.confirmSheet(...a),
+  equipmentProfileSheet: vi.fn(), menuSheet: vi.fn(), importCoachPlanFromDrive: vi.fn(),
 }))
 
 globalThis.__APP_VERSION__ ??= 'test'
@@ -57,7 +52,7 @@ globalThis.__APP_VERSION__ ??= 'test'
 let host, root
 beforeEach(() => {
   mocks.S = {
-    unit: 'kg', restSec: 90, restPauseSec: 15, sound: false, effort: 'none',
+    unit: 'kg', restSec: 90, sound: false, effort: 'none',
     gifSize: 'full', workouts: [], exWeights: {},
   }
   mocks.user = null
@@ -94,14 +89,4 @@ describe('Settings — reset everything', () => {
     expect(mocks.toast).toHaveBeenCalledWith('All data reset')
   })
 
-  it('signed in: says the wipe reaches the server and every device', () => {
-    mocks.user = { uid: 'u1', name: 'Ana' }
-    mount()
-    const dialog = openDialog()
-    expect(dialog.message).toBe('Deletes your plan, workouts and body weight from your profile on this server and on every signed-in device. This cannot be undone.')
-    act(() => { dialog.onConfirm() })
-    expect(mocks.replaceState).toHaveBeenCalledTimes(1)
-    expect(mocks.replaceState.mock.calls[0][1]).toBe(true)
-    expect(mocks.toast).toHaveBeenCalledWith('All data reset')
-  })
 })

@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   readSession, sessionsFor, stallCount, nextPrescription, applyPrescription,
-  policyFor, defaultIncrement, weightIncrement, epley1RM, deloadTarget1RM,
-  deloadFactorOf, DELOAD_FACTOR, POLICIES_FOR, DELOAD_AFTER, MAX_BW_SETS
+  policyFor, defaultIncrement, weightIncrement, POLICIES_FOR, DELOAD_AFTER
 } from './progression.js'
 import { entryExcluded } from './history.js'
 import { EXDB } from './exercises.js'
@@ -20,11 +19,6 @@ const byName = name => {
 const LIFT = byName('bench press')
 // A lift the bigger step belongs to — see HEAVY_MUSCLES in progression.js.
 const HEAVY = byName('back squat')
-// The OlyGym catalogue has no cardio category any more: the cardio logging mode is reachable
-// through imported and custom exercises only. So this fixture is a custom id with the mode set
-// explicitly (see `mode: 'cardio'` below), not a catalogue entry that no longer exists.
-const CARDIO = 'custom-cardio'
-
 // Build a state whose history is a list of sessions given as [weight, ...repsPerSet].
 // A rep count of null means "the set was never checked off".
 const hist = (id, rows, target) => ({
@@ -45,8 +39,6 @@ describe('readSession', () => {
     const s = readSession({ id: LIFT, target: T, sets: [{ w: 60, r: 5, done: true }, { w: 60, r: 5, done: true }, { w: 60, r: 6, done: true }] })
     expect(s.ok).toBe(true)
     expect(s.weight).toBe(60)
-    expect(s.amrap).toBe(6)
-    expect(s.low).toBe(5)
   })
 
   it('counts short reps as a miss even when the set was checked off', () => {
@@ -85,41 +77,23 @@ describe('stallCount', () => {
     expect(stallCount([])).toBe(0)
   })
 
-  // 2 additional guardrails to ensure correct behavior with possible patterns
-  const miss = (weight, low) => ({ ok: false, weight, low })
-
-  it('measures progress against the best of the run, not merely the session before', () => {
-    // Lows 8,9,8,9,8 at one weight: every other session beats the one immediately before it,
-    // so comparing only to the previous session would let this yo-yo forever without ever
-    // deloading. So we test: 9 never beats the earlier 9 and the stall streak stands.
-    const oscillating = [miss(40, 8), miss(40, 9), miss(40, 8), miss(40, 9), miss(40, 8)]
-    expect(stallCount(oscillating, 'double')).toBe(3)
-  })
-
-  it('ends the streak at a session that made progress rather than skipping past it', () => {
-    // Lows 9,9,9,10: the most recent session is a personal best for this run. Checks whether the stall streak ends
-    // there and counts nothing. Otherwise stallCount would return 3 and deload after porgress had just occurred.
-    const improvedLast = [miss(40, 9), miss(40, 9), miss(40, 9), miss(40, 10)]
-    expect(stallCount(improvedLast, 'double')).toBe(0)
-  })
 })
 
 describe('policyFor', () => {
   it('keeps the app\'s long-standing behaviour as the default for reps work', () => {
     expect(policyFor({ id: LIFT }, null, 'reps')).toBe('linear')
   })
-  it('leaves timed and cardio work alone unless asked', () => {
+  it('leaves timed work alone unless asked', () => {
     expect(policyFor({ id: LIFT, mode: 'time' }, null, 'time')).toBe('off')
-    expect(policyFor({ id: CARDIO }, null, 'cardio')).toBe('off')
   })
   it('lets the exercise override the routine, and the routine override the default', () => {
-    expect(policyFor({ id: LIFT }, { prog: 'greyskull' }, 'reps')).toBe('greyskull')
-    expect(policyFor({ id: LIFT, prog: 'double' }, { prog: 'greyskull' }, 'reps')).toBe('double')
+    expect(policyFor({ id: LIFT, prog: 'off' }, { prog: 'linear' }, 'reps')).toBe('off')
+    expect(policyFor({ id: LIFT }, { prog: 'off' }, 'reps')).toBe('off')
+    expect(policyFor({ id: LIFT }, null, 'reps')).toBe('linear')
   })
   it('refuses a policy that makes no sense for the mode', () => {
-    expect(policyFor({ id: LIFT, mode: 'time', prog: 'greyskull' }, null, 'time')).toBe('off')
-    expect(policyFor({ id: CARDIO, prog: 'linear' }, null, 'cardio')).toBe('off')
-    expect(POLICIES_FOR.cardio).toEqual(['off'])
+    expect(policyFor({ id: LIFT, mode: 'time', prog: 'linear' }, null, 'time')).toBe('off')
+    expect(POLICIES_FOR.time).toEqual(['off'])
   })
 })
 
@@ -140,10 +114,6 @@ describe('defaultIncrement', () => {
     ]
     for (const [name, step] of expected) expect(defaultIncrement(byName(name), 'kg'), name).toBe(step)
   })
-  it('scales to pounds', () => {
-    expect(defaultIncrement(LIFT, 'lb')).toBe(5)
-    expect(defaultIncrement(HEAVY, 'lb')).toBe(10)
-  })
   it('falls back for an unknown exercise', () => {
     expect(defaultIncrement('nope', 'kg')).toBe(2.5)
   })
@@ -154,21 +124,6 @@ describe('weightIncrement', () => {
     expect(weightIncrement({ id: LIFT, inc: 1 }, 'kg')).toBe(1)
     expect(weightIncrement({ id: LIFT }, 'kg')).toBe(2.5)
     expect(weightIncrement({ id: HEAVY, inc: 0 }, 'kg')).toBe(5)
-  })
-})
-
-describe('Epley deload helpers', () => {
-  it('maps a prescribed target pair to the requested Epley 1RM factor', () => {
-    expect(epley1RM(60, 8)).toBe(76)
-    expect(deloadTarget1RM(60, 8)).toBe(68.4)
-    expect(deloadTarget1RM(60, 8, 0.8)).toBe(60.8)
-  })
-
-  it('uses the configured factor and keeps the ratio backward-compatible', () => {
-    expect(DELOAD_FACTOR).toBe(0.9)
-    expect(deloadFactorOf({})).toBe(0.9)
-    expect(deloadFactorOf({ deloadFactor: 0.8 })).toBe(0.8)
-    expect(deloadFactorOf({ deloadFactor: 0.1 })).toBe(0.9)
   })
 })
 
@@ -206,28 +161,11 @@ describe('linear progression', () => {
     expect(DELOAD_AFTER.linear).toBe(3)
   })
 
-  it('deloads from the prescribed target reps, not partial actual reps', () => {
-    const target = { sets: 3, reps: 8, weight: 60 }
-    const p = nextPrescription(hist(LIFT, [[60, 6, 6, 6], [60, 6, 6, 6], [60, 6, 6, 6]], target), { ...cfg, reps: 8 })
-    expect(p.kind).toBe('deload')
-    expect(p.target1RM).toBe(deloadTarget1RM(60, 8))
-    expect(p.target1RM).not.toBe(deloadTarget1RM(60, 6))
-    expect(p.reps).toBe(8)
-  })
-
-  it('uses a configured Epley factor when selecting the deload load', () => {
-    const p = nextPrescription(hist(LIFT, [[60, 4, 4, 4], [60, 4, 4, 4], [60, 4, 4, 4]], { sets: 3, reps: 5, weight: 60 }), { ...cfg, deloadFactor: 0.8 })
-    expect(p.kind).toBe('deload')
-    expect(p.deloadFactor).toBe(0.8)
-    expect(p.target1RM).toBe(56)
-    expect(p.weight).toBe(47.5)
-  })
-
   it('holds a below-step load instead of deloading upward', () => {
+    // 1 kg with a 2.5 kg step: a cut would snap straight back up to 2.5, so the load holds.
     const p = nextPrescription(hist(LIFT, [[1, 1, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]]), { ...cfg, weight: 1, inc: 2.5 })
     expect(p.kind).toBe('deload')
     expect(p.weight).toBe(1)
-    expect(p.why[0]).toMatch(/hold/i)
   })
 
   it('a good session in between clears the stall', () => {
@@ -271,10 +209,6 @@ describe('linear progression', () => {
     expect(p.weight).toBe(61)
   })
 
-  it('works in pounds', () => {
-    const S = { ...hist(LIFT, [[135, 5, 5, 5]]), unit: 'lb' }
-    expect(nextPrescription(S, cfg).weight).toBe(140)
-  })
 })
 
 describe('bodyweight exercises', () => {
@@ -303,36 +237,12 @@ describe('bodyweight exercises', () => {
     expect(p.sets).toBeUndefined()
   })
 
-  it('adds a set and restarts the range once the ceiling is reached', () => {
-    const at15 = hist(LIFT, [[0, 15, 15, 15]], { sets: 3, reps: 15 })
-    const p = nextPrescription(at15, { ...cfg, reps: 10, repsMax: 15 })
-    expect(p.kind).toBe('up')
-    expect(p.sets).toBe(4)
-    expect(p.reps).toBe(10)
-    expect(p.weight).toBe(0)
-  })
-
-  it('stops adding sets at the cap and says what to do instead', () => {
-    const at15 = hist(LIFT, [[0, 15, 15, 15]], { sets: 3, reps: 15 })
-    const p = nextPrescription(at15, { ...cfg, sets: MAX_BW_SETS, reps: 10, repsMax: 15 })
-    expect(p.kind).toBe('hold')
-    expect(p.sets).toBeUndefined()
-    expect(p.why[0]).toMatch(/harder variation/)
-  })
-
   it('leaves a belted set to the normal policies — there is a load to add now', () => {
     const belted = hist(LIFT, [[10, 10, 10, 10]], { sets: 3, reps: 10 })
     const p = nextPrescription(belted, { ...cfg, bodyweight: true, repsMax: 15 })
     expect(p.kind).toBe('up')
     expect(p.weight).toBeGreaterThan(10)
     expect(p.sets).toBeUndefined()
-  })
-
-  it('steps a unilateral total by two, so it lands on 16, 18, 20 (issue #31)', () => {
-    const at16 = hist(LIFT, [[0, 16, 16, 16]], { sets: 3, reps: 16 })
-    expect(nextPrescription(at16, { ...cfg, reps: 16, side: true }).reps).toBe(18)
-    // and by one when it is not
-    expect(nextPrescription(at16, { ...cfg, reps: 16 }).reps).toBe(17)
   })
 
   it('keeps climbing reps forever when no ceiling was set — the old behaviour', () => {
@@ -343,12 +253,10 @@ describe('bodyweight exercises', () => {
     expect(p.sets).toBeUndefined()
   })
 
-  it('applies to every policy, not just linear', () => {
-    for (const prog of ['linear', 'greyskull', 'double']) {
-      const p = nextPrescription(bw([[0, 10, 10, 4], [0, 10, 10, 4], [0, 10, 10, 4]]), { ...cfg, prog })
-      expect(p.weight, prog).toBe(0)
-      expect(p.kind, prog).toBe('hold')
-    }
+  it('applies to linear progression', () => {
+    const p = nextPrescription(bw([[0, 10, 10, 4], [0, 10, 10, 4], [0, 10, 10, 4]]), { ...cfg, prog: 'linear' })
+    expect(p.weight).toBe(0)
+    expect(p.kind).toBe('hold')
   })
 
   it('still adds load the moment the exercise is actually weighted', () => {
@@ -358,199 +266,11 @@ describe('bodyweight exercises', () => {
   })
 })
 
-describe('Greyskull LP', () => {
-  const cfg = { id: LIFT, sets: 3, reps: 5, weight: 60, prog: 'greyskull' }
-
-  it('advances when the final set makes the target', () => {
-    const p = nextPrescription(hist(LIFT, [[60, 5, 5, 5]]), cfg)
-    expect(p.kind).toBe('up')
-    expect(p.weight).toBe(62.5)
-  })
-
-  it('takes a double jump when the last set doubles the target reps', () => {
-    const p = nextPrescription(hist(LIFT, [[60, 5, 5, 10]]), cfg)
-    expect(p.kind).toBe('up')
-    expect(p.weight).toBe(65)
-    expect(p.why[0]).toContain('double')
-  })
-
-  it('resets 10 % on the very first failure, unlike plain linear', () => {
-    const p = nextPrescription(hist(LIFT, [[60, 5, 5, 3]]), cfg)
-    expect(p.kind).toBe('deload')
-    expect(p.weight).toBe(55)
-    expect(DELOAD_AFTER.greyskull).toBe(1)
-  })
-
-  it('keeps resetting from the reduced weight, not the original', () => {
-    const p = nextPrescription(hist(LIFT, [[60, 5, 5, 3], [55, 5, 5, 2]]), cfg)
-    expect(p.kind).toBe('deload')
-    expect(p.weight).toBe(50)            // 55 × 0.9 = 49.5 → nearest loadable 2.5 step
-  })
-})
-
-describe('double progression', () => {
-  const cfg = { id: LIFT, sets: 3, reps: 12, repsMin: 8, weight: 40, prog: 'double' }
-
-  it('adds weight and drops back to the bottom of the range at the top of it', () => {
-    const p = nextPrescription(hist(LIFT, [[40, 12, 12, 12]], { sets: 3, reps: 12 }), cfg)
-    expect(p.kind).toBe('up')
-    expect(p.weight).toBe(42.5)
-    expect(p.reps).toBe(8)
-  })
-
-  it('does not deload again when the deload was performed exactly as prescribed', () => {
-    const target = { sets: 3, reps: 12 }
-    // Three sessions stuck mid-range where every set misses the top, so a deload falls due (see DELOAD_POLICY)
-    const stalled = [[40, 9, 9, 9], [40, 9, 9, 9], [40, 9, 9, 9]]
-    const deload = nextPrescription(hist(LIFT, stalled, target), cfg)
-    expect(deload.kind).toBe('deload')
-
-    // Training exactly what it asked for: its weight, its reps, every set checked off.
-    const asPrescribed = [deload.weight, ...Array(target.sets).fill(deload.reps)]
-    const effectiveTarget = { ...target, weight: deload.weight, reps: deload.reps }
-    const completed = hist(LIFT, stalled, target)
-    completed.workouts.push({
-      d: '2026-01-04',
-      entries: [{
-        id: LIFT,
-        target: effectiveTarget,
-        sets: asPrescribed.slice(1).map(r => ({ w: asPrescribed[0], r, done: true }))
-      }]
-    })
-    const next = nextPrescription(completed, cfg)
-
-    // Complying with the app's own prescription must not be scored as another failure.
-    expect(next.kind).not.toBe('deload')
-    expect(next.weight).toBeGreaterThanOrEqual(deload.weight)
-  })
-
-  it('keeps the weight and asks for one more rep while inside the range', () => {
-    const p = nextPrescription(hist(LIFT, [[40, 10, 9, 9]], { sets: 3, reps: 12 }), cfg)
-    expect(p.kind).toBe('hold')
-    expect(p.weight).toBe(40)
-    expect(p.reps).toBe(10)             // worst set was 9 -> aim for 10
-  })
-
-  it('never asks for more than the top of the range', () => {
-    const p = nextPrescription(hist(LIFT, [[40, 12, 12, 11]], { sets: 3, reps: 12 }), cfg)
-    expect(p.reps).toBeLessThanOrEqual(12)
-  })
-
-  it('deloads after a run of stalls and restarts at the bottom of the range', () => {
-    const rows = [[40, 9, 9, 9], [40, 9, 9, 9], [40, 9, 9, 9]]
-    const p = nextPrescription(hist(LIFT, rows, { sets: 3, reps: 12 }), cfg)
-    expect(p.kind).toBe('deload')
-    expect(p.reps).toBe(8)
-    expect(p.weight).toBe(40)           // 40 × 8 is the closest valid Epley candidate
-  })
-
-  it('climbs a range wider than the deload budget instead of cutting on the way up', () => {
-    // We consider a 8-12 rep range, so 4 rep steps one per session.
-    // This is graded against DELOAD_AFTER.double which allows for 2 stalls towards progress. 
-    // And only a hit at the top clears a stall. 
-    // With our rep range reaching the top thus cannot be achieved within the current budget of 3. 
-    // Therefore we wish to count the climb as progress as well. 
-    expect(cfg.reps - cfg.repsMin).toBeGreaterThan(DELOAD_AFTER.double - 1)
-
-    const target = { sets: 3, reps: cfg.reps }
-    const rows = []
-    let p = { weight: cfg.weight, reps: cfg.repsMin }
-    for (let session = 1; session <= 5; session++) {
-      // Train exactly what was prescribed, every set, every session.
-      rows.push([p.weight, ...Array(target.sets).fill(p.reps)])
-      p = nextPrescription(hist(LIFT, rows, target), cfg)
-      expect(p.kind).not.toBe('deload')
-    }
-
-    // Five compliant sessions later the top of the range is reached and the weight goes up.
-    expect(p.kind).toBe('up')
-    expect(p.weight).toBeGreaterThan(cfg.weight)
-    expect(p.reps).toBe(cfg.repsMin)
-  })
-
-  it('normalizes persisted per-side bounds before prescribing', () => {
-    const perSide = { ...cfg, reps: 13, repsMin: 7, side: true }
-    const p = nextPrescription(hist(LIFT, [[40, 12, 12, 12]], { sets: 3, reps: 13 }), perSide)
-    expect(p.kind).toBe('hold')
-    expect(p.reps).toBe(14)
-  })
-
-  it('selects a lower in-range rep target and never increases the attempted load', () => {
-    const target = { sets: 3, reps: 12, weight: 40 }
-    const p = nextPrescription(hist(LIFT, [[40, 9, 9, 9], [40, 9, 9, 9], [40, 9, 9, 9]], target), cfg)
-    expect(p.kind).toBe('deload')
-    expect(p.reps).toBeGreaterThanOrEqual(8)
-    expect(p.reps).toBeLessThanOrEqual(12)
-    expect(p.weight).toBeLessThanOrEqual(40)
-    expect(p.target1RM).toBe(deloadTarget1RM(40, 12))
-  })
-
-  it('keeps a 5 kg load and lowers reps when that is closer than a 50% weight cut', () => {
-    const small = { id: LIFT, sets: 3, reps: 8, repsMin: 4, weight: 5, inc: 2.5, prog: 'double' }
-    const target = { sets: 3, reps: 8, weight: 5 }
-    const p = nextPrescription(hist(LIFT, [[5, 6, 6, 6], [5, 6, 6, 6], [5, 6, 6, 6]], target), small)
-    expect(p.kind).toBe('deload')
-    expect(p.weight).toBe(5)
-    expect(p.reps).toBe(4)
-    expect(p.target1RM).toBe(deloadTarget1RM(5, 8))
-  })
-
-  it('uses half the reps for per-side Epley and returns an even total', () => {
-    const perSide = { ...cfg, reps: 8, side: true }
-    const target = { sets: 3, reps: 8, weight: 60, side: true }
-    const p = nextPrescription(hist(LIFT, [[60, 6, 6, 6], [60, 6, 6, 6], [60, 6, 6, 6]], target), perSide)
-    expect(p.kind).toBe('deload')
-    expect(p.reps % 2).toBe(0)
-    expect(p.target1RM).toBe(deloadTarget1RM(60, 8, 0.9, true))
-  })
-
-})
-
-describe('timed progression', () => {
-  const cfg = { id: LIFT, mode: 'time', sets: 2, sec: 45, prog: 'time' }
-  const T = { sets: 2, sec: 45, mode: 'time' }
-  const timeHist = rows => ({
-    unit: 'kg',
-    workouts: rows.map((row, i) => ({
-      d: '2026-02-0' + (i + 1),
-      entries: [{ id: LIFT, target: T, sets: row.map(sec => ({ sec, w: 0, done: true })) }]
-    }))
-  })
-
-  it('adds time when every set went the full duration', () => {
-    const p = nextPrescription(timeHist([[45, 45]]), cfg)
-    expect(p.kind).toBe('up')
-    expect(p.sec).toBe(50)
-    expect(p.weight).toBeUndefined()
-  })
-
-  it('repeats the target when a hold came up short', () => {
-    const p = nextPrescription(timeHist([[45, 38]]), cfg)
-    expect(p.kind).toBe('hold')
-    expect(p.sec).toBe(45)
-  })
-
-  it('backs the target off after a run of short sessions', () => {
-    const p = nextPrescription(timeHist([[45, 30], [45, 32], [45, 31]]), cfg)
-    expect(p.kind).toBe('deload')
-    expect(p.sec).toBe(40)              // 45 × 0.9 = 40.5 → nearest 5 s step
-  })
-
-  it('ignores reps history when the exercise switched to time', () => {
-    const S = hist(LIFT, [[60, 5, 5, 5]])
-    const p = nextPrescription({ ...S, unit: 'kg' }, cfg)
-    expect(p.kind).toBe('first')        // no timed session yet, so no opinion
-  })
-})
-
 describe('policy "off"', () => {
   it('has no opinion at all', () => {
     const p = nextPrescription(hist(LIFT, [[60, 5, 5, 5]]), { id: LIFT, sets: 3, reps: 5, prog: 'off' })
     expect(p.kind).toBe('off')
     expect(p.weight).toBeUndefined()
-  })
-  it('is what cardio always gets', () => {
-    expect(nextPrescription({ unit: 'kg', workouts: [] }, { id: CARDIO, mode: 'cardio', sets: 1, min: 20 }).kind).toBe('off')
   })
 })
 
@@ -742,13 +462,6 @@ describe('applyPrescription', () => {
     expect(applyPrescription(timed, { kind: 'up', sec: 50 })).toEqual([{ sec: 50, w: 0, done: false }])
   })
 
-  it('grows the list when the policy added a set (issue #33)', () => {
-    const three = [{ w: 0, r: 10, done: false }, { w: 0, r: 10, done: false }, { w: 0, r: 10, done: false }]
-    const out = applyPrescription(three, { kind: 'up', weight: 0, reps: 10, sets: 4 })
-    expect(out).toHaveLength(4)
-    expect(out[3]).toEqual({ w: 0, r: 10, done: false })
-  })
-
   it('never shrinks a session that has already logged sets', () => {
     expect(applyPrescription(sets, { kind: 'up', weight: 60, sets: 1 })).toHaveLength(sets.length)
   })
@@ -756,16 +469,14 @@ describe('applyPrescription', () => {
 
 
 describe('warm-up rows in session reads (round 3)', () => {
-  it('readSession ignores warm-up rows for reps, count, low and ok', () => {
+  it('readSession ignores warm-up rows for reps and ok', () => {
     // An undone warm-up (r 0) must not poison `ok` forever; its lighter reps must not
-    // drag `low`/`count` - the warm-up is prep, the session is the work rows.
+    // drag the work-row read - the warm-up is prep, the session is the work rows.
     const s = readSession({ id: LIFT, target: { sets: 2, reps: 5, mode: 'reps' }, sets: [
       { w: 20, r: 8, done: true, warmup: true },
       { w: 60, r: 5, done: true },
       { w: 60, r: 6, done: true },
     ] })
-    expect(s.count).toBe(2)
-    expect(s.low).toBe(5)
     expect(s.reps).toEqual([5, 6])
     expect(s.ok).toBe(true)
   })
@@ -785,9 +496,8 @@ describe('warm-up rows in session reads (round 3)', () => {
       { phase: 'warmup', w: 120, r: 20, done: true },
       { phase: 'work', warmup: true, w: 60, r: 5, done: true },
     ] })
-    expect(s.count).toBe(1)
     expect(s.weight).toBe(60)
-    expect(s.low).toBe(5)
+    expect(s.reps).toEqual([5])
     expect(s.ok).toBe(true)
   })
 })
@@ -803,18 +513,6 @@ describe('applyPrescription never touches warm-up rows (round 3)', () => {
     expect(out[0]).toEqual({ w: 20, r: 8, done: true, warmup: true })
     expect(out[1]).toEqual({ w: 60, r: 5, done: true })
     expect(out[2]).toEqual({ w: 62.5, r: 5, done: false })
-  })
-
-  it('grows the work rows, not the warm-up rows, when the policy adds sets', () => {
-    const sets = [
-      { w: 20, r: 8, done: true, warmup: true },
-      { w: 60, r: 5, done: true },
-      { w: 60, r: 5, done: false },
-    ]
-    const out = applyPrescription(sets, { kind: 'up', weight: 62.5, reps: 5, sets: 4 })
-    expect(out.filter(s => !s.warmup)).toHaveLength(4) // 2 existing + 2 grown
-    expect(out.filter(s => s.warmup)).toHaveLength(1)  // warm-up untouched
-    expect(out[0]).toEqual({ w: 20, r: 8, done: true, warmup: true })
   })
 
   it('an all-warm-up entry terminates and stays untouched', () => {
@@ -850,12 +548,6 @@ describe('drop-sets and rest-pause sets in progression', () => {
     expect(out[0]).toEqual({ type: 'dropset', w: 62.5, r: 5, done: false, drops: [{ w: 40, r: 8 }] })
   })
 
-  it('a newly grown row keeps the seed\'s planned type but not its already-logged drops/clusters', () => {
-    const sets = [{ type: 'dropset', w: 0, r: 10, done: false, drops: [{ w: 0, r: 12 }] }]
-    const out = applyPrescription(sets, { kind: 'up', weight: 0, reps: 10, sets: 2 })
-    expect(out).toHaveLength(2)
-    expect(out[1]).toEqual({ type: 'dropset', w: 0, r: 10, done: false })
-  })
 })
 
 describe('a weight off the increment grid keeps its offset when it goes up (issue #175)', () => {
@@ -865,10 +557,6 @@ describe('a weight off the increment grid keeps its offset when it goes up (issu
     const p = nextPrescription(hist(LIFT, [[397, 5, 5, 5]], { sets: 3, reps: 5, weight: 397 }), lin)
     expect(p.kind).toBe('up')
     expect(p.weight).toBe(407)
-    const dbl = { id: LIFT, sets: 3, reps: 12, repsMin: 8, weight: 397, prog: 'double', inc: 10 }
-    const d = nextPrescription(hist(LIFT, [[397, 12, 12, 12]], { sets: 3, reps: 12, weight: 397 }), dbl)
-    expect(d.kind).toBe('up')
-    expect(d.weight).toBe(407)
   })
   it('still snaps from a weight that sits on the grid', () => {
     const p = nextPrescription(hist(LIFT, [[60, 5, 5, 5]]), { id: LIFT, sets: 3, reps: 5, weight: 60, prog: 'linear', inc: 2.5 })

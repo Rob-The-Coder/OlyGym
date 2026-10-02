@@ -26,7 +26,7 @@ describe('convertStateUnit', () => {
     unit: 'kg', targetW: 80, bodyweight: [{ d: '2026-01-01', w: 82.4, t: 1 }],
     exWeights: { '0025': { w: 80, d: '2026-01-01' }, legacy: 100 }, barWeights: { '0025': 20 },
     weeks: [{ id: 'w', startIso: '2026-01-05', name: '', days: [{ dow: 1, name: '', ex: [{ id: '0025', sets: 3, reps: 5, weight: 80, inc: 2.5, warmup: [{ weight: 40, reps: 8 }] }, { id: 'plank', mode: 'time', sec: 30, inc: 5 }] }] }],
-    workouts: [{ id: 'w', entries: [{ id: '0025', topW: 80, target: { weight: 80 }, sets: [{ w: 80, r: 5, done: true, drops: [{ w: 60, r: 5 }] }] }] }],
+    workouts: [{ id: 'w', entries: [{ id: '0025', topW: 80, target: { weight: 80 }, sets: [{ w: 80, r: 5, done: true }] }] }],
     active: { id: 'a', entries: [{ id: '0025', sets: [{ w: 82.5, r: 5, done: false }] }] },
     workoutView: 'list',
   }
@@ -41,7 +41,7 @@ describe('convertStateUnit', () => {
     expect(out.weeks[0].days[0].ex[0]).toMatchObject({ weight: 176.5, inc: 5.5, warmup: [{ weight: 88, reps: 8 }] })
     expect(out.weeks[0].days[0].ex[1]).toEqual({ id: 'plank', mode: 'time', sec: 30, inc: 5 })   // seconds stay seconds
     expect(out.workouts[0].entries[0]).toMatchObject({ topW: 176.5, target: { weight: 176.5 } })
-    expect(out.workouts[0].entries[0].sets[0]).toMatchObject({ w: 176.5, done: true, drops: [{ w: 132.5, r: 5 }] })
+    expect(out.workouts[0].entries[0].sets[0]).toMatchObject({ w: 176.5, done: true })
     expect(out.active.entries[0].sets[0].w).toBe(182)
     expect(out.workoutView).toBe('list')
     expect(S.unit).toBe('kg')                       // the input is not mutated
@@ -54,14 +54,14 @@ describe('convertStateUnit', () => {
   // cached `vol` and `bw` off the saved workout rather than summing sets, so a conversion that
   // skips them shows kg totals under an lb label (QA C11).
   it('converts each workout\'s cached volume and session body weight, and the active session\'s (QA C11)', () => {
-    const drop = { id: '0025', sets: [{ w: 80, r: 5, done: true, type: 'dropset', drops: [{ w: 60, r: 5 }] }, { w: 40, r: 8, done: true, phase: 'warmup' }] }
+    const session = { id: '0025', sets: [{ w: 80, r: 5, done: true }, { w: 40, r: 8, done: true, phase: 'warmup' }] }
     const state = { ...S,
-      workouts: [{ id: 'w', vol: 700, bw: 82.4, entries: [drop] }, { id: 'x', entries: [] }],
+      workouts: [{ id: 'w', vol: 700, bw: 82.4, entries: [session] }, { id: 'x', entries: [] }],
       active: { ...S.active, bw: 82.4 } }
     const out = convertStateUnit(state, 'lb')
-    // 176.5 × 5 plus the 132.5 × 5 drop, warm-up left out — what the converted set list adds up to.
-    expect(out.workouts[0].vol).toBe(1545)
-    expect(workoutVolume(out.workouts[0])).toBe(1545)
+    // 176.5 × 5, warm-up left out — what the converted set list adds up to.
+    expect(out.workouts[0].vol).toBe(882.5)
+    expect(workoutVolume(out.workouts[0])).toBe(882.5)
     expect(out.workouts[0].bw).toBe(181.7)
     expect(out.active.bw).toBe(181.7)
     // A workout that never had a cached volume does not grow one.

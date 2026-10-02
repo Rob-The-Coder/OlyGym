@@ -17,14 +17,6 @@ describe('Stats mixed-entry metric contract', () => {
     expect(bestWeightForEntry(entry)).toBe(100)
   })
 
-  it('renders one clickable muscle exercise list rather than a duplicate non-clickable copy', () => {
-    expect((source.match(/muscleExercises\.length \? muscleExercises\.map\(row =>/g) || []).length).toBe(1)
-    // The handler must be one that exists: the previous `onExercise` was never defined and
-    // every tap threw (QA C13), so the row opens the exercise history sheet instead.
-    expect(source).toContain('{...tappable(() => exerciseHistorySheet(row.id))}')
-    expect(source).not.toContain('onExercise')
-  })
-
   it('uses the shared metric mode and row helpers rather than entryMode as a chart gate', () => {
     expect(source).toContain('metricModeForEntry')
     expect(source).toContain('metricRowsForEntry')

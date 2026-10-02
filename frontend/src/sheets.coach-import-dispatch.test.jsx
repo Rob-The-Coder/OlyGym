@@ -7,11 +7,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { readXlsx } from './lib/xlsx.js'
-import { parseCSV } from './lib/import-csv.js'
+import { parseCSV } from './lib/csv.js'
 import { importCoachPlan } from './sheets.jsx'
 
 vi.mock('./lib/xlsx.js', () => ({ readXlsx: vi.fn(async () => ({ sheets: [] })) }))
-vi.mock('./lib/import-csv.js', () => ({ parseCSV: vi.fn(() => []), parseImport: vi.fn(), mergeImport: vi.fn() }))
+vi.mock('./lib/csv.js', () => ({ parseCSV: vi.fn(() => []) }))
 
 beforeEach(() => {
   useUI.setState({ sheets: [], toastMsg: '' })

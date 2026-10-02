@@ -18,16 +18,14 @@ describe('extra sets stay out of the progression read', () => {
   it('does not call the session missed because a bonus set fell short', () => {
     const done = readSession(entry(plan, [set(60, 8), set(60, 8), set(60, 8), set(80, 3)]))
     expect(done.ok).toBe(true)
-    expect(done.low).toBe(8)
-    expect(done.count).toBe(3)
-    // Greyskull reads the last set of the plan, not whatever was tacked on after it
-    expect(done.amrap).toBe(8)
+    // The bonus set sits outside the planned three, so it never reaches the read.
+    expect(done.reps).toEqual([8, 8, 8])
   })
 
   it('still reports a short session as short, and still reads every planned set', () => {
     const short = readSession(entry(plan, [set(60, 8), set(60, 5), set(60, 8)]))
     expect(short.ok).toBe(false)
-    expect(short.low).toBe(5)
+    expect(short.reps).toEqual([8, 5, 8])
     const missing = readSession(entry(plan, [set(60, 8), set(60, 8)]))
     expect(missing.ok).toBe(false)
   })
@@ -35,7 +33,7 @@ describe('extra sets stay out of the progression read', () => {
   it('reads everything when the plan names no set count (freestyle)', () => {
     const free = readSession(entry({ mode: 'reps', reps: 8 }, [set(60, 8), set(80, 8)]))
     expect(free.weight).toBe(80)
-    expect(free.count).toBe(2)
+    expect(free.reps).toEqual([8, 8])
   })
 
   it('leaves warm-ups out before counting, so a warm-up does not eat a planned slot', () => {

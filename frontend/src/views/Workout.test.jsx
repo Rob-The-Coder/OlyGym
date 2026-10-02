@@ -545,17 +545,6 @@ describe('active workout weight controls', () => {
     expect(mocks.S.active.entries[0].sets[0].w).toBe(automatic.weight)
   })
 
-  it('uses the configured reps weight step for drop-set weight controls', async () => {
-    await mount([exercise('plain-bench', [false], {
-      target: { mode: 'reps', reps: 5, weight: 60, bodyweight: false, inc: 1 },
-      sets: [{ w: 60, r: 5, done: false, type: 'dropset', drops: [{ w: 50, r: 5 }] }],
-    })])
-
-    await press('Increase', '.subrow .stp')
-
-    expect(mocks.S.active.entries[0].sets[0].drops[0].w).toBe(51)
-  })
-
   it('keeps timed seconds and optional timed weight on their existing steps', async () => {
     await mount([exercise('timed-plank', [false], {
       target: { mode: 'time', sec: 30, weight: 60, bodyweight: false, inc: 1 },
@@ -724,17 +713,17 @@ describe('progression guidance', () => {
     const save = mocks.exConfigSheet.mock.calls[0][2]
 
     await act(async () => {
-      save({ ...entry.target, prog: 'double', repsMin: 3 })
+      save({ ...entry.target, prog: 'linear' })
       root.render(React.createElement(Workout))
     })
 
     const saved = mocks.S.active.entries[0]
-    expect(saved.target.prog).toBe('double')
+    expect(saved.target.prog).toBe('linear')
     expect(saved.sets[0]).toEqual(completed)
     expect(saved.sets[0]).toEqual({ w: 60, r: 5, done: true })
-    expect(saved.sets[1]).toEqual({ w: 62.5, r: 3, done: false })
+    expect(saved.sets[1]).toEqual({ w: 62.5, r: 5, done: false })
     expect(container.querySelector('.progline')?.textContent)
-      .toContain('Double progression · Top of the rep range in every set — 2.5 kg more, back to 3 reps.')
+      .toContain('Linear progression · Every rep last time — 2.5 kg more.')
 
     const persisted = JSON.parse(JSON.stringify(mocks.S))
     await unmount()
@@ -742,7 +731,7 @@ describe('progression guidance', () => {
     installDom()
     await act(async () => { root.render(React.createElement(Workout)) })
     expect(container.querySelector('.progline')?.textContent)
-      .toContain('Double progression · Top of the rep range in every set — 2.5 kg more, back to 3 reps.')
+      .toContain('Linear progression · Every rep last time — 2.5 kg more.')
   })
 })
 
@@ -1342,25 +1331,21 @@ describe('workout controls: the more menu and the set menu', () => {
     expect(mocks.exerciseHistorySheet).toHaveBeenCalledWith('plain-row')
   })
 
-  it('opens a per-set menu from the set number with drop, burst and remove', async () => {
+  it('opens a per-set menu from the set number with remove', async () => {
     await mount([exercise('plain-bench', [false, false])])
     await act(async () => { container.querySelector('button[aria-label="Set 2"]').dispatchEvent(new dom.Event('click', { bubbles: true })) })
-    expect(lastMenu().items.filter(Boolean).map(it => it.label)).toEqual(['Drop set', 'Rest-pause burst', 'Remove this set'])
+    expect(lastMenu().items.filter(Boolean).map(it => it.label)).toEqual(['Remove this set'])
 
-    await act(async () => { item('Drop set').onClick() })
-    expect(mocks.S.active.entries[0].sets[1].drops?.length).toBe(1)
-
-    await act(async () => { container.querySelector('button[aria-label="Set 2"]').dispatchEvent(new dom.Event('click', { bubbles: true })) })
     await act(async () => { item('Remove this set').onClick() })
     expect(mocks.S.active.entries[0].sets.length).toBe(1)
   })
 
   it('brings the legacy button rows back per switch', async () => {
     await mount([exercise('plain-bench', [false]), exercise('plain-row', [false])], 0, {
-      wc: { setShortcuts: true, pairButtons: true, exerciseButtons: true },
+      wc: { pairButtons: true, exerciseButtons: true },
     })
     const labels = [...container.querySelectorAll('button')].map(b => b.textContent.trim())
-    expect(labels).toEqual(expect.arrayContaining(['+ Drop', 'Add warm-up set', 'Remove set', 'Make complex with next', 'Move up', 'Swap exercise', 'Remove exercise']))
+    expect(labels).toEqual(expect.arrayContaining(['Make complex with next', 'Move up', 'Swap exercise', 'Remove exercise']))
   })
 
   it('drops the +/- buttons when steppers are off and keeps the number field', async () => {
@@ -1419,41 +1404,6 @@ describe('effort rating auto-ends the set', () => {
   })
 })
 
-describe('per-side effort completion', () => {
-  it.each(['rir', 'rpe'])('completes only the rated side for %s and keeps undo explicit', async scale => {
-    const side = () => ({ w: 20, r: 8, done: false })
-    await mount([exercise('plain-bench', [false], {
-      target: { mode: 'reps', side: true, reps: 16, weight: 20, bodyweight: false },
-      sets: [
-        { w: 20, r: 16, done: false, sides: { L: side(), R: side() } },
-        { w: 20, r: 16, done: false, sides: { L: side(), R: side() } },
-      ],
-    })], 0, { effort: scale })
-    const cells = container.querySelectorAll('.side-rows .effcell.is-empty')
-    await act(async () => { cells[0].dispatchEvent(new dom.Event('click', { bubbles: true })) })
-    const leftPick = mocks.effortPickerSheet.mock.calls.at(-1)[2]
-    await act(async () => { leftPick(scale === 'rir' ? 2 : 8) })
-    let set = mocks.S.active.entries[0].sets[0]
-    expect(set.sides.L.done).toBe(true)
-    expect(set.sides.R.done).toBe(false)
-    expect(set.done).toBe(false)
-    expect(mocks.startRest).not.toHaveBeenCalled()
-    await act(async () => { leftPick(3); leftPick(null) })
-    expect(mocks.S.active.entries[0].sets[0].sides.L.done).toBe(true)
-    expect(mocks.S.active.entries[0].sets[0].sides.L[scale]).toBeUndefined()
-    await act(async () => { cells[1].dispatchEvent(new dom.Event('click', { bubbles: true })) })
-    const rightPick = mocks.effortPickerSheet.mock.calls.at(-1)[2]
-    await act(async () => { rightPick(scale === 'rir' ? 0 : 10) })
-    set = mocks.S.active.entries[0].sets[0]
-    expect(set.done).toBe(true)
-    expect(mocks.startRest).toHaveBeenCalledWith(90, expect.any(Number))
-    const calls = mocks.startRest.mock.calls.length
-    await act(async () => { rightPick(1) })
-    expect(set.sides.R.done).toBe(true)
-    expect(mocks.startRest).toHaveBeenCalledTimes(calls)
-  })
-})
-
 // QA C9: custom exercises store their target as a muscle-map id ("gluteal"); the tag under the
 // exercise name has to show the same label the detail sheet does (Glutes), not the raw id.
 describe('Workout exercise tags', () => {
@@ -1468,43 +1418,11 @@ describe('Workout exercise tags', () => {
     } finally { registerCustom([]) }
   })
 
-  // The cardio target "cardiovascular system" is a translated key of its own; mapping it through
-  // MUSCLE_NAME must not turn "Herz-Kreislauf" back into English. The OlyGym catalogue carries no
-  // cardio entry any more, so the case arrives as a custom exercise — the same path a user takes.
-  it('keeps the cardio target translated (burpee, de)', async () => {
-    const { registerCustom } = await import('../lib/exercises.js')
-    const { _setLangState } = await import('../lib/i18n-core.js')
-    const { default: de } = await import('../locales/de.js')
-    _setLangState('de', de, null, null)
-    registerCustom([{ id: 'cqa-cardio', n: 'burpee', bp: 'cardio', eq: 'body weight', custom: true, tg: 'cardiovascular system', sm: [] }])
-    try {
-      await mount([exercise('cqa-cardio', [false], { target: { mode: 'cardio', min: 20, speed: 8 } })])
-      const tags = [...container.querySelectorAll('.tag')].map(tag => tag.textContent.trim())
-      expect(tags).toContain('Herz-Kreislauf')
-      expect(tags).not.toContain('Cardiovascular system')
-    } finally { registerCustom([]); _setLangState('en', null, null, null) }
-  })
 })
 
 describe('set-row column header', () => {
   // The L/R rows carry a badge in front of the weight cell that a straight row does not have, so
   // the shared header needs to know it is sitting over per-side rows to offset its columns (QA C5).
-  it('marks the header of a per-side exercise so the CSS can offset it by the L/R badge', async () => {
-    const side = () => ({ w: 20, r: 8, done: false })
-    await mount([
-      exercise('plain-bench', [false]),
-      exercise('side-curl', [false], {
-        target: { mode: 'reps', side: true, reps: 16, weight: 20, bodyweight: false },
-        sets: [{ w: 20, r: 16, done: false, sides: { L: side(), R: side() } }],
-      }),
-    ], 0, { active: { workoutView: 'list' } })
-    const heads = container.querySelectorAll('.sethead')
-    expect(heads.length).toBe(2)
-    expect(heads[0].classList.contains('per-side')).toBe(false)
-    expect(heads[1].classList.contains('per-side')).toBe(true)
-    expect(container.querySelector('.setrow-side .sidetag')).toBeTruthy()
-  })
-
   // A weighted hold's row has the play button in front of the tick, so its cells get less room than
   // a straight row's and the CSS sizes them (and the header over them) by the `timed` marker.
   it('marks a timed hold\'s rows and header, and neither on a rep set', async () => {
