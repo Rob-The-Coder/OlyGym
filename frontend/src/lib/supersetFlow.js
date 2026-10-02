@@ -1,8 +1,36 @@
 // Pure decisions for the active-workout superset flow. Keeping these independent of React and
 // the stores makes the uneven-round and re-check rules explicit and directly testable.
-import { isWarmupRow } from './workout-model.js'
+import { isWarmupRow, modeForEntry } from './workout-model.js'
 
 const hasWork = (entries, idx) => !!entries[idx]?.sets?.some(set => !set.done)
+
+/**
+ * The rounds of a complex rendered as one table, or null when the unit cannot be logged that way.
+ *
+ * A complex is done as a sequence of movements without stopping, so one check has to mean "this
+ * round of every movement is done". That only works when every member carries the same set
+ * structure: the same number of rows, the same warm-up/work phase at every index, and reps mode
+ * throughout. A coach's "3+3 @ 60kg" produces exactly that. Anything else — rows edited apart, a
+ * timed hold in the mix — keeps the per-movement tables and their own checks, which is what the
+ * screen did before this existed.
+ *
+ * Returns one `{ warmup }` per round, in `sets` order, so the caller can draw the phase headings
+ * from the same list it ticks.
+ */
+export function complexRounds(entries, unit) {
+  if (!Array.isArray(entries) || !Array.isArray(unit) || unit.length < 2) return null
+  const first = entries[unit[0]]
+  const rows = first?.sets
+  if (!Array.isArray(rows) || !rows.length) return null
+  const aligned = unit.every(idx => {
+    const entry = entries[idx]
+    const sets = entry?.sets
+    if (!Array.isArray(sets) || sets.length !== rows.length) return false
+    if (modeForEntry(entry, 'reps') !== 'reps') return false
+    return sets.every((set, i) => isWarmupRow(set) === isWarmupRow(rows[i]))
+  })
+  return aligned ? rows.map(set => ({ warmup: isWarmupRow(set) })) : null
+}
 
 // Return the first unfinished navigation unit after the current one, wrapping once so a user
 // who completed units out of order is never offered workout completion while earlier work remains.

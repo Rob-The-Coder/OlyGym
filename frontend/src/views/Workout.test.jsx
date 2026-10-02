@@ -282,7 +282,7 @@ describe('Workout set completion flow', () => {
     expect(mocks.S.active.cur).toBe(1)
   })
 
-  it('auto-captures superset members without prompting, then leaves the completed unit for Next', async () => {
+  it('auto-captures every movement of a complex in one round, then leaves the unit for Next', async () => {
     const group = 'superset-1'
     await mount([
       exercise('superset-a', [false], { sg: group }),
@@ -290,17 +290,16 @@ describe('Workout set completion flow', () => {
       exercise('next', [false]),
     ])
 
+    // An aligned complex is one table of rounds, so this single check is round one of both
+    // movements at once.
     await toggleSet(0)
 
     expect(mocks.topWeightSheet).not.toHaveBeenCalled()
-    expect(mocks.S.active.cur).toBe(1)
-    expect(mocks.startRest).not.toHaveBeenCalled()
-
-    await rerender()
-    await toggleSet(1)
-
-    expect(mocks.topWeightSheet).not.toHaveBeenCalled()
-    expect(mocks.S.active.cur).toBe(1)
+    expect(mocks.S.active.entries[0].topW).toBe(60)
+    expect(mocks.S.active.entries[1].topW).toBe(60)
+    // The whole unit is done, so the marker stays on it and the rest is the unit's own; Next is
+    // how you leave a finished complex.
+    expect(mocks.S.active.cur).toBe(0)
     expect(mocks.startRest).toHaveBeenCalledWith(90, expect.any(Number))
 
     await pressNext()
@@ -329,7 +328,7 @@ describe('Workout set completion flow', () => {
     },
   )
 
-  it('does not navigate or start transition rest when a completed superset meets an incomplete warm-up', async () => {
+  it('does not navigate or start transition rest when a completed complex meets an incomplete warm-up', async () => {
     await mount([
       exercise('superset-a', [true], { sg: 'group', asked: true }),
       exercise('superset-b', [false], { sg: 'group', asked: true }),
@@ -342,7 +341,9 @@ describe('Workout set completion flow', () => {
       }),
     ], 1)
 
-    await toggleSet(1)
+    // The complex's first round closes both movements; the next unit's unfinished warm-up is why
+    // no rest starts, and the marker never leaves the complex.
+    await toggleSet(0)
 
     expect(mocks.S.active.cur).toBe(1)
     expect(mocks.startRest).not.toHaveBeenCalled()
@@ -387,14 +388,15 @@ describe('Workout set completion flow', () => {
     expect(mocks.startRest).not.toHaveBeenCalled()
   })
 
-  it('leaves a completed superset selected without opening a top-weight sheet', async () => {
+  it('leaves a completed complex selected without opening a top-weight sheet', async () => {
     const group = 'superset-1'
     await mount([
       exercise('superset-a', [true, true, true], { sg: group, asked: true }),
       exercise('superset-b', [true, true, false], { sg: group }),
       exercise('next-exercise', [false, false, false]),
     ], 1)
-    await toggleSet(5)
+    // The last round of the complex: one check closes both movements and the unit.
+    await toggleSet(2)
 
     expect(mocks.topWeightSheet).not.toHaveBeenCalled()
     expect(mocks.S.active.cur).toBe(1)
@@ -865,11 +867,13 @@ describe('superset flow survives an exercise being removed mid-session', () => {
   // inherits its predecessor's mark and its next completed set reads as an uncheck/re-check
   // — no advance, and no rest at the end of the round.
   it('still advances and rests for sets completed after a removal', async () => {
-    // warm(2 sets, both done) ahead of a bench/row superset with nothing done yet.
+    // warm(2 sets, both done) ahead of a bench/row superset with nothing done yet. The row
+    // carries a third set on purpose: unequal set counts are what keep this unit on the
+    // per-movement tables, which is the flow this test is about.
     await mount([
       exercise('warm', [true, true]),
       exercise('bench', [false, false], { sg: 'g1' }),
-      exercise('row', [false, false], { sg: 'g1' }),
+      exercise('row', [false, false, false], { sg: 'g1' }),
     ], 1)
 
     // Drop the first exercise: bench moves 1 -> 0, row moves 2 -> 1.
@@ -909,9 +913,10 @@ describe('superset actionable-set centring', () => {
   })
 
   it('centres the last set row when the newly active exercise is complete', async () => {
+    // Unequal set counts keep the per-movement tables, which is where a set row can be centred.
     await mount([
       exercise('bench', [true, false], { sg: 'g1' }),
-      exercise('row', [true, true], { sg: 'g1' }),
+      exercise('row', [true, true, true], { sg: 'g1' }),
     ])
     mocks.scrollCalls.length = 0
 
@@ -919,7 +924,7 @@ describe('superset actionable-set centring', () => {
 
     const rows = container.querySelector('[data-exidx="1"]').querySelectorAll('.setrow')
     expect(mocks.scrollCalls).toEqual([
-      { node: rows[1], options: { behavior: 'smooth', block: 'center' } },
+      { node: rows[2], options: { behavior: 'smooth', block: 'center' } },
     ])
   })
 
@@ -1446,5 +1451,126 @@ describe('set-row column header', () => {
     await mount([exercise('plain-bench', [false])], 0, { wc: { steppers: false } })
     expect(container.querySelector('.sethead').classList.contains('plain')).toBe(true)
     expect(container.querySelector('.setrow .stp.w').classList.contains('plain')).toBe(true)
+  })
+})
+
+// A complex is done as one sequence without stopping, so it is checked as one sequence: one load
+// and one check per round, taken once for the whole group. The movements keep everything else.
+describe('a complex as one table of rounds', () => {
+  const complex = () => [
+    exercise('muscle-snatch', [false, false, false], {
+      sg: 'g1', target: { mode: 'reps', reps: 3, sets: 3, weight: 30, bodyweight: false },
+    }),
+    exercise('overhead-squat', [false, false, false], {
+      sg: 'g1', target: { mode: 'reps', reps: 3, sets: 3, weight: 30, bodyweight: false },
+    }),
+  ]
+  const rows = () => [...container.querySelectorAll('.cx-rounds .setrow')]
+  const checks = () => [...container.querySelectorAll('[role="checkbox"]')]
+
+  it('gives the complex one check per round instead of one per movement per set', async () => {
+    await mount(complex())
+
+    expect(rows()).toHaveLength(3)
+    expect(checks()).toHaveLength(3)
+    // The per-movement set tables are gone; the movements themselves are still there.
+    expect(container.querySelectorAll('.ss-ex .setrow')).toHaveLength(0)
+    expect(container.querySelectorAll('.ss-card .ss-ex')).toHaveLength(2)
+  })
+
+  it('keeps the movements notes, tags and prescribed reps in the card', async () => {
+    const entries = complex()
+    entries[0].note = 'Elbows up'
+    entries[0].target.note = 'From the plan'
+    await mount(entries)
+
+    expect(container.textContent).toContain('Elbows up')
+    expect(container.textContent).toContain('From the plan')
+    // The reps the set table used to print now ride on the movement's name line.
+    expect([...container.querySelectorAll('.ss-ex .row .muted')].map(el => el.textContent)).toEqual(['×3', '×3'])
+  })
+
+  it('closes the round of every movement with one tap and starts one rest', async () => {
+    await mount(complex())
+
+    await toggleSet(0)
+
+    expect(mocks.S.active.entries[0].sets[0].done).toBe(true)
+    expect(mocks.S.active.entries[1].sets[0].done).toBe(true)
+    expect(mocks.S.active.entries[0].sets[1].done).toBe(false)
+    expect(mocks.S.active.cur).toBe(0)
+    expect(mocks.startRest).toHaveBeenCalledOnce()
+    expect(mocks.startRest).toHaveBeenCalledWith(90, expect.any(Number))
+  })
+
+  it('writes the round load to every movement', async () => {
+    await mount(complex())
+
+    await act(async () => {
+      rows()[0].querySelector('button[aria-label="Increase"]').dispatchEvent(new dom.Event('click', { bubbles: true }))
+    })
+
+    expect(mocks.S.active.entries[0].sets[0].w).toBe(62.5)
+    expect(mocks.S.active.entries[1].sets[0].w).toBe(62.5)
+  })
+
+  it('adds a round to every movement together', async () => {
+    await mount(complex())
+
+    const add = [...container.querySelectorAll('.cx-rounds button')].find(b => b.textContent.trim() === 'Add set')
+    expect(add).toBeTruthy()
+    await act(async () => { add.dispatchEvent(new dom.Event('click', { bubbles: true })) })
+
+    expect(mocks.S.active.entries[0].sets).toHaveLength(4)
+    expect(mocks.S.active.entries[1].sets).toHaveLength(4)
+
+    await rerender()
+    expect(rows()).toHaveLength(4)
+  })
+
+  it('removes a round from every movement through the round menu', async () => {
+    await mount(complex())
+
+    const number = container.querySelector('.cx-rounds .setrow .n')
+    await act(async () => { number.dispatchEvent(new dom.Event('click', { bubbles: true })) })
+    const items = mocks.menuSheet.mock.calls.at(-1)[0].items
+    const remove = items.find(item => item.label === 'Remove this set')
+    expect(remove).toBeTruthy()
+    await act(async () => { remove.onClick() })
+
+    expect(mocks.S.active.entries[0].sets).toHaveLength(2)
+    expect(mocks.S.active.entries[1].sets).toHaveLength(2)
+  })
+
+  it('falls back to the per-movement tables when the members are not aligned', async () => {
+    await mount([
+      exercise('muscle-snatch', [false, false], { sg: 'g1' }),
+      exercise('overhead-squat', [false, false, false], { sg: 'g1' }),
+    ])
+
+    expect(container.querySelector('.cx-rounds')).toBeNull()
+    expect(checks()).toHaveLength(5)
+  })
+
+  it('falls back to the per-movement tables for a timed movement', async () => {
+    await mount([
+      exercise('muscle-snatch', [false, false], { sg: 'g1' }),
+      exercise('plank', [false, false], {
+        sg: 'g1',
+        target: { mode: 'time', sec: 30, weight: 0 },
+        sets: [{ sec: 30, w: 0, done: false }, { sec: 30, w: 0, done: false }],
+      }),
+    ])
+
+    expect(container.querySelector('.cx-rounds')).toBeNull()
+    expect(checks()).toHaveLength(4)
+    expect(container.querySelector('.setrow.timed .setgo')).toBeTruthy()
+  })
+
+  it('falls back to the per-movement tables when the effort column is on', async () => {
+    await mount(complex(), 0, { effort: 'rir' })
+
+    expect(container.querySelector('.cx-rounds')).toBeNull()
+    expect(checks()).toHaveLength(6)
   })
 })

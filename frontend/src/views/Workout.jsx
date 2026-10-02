@@ -10,7 +10,7 @@ import { weekFor } from '../lib/weeks.js'
 import { fmtNum, capWords, fmtDate, todayISO, exCount, DAYN } from '../lib/format.js'
 import { beep, vibrate, unlock } from '../lib/sound.js'
 import { t, exerciseNameFor } from '../lib/i18n.js'
-import { insertionIndexAfterCurrentUnit, nextUnfinishedUnit, setProgressHighWater, supersetFlowStep, restAfterSet, restOnRecheck, restSecFor, warmupRestSecFor } from '../lib/supersetFlow.js'
+import { complexRounds, insertionIndexAfterCurrentUnit, nextUnfinishedUnit, setProgressHighWater, supersetFlowStep, restAfterSet, restOnRecheck, restSecFor, warmupRestSecFor } from '../lib/supersetFlow.js'
 import Media from '../components/Media.jsx'
 import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, workoutCompleteSheet, confirmSheet, exerciseNoteSheet, sessionNoteSheet, renameWorkoutSheet, swapActiveWorkoutExercise, barWeightSheet, menuSheet, effortPickerSheet, exerciseHistorySheet } from '../sheets.jsx'
 import { effortColor } from '../lib/effort.js'
@@ -82,7 +82,7 @@ function sharedScheme(entries) {
   return same ? { sets: head.sets || 1, weight: head.weight || 0 } : null
 }
 
-function ExerciseBlock({ entryIdx, step, compact, dense, onToggle, onField, onAddSet, onRemoveSet, onAddWarmup, onRemoveSetAt, onStartTimed, onPairPrev, onPairNext, onSetRowRef, onProgressionSettings, onSwap, onMoveUp, onMoveDown, canMoveUp, canMoveDown, onRemoveExercise, busy }) {
+function ExerciseBlock({ entryIdx, step, compact, dense, headOnly, onToggle, onField, onAddSet, onRemoveSet, onAddWarmup, onRemoveSetAt, onStartTimed, onPairPrev, onPairNext, onSetRowRef, onProgressionSettings, onSwap, onMoveUp, onMoveDown, canMoveUp, canMoveDown, onRemoveExercise, busy }) {
   const S = useStore(s => s.S)
   const working = useUI(s => s.work)
   const entry = S.active.entries[entryIdx]
@@ -224,6 +224,12 @@ function ExerciseBlock({ entryIdx, step, compact, dense, onToggle, onField, onAd
       </div>
     )
   }
+  // A merged complex draws one table of rounds instead of a table per movement, so the
+  // movement's prescription has nowhere else to live: it rides on the name line above. The order
+  // of these names is the order of the movements in the scheme the rounds table ticks.
+  const prescribedReps = headOnly
+    ? (entry.target?.reps || entry.sets.find(s => !isWarmupRow(s))?.r || 0)
+    : 0
   return <>
     {!dense && <Media ex={ex} key={entry.id} compact={compact} minimizable />}
     <div className="row between" style={{ marginBottom: 6 }}>
@@ -232,6 +238,7 @@ function ExerciseBlock({ entryIdx, step, compact, dense, onToggle, onField, onAd
       <div className="row" style={{ gap: 8, minWidth: 0, alignItems: 'center' }}>
         {step != null && <span className="cx-step">{step}</span>}
         <div style={{ fontSize: (compact || dense) ? 17 : 20, fontWeight: 600, letterSpacing: '-.02em', textTransform: 'capitalize', lineHeight: 1.2 }}>{exerciseNameFor(ex)}</div>
+        {prescribedReps > 0 && <span className="muted small" style={{ flex: 'none' }}>×{prescribedReps}</span>}
       </div>
       <div className="row" style={{ gap: 2, flex: 'none' }}>
         {entry.note && <button className="iconbtn" aria-label={t('Note')} title={t('Note')} style={{ color: 'var(--acc)' }}
@@ -276,7 +283,7 @@ function ExerciseBlock({ entryIdx, step, compact, dense, onToggle, onField, onAd
       <span><strong>{t(guidance.policyLabel)}</strong> · {t(...guidance.why)}</span>
     </button>}
     </>}
-    <div className="card" style={{ marginTop: 10, marginBottom: 0 }}>
+    {!headOnly && <div className="card" style={{ marginTop: 10, marginBottom: 0 }}>
       {/* the header carries the same eff3/timed sizing as the rows, or the labels drift off their
           columns */}
       <div className={'sethead' + (col3 ? ' eff3' : '') + (timed ? ' timed' : '') + (wc.steppers ? '' : ' plain')}><span className="n-sp" /><span className="w-sp">{col1.hd}</span>{col2 && <span className="r-sp">{col2.hd}</span>}{col3 && <span className="eff-sp">{col3.hd}</span>}{timed && <span className="ck-sp" />}<span className="ck-sp" /></div>
@@ -304,8 +311,100 @@ function ExerciseBlock({ entryIdx, step, compact, dense, onToggle, onField, onAd
       })}
       <div style={{ height: 8 }} />
       <Button size="sm" icon="plus" onClick={onAddSet}>{t('Add set')}</Button>
-    </div>
+    </div>}
   </>
+}
+
+/* ---------- a complex, as one table of rounds ---------- */
+// A complex is performed as one sequence without stopping, so it is checked as one sequence: one
+// load and one check per round, taken once for the whole group. Every member still carries its own
+// set rows underneath — volume, records and history read exactly the same data as before — this
+// table only decides where the tap and the weight land. Used when the unit is aligned (see
+// complexRounds); anything else keeps the per-movement tables and their own checks.
+function RoundsTable({ entries, unit, rounds, onToggleRound, onFieldRound, onAddRound, onRemoveRoundAt }) {
+  const S = useStore(s => s.S)
+  const wc = workoutControls(S)
+  const head = entries[unit[0]]
+  const step = weightIncrement({ ...(head.target || {}), id: head.id }, S.unit)
+  const roundDone = i => unit.every(k => entries[k].sets[i]?.done)
+  // Read the load from the store at tap time, like the per-set stepper: any write in the group
+  // replaces the snapshot this closure was built from, and this one writes to every member.
+  const bump = (i, dir) => {
+    const fresh = useStore.getState().S.active?.entries[unit[0]]?.sets[i]
+    const cur = fresh ? fresh.w : head.sets[i]?.w
+    onFieldRound(i, stepWeight(cur, step, dir))
+  }
+  const cell = i => (
+    <div className={'stp w' + (wc.steppers ? '' : ' plain')}>
+      {wc.steppers && <button aria-label="Decrease" onClick={() => bump(i, -1)}><Icon name="minus" /></button>}
+      <span className="val"><NumberField decimal value={head.sets[i]?.w ?? ''} onChange={v => onFieldRound(i, v)} /></span>
+      {wc.steppers && <button aria-label="Increase" onClick={() => bump(i, 1)}><Icon name="plus" /></button>}
+    </div>
+  )
+  // The round number is its own menu, exactly as a set number is: removing a round removes it from
+  // every movement of the complex.
+  const openRoundMenu = i => {
+    const warm = rounds[i].warmup
+    const num = rounds.slice(0, i + 1).filter(x => x.warmup === warm).length
+    menuSheet({
+      title: warm ? t('Warm-up') : t('Set {0}', num),
+      items: [{
+        icon: 'trash', label: t('Remove this set'), danger: true,
+        disabled: unit.some(k => (entries[k].sets || []).length <= 1),
+        onClick: () => onRemoveRoundAt(i),
+      }],
+    })
+  }
+  return <div className="card cx-rounds" style={{ marginTop: 10, marginBottom: 0 }}>
+    <div className={'sethead' + (wc.steppers ? '' : ' plain')}>
+      <span className="n-sp" />
+      <span className="w-sp">{t('Weight ({0})', S.unit)}</span>
+      <span className="ck-sp" />
+    </div>
+    {rounds.map((r, i) => {
+      const warmBefore = i > 0 && rounds[i - 1].warmup
+      const num = rounds.slice(0, i + 1).filter(x => x.warmup === r.warmup).length
+      return <div key={i}>
+        {r.warmup && !warmBefore && <div className="setph">{t('Warm-up')}</div>}
+        {!r.warmup && warmBefore && <div className="setsep" />}
+        <div className={'setrow' + (roundDone(i) ? ' done' : '')}>
+          <button type="button" className="n" aria-label={t('Set {0}', num)} title={t('More')} onClick={() => openRoundMenu(i)}>{num}</button>
+          {cell(i)}
+          <Check checked={roundDone(i)} onChange={() => onToggleRound(i)} />
+        </div>
+      </div>
+    })}
+    <div style={{ height: 8 }} />
+    <Button size="sm" icon="plus" onClick={onAddRound}>{t('Add set')}</Button>
+  </div>
+}
+
+/* ---------- a complex card: its movements, and (when merged) one table of rounds ---------- */
+// Merged is the common case: every movement shares the same set structure, so the movements keep
+// everything but their own set tables — media, tags, notes, "last time", bar maths, the progression
+// line and the ⋯ menu are all still here — and the card rounds them off with one shared table.
+function ComplexCard({ unit, dense, merged, rounds, entries, scheme, schemeText, bindExRef, bindSetRef, blockProps, onUnpair, onToggleRound, onFieldRound, onAddRound, onRemoveRoundAt, onAddWarmupAll }) {
+  return <div className="ss-card">
+    <div className="ss-hd">
+      <span className="row" style={{ gap: 5 }}><Icon name="link" />{t('Complex')}</span>
+      <span className="row" style={{ gap: 8 }}>
+        {scheme && <span className="ss-load">{schemeText(scheme)}</span>}
+        <Button size="xs" variant="ghost" icon="link" title={t('Unpair')} onClick={() => onUnpair(unit[0])}>{t('Unpair')}</Button>
+      </span>
+    </div>
+    {unit.map((idx, k) => {
+      const entry = entries[idx]
+      return <div key={idx} ref={el => bindExRef(entry, el)} className="ss-ex" data-exidx={idx}>
+        <div className="ss-amp">{k > 0 && <span className="ss-plus">+</span>}</div>
+        <ExerciseBlock entryIdx={idx} step={k + 1} compact dense={dense} headOnly={merged}
+          onSetRowRef={merged ? undefined : (setIdx, el) => bindSetRef(entry, setIdx, el)}
+          {...blockProps(idx)}
+          {...(merged ? { onAddWarmup: onAddWarmupAll } : {})} />
+      </div>
+    })}
+    {merged && <RoundsTable entries={entries} unit={unit} rounds={rounds}
+      onToggleRound={onToggleRound} onFieldRound={onFieldRound} onAddRound={onAddRound} onRemoveRoundAt={onRemoveRoundAt} />}
+  </div>
 }
 
 /* ---------- active workout ---------- */
@@ -441,6 +540,21 @@ function ActiveWorkout() {
 
   const total = setUnitsTotal(A.entries)
   const done = setsDoneActive(A)
+  // A complex is drawn as one table of rounds when every member can share it (complexRounds), when
+  // the load column means something (a bodyweight movement with no load has none) and when nothing
+  // per-movement is being logged that a shared row would overwrite: RIR/RPE is rated per movement,
+  // so effort tracking keeps the per-movement tables, exactly as before.
+  const roundsFor = u => {
+    if (u.length < 2 || effortOf(S) !== 'none') return null
+    const loadless = u.some(idx => {
+      const en = A.entries[idx]
+      const cfg = { ...(en.target || {}), id: en.id }
+      return isBw(cfg) && !(en.sets || []).some(s => s.w > 0)
+    })
+    return loadless ? null : complexRounds(A.entries, u)
+  }
+  // Resolved once for the unit on screen; the list layout resolves its own per unit below.
+  const unitRounds = isSuperset ? roundsFor(unit) : null
 
   const mutEntry = (idx, fn) => update(s => { fn(s.active.entries[idx]) }, true)
   // Clearing an optional field drops the key rather than storing null, so a set only carries
@@ -466,6 +580,40 @@ function ActiveWorkout() {
     e.sets = insertWarmupRow(e.sets, m, e.target || {}, defaultIncrement(e.id, S.unit))
   })
   const removeSetAt = (idx, i) => mutEntry(idx, e => { e.sets = removeRowAt(e.sets, i) })
+  // A merged complex is one barbell and one list of rounds, so an edit that belongs to the unit
+  // (its load, a round, a warm-up) is applied to every member at once and the table stays one table.
+  const setRoundWeight = (group, i, v) => update(s => {
+    group.forEach(k => {
+      const e = s.active.entries[k]
+      if (!e) return
+      if (v == null) delete e.sets[i].w; else e.sets[i].w = v
+      e.sets = cascadeWeight(e.sets, i, v)
+    })
+  }, true)
+  const addRound = group => update(s => {
+    group.forEach(k => {
+      const e = s.active.entries[k]
+      if (!e) return
+      const l = e.sets[e.sets.length - 1]
+      const m = modeOf({ ...(e.target || {}), id: e.id })
+      if (m === 'time') e.sets.push({ sec: l ? l.sec : (e.target.sec || 45), w: l ? (l.w || 0) : (e.target.weight || 0), done: false })
+      else e.sets.push({ w: l ? l.w : 0, r: l ? l.r : e.target.reps, done: false })
+    })
+  }, true)
+  const removeRoundAt = (group, i) => update(s => {
+    group.forEach(k => {
+      const e = s.active.entries[k]
+      if (e) e.sets = removeRowAt(e.sets, i)
+    })
+  }, true)
+  const addWarmupAll = group => update(s => {
+    group.forEach(k => {
+      const e = s.active.entries[k]
+      if (!e) return
+      const m = modeOf({ ...(e.target || {}), id: e.id })
+      e.sets = insertWarmupRow(e.sets, m, e.target || {}, defaultIncrement(e.id, S.unit))
+    })
+  }, true)
   const pairAt = (first, second) => update(s => {
     s.active.entries = pairAdjacent(s.active.entries, first, second)
   })
@@ -668,7 +816,12 @@ function ActiveWorkout() {
     })
   }
 
-  const toggle = (idx, i) => {
+  // Ticking one set. In a merged complex (`round: true`) `idx` is the unit's first member and the
+  // tap closes that round of every member at once: the group moves together, so there is no partner
+  // to navigate to and the rest belongs after the round. `opts.unit` carries the whole group.
+  const toggle = (idx, i, opts = {}) => {
+    const round = !!opts.round
+    const group = round ? (opts.unit || unitOf(units, idx)) : null
     // Ticking a set ends the typing in that row: drop the keyboard before the rest timer, the
     // effort sheet or the next exercise moves in. WebKit keeps the input focused across the
     // button tap, and a focused input with its keyboard gone is what leaves the tab bar
@@ -678,20 +831,37 @@ function ActiveWorkout() {
     let exJustDone = false, workoutDone = false, checked = false
     update(s => {
       const e = s.active.entries[idx]
-      e.sets[i].done = !e.sets[i].done
-      checked = e.sets[i].done
-      if (e.sets[i].done) {
+      // The round's load, read before it is written back: a complex is one barbell, so the weight
+      // the shared row showed becomes every movement's weight for that round — what is seen is what
+      // is logged. A round with nothing to type (bodyweight) carries no `w` key at all.
+      const roundW = round ? e.sets[i]?.w : null
+      const done = round ? !group.every(k => s.active.entries[k]?.sets[i]?.done) : !e.sets[i].done
+      if (round) {
+        group.forEach(k => {
+          const row = s.active.entries[k]?.sets[i]
+          if (!row) return
+          row.done = done
+          if (done && roundW != null) row.w = roundW
+        })
+      } else e.sets[i].done = done
+      checked = done
+      if (done) {
         beep(S.sound, 1040, 0.12); vibrate(30)
         // The unit that owns the ticked set — not the marked one. Since !92 the marker no longer
         // follows a finished exercise, and in list mode any exercise can be worked on, so judging
         // the marker's unit here declared the workout complete after one set elsewhere.
-        const ownUnit = unitOf(units, idx)
-        const unitDone = ownUnit.every(ui => (ui === idx ? e : A.entries[ui]).sets.every(x => x.done))
-        if (unitDone) workoutDone = !nextUnfinishedUnit(A.entries, supersetUnits(A.entries), idx)
-        if (e.sets.every(x => x.done)) {
+        const ownUnit = round ? group : unitOf(units, idx)
+        const unitDone = ownUnit.every(ui => s.active.entries[ui].sets.every(x => x.done))
+        if (unitDone) workoutDone = !nextUnfinishedUnit(s.active.entries, supersetUnits(s.active.entries), idx)
+        // topW is captured now; exWeights only at the finish (doFinishWorkout), so a typo you
+        // correct before finishing, or a discarded workout, never becomes the remembered best.
+        if (round) {
+          ownUnit.forEach(ui => {
+            const en = s.active.entries[ui]
+            if (en.sets.every(x => x.done)) en.topW = bestWeightForEntry(en) || null
+          })
+        } else if (e.sets.every(x => x.done)) {
           exJustDone = true
-          // topW is captured now; exWeights only at the finish (doFinishWorkout), so a typo you
-          // correct before finishing, or a discarded workout, never becomes the remembered best.
           e.topW = bestWeightForEntry(e) || null
         }
       }
@@ -702,50 +872,59 @@ function ActiveWorkout() {
     // Only progress beyond this exercise's high-water mark may navigate or change rest. This
     // prevents an uncheck/re-check of finished work from replaying the flow side effects.
     const fresh = useStore.getState().S.active
-    if (fresh && checked && fresh.entries[idx]) {
+    if (!fresh || !checked || !fresh.entries[idx]) return
+    let isNew = false
+    if (round) {
+      group.forEach(k => {
+        const progress = setProgressHighWater(fresh.entries[k], progressHighWater.current[k] || 0)
+        progressHighWater.current[k] = progress.highWater
+        if (k === idx) isNew = progress.isNew
+      })
+    } else {
       const progress = setProgressHighWater(fresh.entries[idx], progressHighWater.current[idx] || 0)
       progressHighWater.current[idx] = progress.highWater
+      isNew = progress.isNew
+    }
+    const freshUnits = supersetUnits(fresh.entries)
+    const freshUnit = round ? group : freshUnits.find(u => u.includes(idx))
+    const freshUnitDone = freshUnit?.every(ui => fresh.entries[ui].sets.every(x => x.done))
+    const nextUnit = freshUnitDone ? nextUnfinishedUnit(fresh.entries, freshUnits, idx) : null
+    const freshWorkoutDone = freshUnitDone && !nextUnit
+    const restBeforeWarmup = nextUnit?.some(ui =>
+      fresh.entries[ui].sets.some(set => isWarmupRow(set) && !set.done),
+    )
+    // The rest this set has earned: the exercise's own restSec when it set one, the global
+    // timer when it did not, and the longest of the group's across a superset (issue #10).
+    // Resolved once here so every branch below times the same break.
+    const restSec = restSecFor(fresh.entries, freshUnit || [idx], S.restSec)
+    // A warm-up ramp set may rest shorter than a work set (the exercise's warmupRestSec); the
+    // last ramp set, into the first work set, still gets the working rest.
+    const restAfter = warmupRestSecFor(fresh.entries[round ? group[0] : idx], i, restSec)
 
-      const freshUnits = supersetUnits(fresh.entries)
-      const freshUnit = freshUnits.find(u => u.includes(idx))
-      const freshUnitDone = freshUnit?.every(ui => fresh.entries[ui].sets.every(x => x.done))
-      const nextUnit = freshUnitDone ? nextUnfinishedUnit(fresh.entries, freshUnits, idx) : null
-      const freshWorkoutDone = freshUnitDone && !nextUnit
-      const restBeforeWarmup = nextUnit?.some(ui =>
-        fresh.entries[ui].sets.some(set => isWarmupRow(set) && !set.done),
-      )
-      // The rest this set has earned: the exercise's own restSec when it set one, the global
-      // timer when it did not, and the longest of the group's across a superset (issue #10).
-      // Resolved once here so every branch below times the same break.
-      const restSec = restSecFor(fresh.entries, freshUnit || [idx], S.restSec)
-      // A warm-up ramp set may rest shorter than a work set (the exercise's warmupRestSec); the
-      // last ramp set, into the first work set, still gets the working rest.
-      const restAfter = warmupRestSecFor(fresh.entries[idx], i, restSec)
+    // A re-check of finished work must not navigate or reopen a sheet, but it may still owe
+    // you a rest — see restOnRecheck, and the other half of issue #3.
+    if (!isNew) {
+      if (!restBeforeWarmup && restOnRecheck({ timerRunning: !!useUI.getState().timer, unitDone: freshUnitDone, lastUnit: freshWorkoutDone })) startRest(restAfter, idx)
+      return
+    }
 
-      // A re-check of finished work must not navigate or reopen a sheet, but it may still owe
-      // you a rest — see restOnRecheck, and the other half of issue #3.
-      if (!progress.isNew) {
-        if (!restBeforeWarmup && restOnRecheck({ timerRunning: !!useUI.getState().timer, unitDone: freshUnitDone, lastUnit: freshWorkoutDone })) startRest(restAfter, idx)
-        return
-      }
+    // Singleton units are ordinary exercises: they rest between sets and after the closing
+    // one unless the next unit has an unfinished warm-up, and never enter superset navigation.
+    // stopRest() first so a rest that belongs after this set replaces the one that was running.
+    if (freshUnitDone) stopRest()
+    // A merged complex rests after the round and stays where it is: there is no member to step to.
+    if (round || !freshUnit || freshUnit.length <= 1) {
+      if (!restBeforeWarmup && restAfterSet({ unitDone: freshUnitDone, lastUnit: freshWorkoutDone })) startRest(restAfter, idx)
+      return
+    }
 
-      // Singleton units are ordinary exercises: they rest between sets and after the closing
-      // one unless the next unit has an unfinished warm-up, and never enter superset navigation.
-      // stopRest() first so a rest that belongs after this set replaces the one that was running.
-      if (freshUnitDone) stopRest()
-      if (!freshUnit || freshUnit.length <= 1) {
-        if (!restBeforeWarmup && restAfterSet({ unitDone: freshUnitDone, lastUnit: freshWorkoutDone })) startRest(restAfter, idx)
-        return
-      }
-
-      const step = supersetFlowStep(fresh.entries, freshUnit, idx)
-      if (!step) return
-      if (step.unitDone) {
-        if (nextUnit?.length && !restBeforeWarmup) startRest(restAfter, idx)
-      } else {
-        if (step.nextIdx != null) update(s => { if (s.active) s.active.cur = step.nextIdx })
-        if (step.roundDone) startRest(restAfter, idx)
-      }
+    const step = supersetFlowStep(fresh.entries, freshUnit, idx)
+    if (!step) return
+    if (step.unitDone) {
+      if (nextUnit?.length && !restBeforeWarmup) startRest(restAfter, idx)
+    } else {
+      if (step.nextIdx != null) update(s => { if (s.active) s.active.cur = step.nextIdx })
+      if (step.roundDone) startRest(restAfter, idx)
     }
   }
 
@@ -771,6 +950,7 @@ function ActiveWorkout() {
         {units.map((u, ui) => {
           const multi = u.length > 1
           const isCur = u.includes(cur)
+          const rounds = multi ? roundsFor(u) : null
           return <section key={u.join('-')} className={'wl-unit' + (isCur ? ' cur' : '')} data-exidx={u[0]}>
             <div className="wl-hd">
               <span className="muted small">{multi ? t('Complex {0} / {1}', ui + 1, units.length) : t('Exercise {0} / {1}', ui + 1, units.length)}</span>
@@ -779,23 +959,14 @@ function ActiveWorkout() {
                 : <button className="chip" onClick={() => focusUnit(u[0])}>{t('Set current')}</button>}
             </div>
             {multi ? (
-              <div className="ss-card">
-                <div className="ss-hd">
-                  <span className="row" style={{ gap: 5 }}><Icon name="link" />{t('Complex')}</span>
-                  <span className="row" style={{ gap: 8 }}>
-                    {schemeFor(u) && <span className="ss-load">{schemeText(schemeFor(u))}</span>}
-                    <Button size="xs" variant="ghost" icon="link" title={t('Unpair')} onClick={() => unpairAt(u[0])}>{t('Unpair')}</Button>
-                  </span>
-                </div>
-                {u.map((idx, k) => {
-                  const entry = A.entries[idx]
-                  return <div key={idx} ref={el => bindExRef(entry, el)} className="ss-ex" data-exidx={idx}>
-                    <div className="ss-amp">{k > 0 && <span className="ss-plus">+</span>}</div>
-                    <ExerciseBlock entryIdx={idx} step={k + 1} compact dense={dense} onSetRowRef={(setIdx, el) => bindSetRef(entry, setIdx, el)}
-                      {...blockProps(idx)} />
-                  </div>
-                })}
-              </div>
+              <ComplexCard unit={u} dense={dense} merged={!!rounds} rounds={rounds} entries={A.entries}
+                scheme={schemeFor(u)} schemeText={schemeText} bindExRef={bindExRef} bindSetRef={bindSetRef} blockProps={blockProps}
+                onUnpair={unpairAt}
+                onToggleRound={i => toggle(u[0], i, { round: true, unit: u })}
+                onFieldRound={(i, v) => setRoundWeight(u, i, v)}
+                onAddRound={() => addRound(u)}
+                onRemoveRoundAt={i => removeRoundAt(u, i)}
+                onAddWarmupAll={() => addWarmupAll(u)} />
             ) : (
               <ExerciseBlock entryIdx={u[0]} dense={dense}
                 onPairPrev={u[0] > 0 ? () => pairAt(u[0] - 1, u[0]) : null}
@@ -815,23 +986,14 @@ function ActiveWorkout() {
           if (swipe.current?.id === event.pointerId) swipe.current = null
         }}>
       {isSuperset ? (
-        <div className="ss-card">
-          <div className="ss-hd">
-            <span className="row" style={{ gap: 5 }}><Icon name="link" />{t('Complex')}</span>
-            <span className="row" style={{ gap: 8 }}>
-              {schemeFor(unit) && <span className="ss-load">{schemeText(schemeFor(unit))}</span>}
-              <Button size="xs" variant="ghost" icon="link" title={t('Unpair')} onClick={() => unpairAt(cur)}>{t('Unpair')}</Button>
-            </span>
-          </div>
-          {unit.map((idx, k) => {
-            const entry = A.entries[idx]
-            return <div key={idx} ref={el => bindExRef(entry, el)} className="ss-ex" data-exidx={idx}>
-              <div className="ss-amp">{k > 0 && <span className="ss-plus">+</span>}</div>
-              <ExerciseBlock entryIdx={idx} step={k + 1} compact onSetRowRef={(setIdx, el) => bindSetRef(entry, setIdx, el)}
-                {...blockProps(idx)} />
-            </div>
-          })}
-        </div>
+        <ComplexCard unit={unit} dense={false} merged={!!unitRounds} rounds={unitRounds} entries={A.entries}
+          scheme={schemeFor(unit)} schemeText={schemeText} bindExRef={bindExRef} bindSetRef={bindSetRef} blockProps={blockProps}
+          onUnpair={unpairAt}
+          onToggleRound={i => toggle(unit[0], i, { round: true, unit })}
+          onFieldRound={(i, v) => setRoundWeight(unit, i, v)}
+          onAddRound={() => addRound(unit)}
+          onRemoveRoundAt={i => removeRoundAt(unit, i)}
+          onAddWarmupAll={() => addWarmupAll(unit)} />
       ) : (
         <ExerciseBlock entryIdx={cur} onPairPrev={onPairPrev} onPairNext={onPairNext} {...blockProps(cur)} />
       )}
