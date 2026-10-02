@@ -1,55 +1,16 @@
 import { create } from 'zustand'
 import { uid } from '../lib/format.js'
 import { beep, vibrate } from '../lib/sound.js'
-import { api } from '../lib/api.js'
 import { t } from '../lib/i18n.js'
-import { deviceId } from '../lib/push.js'
 import { useStore } from './useStore.js'
-
-// Fire-and-forget: lets the server push a "rest over" alert if this tab gets suspended
-// before the local timer completes. No-ops for guests / offline. The device id keeps the
-// timer this browser's own: a desktop tab finishing its rest on screen used to cancel the
-// alert the phone in the gym was waiting for, because the server held one timer per account.
-const pushRestTimer = sec => { if (useStore.getState().user) api('/api/push/rest-timer', { method: 'POST', body: JSON.stringify({ seconds: sec, deviceId: deviceId() }) }).catch(() => {}) }
-const cancelPushRestTimer = () => { if (useStore.getState().user) api('/api/push/rest-timer/cancel', { method: 'POST', body: JSON.stringify({ deviceId: deviceId() }) }).catch(() => {}) }
-
-const notificationsSupported = () => typeof window !== 'undefined' && 'Notification' in window
 
 // Set the moment the tab goes hidden, never cleared here — timerTick/workTick read and
 // clear it themselves once they're running visible again. Lets a completion tick tell
 // "the countdown hit zero while the app was actually open" from "it hit zero while
-// backgrounded/closed and we're only just catching up now that it's open again" — the
-// latter must skip beep/vibrate/flash/toast and rely solely on the push notification.
+// backgrounded/closed and we're only just catching up now that it's open again".
 let pageHiddenAt = null
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => { if (document.hidden) pageHiddenAt = Date.now() })
-}
-
-// The Push switch in Settings is the one place notifications are turned on, and "on" means this
-// browser holds a push subscription. This local alert used to ignore it: every rest asked for the
-// permission by itself, and once granted — a page cannot hand a permission back — it fired with the
-// switch off (issue #239). Off is off now; the permission is only ever asked for by the switch.
-const restAlertsOn = async reg => {
-  if (Notification.permission !== 'granted') return false
-  try { return !!(await reg?.pushManager?.getSubscription?.()) } catch { return false }
-}
-
-const maybeRestNotification = async () => {
-  if (!notificationsSupported()) return
-  if (!document.hidden && document.visibilityState !== 'hidden') return
-  try {
-    const reg = await navigator.serviceWorker?.getRegistration?.()
-    if (!(await restAlertsOn(reg))) return
-    // Same tag as the server's push (api/push-messages.js): whichever lands second replaces the
-    // first instead of stacking a second banner. No body — it only repeated the title.
-    // Android Chrome forbids the Notification constructor (Illegal constructor) - the
-    // service-worker registration path is the one that actually pops there.
-    const opts = { tag: 'rest-timer', icon: 'icon-512.png' }
-    if (reg?.showNotification) { reg.showNotification(t('Rest over — next set!'), opts); return }
-    new Notification(t('Rest over — next set!'), opts)
-  } catch {
-    // Intentionally ignore: notification APIs vary by browser and policy in edge cases.
-  }
 }
 
 let toastTm = null
@@ -94,7 +55,6 @@ export const useUI = create((set, get) => ({
     if (!(sec > 0)) return
     const endsAt = Date.now() + sec * 1000
     set({ timer: { left: sec, total: sec, endsAt, forIdx } })
-    pushRestTimer(sec)
     timerTick = () => {
       const tm = get().timer
       if (!tm) return
@@ -108,11 +68,8 @@ export const useUI = create((set, get) => ({
           beep(snd, 880, 0.15); beep(snd, 880, 0.15, 0.25); beep(snd, 1320, 0.4, 0.5)
           vibrate([200, 100, 200]); get().flashTimer()
         }
-        // The toast stays even when the rest ran out while the app was hidden: a guest, or anyone
-        // without push permission, gets no notification, and a countdown that silently vanishes
-        // on reopen reads like a bug. Only the loud parts (beep, vibration, flash) are gated.
         get().toast(t('Rest over — next set!'))
-        maybeRestNotification(); get().stopRest(); return
+        get().stopRest(); return
       }
       if (left <= 3) beep(snd, 660, 0.1)
       set({ timer: { ...tm, left } })
@@ -125,10 +82,9 @@ export const useUI = create((set, get) => ({
     if (!tm) return
     const left = tm.left + sec
     // taking off more than is left means "I'm ready now" — same as skipping, and it keeps a
-    // negative duration out of both the progress bar and the server-side push schedule
+    // negative duration out of both the progress bar and the timer state
     if (left <= 0) { get().stopRest(); return }
     set({ timer: { ...tm, left, total: tm.total + sec, endsAt: tm.endsAt + sec * 1000 } })
-    pushRestTimer(left)
   },
   // The active list changed shape (an exercise removed or inserted at `at`): keep the rest
   // pointing at the same exercise. Returns nothing; the caller decides whether to stop instead.
@@ -140,15 +96,14 @@ export const useUI = create((set, get) => ({
   stopRest() {
     if (timerInt) clearInterval(timerInt); timerInt = null
     if (timerTick) document.removeEventListener('visibilitychange', timerTick); timerTick = null
-    if (get().timer) cancelPushRestTimer()
     set({ timer: null })
   },
 
   /* ---- work timer (issue #16) ----
      Times the set itself, not the recovery after it. Kept separate from the rest timer on
      purpose: the two mean opposite things, they must never run together, and a work set is
-     something you are watching — so it gets no server push (that endpoint says "rest over",
-     and a plank does not need a notification you are staring at anyway).
+     something you are watching — so it gets no rest-over alert of its own (a plank does not
+     need a notification you are staring at anyway).
      `onDone(elapsedSec)` is called both when the countdown reaches zero and on an early
      finish; the elapsed time is what actually gets logged, so stopping at 0:38 of a 0:45
      hold records 0:38 rather than crediting the full target. */

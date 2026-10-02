@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
-import { EXDB, EXIDX, BODYPARTS, isCardio, isBodyweightEq, allExercises, equipmentOf, smOf, searchExercises, exOr, isAssisted, betterWeight, beatsWeight } from './lib/exercises.js'
+import { EXDB, EXIDX, BODYPARTS, isBodyweightEq, allExercises, equipmentOf, smOf, searchExercises, exOr } from './lib/exercises.js'
 import { activeProfile, exAvailable, ALL_EQUIPMENT, newProfile } from './lib/equipment.js'
-import { fmtDate, fmtNum, fmtVol, fmtDur, durPart, todayISO, isoOf, uid, exCount, DAYN, DAYS, weekOrder, weekStartOf, weekDayOffset, MONTHS_LONG, ACCENTS } from './lib/format.js'
-import { lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, effectiveDay, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, EFFORT, capEffort, stepEffort, isBw, isPerSide, sideReps, workSetsDone, applyIntensifierPlan, MAX_PLANNED_WARMUPS, NOTE_MAX } from './lib/history.js'
+import { fmtDate, fmtNum, fmtVol, fmtDur, durPart, todayISO, isoOf, uid, DAYN, DAYS, weekOrder, weekStartOf, weekDayOffset, MONTHS_LONG, ACCENTS } from './lib/format.js'
+import { lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, effectiveDay, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, EFFORT, capEffort, stepEffort, isBw, workSetsDone, MAX_PLANNED_WARMUPS, NOTE_MAX } from './lib/history.js'
 import { usesBar, barWeightFor, defaultBarWeight, hasBarOverride, isNoBar } from './lib/bar.js'
 import { toScale, rirOf, EFFORT_PRESETS, effortColor } from './lib/effort.js'
 import { beep, vibrate } from './lib/sound.js'
@@ -20,17 +20,14 @@ import { glyphOf, GLYPH_GROUPS, DEFAULT_GLYPH } from './lib/glyphs.js'
 import BodyMap from './components/BodyMap.jsx'
 import MuscleExplorer from './components/MuscleExplorer.jsx'
 import { exerciseMuscleSnapshot, loadOfWorkouts, MUSCLES, MUSCLE_NAME, normalizeMuscleGroups, hasExplicitMuscleMetadata, inMuscleOrder } from './lib/muscles.js'
-import { parseImport, mergeImport, parseCSV } from './lib/import-csv.js'
+import { parseCSV } from './lib/csv.js'
 import { readXlsx } from './lib/xlsx.js'
 import { pickFromDrive, fileMeta, exportSheetToXlsx, downloadFile } from './lib/drive.js'
 import CoachImport from './components/CoachImport.jsx'
-import { importHevyData, HevyApiError, HEVY_DEV_SETTINGS, mergeHevyRoutines } from './lib/import-hevy.js'
-import { buildPlanBundle, parsePlan, mergePlan, printPlan, planPrintHTML } from './lib/plan-share.js'
-import { estimate1RM, best1RM, is1RMRecord, REP_CAP } from './lib/onerm.js'
+import { printPlan, planPrintHTML } from './lib/plan-share.js'
 import { exerciseHistory } from './lib/exercise-history.js'
-import { nextPrescription, applyPrescription, policyFor, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, MAX_BW_SETS, weightIncrement } from './lib/progression.js'
-import { normalizeRepRange } from './lib/rep-range.js'
-import { MOBILE, shareExport, printHtml } from './lib/mobile.js'
+import { nextPrescription, applyPrescription, policyFor, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, weightIncrement } from './lib/progression.js'
+import { MOBILE, printHtml } from './lib/mobile.js'
 import { buildCompletedWorkout } from './lib/finish-workout.js'
 import { isWarmupRow, hasCompletedWork } from './lib/workout-model.js'
 import { nextUnfinishedUnit } from './lib/supersetFlow.js'
@@ -56,17 +53,6 @@ function ConfirmDialog({ title, message, confirmText, cancelText, danger, onConf
     <div style={{ height: 8 }} />
     <Button variant="ghost" className="dim" onClick={() => { close(); onCancel && onCancel() }}>{cancelText || t('Cancel')}</Button>
   </div>
-}
-// Sign-in found workouts on this device that the profile does not have (logged while signed
-// out). The profile is the truth — settings and plan come from the server either way — the
-// question is only whether these entries are added to it or dropped. Resolves true to add.
-export function askAddDeviceData(extras) {
-  return new Promise(resolve => confirmSheet({
-    title: t('Add this device\'s workouts to your profile?'),
-    message: t('{0} workouts and {1} weigh-ins were logged on this device while signed out. Add them to your profile, or keep the profile exactly as it is on the server.', extras.workouts, extras.bodyweight),
-    confirmText: t('Add them'), cancelText: t('Keep profile as is'),
-    onConfirm: () => resolve(true), onCancel: () => resolve(false), locked: true
-  }))
 }
 /* ============================ menu sheet ============================ */
 // A list of actions, one per row, closing on tap. This is where the workout screen parks
@@ -166,13 +152,9 @@ export const starterPlanSheet = () => ui().openSheet(close => <StarterPlanChoose
 // placed on it shifts toward one side. A static range never has that problem, at the cost of
 // coarser precision per pixel — the +/- buttons, and typing straight into the read-out, cover
 // exact values.
-// The ceiling follows the profile's unit: 300 covers a body weight or a working weight in
-// kg, but as pounds it cut off at 136 kg — below plenty of people's body weight, and well
-// below an everyday squat.
 const W_LO = 1
-const wHi = unit => (unit === 'lb' ? 660 : 300)
+const W_HI = 300
 function WeightInput({ value, setValue, unit }) {
-  const W_HI = wHi(unit)
   const clamp = x => Math.max(W_LO, Math.min(W_HI, Math.round((x || 0) * 10) / 10))
   const sv = Math.max(W_LO, Math.min(W_HI, value))
   const onSlide = v => setValue(clamp(v))
@@ -256,300 +238,6 @@ export function bwSheet(opts = {}) {
   return h
 }
 
-/* ============================ import from another app ============================ */
-// Shows what a parsed export would actually do before anything is written. An import is
-// the one action where "just try it" is expensive — it's someone's entire training
-// history — so the numbers, the unit conversion and the exercises we couldn't recognise
-// are all on screen before the confirm button.
-function ImportSummary({ parsed, close }) {
-  const st = useStore(s => s.S)
-  const isBW = parsed.kind === 'bodyweight'
-  const have = isBW
-    ? parsed.bodyweight.filter(b => st.bodyweight.some(x => x.d === b.d)).length
-    : parsed.workouts.filter(w => st.workouts.some(x => x.d === w.d)).length
-  const fresh = (isBW ? parsed.bodyweight.length : parsed.workouts.length) - have
-
-  const doImport = () => {
-    let res
-    update(s => { res = mergeImport(s, parsed) })
-    close()
-    toast(isBW
-      ? t('{0} weigh-ins imported', res.added)
-      : t('{0} workouts imported', res.added))
-  }
-
-  return <>
-    <h3>{parsed.source ? t('Import from {0}', parsed.source) : t('Import history')}</h3>
-    <div className="muted small" style={{ marginBottom: 12 }}>
-      {parsed.from === parsed.to ? fmtDate(parsed.from, true) : fmtDate(parsed.from, true) + ' – ' + fmtDate(parsed.to, true)}
-    </div>
-
-    <div className="tiles" style={{ textAlign: 'left' }}>
-      {isBW ? <>
-        <div className="tile"><div className="l">{t('Weigh-ins')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{parsed.bodyweight.length}</div></div>
-        <div className="tile"><div className="l">{t('New')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{fresh}</div></div>
-      </> : <>
-        <div className="tile"><div className="l">{t('Workouts')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{parsed.workouts.length}</div></div>
-        <div className="tile"><div className="l">{t('Sets')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{parsed.sets}</div></div>
-        <div className="tile"><div className="l">{t('Exercises matched')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{parsed.matched}</div></div>
-        <div className="tile"><div className="l">{t('Added as your own')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{parsed.created}</div></div>
-      </>}
-    </div>
-
-    {parsed.mixedUnits ? <div className="small" style={{ color: 'var(--yellow)', marginBottom: 10 }}>
-      {t('The file mixes kg and lb — each set is converted to {0}.', st.unit)}
-    </div> : parsed.converted ? <div className="small" style={{ color: 'var(--yellow)', marginBottom: 10 }}>
-      {t('The file is in {0} and your profile is in {1} — weights will be converted.', parsed.fileUnit, st.unit)}
-    </div> : null}
-    {!isBW && !parsed.fileUnit && !parsed.mixedUnits && <div className="small dim" style={{ marginBottom: 10 }}>
-      {t('The file does not say which unit it uses — numbers are imported as they are.')}
-    </div>}
-    {have > 0 && <div className="small dim" style={{ marginBottom: 10 }}>
-      {t('{0} days already have data here and will be left alone.', have)}
-    </div>}
-    {/* The file rated its sets. Say so: the column is off by default, so the ratings would
-        otherwise arrive invisibly and look like they had been dropped. */}
-    {!isBW && (parsed.rirSets + parsed.rpeSets) > 0 && <div className="small dim" style={{ marginBottom: 10 }}>
-      {t(effortOf(st) === 'none'
-        ? '{0} sets bring an {1} with them — switch on Effort per set in Settings to see it.'
-        : '{0} sets bring an {1} with them.',
-      parsed.rirSets || parsed.rpeSets, parsed.rirSets ? 'RIR' : 'RPE')}
-    </div>}
-    {!isBW && parsed.unmatchedNames.length > 0 && <>
-      <h4 className="sec">{t('Not in the library — added as your own exercises')}</h4>
-      <div className="mchips" style={{ marginBottom: 12 }}>
-        {parsed.unmatchedNames.slice(0, 12).map(n => <span key={n} className="mchip capitalize">{n}</span>)}
-        {parsed.unmatchedNames.length > 12 && <span className="mchip">+{parsed.unmatchedNames.length - 12}</span>}
-      </div>
-    </>}
-
-    <Button variant="primary" onClick={doImport} disabled={!fresh}>
-      {fresh ? t('Import') : t('Nothing new to import')}
-    </Button>
-    <div style={{ height: 8 }} />
-    <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
-  </>
-}
-
-/** Read a CSV/XML export, then show what it would do. */
-export function importFromApp(file, onDone) {
-  const rd = new FileReader()
-  rd.onload = () => {
-    let parsed
-    try { parsed = parseImport(String(rd.result), { unit: S().unit }) }
-    catch (e) { toast(t('Could not read that file')); return }
-    if (parsed.error === 'empty') { toast(t('That file is empty')); return }
-    if (parsed.error) { toast(t("That file's columns aren't recognised — see the docs for supported apps.")); return }
-    if (parsed.kind === 'bodyweight' ? !parsed.bodyweight.length : !parsed.workouts.length) {
-      toast(t('Nothing to import from that file')); return
-    }
-    ui().openSheet(close => <ImportSummary parsed={parsed} close={close} />)
-    onDone && onDone()
-  }
-  rd.onerror = () => toast(t('Could not read that file'))
-  rd.readAsText(file)
-}
-
-/* ============================ import from Hevy API ============================ */
-// The key lives in React state for this sheet only — dismissed with the sheet, never
-// written to the store / localStorage / the server. After a successful fetch the user
-// picks workouts and/or weigh-ins before anything is merged.
-
-export function importFromHevy() {
-  ui().openSheet(close => <HevyImportSheet close={close} />)
-}
-
-function hevyProgressLabel(p) {
-  if (!p) return t('Fetching from Hevy…')
-  if (p.stage === 'templates') return t('Fetching exercises… ({0}/{1})', p.page, p.pageCount)
-  if (p.stage === 'workouts') return t('Fetching workouts… ({0}/{1})', p.page, p.pageCount)
-  if (p.stage === 'routines') return t('Fetching routines… ({0}/{1})', p.page, p.pageCount)
-  if (p.stage === 'body') return t('Fetching weigh-ins… ({0}/{1})', p.page, p.pageCount)
-  if (p.stage === 'parse') return t('Matching exercises…')
-  return t('Fetching from Hevy…')
-}
-
-function HevyImportSheet({ close }) {
-  const st = useStore(s => s.S)
-  const [apiKey, setApiKey] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [progress, setProgress] = useState(null)
-  const [payload, setPayload] = useState(null) // { workouts, routines, bodyweight }
-  const [wantWorkouts, setWantWorkouts] = useState(true)
-  const [wantRoutines, setWantRoutines] = useState(true)
-  const [wantBody, setWantBody] = useState(true)
-  const keyRef = useRef(null)
-
-  // Drop the key from memory when the sheet goes away (unmount or successful import).
-  useEffect(() => () => { setApiKey('') }, [])
-
-  const wipeKey = () => { setApiKey(''); if (keyRef.current) keyRef.current.value = '' }
-
-  const fetchAccount = async () => {
-    const key = apiKey.trim()
-    if (!key) { toast(t('Paste your Hevy API key first')); return }
-    setBusy(true)
-    setProgress({ stage: 'templates', page: 1, pageCount: 1 })
-    setPayload(null)
-    try {
-      const data = await importHevyData(key, { unit: st.unit, onProgress: setProgress })
-      wipeKey()
-      // The payload names Hevy's own three groups; `hevyRoutines` is the parsed routine list
-      // (routineCount/exerciseCount/unmatchedNames), not a plan in this app's state.
-      const { workouts: hevyWorkouts, routines: hevyRoutines, bodyweight: hevyBody } = data
-      const empty = !hevyWorkouts.workouts.length && !hevyRoutines.routineCount && !hevyBody.bodyweight.length
-      if (empty) {
-        toast(t('Nothing to import from Hevy'))
-        return
-      }
-      setWantWorkouts(!!hevyWorkouts.workouts.length)
-      setWantRoutines(!!hevyRoutines.routineCount)
-      setWantBody(!!hevyBody.bodyweight.length)
-      setPayload(data)
-    } catch (e) {
-      if (e instanceof HevyApiError && e.message === 'auth') toast(t('That Hevy API key was refused'))
-      else if (e instanceof HevyApiError && e.message === 'rate-limit') toast(t('Hevy is rate-limiting requests — wait a minute and try again'))
-      else if (e instanceof HevyApiError && e.message === 'empty') toast(t('Paste your Hevy API key first'))
-      else toast(t('Could not reach Hevy — check the key and try again'))
-    } finally {
-      setBusy(false)
-      setProgress(null)
-    }
-  }
-
-  const doImport = () => {
-    if (!payload) return
-    const { workouts: hevyWorkouts, routines: hevyRoutines, bodyweight: hevyBody } = payload
-    const parts = []
-    let addedW = 0, addedR = 0, addedB = 0
-    update(s => {
-      if (wantWorkouts && hevyWorkouts.workouts.length) {
-        const res = mergeImport(s, hevyWorkouts)
-        addedW = res.added
-        parts.push(t('{0} workouts imported', res.added))
-      }
-      if (wantRoutines && hevyRoutines.routineCount) {
-        const res = mergeHevyRoutines(s, hevyRoutines)
-        addedR = res.added
-        parts.push(t('{0} routines imported', hevyRoutines.routineCount))
-      }
-      if (wantBody && hevyBody.bodyweight.length) {
-        const res = mergeImport(s, hevyBody)
-        addedB = res.added
-        parts.push(t('{0} weigh-ins imported', res.added))
-      }
-    })
-    close()
-    if (!addedW && !addedR && !addedB) toast(t('Nothing new to import'))
-    else toast(parts.join(' · '))
-  }
-
-  if (!payload) {
-    return <>
-      <h3>{t('Import from Hevy')}</h3>
-      <div className="muted small" style={{ marginBottom: 14, lineHeight: 1.5 }}>
-        {t('Pull your history with a Hevy Pro API key. The key is only used for this import and is not saved.')}
-      </div>
-      <label className="small dim" style={{ display: 'block', marginBottom: 6 }}>{t('Hevy API key')}</label>
-      <TextField
-        ref={keyRef}
-        type="password"
-        autoComplete="off"
-        spellCheck={false}
-        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-        value={apiKey}
-        disabled={busy}
-        onChange={e => setApiKey(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter' && !busy) fetchAccount() }}
-      />
-      <div className="small" style={{ margin: '10px 0 16px', lineHeight: 1.45 }}>
-        <a href={HEVY_DEV_SETTINGS} target="_blank" rel="noopener noreferrer">{t('Get your API key')}</a>
-        <span className="dim"> — {t('Hevy → Settings → Developer')}</span>
-      </div>
-      {busy && <div className="small dim" style={{ marginBottom: 12 }}>{hevyProgressLabel(progress)}</div>}
-      <Button variant="primary" onClick={fetchAccount} disabled={busy || !apiKey.trim()}>
-        {busy ? t('Fetching from Hevy…') : t('Fetch from Hevy')}
-      </Button>
-      <div style={{ height: 8 }} />
-      <Button variant="ghost" className="dim" onClick={close} disabled={busy}>{t('Cancel')}</Button>
-    </>
-  }
-
-  const { workouts: w, routines: r, bodyweight: b } = payload
-  const haveW = w.workouts.filter(x => st.workouts.some(y => y.d === x.d)).length
-  const freshW = w.workouts.length - haveW
-  const haveB = b.bodyweight.filter(x => st.bodyweight.some(y => y.d === x.d)).length
-  const freshB = b.bodyweight.length - haveB
-  // Routines always arrive as a fresh week (same as plan import).
-  const freshR = r.routineCount
-  const canImport = (wantWorkouts && freshW > 0) || (wantRoutines && freshR > 0) || (wantBody && freshB > 0)
-  const unmatched = [...new Set([
-    ...(wantWorkouts ? w.unmatchedNames : []),
-    ...(wantRoutines ? r.unmatchedNames : []),
-  ])].sort()
-
-  return <>
-    <h3>{t('Import from Hevy')}</h3>
-    <div className="muted small" style={{ marginBottom: 12 }}>
-      {w.from && (w.from === w.to ? fmtDate(w.from, true) : fmtDate(w.from, true) + ' – ' + fmtDate(w.to, true))}
-      {!w.from && b.from && (b.from === b.to ? fmtDate(b.from, true) : fmtDate(b.from, true) + ' – ' + fmtDate(b.to, true))}
-    </div>
-
-    <div className="tiles" style={{ textAlign: 'left' }}>
-      <div className="tile"><div className="l">{t('Workouts')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{w.workouts.length}</div></div>
-      <div className="tile"><div className="l">{t('Routines')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{r.routineCount}</div></div>
-      <div className="tile"><div className="l">{t('Exercises matched')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{w.matched + r.matched}</div></div>
-      <div className="tile"><div className="l">{t('Added as your own')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{w.created + r.created}</div></div>
-    </div>
-
-    {w.workouts.length > 0 && <div className="row between" style={{ padding: '10px 2px', borderTop: '1px solid var(--sep)', gap: 12 }}>
-      <div>
-        <div className="tt" style={{ fontSize: 15 }}>{t('Import workouts')}</div>
-        <div className="small dim">{t('{0} new · {1} days already here', freshW, haveW)}</div>
-      </div>
-      <Switch checked={wantWorkouts} onChange={setWantWorkouts} />
-    </div>}
-    {r.routineCount > 0 && <div className="row between" style={{ padding: '10px 2px', borderTop: '1px solid var(--sep)', gap: 12 }}>
-      <div>
-        <div className="tt" style={{ fontSize: 15 }}>{t('Import routines')}</div>
-        <div className="small dim">{t('{0} routines · {1} exercises — added as a new week', freshR, r.exerciseCount)}</div>
-      </div>
-      <Switch checked={wantRoutines} onChange={setWantRoutines} />
-    </div>}
-    {b.bodyweight.length > 0 && <div className="row between" style={{ padding: '10px 2px', borderTop: '1px solid var(--sep)', borderBottom: '1px solid var(--sep)', gap: 12, marginBottom: 8 }}>
-      <div>
-        <div className="tt" style={{ fontSize: 15 }}>{t('Import weigh-ins')}</div>
-        <div className="small dim">{t('{0} new · {1} days already here', freshB, haveB)}</div>
-      </div>
-      <Switch checked={wantBody} onChange={setWantBody} />
-    </div>}
-    {!b.bodyweight.length && <div style={{ borderBottom: '1px solid var(--sep)', marginBottom: 8 }} />}
-
-    {(w.converted || r.converted) && <div className="small" style={{ color: 'var(--yellow)', marginBottom: 10 }}>
-      {t('Hevy stores weights in kg — they will be converted to {0}.', st.unit)}
-    </div>}
-    {wantWorkouts && (w.rirSets + w.rpeSets) > 0 && <div className="small dim" style={{ marginBottom: 10 }}>
-      {t(effortOf(st) === 'none'
-        ? '{0} sets bring an {1} with them — switch on Effort per set in Settings to see it.'
-        : '{0} sets bring an {1} with them.',
-      w.rirSets || w.rpeSets, w.rirSets ? 'RIR' : 'RPE')}
-    </div>}
-    {unmatched.length > 0 && <>
-      <h4 className="sec">{t('Not in the library — added as your own exercises')}</h4>
-      <div className="mchips" style={{ marginBottom: 12 }}>
-        {unmatched.slice(0, 12).map(n => <span key={n} className="mchip capitalize">{n}</span>)}
-        {unmatched.length > 12 && <span className="mchip">+{unmatched.length - 12}</span>}
-      </div>
-    </>}
-
-    <Button variant="primary" onClick={doImport} disabled={!canImport}>
-      {canImport ? t('Import') : t('Nothing new to import')}
-    </Button>
-    <div style={{ height: 8 }} />
-    <Button variant="ghost" className="dim" onClick={() => { setPayload(null); wipeKey() }}>{t('Back')}</Button>
-  </>
-}
-
 /* ============================ target weight ============================ */
 export function bwDeltaColor(delta, currentW) {
   if (!delta) return 'var(--label-2)'
@@ -594,7 +282,7 @@ function BarWeightEditor({ ex, extra }) {
     if (n > 0) s.barWeights[ex.id] = n; else delete s.barWeights[ex.id]
   })
   // "No bar" is a stored 0, which is a different thing from no entry at all: a counterbalanced
-  // Smith carriage weighs nothing in your hands, so the plate math and the drop-set steps must
+  // Smith carriage weighs nothing in your hands, so the plate math must
   // start from what you logged (issue #138). Clearing it goes back to the bar type's default.
   const setNoBar = on => update(s => {
     s.barWeights = s.barWeights || {}
@@ -631,34 +319,6 @@ function BarWeightSheet({ exId, close }) {
 export const barWeightSheet = exId => ui().openSheet(close => <BarWeightSheet exId={exId} close={close} />)
 
 /* ============================ exercise detail ============================ */
-// Estimated 1RM for one exercise (issue #18): what the log already implies, plus a calculator
-// for a set you have not done — so the number is reachable before there is any history.
-function OneRM({ ex }) {
-  const st = useStore(s => s.S)
-  const best = best1RM(st, ex.id)
-  const [w, setW] = useState(best ? best.w : (st.exWeights[ex.id] || {}).w || 20)
-  const [r, setR] = useState(best ? best.r : 5)
-  const est = estimate1RM(w, r)
-  return <>
-    <h4 className="sec">{t('Estimated 1RM')}</h4>
-    {best && <div className="small" style={{ marginBottom: 8 }}>
-      {t('From your log:')} <b className="accent">{fmtNum(best.est)} {st.unit}</b>
-      <span className="dim"> · {t('{0} × {1} on {2}', fmtNum(best.w) + ' ' + st.unit, best.r, fmtDate(best.d, true))}</span>
-    </div>}
-    <div className="row cfgrow" style={{ marginBottom: 10 }}>
-      <Stepper label={t('Weight ({0})', st.unit)} value={w} step={2.5} onChange={setW} />
-      <Stepper label={t('Reps')} value={r} step={1} decimal={false} onChange={setR} />
-    </div>
-    <div className="row between" style={{ marginBottom: 4 }}>
-      <span className="muted small">{t('Estimate')}</span>
-      <b className="accent" style={{ fontSize: 20 }}>{est === null ? '—' : fmtNum(est) + ' ' + st.unit}</b>
-    </div>
-    <div className="small dim">{est === null
-      ? t('Enter a weight and 1–{0} reps — beyond that an estimate is guesswork.', REP_CAP)
-      : t('Epley formula — a calculation from one set, not a tested max.')}</div>
-  </>
-}
-
 function ExerciseDetail({ ex, close }) {
   const st = useStore(s => s.S)
   const last = lastEntryFor(st, ex.id)
@@ -680,7 +340,7 @@ function ExerciseDetail({ ex, close }) {
     <Media ex={ex} />
     <div className="row" style={{ gap: 6, flexWrap: 'wrap', margin: '10px 0' }}>
       <span className="tag acc">{t(ex.bp)}</span>
-      {ex.bp === 'cardio' ? <span className="tag"><Icon name="target" />{t(MUSCLE_NAME['cardiovascular system'])}</span> : (ex.primaries?.length ? ex.primaries : (ex.tg ? [ex.tg] : [])).map((s, i) => <span key={i} className="tag"><Icon name="target" />{t(MUSCLE_NAME[s]  || s)}</span>)}
+      {(ex.primaries?.length ? ex.primaries : (ex.tg ? [ex.tg] : [])).map((s, i) => <span key={i} className="tag"><Icon name="target" />{t(MUSCLE_NAME[s]  || s)}</span>)}
       <span className="tag"><Icon name="dumbbell" />{t(ex.eq)}</span>
       {(ex.secondaries?.length ? ex.secondaries : smOf(ex)).slice(0, 3).map((s, i) => <span key={i} className="tag">{t(MUSCLE_NAME[s] || s)}</span>)}
     </div>
@@ -695,10 +355,6 @@ function ExerciseDetail({ ex, close }) {
       <h4 className="sec">{t('Bar weight')}</h4>
       <BarWeightEditor ex={ex} extra={t('You still log the total weight — the bar only feeds the per-side plate math.')} />
     </>}
-    {/* No one-rep max on an assistance machine: the load is the help you were given, so the
-        calculator would answer "your 1RM is 23 kg" about a number that gets smaller as you get
-        stronger (issue #232). Cardio has none for the same kind of reason. */}
-    {!isCardio(ex) && !isAssisted(ex) && <OneRM ex={ex} />}
     {instrFor(ex).length > 0 &&<><h4 className="sec">{t('How to')}{!INSTR_LANGS.includes(getLang()) && <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}> · {t('instructions in English')}</span>}</h4><ol className="steps-list">{instrFor(ex).map((s, i) => <li key={i}>{s}</li>)}</ol></>}
   </>
 }
@@ -714,30 +370,23 @@ function ExerciseHistory({ exId }) {
   const st = useStore(s => s.S)
   const ex = exOr(exId)
   const h = useMemo(() => exerciseHistory(st, exId), [st.workouts, exId])
-  const [curve, setCurve] = useState('top')
-  const onE1 = curve === 'e1rm' && h.e1rmPoints.length > 0
   const unit = h.metric === 'weight' ? st.unit : h.metric === 'reps' ? t('reps') : h.metric === 'sec' ? 's' : t('min')
-  const e1Best = useMemo(() => Math.max(0, ...h.e1rmPoints.map(p => p.y)), [h])
   if (!h.total) return <>
     <h3 className="capitalize">{exerciseNameFor(ex)}</h3>
     <div className="empty"><div className="ico"><Icon name="history" /></div>{t('No sessions logged yet')}</div>
   </>
   const tail = s => [
     s.volume > 0 && t('Volume') + ' ' + fmtVol(s.volume, st.unit),
-    s.e1rm != null && t('Est. 1RM') + ' ' + fmtNum(s.e1rm) + ' ' + st.unit,
   ].filter(Boolean).join(' · ')
   return <>
     <h3 className="capitalize" style={{ marginBottom: 2 }}>{exerciseNameFor(ex)}</h3>
     <div className="muted small" style={{ marginBottom: 10 }}>{t('Exercise history')} · {t(h.total === 1 ? '{0} session' : '{0} sessions', h.total)}</div>
-    {/* Only reps work with a load produces an estimate, so the toggle is absent for the rest. */}
-    {h.e1rmPoints.length > 0 && h.metric === 'weight' && <Segmented className="seg-range" value={curve} onChange={setCurve}
-      options={[{ value: 'top', label: t('Top set') }, { value: 'e1rm', label: t('Est. 1RM') }]} />}
     <div className="chart" style={{ marginTop: 8 }}>
-      <LineChart points={onE1 ? h.e1rmPoints : h.points} h={140} unit={onE1 ? st.unit : unit} color="var(--blue)" />
+      <LineChart points={h.points} h={140} unit={unit} color="var(--blue)" />
     </div>
     <div className="small row" style={{ margin: '6px 0 4px', gap: 5 }}>
       <Icon name="trophy" style={{ fontSize: 14, color: 'var(--yellow)' }} />
-      {t('Best:')} <b className="accent">{fmtNum(onE1 ? e1Best : h.best)} {onE1 ? st.unit : unit}</b>
+      {t('Best:')} <b className="accent">{fmtNum(h.best)} {unit}</b>
     </div>
     <h4 className="sec">{h.sessions.length < h.total ? t('Last {0} sessions', h.sessions.length) : t('Sessions')}</h4>
     <div className="list">
@@ -766,7 +415,6 @@ function CustomExForm({ existing, prefill, onDone, close }) {
   const [desc, setDesc] = useState(existing ? (existing.desc || '') : '')
   const [primaries, setPrimaries] = useState(() => {
     if (existing && Array.isArray(existing.primaries) && existing.primaries.length) return [...existing.primaries]
-    if (existing?.bp === 'cardio') return ['cardiovascular system']
     const norm = hasExplicitMuscleMetadata(existing || {}) ? normalizeMuscleGroups(existing || {}) : []
     return norm.length ? [norm[0]] : []
   })
@@ -795,7 +443,7 @@ function CustomExForm({ existing, prefill, onDone, close }) {
     const d = desc.trim().slice(0, 1000)
     // Stored in the map's order, not the order the chips were tapped in — the tags on the exercise
     // used to shuffle with every edit.
-    const prim = bp === 'cardio' ? ['cardiovascular system'] : inMuscleOrder(primaries)
+    const prim = inMuscleOrder(primaries)
     const sm = inMuscleOrder(secondaries.filter(m => !prim.includes(m)))
     const groups = [...prim, ...sm]
     // The one-word target (the library row, the picker, the Muscles view) is not the sorted list's
@@ -828,17 +476,15 @@ function CustomExForm({ existing, prefill, onDone, close }) {
       {ALL_EQUIPMENT.map(k => (<button key={k} className={'chip' + (eq === k ? ' on' : '')} onClick={() => setEq(k)}>{t(k)}</button>))}
     </div>
     {bp && <>
-      {bp !== 'cardio' && <MultiSelectRow title={t('Primary muscle groups')} sheetTitle={t('Primary muscle groups')}
+      <MultiSelectRow title={t('Primary muscle groups')} sheetTitle={t('Primary muscle groups')}
         values={primaries}
         options={MUSCLES.map(m => ({ value: m, label: t(MUSCLE_NAME[m]) }))}
         onToggle={togglePrimary} noneLabel={t('No explicit muscle group')} doneLabel={t('Done')} />
-      }
       <MultiSelectRow title={t('Additional muscle groups')} sheetTitle={t('Additional muscle groups')}
         values={secondaries}
         options={MUSCLES.filter(m => !primaries.includes(m)).map(m => ({ value: m, label: t(MUSCLE_NAME[m]) }))}
         onToggle={toggleSecondary} noneLabel={t('No explicit muscle group')} doneLabel={t('Done')} />
     </>}
-    {bp === 'cardio' && <div className="small dim row" style={{ marginBottom: 10, gap: 5 }}><Icon name="figureRun" style={{ fontSize: 13 }} />{t('Cardio exercises log time + speed instead of weight × reps.')}</div>}
     <textarea className="input" rows={4} maxLength={1000} placeholder={t('Description (optional) — setup, cues, anything you want to remember')}
       value={desc} onChange={e => setDesc(e.target.value)} />
     <div style={{ height: 14 }} />
@@ -1006,7 +652,7 @@ export function swapActiveWorkoutExercise(index) {
       id: ex.id,
       target: { ...cfg },
       plan,
-      sets: applyIntensifierPlan(freestyle ? built : applyPrescription(built, plan, step), full),
+      sets: freestyle ? built : applyPrescription(built, plan, step),
     }
 
     const apply = options => {
@@ -1098,23 +744,14 @@ const progressionStepOf = (c, mode, ex, unit) =>
 const progressionStepIsValid = (step, policy) =>
   policy === 'off' || (Number.isFinite(step) && step > 0)
 
-function ProgressionFields({ ex, mode, c, setC, routine, unit, perSide }) {
+function ProgressionFields({ ex, mode, c, setC, routine, unit }) {
   const options = POLICIES_FOR[mode] || ['off']
   if (options.length < 2) return null
   const inherited = policyFor({ id: ex.id }, routine, mode)
   const active = policyFor({ ...c, id: ex.id }, routine, mode)
   const inc = progressionStepOf(c, mode, ex, unit)
   const invalid = !progressionStepIsValid(inc, active)
-  const stride = mode === 'reps' && perSide ? 2 : 1
-  const range = active === 'double' ? normalizeRepRange(c.reps, c.repsMin, stride) : null
-  const epleyEligible = mode === 'reps' && !isBw({ ...c, id: ex.id }) && (active === 'linear' || active === 'double')
-  const deloadPercent = Math.round((Number(c.deloadFactor) > 0 ? Number(c.deloadFactor) : 0.9) * 100)
-  const setRule = v => setC(x => {
-    const next = { ...x, prog: v || undefined }
-    return policyFor({ ...next, id: ex.id }, routine, mode) === 'double'
-      ? { ...next, ...normalizeRepRange(next.reps, next.repsMin, stride) }
-      : next
-  })
+  const setRule = v => setC(x => ({ ...x, prog: v || undefined }))
   return <>
     <h4 className="sec">{t('Progression')}</h4>
     <div className="sect-b" style={{ marginBottom: 8 }}>
@@ -1123,22 +760,10 @@ function ProgressionFields({ ex, mode, c, setC, routine, unit, perSide }) {
           ...options.map(p => ({ value: p, label: t(POLICY_NAME[p]) }))]} />
     </div>
     <div className="small dim" style={{ marginBottom: active === 'off' ? 18 : 10 }}>{t(POLICY_DESC[active])}</div>
-    {/* Double progression on a weighted exercise fills this row with four steppers; `cfgrow-4`
-        lets it wrap into two pairs on phones, where four abreast left the inputs a few px wide. */}
-    {active !== 'off' && <div className={'row cfgrow' + (active === 'double' && epleyEligible ? ' cfgrow-4' : '')} style={{ marginBottom: 18 }}>
+    {active !== 'off' && <div className="row cfgrow" style={{ marginBottom: 18 }}>
       <Stepper label={mode === 'time' ? t('Step (seconds)') : t('Step ({0})', unit)} value={inc}
         step={mode === 'time' ? 5 : 1.25} decimal={mode !== 'time'} invalid={invalid} className={invalid ? 'invalid' : ''}
         onChange={v => setC(x => ({ ...x, inc: v }))} />
-      {active === 'double' && <>
-        {/* The draft stays as typed: normalising on every keystroke turned "12" into 92 (the
-            "1" was pulled above the lower bound first). Save and the engine normalise anyway. */}
-        <Stepper label={t('Reps from')} value={c.repsMin ?? range.repsMin} step={stride} decimal={false}
-          onChange={v => setC(x => ({ ...x, repsMin: v }))} />
-        <Stepper label={t('Reps up to')} value={c.reps ?? range.reps} step={stride} decimal={false}
-          onChange={v => setC(x => ({ ...x, reps: v }))} />
-      </>}
-      {epleyEligible && <Stepper label={t('Deload 1RM (%)')} value={deloadPercent} step={5} decimal={false}
-        onChange={v => setC(x => ({ ...x, deloadFactor: Math.max(0.5, Math.min(0.95, Number(v) / 100)) }))} />}
     </div>}
     {invalid && <div className="small" role="alert" style={{ color: 'var(--red)', marginTop: -10, marginBottom: 18 }}>
       {t('Enter a positive step to use this progression rule.')}
@@ -1149,155 +774,81 @@ function ProgressionFields({ ex, mode, c, setC, routine, unit, perSide }) {
 function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, initial }) {
   const st = useStore(s => s.S)
   // A caller can hand us an id the catalogue no longer resolves — a plan written against another
-  // dataset, an exercise deleted on another device. exOr keeps the sheet usable (it reads as the
-  // usual placeholder) instead of taking the whole editor down on the first `ex.id`.
+  // dataset, an exercise deleted on another device. exOr keeps the sheet usable.
   const ex = exProp || exOr(existing?.id || initial?.id)
-  const cardio = isCardio(ex.id)
   const seed = existing || initial || defaultConfig(ex.id)
-  const [c, setC] = useState(() => {
-    const cfg = { ...seed }
-    return policyFor({ ...cfg, id: ex.id }, routine, modeOf({ ...cfg, id: ex.id })) === 'double'
-      ? { ...cfg, ...normalizeRepRange(cfg.reps, cfg.repsMin, isPerSide(cfg) ? 2 : 1) }
-      : cfg
-  })
-  // Cardio keeps its own duration+speed form; the reps/time choice (issue #16) is offered for
-  // everything else, which is where the gap was — planks, hangs, wall sits, loaded carries.
-  const mode = cardio ? 'cardio' : modeOf({ ...c, id: ex.id })
+  const [c, setC] = useState(() => ({ ...seed }))
+  const mode = modeOf({ ...c, id: ex.id })
   // Both default from the dataset and are then whatever the config says — see isBw.
-  const bw = !cardio && isBw({ ...c, id: ex.id })
-  const perSide = isPerSide(c)
+  const bw = isBw({ ...c, id: ex.id })
   const progressionPolicy = policyFor({ ...c, id: ex.id }, routine, mode)
   const progressionStepInvalid = !progressionStepIsValid(progressionStepOf(c, mode, ex, st.unit), progressionPolicy)
-  const activePolicy = policyFor({ ...c, id: ex.id }, routine, mode)
-  const double = mode === 'reps' && activePolicy === 'double'
   // Keep whatever the other mode already had (sets, weight) and fill only what is missing.
-  const setMode = m => setC(x => {
-    const next = { ...defaultConfig(ex.id, m), ...x, mode: m }
-    return m === 'reps' && policyFor({ ...next, id: ex.id }, routine, 'reps') === 'double'
-      ? { ...next, ...normalizeRepRange(next.reps, next.repsMin, isPerSide(next) ? 2 : 1) }
-      : next
-  })
+  const setMode = m => setC(x => ({ ...defaultConfig(ex.id, m), ...x, mode: m }))
   const save = () => {
     if (progressionStepInvalid) return
     close()
-    const sets = Math.max(1, Math.round(c.sets) || (cardio ? 1 : 3))
+    const sets = Math.max(1, Math.round(c.sets) || 3)
     // Only carry progression settings that differ from the inherited default, so a plan file
     // stays readable and "follow the routine" keeps meaning exactly that.
     const prog = {}
     if (c.prog) prog.prog = c.prog
     if (c.inc > 0) prog.inc = c.inc
-    // Epley deloading is configurable per occurrence, but the default stays omitted so older
-    // plans retain their compact shape and keep the existing 90% behaviour.
-    if (mode === 'reps' && !bw && (activePolicy === 'linear' || activePolicy === 'double')) {
-      const deloadFactor = Math.max(0.5, Math.min(0.95, Number(c.deloadFactor) || 0.9))
-      if (deloadFactor !== 0.9) prog.deloadFactor = deloadFactor
-    }
-    // Written only when it differs from what the dataset already says, so a barbell config
-    // stays exactly the shape it was before these flags existed.
-    // `bodyweight` is true of a hold as much as of a set of reps; `side` is not — it counts
-    // reps, and a timed hold has none. Switching an exercise to Time therefore drops it
-    // rather than carrying a flag nothing downstream can read.
+    // Written only when it differs from what the dataset already says.
     const flags = {}
     if (bw !== isBodyweightEq(ex.id)) flags.bodyweight = bw
-    // Free text, e.g. a pyramid's per-set loading ("bar only, +1 plate/side each set") — the
-    // sets/reps/weight fields are one flat target and have no room for that on their own.
-    // Mode-independent, so it is spread in below rather than folded into `flags`.
     const note = (c.note || '').trim().slice(0, 500)
     const withNote = note ? { note } : {}
-    // Only written when there are any, so a plan that never asked for warm-ups keeps the exact
-    // shape it had — and reads back as 0 either way (buildSets).
     const warmupSets = Math.max(0, Math.min(MAX_PLANNED_WARMUPS, Math.round(c.warmupSets) || 0))
     const withWarmups = warmupSets ? { warmupSets } : {}
-    // Per-exercise rest (issue #10): written only when a positive value was set, so 0 keeps
-    // inheriting the global rest timer and a config that never touched it stays the shape it
-    // was. Mode-independent — a heavy triple, a plank and a cardio interval all rest.
     const restSec = Math.max(0, Math.round(c.restSec) || 0)
     const withRest = restSec ? { restSec } : {}
-    if (cardio) onSave({ sets, min: Math.max(1, Math.round(c.min) || 20), speed: Math.max(0, c.speed || 8), ...withNote, ...withRest })
-    else if (mode === 'time') onSave({ sets, mode: 'time', sec: Math.max(1, Math.round(c.sec) || 45), weight: Math.max(0, c.weight || 0), ...flags, ...prog, ...withNote, ...withWarmups, ...withRest })
-    else {
-      // A unilateral target is stored even: the split has to divide, and a typed 15 would
-      // otherwise plan seven reps on one side and eight on the other, every session.
-      const typed = Math.max(1, Math.round(c.reps) || 10)
-      const stride = perSide ? 2 : 1
-      let reps = perSide ? Math.ceil(typed / stride) * stride : typed
-      let range = null
-      if (double) {
-        range = normalizeRepRange(reps, c.repsMin, stride)
-        reps = range.reps
-      }
-      const out = { sets, mode: 'reps', reps, weight: Math.max(0, c.weight || 0), ...flags, ...(perSide ? { side: true } : {}), ...prog, ...withNote, ...withWarmups, ...withRest }
-      if (double) out.repsMin = range.repsMin
-      // A ceiling below the working reps would tell you to add a set on day one.
-      if (bw && !(out.weight > 0) && c.repsMax > 0) out.repsMax = Math.max(reps, Math.round(c.repsMax))
-      // Every set in this exercise becomes a drop-set/rest-pause (buildSets stamps the rows) —
-      // decided here, in the plan, not re-decided live each time you train it.
-      if (c.intensifier && c.intensifier.type) out.intensifier = c.intensifier
-      onSave(out)
-    }
+    if (mode === 'time') onSave({ sets, mode: 'time', sec: Math.max(1, Math.round(c.sec) || 45), weight: Math.max(0, c.weight || 0), ...flags, ...prog, ...withNote, ...withWarmups, ...withRest })
+    else onSave({ sets, mode: 'reps', reps: Math.max(1, Math.round(c.reps) || 10), weight: Math.max(0, c.weight || 0), ...flags, ...prog, ...withNote, ...withWarmups, ...withRest })
   }
   return <>
     <h3 className="capitalize">{exerciseNameFor(ex)}</h3>
     <Media ex={ex} />
     {/* The same tags the exercise detail sheet shows, secondaries included: choosing what goes
-        into a plan is exactly when "what else does this hit" matters, and until now that was
-        only visible from the Exercises tab, after the fact. Custom exercises and the newer
-        metadata name muscles by the map's ids ("forearm", "gluteal"), which only MUSCLE_NAME
-        turns into a translatable label. */}
+        into a plan is exactly when "what else does this hit" matters. */}
     <div className="row" style={{ gap: 6, flexWrap: 'wrap', margin: '10px 0 14px' }}>
-      {cardio && <span className="tag acc"><Icon name="figureRun" />{t('Cardio')}</span>}
       <span className="tag">{t(MUSCLE_NAME[ex.tg] || ex.tg || ex.bp)}</span><span className="tag">{t(ex.eq)}</span>
-      {!cardio && (ex.secondaries?.length ? ex.secondaries : smOf(ex)).slice(0, 3)
+      {(ex.secondaries?.length ? ex.secondaries : smOf(ex)).slice(0, 3)
         .map((s, i) => <span key={i} className="tag dim">{t(MUSCLE_NAME[s] || s)}</span>)}
     </div>
     {ex.desc && <div className="exnote">{ex.desc}</div>}
-    {!cardio && <div style={{ marginBottom: 14 }}>
+    <div style={{ marginBottom: 14 }}>
       <Segmented className="seg-range" value={mode} onChange={setMode}
         options={[{ value: 'reps', label: t('Reps') }, { value: 'time', label: t('Time') }]} />
-    </div>}
+    </div>
     <div className="row cfgrow" style={{ marginBottom: mode === 'time' ? 8 : 18 }}>
-      {cardio ? <>
-        <Stepper label={t('Intervals')} value={c.sets} step={1} decimal={false} onChange={v => setC(x => ({ ...x, sets: v }))} />
-        <Stepper label={t('Minutes')} value={c.min} step={1} decimal={false} onChange={v => setC(x => ({ ...x, min: v }))} />
-        <Stepper label={t('Speed (km/h)')} value={c.speed} step={0.5} onChange={v => setC(x => ({ ...x, speed: v }))} />
-      </> : mode === 'time' ? <>
+      {mode === 'time' ? <>
         <Stepper label={t('Sets')} value={c.sets} step={1} decimal={false} onChange={v => setC(x => ({ ...x, sets: v }))} />
         <Stepper label={t('Seconds')} value={c.sec} step={5} decimal={false} onChange={v => setC(x => ({ ...x, sec: v }))} />
         <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={2.5} onChange={v => setC(x => ({ ...x, weight: v }))} />
       </> : <>
-        {/* Rest-pause always trains as exactly two rows — a warm-up at this rep count, then one
-            rest-pause work set — so "Sets" has nothing left to mean and only invites a mismatch. */}
-        {c.intensifier?.type !== 'restpause' &&
-          <Stepper label={t('Sets')} value={c.sets} step={1} decimal={false} onChange={v => setC(x => ({ ...x, sets: v }))} />}
-        {!double && <Stepper label={t('Reps')} value={c.reps} step={perSide ? 2 : 1} decimal={false} onChange={v => setC(x => ({ ...x, reps: v }))} />}
+        <Stepper label={t('Sets')} value={c.sets} step={1} decimal={false} onChange={v => setC(x => ({ ...x, sets: v }))} />
+        <Stepper label={t('Reps')} value={c.reps} step={1} decimal={false} onChange={v => setC(x => ({ ...x, reps: v }))} />
         {/* On bodyweight work the weight stepper is the click #32 is about, so it is not here
             until there is a belt to describe — see the added-weight row below. */}
         {!bw && <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={2.5} onChange={v => setC(x => ({ ...x, weight: v }))} />}
       </>}
     </div>
-    {c.intensifier?.type === 'restpause' && <div className="small dim" style={{ marginTop: -10, marginBottom: 18 }}>
-      {t('Rest-pause always trains as one warm-up set at this rep count, then one rest-pause work set — "Sets" is not used.')}
-    </div>}
     {/* Planned warm-ups: the session used to start at the work weight and you added every
-        warm-up by hand, every time. Rest-pause is excluded because it builds its own warm-up
-        row, and cardio because an interval plan has no load to ramp. */}
-    {!cardio && c.intensifier?.type !== 'restpause' && <>
-      <div className="row cfgrow" style={{ marginBottom: 6 }}>
-        <Stepper label={t('Warm-up sets')} value={c.warmupSets || 0} step={1} decimal={false}
-          onChange={v => setC(x => ({ ...x, warmupSets: Math.max(0, Math.min(MAX_PLANNED_WARMUPS, Math.round(v) || 0)) }))} />
-      </div>
-      <div className="small dim" style={{ marginBottom: 18 }}>
-        {(c.warmupSets || 0) > 0
-          ? t('Added before your work sets and left out of volume, records and progression. Each one closes half the gap to the work weight — you can still change any of them mid-session.')
-          : t('Ramp-up sets added before the work sets, so you do not have to add them by hand each session.')}
-      </div>
-    </>}
+        warm-up by hand, every time. */}
+    <div className="row cfgrow" style={{ marginBottom: 6 }}>
+      <Stepper label={t('Warm-up sets')} value={c.warmupSets || 0} step={1} decimal={false}
+        onChange={v => setC(x => ({ ...x, warmupSets: Math.max(0, Math.min(MAX_PLANNED_WARMUPS, Math.round(v) || 0)) }))} />
+    </div>
+    <div className="small dim" style={{ marginBottom: 18 }}>
+      {(c.warmupSets || 0) > 0
+        ? t('Added before your work sets and left out of volume, records and progression. Each one closes half the gap to the work weight — you can still change any of them mid-session.')
+        : t('Ramp-up sets added before the work sets, so you do not have to add them by hand each session.')}
+    </div>
     {mode === 'time' && !bw && <div className="small dim" style={{ marginBottom: 18 }}>
       {t('A timer runs while you hold the set. Leave the weight at 0 for bodyweight holds.')}
     </div>}
-    {/* Per-exercise rest (issue #10). Its own full-width row, like the other steppers with an
-        explanation under them, and outside every mode branch because a heavy triple, a plank
-        and a cardio interval all rest — they just do not all want the same break. */}
+    {/* Per-exercise rest (issue #10). */}
     <div className="row cfgrow" style={{ marginBottom: 6 }}>
       <Stepper label={t('Rest (s)')} value={c.restSec || 0} step={15} decimal={false}
         onChange={v => setC(x => ({ ...x, restSec: v }))} />
@@ -1305,27 +856,13 @@ function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, init
     <div className="small dim" style={{ marginBottom: 18 }}>
       {t('Rest after each set of this exercise. Leave at 0 to use your default rest timer.')}
     </div>
-    {/* ---------- bodyweight + per side (issues #31/#32/#33) ---------- */}
-    {!cardio && <div className="sect-b" style={{ marginBottom: 8 }}>
+    {/* bodyweight (issues #31/#32) */}
+    <div className="sect-b" style={{ marginBottom: 8 }}>
       <Row icon="figureStrength" iconTint="var(--acc)" title={t('Bodyweight')}
         subtitle={bw ? t('No weight to enter — just log the reps.') : t('Ask for a weight on every set.')}>
         <Switch checked={bw} onChange={v => setC(x => ({ ...x, bodyweight: v, weight: v ? 0 : x.weight }))} />
       </Row>
-      {mode === 'reps' && <Row icon="shuffle" iconTint="var(--blue)" title={t('Reps per side')}
-        subtitle={perSide ? t('You still log the total: {0} is {1} per side.', c.reps || 0, fmtNum(sideReps(c.reps))) : t('For lunges, single-arm rows and the like.')}>
-        {/* Turning it on rounds the target up to an even number, since half of an odd
-            total is a rep one side does not get. */}
-        <Switch checked={perSide} onChange={v => setC(x => {
-          const next = { ...x, side: v || undefined, reps: v ? Math.ceil((x.reps || 0) / 2) * 2 : x.reps }
-          return policyFor({ ...next, id: ex.id }, routine, 'reps') === 'double'
-            ? { ...next, ...normalizeRepRange(next.reps, next.repsMin, v ? 2 : 1) }
-            : next
-        })} />
-      </Row>}
-    </div>}
-    {/* A stepper is too wide to sit in a list row next to a label — it squeezes the text to
-        one word per line — so added weight gets the same full-width treatment as sets and
-        reps, with its explanation underneath. */}
+    </div>
     {bw && <>
       <div className="row cfgrow" style={{ marginBottom: 8 }}>
         <Stepper label={t('Added ({0})', st.unit)} value={c.weight || 0} step={2.5}
@@ -1335,60 +872,12 @@ function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, init
         {t('For dips or pull-ups with a belt. Progression then follows the weight.')}
       </div>
     </>}
-    {/* The rep ceiling only means something when there is no load to add instead. */}
-    {mode === 'reps' && bw && !(c.weight > 0) && <div className="row cfgrow" style={{ marginBottom: 18 }}>
-      <Stepper label={t('Top of the range')} value={c.repsMax || 0} step={1} decimal={false}
-        onChange={v => setC(x => ({ ...x, repsMax: v }))} />
-    </div>}
-    {mode === 'reps' && bw && !(c.weight > 0) && <div className="small dim" style={{ marginTop: -10, marginBottom: 18 }}>
-      {c.repsMax > 0
-        ? t('Reps climb to {0}, then a set is added and the reps start over. At {1} sets it asks you to add weight instead.', c.repsMax, MAX_BW_SETS)
-        : t('Reps climb by one whenever every set was clean. Set a ceiling to add sets instead of reps forever.')}
-    </div>}
-    {mode === 'reps' && <>
-      <h4 className="sec">{t('Drop-set / rest-pause')}</h4>
-      <div className="sect-b" style={{ marginBottom: 8 }}>
-        <SelectRow title={t('Intensifier')} sheetTitle={t('Intensifier')} value={c.intensifier?.type || ''}
-          onChange={v => setC(x => ({
-            ...x,
-            intensifier: !v ? undefined : v === 'dropset'
-              ? { type: 'dropset', count: x.intensifier?.count || 1, pct: x.intensifier?.pct || 20 }
-              // The activation set's own reps are whatever "Reps" above already says — a
-              // rest-pause plan only adds two new numbers: the total extra reps wanted past
-              // it, and the rest between the bursts that total gets split into.
-              : { type: 'restpause', totalReps: x.intensifier?.totalReps || x.reps || 8, restSec: x.intensifier?.restSec || st.restPauseSec || 15 },
-          }))}
-          options={[
-            { value: '', label: t('None') },
-            { value: 'dropset', label: t('Drop-set') },
-            { value: 'restpause', label: t('Rest-pause') },
-          ]} />
-      </div>
-      {c.intensifier?.type === 'dropset' && <div className="row cfgrow" style={{ marginBottom: 8 }}>
-        <Stepper label={t('Drops')} value={c.intensifier.count} step={1} decimal={false}
-          onChange={v => setC(x => ({ ...x, intensifier: { ...x.intensifier, count: Math.max(1, v) } }))} />
-        <Stepper label={t('Weight drop (%)')} value={c.intensifier.pct} step={5} decimal={false}
-          onChange={v => setC(x => ({ ...x, intensifier: { ...x.intensifier, pct: Math.max(5, v) } }))} />
-      </div>}
-      {c.intensifier?.type === 'restpause' && <div className="row cfgrow" style={{ marginBottom: 8 }}>
-        <Stepper label={t('Rest-pause reps')} value={c.intensifier.totalReps} step={1} decimal={false}
-          onChange={v => setC(x => ({ ...x, intensifier: { ...x.intensifier, totalReps: Math.max(1, v) } }))} />
-        <Stepper label={t('Rest (s)')} value={c.intensifier.restSec} step={5} decimal={false}
-          onChange={v => setC(x => ({ ...x, intensifier: { ...x.intensifier, restSec: Math.max(5, v) } }))} />
-      </div>}
-      {c.intensifier?.type && <div className="small dim" style={{ marginTop: -2, marginBottom: 18 }}>
-        {c.intensifier.type === 'dropset'
-          ? t('Every set becomes a drop-set: after the main set, {0} drop(s) with no rest, each about {1}% lighter.', c.intensifier.count, c.intensifier.pct)
-          : t('Every set becomes rest-pause: {0} reps to start, then {1} more split into short bursts, {2}s rest before each, roughly halving each time.', c.reps || 0, c.intensifier.totalReps, c.intensifier.restSec)}
-      </div>}
-    </>}
-    {/* The bar's own weight, for the plate math — per exercise, not per plan, so it sits
-        apart from the config fields above and writes straight to S.barWeights. */}
+    {/* The bar's own weight, for the plate math — per exercise, not per plan. */}
     {usesBar(ex) && <>
       <h4 className="sec">{t('Bar weight')}</h4>
       <BarWeightEditor ex={ex} extra={t('Applies to this exercise everywhere, not just this plan.')} />
     </>}
-    <ProgressionFields ex={ex} mode={mode} c={c} setC={setC} routine={routine} unit={st.unit} perSide={perSide} />
+    <ProgressionFields ex={ex} mode={mode} c={c} setC={setC} routine={routine} unit={st.unit} />
     <textarea className="input" rows={3} maxLength={500} style={{ marginBottom: 18 }}
       placeholder={t('Note (optional) — loading cues, "bar only then +1 plate/side each set", anything worth remembering here')}
       value={c.note || ''} onChange={e => setC(x => ({ ...x, note: e.target.value }))} />
@@ -1397,6 +886,7 @@ function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, init
     {onDelete && <><div style={{ height: 8 }} /><Button variant="danger" onClick={() => { close(); onDelete() }}>{t('Remove from routine')}</Button></>}
   </>
 }
+
 export const exConfigSheet = (ex, existing, onSave, onDelete, routine, initial) => ui().openSheet(close => <ExConfig ex={ex} existing={existing} initial={initial} onSave={onSave} onDelete={onDelete} routine={routine} close={close} />)
 
 /* ============================ glyph picker ============================ */
@@ -1483,7 +973,7 @@ function EffortPicker({ kind, value, onPick, close }) {
 export const effortPickerSheet = (kind, value, onPick) =>
   ui().openSheet(close => <EffortPicker kind={kind} value={value} onPick={onPick} close={close} />)
 
-/* ============================ share / print / import a plan ============================ */
+/* ============================ print / import a plan ============================ */
 export const planToolsSheet = () => ui().openSheet(close => <PlanTools close={close} />)
 
 /* ============================ the complex ============================ */
@@ -1578,84 +1068,27 @@ export async function importCoachPlanFromDrive() {
 
 function PlanTools({ close }) {
   const st = useStore(s => s.S)
-  const user = useStore(s => s.user)
-  const fileRef = useRef(null)
   const coachRef = useRef(null)
   const hasRoutines = (st.weeks || []).some(w => (w.days || []).some(d => d.ex && d.ex.length))
 
-  const exportFile = async () => {
-    const bundle = buildPlanBundle(st, user?.name ? t('{0}’s plan', user.name) : '')
-    const json = JSON.stringify(bundle, null, 2)
-    const name = 'opengym-plan-' + todayISO() + '.json'
-    if (MOBILE) { try { await shareExport(json, name) } catch (e) { /* dismissed */ } close(); return }
-    const blob = new Blob([json], { type: 'application/json' })
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); URL.revokeObjectURL(a.href)
-    close(); toast(t('Plan file saved — send it to a friend'))
-  }
-  const pickFile = ev => {
-    const f = ev.target.files[0]; ev.target.value = ''; if (!f) return
-    const rd = new FileReader()
-    rd.onload = () => {
-      try { const bundle = parsePlan(rd.result, st.unit || 'kg'); close(); planImportSheet(bundle) }
-      catch (e) { toast(t('Import failed: {0}', e.message)) }
-    }
-    rd.readAsText(f)
-  }
-
   return <>
     <h3>{t('Share your plan')}</h3>
-    <div className="muted small" style={{ marginBottom: 16 }}>{t('Send your routines to a friend, or put your week on paper.')}</div>
-    <Button variant="primary" icon="upload" onClick={exportFile} disabled={!hasRoutines}>{t('Export plan file')}</Button>
-    <div className="dim small" style={{ margin: '7px 2px 0', lineHeight: 1.4 }}>{t('A small file a friend imports into their own OlyGym — routines only, none of your workouts or weigh-ins.')}</div>
-    <div style={{ height: 12 }} />
+    <div className="muted small" style={{ marginBottom: 16 }}>{t('Put your week on paper.')}</div>
     <Button variant="tinted" icon="download" onClick={() => {
       close()
       // Web: the browser's print dialog (→ Save as PDF). Mobile: the OS print flow via the
       // native Print plugin — Android WebView has no window.print(). Same printable HTML both ways.
-      if (MOBILE) printHtml(planPrintHTML(st, user?.name || ''), t('Weekly Training Plan')).catch(() => { /* dismissed */ })
-      else printPlan(st, user?.name || '')
+      if (MOBILE) printHtml(planPrintHTML(st, ''), t('Weekly Training Plan')).catch(() => { /* dismissed */ })
+      else printPlan(st, '')
     }} disabled={!hasRoutines}>{t('Print / Save as PDF')}</Button>
     <div className="dim small" style={{ margin: '7px 2px 0', lineHeight: 1.4 }}>{t('A clean one-page-per-plan printout — no exercise ever splits across a page.')}</div>
     {!hasRoutines && <div className="dim small" style={{ margin: '12px 2px 0' }}>{t('Add an exercise to a routine first — an empty plan has nothing to share.')}</div>}
-    <h4 className="sec">{t('Got a plan from a friend?')}</h4>
-    <Button variant="ghost" icon="folder" onClick={() => fileRef.current?.click()}>{t('Import a plan file')}</Button>
-    <input ref={fileRef} type="file" accept="application/json,.json" onChange={pickFile} hidden />
     <h4 className="sec">{t('Training from a coach?')}</h4>
     <Button variant="ghost" icon="upload" onClick={() => coachRef.current?.click()}>{t('Import a coach’s plan')}</Button>
     <div className="dim small" style={{ margin: '7px 2px 0', lineHeight: 1.4 }}>{t('His spreadsheet, one sheet per week — read, reviewed and turned into routines.')}</div>
     <input ref={coachRef} type="file" accept=".xlsx,.csv" onChange={ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) { close(); importCoachPlan(f) } }} hidden />
     <div style={{ height: 8 }} />
     <Button variant="ghost" icon="folder" onClick={() => { close(); importCoachPlanFromDrive() }}>{t('Import from Google Drive')}</Button>
-  </>
-}
-
-export const planImportSheet = bundle => ui().openSheet(close => <PlanImport bundle={bundle} close={close} />)
-
-function PlanImport({ bundle, close }) {
-  const apply = () => {
-    update(s => mergePlan(s, bundle))
-    close()
-    toast(t(bundle.weekCount === 1 ? 'Added {0} week to your plan' : 'Added {0} weeks to your plan', bundle.weekCount))
-    nav('/plan')
-  }
-  return <>
-    <h3>{bundle.name ? t('Import “{0}”', bundle.name) : t('Import this plan')}</h3>
-    <div className="muted small" style={{ marginBottom: 14 }}>
-      {t(bundle.weekCount === 1 ? '{0} week' : '{0} weeks', bundle.weekCount)}
-      {' · ' + exCount(bundle.exerciseCount)}
-      {bundle.dayCount > 0
-        ? ' · ' + t(bundle.dayCount === 1 ? '{0} day' : '{0} days', bundle.dayCount)
-        : ''}
-    </div>
-    <div className="dim small" style={{ marginBottom: 14, lineHeight: 1.4 }}>{t('These are added as new weeks — nothing you already have is changed.')}</div>
-    {bundle.dropped > 0 && <div className="small" style={{ color: 'var(--yellow)', marginBottom: 14, lineHeight: 1.4 }}>
-      {t(bundle.dropped === 1
-        ? '{0} exercise in the file isn’t in your library and was left out.'
-        : '{0} exercises in the file aren’t in your library and were left out.', bundle.dropped)}
-    </div>}
-    <Button variant="primary" onClick={apply}>{t('Add to my plan')}</Button>
-    <div style={{ height: 8 }} />
-    <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
   </>
 }
 
@@ -1924,9 +1357,9 @@ function TopWeight({ entryIdx, close }) {
   const ex = entry && EXIDX[entry.id]
   // "Best" runs the other way on an assistance machine: the lightest setting is the record, and
   // a 0 means nothing logged rather than a new low (issue #232).
-  const fold = (a, b) => (a > 0 && b > 0 ? betterWeight(entry.id, a, b) : Math.max(a, b))
+  const fold = (a, b) => Math.max(a, b)
   const doneW = entry ? entry.sets.filter(s => s.done && !isWarmupRow(s)).map(s => s.w || 0).filter(w => w > 0) : []
-  const maxSet = entry && doneW.length ? doneW.reduce((a, b) => betterWeight(entry.id, a, b)) : 0
+  const maxSet = entry && doneW.length ? Math.max(...doneW) : 0
   const prevBest = entry ? fold((st.exWeights[entry.id] || {}).w || 0, bestWeightFor(st, entry.id)) : 0
   const [v, setV] = useState(entry ? (fold(maxSet, prevBest) || entry.target.weight || 0) : 0)
   useEffect(() => { if (!entry) close() }, [!entry])
@@ -1944,7 +1377,7 @@ function TopWeight({ entryIdx, close }) {
     update(s => {
       s.active.entries[entryIdx].topW = n
       const cur = s.exWeights[entry.id]
-      s.exWeights[entry.id] = { w: cur && cur.w > 0 && n > 0 ? betterWeight(entry.id, n, cur.w) : Math.max(n, cur ? cur.w : 0), d: todayISO() }
+      s.exWeights[entry.id] = { w: Math.max(n, cur ? cur.w : 0), d: todayISO() }
     })
     close()
     if (advance && unitDone) {
@@ -2099,11 +1532,6 @@ function RenameWorkout({ close }) {
 }
 export const renameWorkoutSheet = () => ui().openSheet(close => <RenameWorkout close={close} />)
 
-/* Drop-set drops and rest-pause bursts are edited inline on the set row itself (Workout.jsx) —
-   no sheet, no timer. A planned exercise (see the "Intensifier" config below) arrives with them
-   already computed via applyIntensifierPlan; an unplanned straight set can still grow one live
-   by tapping "+ Drop"/"+ Burst", which appends with the same suggested-next-value math. */
-
 // Shown when the last exercise's last set is checked — finish, or keep going.
 function WorkoutComplete({ close }) {
   return <div style={{ textAlign: 'center', padding: '8px 0' }}>
@@ -2117,7 +1545,7 @@ function WorkoutComplete({ close }) {
 }
 export const workoutCompleteSheet = () => ui().openSheet(close => <WorkoutComplete close={close} />, { kind: 'center' })
 
-function FinishSummary({ w, prs, e1prs = [], close }) {
+function FinishSummary({ w, prs, close }) {
   const st = useStore(s => s.S)
   return <div style={{ textAlign: 'center', padding: '8px 0' }}>
     <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center', color: 'var(--acc)' }}><Icon name="trophy" /></div>
@@ -2128,9 +1556,8 @@ function FinishSummary({ w, prs, e1prs = [], close }) {
       <div className="tile"><div className="l">{t('Sets')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{t('{0} sets · {1} work', setsDone(w), workSetsDone(w))}</div></div>
       <div className="tile"><div className="l">{t('PRs')}</div><div className="v" style={{ fontSize: 20 }}>{prs.length || '—'}</div></div>
     </div>
-    {(prs.length > 0 || e1prs.length > 0) && <div style={{ textAlign: 'left', marginBottom: 12 }}>
+    {prs.length > 0 && <div style={{ textAlign: 'left', marginBottom: 12 }}>
       {prs.map(id => <div key={id} className="small accent row" style={{ gap: 5 }}><Icon name="trophy" style={{ fontSize: 13 }} />{t('New PR:')} <span className="capitalize">{EXIDX[id] ? exerciseNameFor(EXIDX[id]) : id}</span></div>)}
-      {e1prs.map(p => <div key={p.id} className="small accent row" style={{ gap: 5 }}><Icon name="chartLine" style={{ fontSize: 13 }} />{t('Best estimated 1RM:')} <span className="capitalize">{EXIDX[p.id] ? exerciseNameFor(EXIDX[p.id]) : p.id}</span> · {fmtNum(p.est)} {st.unit}</div>)}
     </div>}
     <h4 className="sec" style={{ textAlign: 'left' }}>{t('What you just trained')}</h4>
     <BodyMap load={loadOfWorkouts([w])} body={st.body} />
@@ -2153,17 +1580,12 @@ function doFinishWorkout() {
   if (!A) return
   const past = !!A.backfill
   const prs = []
-  const e1prs = []
   // A workout logged into the past cannot claim records against the history that came after
   // it, so a backfilled session reports none and leaves the confirmed weights alone.
   if (!past) A.entries.forEach(e => {
     const loads = e.sets.filter(s => s.done && !isWarmupRow(s)).map(s => s.w).filter(w => w > 0)
-    const mx = loads.length ? loads.reduce((a, b) => betterWeight(e.id, a, b)) : 0
-    if (beatsWeight(e.id, mx, bestWeightFor(st, e.id))) prs.push(e.id)
-    // A heavier estimate without a heavier top set is its own kind of progress —
-    // same weight for more reps. Reported separately so it can't be read as a load PR.
-    const rec = is1RMRecord(st, e.id, e)
-    if (rec && !prs.includes(e.id)) e1prs.push({ id: e.id, ...rec })
+    const mx = loads.length ? Math.max(...loads) : 0
+    if (mx > 0 && mx > bestWeightFor(st, e.id)) prs.push(e.id)
   })
   const w = buildCompletedWorkout(A, {
     end: past ? backfillEnd(A) : Date.now(),
@@ -2177,7 +1599,7 @@ function doFinishWorkout() {
     } else {
       w.entries.forEach(e => {
         const mx = bestWeightForEntry(e)
-        if (mx > 0 && beatsWeight(e.id, mx, (s.exWeights[e.id] || {}).w || 0)) s.exWeights[e.id] = { w: mx, d: w.d }
+        if (mx > 0 && mx > ((s.exWeights[e.id] || {}).w || 0)) s.exWeights[e.id] = { w: mx, d: w.d }
       })
       s.workouts.push(w)
     }
@@ -2186,5 +1608,5 @@ function doFinishWorkout() {
   useStore.getState().autoBackupNow()
   useUI.getState().stopRest()
   beep(snd(), 880, 0.15); beep(snd(), 1100, 0.15, 0.18); beep(snd(), 1320, 0.3, 0.36)
-  ui().openSheet(close => <FinishSummary w={w} prs={prs} e1prs={e1prs} close={close} />, { kind: 'center', locked: true })
+  ui().openSheet(close => <FinishSummary w={w} prs={prs} close={close} />, { kind: 'center', locked: true })
 }
