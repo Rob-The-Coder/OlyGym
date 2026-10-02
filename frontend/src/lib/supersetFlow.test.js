@@ -1,7 +1,63 @@
 import { describe, expect, it } from 'vitest'
-import { insertionIndexAfterCurrentUnit, nextUnfinishedUnit, setProgressHighWater, supersetFlowStep, restAfterSet, restOnRecheck, restSecFor, warmupRestSecFor } from './supersetFlow.js'
+import { complexRounds, insertionIndexAfterCurrentUnit, nextUnfinishedUnit, setProgressHighWater, supersetFlowStep, restAfterSet, restOnRecheck, restSecFor, warmupRestSecFor } from './supersetFlow.js'
 
 const entry = done => ({ sets: done.map(value => ({ done: value })) })
+
+// A complex is done as one sequence without stopping, so one check has to close the round of
+// every movement. This helper only decides whether the unit can be drawn as one table of rounds;
+// when it cannot, the screen keeps the per-movement tables and their own checks.
+describe('complexRounds', () => {
+  const member = (done = [false, false], extra = {}) => ({
+    target: { mode: 'reps', reps: 3 },
+    sets: done.map(value => ({ w: 60, r: 3, done: value })),
+    ...extra,
+  })
+
+  it('gives an aligned complex one round per set', () => {
+    expect(complexRounds([member(), member()], [0, 1])).toEqual([
+      { warmup: false },
+      { warmup: false },
+    ])
+  })
+
+  it('keeps the warm-up phase in the shared round list', () => {
+    const warm = member([false, false, false])
+    warm.sets[0] = { w: 30, r: 5, done: false, phase: 'warmup' }
+    const other = member([false, false, false])
+    other.sets[0] = { w: 30, r: 5, done: false, phase: 'warmup' }
+    expect(complexRounds([warm, other], [0, 1])).toEqual([
+      { warmup: true },
+      { warmup: false },
+      { warmup: false },
+    ])
+  })
+
+  it('refuses a unit whose members carry different set counts', () => {
+    expect(complexRounds([member([false, false]), member([false])], [0, 1])).toBeNull()
+  })
+
+  it('refuses a unit where a warm-up sits at a different index', () => {
+    const warm = member([false, false])
+    warm.sets[0] = { w: 30, r: 5, done: false, phase: 'warmup' }
+    expect(complexRounds([warm, member([false, false])], [0, 1])).toBeNull()
+  })
+
+  it('refuses a timed member', () => {
+    const timed = {
+      target: { mode: 'time', sec: 45 },
+      sets: [{ sec: 45, w: 0, done: false }, { sec: 45, w: 0, done: false }],
+    }
+    expect(complexRounds([member(), timed], [0, 1])).toBeNull()
+  })
+
+  it('refuses a singleton, an empty unit and missing entries', () => {
+    expect(complexRounds([member()], [0])).toBeNull()
+    expect(complexRounds([member(), member()], [])).toBeNull()
+    expect(complexRounds([member(), member()], [0, 9])).toBeNull()
+    expect(complexRounds([{ sets: [] }, member()], [0, 1])).toBeNull()
+    expect(complexRounds(null, [0, 1])).toBeNull()
+  })
+})
 
 describe('restAfterSet', () => {
   it('rests between the sets of an exercise', () => {
