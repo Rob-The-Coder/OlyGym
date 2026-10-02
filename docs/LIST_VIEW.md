@@ -10,17 +10,16 @@ rendered.
 |---|---|
 | `cards` | One unit at a time, `Prev` / `Next` + swipe. The original flow. |
 | `list` | Every unit stacked and scrollable. Each non-current unit has a **Set current** chip in its header; completion still auto-advances the current marker, starts rest and can open the top-weight sheet. Blocks render with the `compact` `ExerciseBlock` prop (smaller). |
-| `compact` | `list`, with each `ExerciseBlock` also rendered `dense`: no media, no tag chips (Cardio / per-side / target / equipment / **Best:**), no note lines, no "Last time …" recap, no bar-and-plates chip, no progression-guidance line, no "Make superset with previous/next". Just the name, the ⋯ menu and the set rows. |
+| `compact` | `list`, with each `ExerciseBlock` also rendered `dense`: no media, no tag chips (**Best:**, equipment), no note lines, no "Last time …" recap, no bar-and-plates chip, no "Make complex with previous/next". Just the name, the ⋯ menu and the set rows. |
 
-Everything `compact` hides is still on the ⋯ menu (note, details, history, bar weight,
-progression settings) or is display-only.
+Everything `compact` hides is still on the ⋯ menu (note, details, history, bar weight) or is
+display-only.
 
 Unknown / absent values read as `cards`, so a profile written before the setting existed is
 unchanged.
 
 Orthogonal to all three: **Settings → During a workout → Workout controls** (`S.wc`) decides
-whether Move / Swap / Remove, the pair buttons, the drop/burst shortcuts and the `+/-`
-steppers show inline. The lean default keeps them in each exercise's ⋯ menu; turning
+whether Move / Swap / Remove, the complex pair buttons and the `+/-` steppers show inline. The lean default keeps them in each exercise's ⋯ menu; turning
 `exerciseButtons` on adds a footer Move / Swap / Remove row that acts on the current unit
 (and, in `list` / `compact`, the "…act on the exercise marked Current" hint).
 
