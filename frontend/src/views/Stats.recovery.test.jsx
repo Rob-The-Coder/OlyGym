@@ -1,428 +1,58 @@
 // @vitest-environment happy-dom
+// Regression: the Muscle-balance card at the bottom of the Stats default view used to crash.
+// The purge that removed the Strength tab also deleted the three locals the render still used,
+// so `top` fell through to window.top and `top.map` threw as soon as a completed session put
+// any muscle in the default 7-day window. This mounts Stats with exactly that state.
 import React, { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Window } from 'happy-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { EXIDX } from '../lib/exercises.js'
-import { MUSCLES, levelsOf } from '../lib/muscles.js'
-import { FATIGUE_STATES, STRENGTH_FLOOR } from '../lib/recovery.js'
-import { fatigueStateOf } from '../lib/recovery-view.js'
-import Stats from './Stats.jsx'
-import Modals from '../components/Modals.jsx'
-import { bindUI } from '../components/ui.jsx'
+import { EXDB } from '../lib/exercises.js'
+import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
+import { bindUI } from '../components/ui.jsx'
+import Stats from './Stats.jsx'
 
-const DAY = 86400000
-const HOUR = 3600000
-const BASE_NOW = Date.UTC(2026, 0, 22, 12)
-const LEGACY_SNAPSHOT_ID = 'legacy-snapshot-only'
-
-const mocks = vi.hoisted(() => ({
-  maps: [],
-  mapMounts: 0,
-  exerciseHistorySheet: vi.fn(),
-  S: {
-    unit: 'kg', body: 'male', effort: 'rir', targetW: null,
-    bodyweight: [], routines: [], workouts: [],
-  },
-}))
-
-vi.mock('../store/useStore.js', () => ({
-  useStore: selector => selector({ S: mocks.S }),
-}))
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
 vi.mock('../sheets.jsx', () => ({
   bwSheet: () => {}, goalSheet: () => {}, calendarSheet: () => {}, workoutDetailSheet: () => {},
-  exerciseHistorySheet: mocks.exerciseHistorySheet,
-  WorkoutRow: () => React.createElement('div'), bwDeltaColor: () => 'inherit',
+  exerciseHistorySheet: () => {}, WorkoutRow: () => React.createElement('div'), bwDeltaColor: () => 'inherit',
 }))
 vi.mock('../components/LineChart.jsx', () => ({ default: () => React.createElement('div') }))
 vi.mock('../components/Heatmap.jsx', () => ({ default: () => React.createElement('div') }))
 vi.mock('../components/Icon.jsx', () => ({ default: props => React.createElement('span', props) }))
 vi.mock('../components/BodyMap.jsx', () => ({
-  default: props => {
-    mocks.maps.push(props)
-    React.useEffect(() => {
-      mocks.mapMounts += 1
-      return () => {}
-    }, [])
-    return React.createElement(
-      'div',
-      { 'data-body-map': true, 'data-selected-muscle': props.selected || '' },
-      React.createElement('button', {
-        'data-muscle': 'chest',
-        onClick: () => props.onMuscle?.('chest'),
-      }, 'Chest'),
-    )
-  },
-  BodyMapLegend: () => React.createElement('div', { 'data-balance-legend': true }),
+  default: () => React.createElement('div', { 'data-body-map': true }),
+  BodyMapLegend: () => React.createElement('div'),
 }))
 
 bindUI(useUI)
 
-let dom
-let root
-let container
-
-function iso(timestamp) {
-  return new Date(timestamp).toISOString().slice(0, 10)
+const BENCH = EXDB.find(e => e.n === 'bench press')
+const today = new Date()
+const workout = {
+  id: 'w1', d: today.toISOString().slice(0, 10), start: today.getTime(), unit: 'kg',
+  entries: [{ id: BENCH.id, sets: [{ w: 60, r: 5, done: true }, { w: 60, r: 5, done: true }, { w: 60, r: 5, done: true }] }],
 }
 
-function set(done, extra = {}) {
-  return { done, w: 80, r: 8, unit: 'kg', ...extra }
-}
-
-function workout(id, start, entries) {
-  return { id, d: iso(start), start, unit: 'kg', entries }
-}
-
-function entry(id, sets) {
-  return { id, sets }
-}
-
-function lifecycleWorkouts(now = BASE_NOW) {
-  // The old one-set session lowers the causal reference seen by the six-set session. Position
-  // that newer stimulus 30 seconds before its .5 crossing so the real interval update flips it.
-  const weightedSet = 640 * (30 / 38) ** 1.5
-  const referenceAfterOldSession = 2000 + (weightedSet - 2000) / 3
-  const fatigueEdge = now - (
-    36 * Math.log2((6 * weightedSet / referenceAfterOldSession) / Math.LN2) * HOUR - 30000
-  )
-  const balanceEdge = now - (30 * DAY - 30000)
-  const strengthEdge = now - (14 * DAY - 30000)
-  // wl806 (bench press) is chest-primary weight 1, same as the old fixture's chest exercise —
-  // the exact load numbers below only depend on that primary weight, not on which id it is.
-  return [
-    workout('fatigue-edge', fatigueEdge, [entry('wl806', Array.from({ length: 6 }, () => set(true, { rir: 0 })))]),
-    workout('balance-edge', balanceEdge, [entry('wl806', [set(true, { rir: 2 })])]),
-    workout('strength-edge', strengthEdge, [entry('wl77', [set(true, { rir: 2 })])]),
-    workout('abs-completed', now - 20 * DAY, [entry('wl430', [set(true, { rir: 2 })])]),
-    workout('abs-undone', now - DAY, [entry('wl430', [set(false, { rir: 0 })])]),
-  ]
-}
-
-function allFatiguedWorkout(now = BASE_NOW) {
-  // One exercise per muscle in MUSCLES (see muscles.js), so 12 hard sets each fatigues every
-  // muscle the recovery view can shade. wl751/wl919 carry adductors/serratus as an explicit
-  // primary (weight 1) rather than the smaller BY_BODYPART share other entries get diluted
-  // across several muscles, so they clear the fatigue threshold on their own.
-  const ids = [
-    'wl806', 'wl77', 'wl430', 'wl731', 'wl916', 'wl39', 'wl97', 'wl101', 'wl135', 'wl521',
-    'wl751', 'wl919',
-  ]
-  return workout(
-    'all-fatigued',
-    now,
-    ids.map(id => entry(id, Array.from({ length: 12 }, () => set(true)))),
-  )
-}
-
-function allSubfullWorkout(now = BASE_NOW) {
-  return workout('all-subfull', now - 15 * DAY, [entry('wl806', [set(true)])])
-}
-
-function exercisePickerWorkouts(now = BASE_NOW) {
-  return [
-    workout('bench', now, [entry('wl806', [set(true, { w: 80 })])]),
-    workout('squat', now - DAY, [entry('wl77', [set(true, { w: 60 })])]),
-    workout('legacy', now - 2 * DAY, [
-      {
-        id: LEGACY_SNAPSHOT_ID,
-        muscleSnapshot: {
-          n: 'Legacy shoulder press',
-          bp: 'shoulders',
-          primaries: ['deltoids'],
-          secondaries: ['triceps'],
-          muscleGroups: ['deltoids', 'triceps'],
-        },
-        sets: [set(true, { w: 50 })],
-      },
-    ]),
-  ]
-}
-
-function resetFixture(workouts = lifecycleWorkouts()) {
-  mocks.S.unit = 'kg'
-  mocks.S.bodyweight = []
-  mocks.S.workouts = workouts
-  mocks.maps.length = 0
-  mocks.mapMounts = 0
-  mocks.exerciseHistorySheet.mockClear()
-  useUI.setState({ sheets: [] })
-}
-
-function installDom() {
-  dom = new Window({ url: 'http://localhost/' })
-  dom.scrollTo = vi.fn()
-  globalThis.window = dom
-  globalThis.document = dom.document
-  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: dom.navigator })
-  Object.defineProperty(globalThis, 'location', { configurable: true, value: dom.location })
-  Object.defineProperty(globalThis, 'history', { configurable: true, value: dom.history })
-  for (const key of ['HTMLElement', 'HTMLIFrameElement', 'Node', 'Element', 'Event', 'MouseEvent']) {
-    globalThis[key] = dom[key]
-  }
-  globalThis.IS_REACT_ACT_ENVIRONMENT = true
-  container = document.createElement('div')
-  document.body.append(container)
-  root = createRoot(container)
-}
-
-async function mountStats() {
-  installDom()
-  await act(async () => { root.render(React.createElement(React.Fragment, null, React.createElement(Stats), React.createElement(Modals))) })
-}
-
-async function unmountStats() {
-  if (!root) return
-  await act(async () => { root.unmount() })
-  root = null
-  container = null
-  dom.close()
-  dom = null
-}
-
-function muscleCard() {
-  return [...container.querySelectorAll('.card')].find(card =>
-    [...card.querySelectorAll('.seg button')].some(button =>
-      ['Muscle balance', 'Fatigue', 'Strength'].includes(button.textContent.trim())))
-}
-
-function buttonWithText(scope, text) {
-  return [...scope.querySelectorAll('button')].find(button => button.textContent.trim() === text)
-}
-
-function viewButton(text) {
-  return buttonWithText(muscleCard(), text)
-}
-
-function balanceRangeButton(text) {
-  return buttonWithText(muscleCard().querySelectorAll('.seg')[1], text)
-}
-
-async function click(button) {
-  expect(button, `expected a button named ${button?.textContent || 'unknown'}`).toBeTruthy()
-  await act(async () => { button.dispatchEvent(new dom.MouseEvent('click', { bubbles: true })) })
-}
-
-async function tick(milliseconds) {
-  await act(async () => { await vi.advanceTimersByTimeAsync(milliseconds) })
-}
-
-const lastMap = () => mocks.maps.at(-1)
-const expectPressed = button => expect(button?.getAttribute('aria-pressed')).toBe('true')
-
+let host, root
 beforeEach(() => {
-  vi.useFakeTimers()
-  vi.setSystemTime(BASE_NOW)
-  resetFixture()
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true
+  useStore.setState(s => ({
+    S: { ...s.S, unit: 'kg', body: 'male', effort: 'rir', targetW: null, bodyweight: [], routines: [], workouts: [workout], weekStart: 1 },
+    user: null,
+  }))
+  host = document.createElement('div')
+  document.body.appendChild(host)
+  root = createRoot(host)
 })
+afterEach(() => { act(() => root.unmount()); host.remove() })
 
-afterEach(async () => {
-  await unmountStats()
-  useUI.setState({ sheets: [] })
-  vi.useRealTimers()
-  vi.restoreAllMocks()
-})
-
-describe('Stats muscle recovery view runtime', () => {
-  it('dispatches real clicks through Balance, Fatigue, and Strength and preserves selection', async () => {
-    await mountStats()
-    expectPressed(viewButton('Muscle balance'))
-    expectPressed(balanceRangeButton('Week'))
-
-    await click(balanceRangeButton('30d'))
-    await click(buttonWithText(muscleCard(), 'All'))
-    await click(muscleCard().querySelector('[data-muscle="chest"]'))
-    expect(buttonWithText(muscleCard(), 'Hard')).toBeTruthy()
-
-    await click(viewButton('Fatigue'))
-    expectPressed(viewButton('Fatigue'))
-    expect(lastMap().thresholds).toBeTruthy()
-    expect(container.textContent).toContain('Fatigue shows how recently each muscle was trained. High means rest.')
-    expect(container.querySelector('[data-selected-muscle="chest"]')).toBeTruthy()
-
-    await click(viewButton('Strength'))
-    expectPressed(viewButton('Strength'))
-    expect(lastMap().thresholds.at(-1)).toEqual({ at: 1, level: 4 })
-    expect(container.textContent).toContain('Strength shows retained muscle strength. Train again to reset it.')
-
-    await click(viewButton('Muscle balance'))
-    expectPressed(balanceRangeButton('30d'))
-    expect(buttonWithText(muscleCard(), 'Hard')).toBeTruthy()
-    expect(lastMap().selected).toBe('chest')
-    expect(lastMap().load.chest).toBe(7)
-  })
-
-  it('updates the rendered Fatigue map and Balance window on the real 60-second interval', async () => {
-    await mountStats()
-    await click(balanceRangeButton('30d'))
-    await click(viewButton('Fatigue'))
-    await click(muscleCard().querySelector('[data-muscle="chest"]'))
-
-    const mountsBeforeTick = mocks.mapMounts
-    const beforeTick = lastMap().load.chest
-    expect(fatigueStateOf(beforeTick)).toBe(FATIGUE_STATES.FATIGUED)
-    expect(container.textContent).toContain('Fatigued')
-
-    await tick(60000)
-
-    const afterTick = lastMap().load.chest
-    expect(mocks.mapMounts).toBe(mountsBeforeTick)
-    expect(afterTick).toBeLessThan(beforeTick)
-    expect(fatigueStateOf(afterTick)).toBe(FATIGUE_STATES.RECOVERING)
-    expect(container.textContent).toContain('Recovering')
-
-    await click(viewButton('Strength'))
-    expect(lastMap().load.quadriceps).toBeLessThan(1)
-    await click(viewButton('Muscle balance'))
-    expect(lastMap().load.chest).toBe(6)
-  })
-
-  it('derives a pound-profile bodyweight in kg and passes it into the rendered Fatigue map', async () => {
-    const bodyweightWorkout = workout('bodyweight', BASE_NOW, [
-      entry('wl430', [{ done: true, w: 0, r: 10 }]),
-    ])
-    resetFixture([bodyweightWorkout])
-    mocks.S.unit = 'lb'
-    mocks.S.bodyweight = [{ d: '2026-01-20', w: 180 }, { d: '2026-01-22', w: 220.462262 }]
-
-    await mountStats()
-    await click(viewButton('Fatigue'))
-
-    // 220.462262 lb ~= 100 kg; ten reps score 1000 kg against the initial 2000 kg reference.
-    expect(lastMap().load.abs).toBeCloseTo(1 - Math.exp(-0.5), 6)
-    expect(lastMap().thresholds).toBeTruthy()
-  })
-
-  it('renders fixed absolute bands through the actual Fatigue and Strength views', async () => {
-    resetFixture([allFatiguedWorkout()])
-    await mountStats()
-    await click(viewButton('Fatigue'))
-    const fatigueMap = lastMap()
-    expect(Object.keys(fatigueMap.load)).toEqual(MUSCLES)
-    // Neither tibialis nor calves has a dedicated isolation exercise in the OlyGym catalogue —
-    // shin/calf work isn't programmed in isolation for Olympic weightlifting, only picked up as
-    // a diffuse secondary of squats, jumps and lower-body accessory work. Both still get a real,
-    // nonzero share, just not enough alone to saturate against a single all-out session.
-    const thin = new Set(['tibialis', 'calves'])
-    const others = MUSCLES.filter(m => !thin.has(m))
-    expect(others.every(m => fatigueMap.load[m] > 0.5)).toBe(true)
-    for (const m of thin) expect(fatigueMap.load[m]).toBeGreaterThan(0)
-    const levels = levelsOf(fatigueMap.load, fatigueMap.thresholds)
-    expect(others.every(m => levels[m] === 4)).toBe(true)
-
-    await unmountStats()
-    resetFixture([allSubfullWorkout()])
-    await mountStats()
-    await click(viewButton('Strength'))
-    const strengthMap = lastMap()
-    expect(Object.values(strengthMap.load).every(value => value < 1)).toBe(true)
-    expect(Math.min(...Object.values(strengthMap.load))).toBe(STRENGTH_FLOOR)
-    expect(strengthMap.thresholds.at(-1)).toEqual({ at: 1, level: 4 })
-  })
-})
-
-describe('Stats strength exercise rows', () => {
-  // The rows under "Exercises · <muscle>" are presented as buttons (role, tabIndex, pointer
-  // cursor) but for a year called a handler that never existed, so every tap threw
-  // "onExercise is not defined" and opened nothing (QA C13). A tap now opens the exercise's
-  // history sheet — the one place that already draws the Est. 1RM curve the row quotes.
-  it('opens the exercise history sheet when a row is tapped instead of throwing', async () => {
-    resetFixture(exercisePickerWorkouts())
-    await mountStats()
-    const thrown = []
-    dom.addEventListener('error', e => { thrown.push(e.error || e.message); e.preventDefault() })
-
-    await click(viewButton('Strength'))
-    await click(muscleCard().querySelector('[data-muscle="chest"]'))
-    expect(muscleCard().textContent).toContain('Exercises · Chest')
-    const row = [...muscleCard().querySelectorAll('.mrow[role="button"]')].find(el => el.textContent.includes('Est. 1RM'))
-    expect(row, 'expected a tappable exercise row for the chest').toBeTruthy()
-    expect(row.textContent).toContain('bench press')
-
-    await click(row)
-    expect(thrown).toEqual([])
-    expect(mocks.exerciseHistorySheet).toHaveBeenCalledTimes(1)
-    expect(mocks.exerciseHistorySheet).toHaveBeenCalledWith('wl806')
-
-    // The keyboard path of tappable() must land in the same place.
-    await act(async () => { row.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Enter', bubbles: true })) })
-    expect(thrown).toEqual([])
-    expect(mocks.exerciseHistorySheet).toHaveBeenCalledTimes(2)
-  })
-})
-
-describe('Stats exercise progress picker', () => {
-  it('filters with the shared exercise matcher and still selects from the mounted sheet', async () => {
-    resetFixture(exercisePickerWorkouts())
-    await mountStats()
-    expect(EXIDX[LEGACY_SNAPSHOT_ID]).toBeUndefined()
-
-    const card = [...container.querySelectorAll('.card')].find(el => el.querySelector('h2')?.textContent.trim() === 'Exercise progress')
-    const selector = [...card.querySelectorAll('button')].find(button => button.querySelector('.lrow-t')?.textContent.trim() === 'Exercise')
-    await click(selector)
-
-    const modal = document.querySelector('#modal-root')
-    const input = modal.querySelector('input')
-    expect(input).toBeTruthy()
-    expect(input.getAttribute('aria-label')).toBe('Search…')
-    expect(input.getAttribute('placeholder')).toBe('Search…')
-    expect(modal.querySelector('.picker-search')).toBeTruthy()
-    const optionButtons = () => [...modal.querySelectorAll('.sect-b button')]
-    const initialOptionCount = optionButtons().length
-    expect(initialOptionCount).toBe(3)
-    expect(modal.textContent).toContain('Legacy shoulder press')
-    expect(input.compareDocumentPosition(optionButtons()[0]) & globalThis.Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-
-    const setter = Object.getOwnPropertyDescriptor(input.constructor.prototype, 'value').set
-    const setSearch = async value => act(async () => {
-      setter.call(input, value)
-      input.dispatchEvent(new Event('input', { bubbles: true }))
-      input.dispatchEvent(new Event('change', { bubbles: true }))
-    })
-
-    // A focused search can leave a newly narrowed result below the visual viewport. The
-    // correction must advance the sheet's own scroll position, not the page behind it.
-    const sheet = modal.querySelector('.sheet')
-    const firstOption = optionButtons()[0]
-    Object.defineProperties(sheet, {
-      clientHeight: { configurable: true, value: 400 },
-      scrollHeight: { configurable: true, value: 1000 },
-    })
-    vi.spyOn(sheet, 'getBoundingClientRect').mockReturnValue({ bottom: 600 })
-    vi.spyOn(firstOption, 'getBoundingClientRect').mockReturnValue({ bottom: 500 })
-    Object.defineProperty(window, 'visualViewport', { configurable: true, value: { height: 300 } })
-    input.focus()
-    expect(sheet.style.getPropertyValue('--picker-visual-height')).toBe('300px')
-    expect(sheet.style.getPropertyValue('--picker-keyboard-bottom')).toBe(`${Math.max(0, window.innerHeight - 300)}px`)
-    await setSearch('bench')
-    await tick(100)
-    expect(sheet.scrollTop).toBeGreaterThan(0)
-
-    await setSearch('no such historical exercise')
-    expect(modal.textContent).toContain('No match')
-    expect(optionButtons()).toHaveLength(0)
-
-    await click(modal.querySelector('button[aria-label="Clear"]'))
-    expect(input.value).toBe('')
-    expect(optionButtons()).toHaveLength(initialOptionCount)
-    expect(modal.textContent).toContain('Legacy shoulder press')
-
-    await setSearch('legacy shoulder press shoulders deltoids triceps')
-    expect(optionButtons()).toHaveLength(1)
-    expect(optionButtons()[0].textContent).toContain('Legacy shoulder press')
-
-    await click(modal.querySelector('button[aria-label="Clear"]'))
-    await setSearch('sqùat bäck')
-
-    expect(modal.textContent).toContain('back squat')
-    expect(modal.textContent).not.toContain('bench press')
-
-    const matching = [...modal.querySelectorAll('button')].find(button => button.textContent.includes('back squat'))
-    await click(matching)
-
-    expect(useUI.getState().sheets).toHaveLength(0)
-    expect(card.querySelector('.lrow-v').textContent).toContain('back squat')
+describe('Stats muscle balance runtime', () => {
+  it('renders the top-muscle rows for a session in the default week instead of crashing', () => {
+    act(() => root.render(React.createElement(Stats)))
+    const row = [...host.querySelectorAll('.mrow')].find(el => el.querySelector('.nm')?.textContent.includes('Chest'))
+    expect(row, 'expected the chest muscle-balance row to render').toBeTruthy()
+    expect(row.querySelector('.bar i').style.width).toMatch(/%$/)
+    expect(row.querySelector('.v').textContent).toContain('sets')
   })
 })

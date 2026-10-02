@@ -7,8 +7,10 @@ changes shape.
 
 Design provenance: Linear map [ENG-9](https://linear.app/factical/issue/ENG-9) and its
 decision tickets ENG-10 (reader inventory), ENG-11 (`noProg` semantics), ENG-12 (UI
-surfaces), ENG-14 (data-model invariants), ENG-15 (plan fingerprint / Coach). This document
-is the assembled hand-off; it describes what to build, not a change already made.
+surfaces) and ENG-14 (data-model invariants). This document is the assembled hand-off for a
+feature that shipped. Two features it leaned on were removed when OlyGym became local-only — the
+plan-share JSON bundle and the AI Coach — and the sections that describe them (§5, §7) and their
+tests are retired below.
 
 ---
 
@@ -34,7 +36,7 @@ single-routine session did not already store, only widened.
 - **Duplicate exercise = same exercise `id` across routines. v1 keeps every exercise** — no
   dedupe or choice UI.
 - **Adding the same routine twice is blocked** (already-in-session routines are shown
-  disabled). This also removes the superset-group (`sg`) id-collision risk.
+  disabled). This also removes the complex-group (`sg`) id-collision risk.
 
 ### 1.1 The four shapes and their readers
 
@@ -250,26 +252,10 @@ Object.keys(s.week).forEach(k => {
 
 ---
 
-## 5. `lib/plan-share.js`
+## 5. `lib/plan-share.js` — RETIRED
 
-The plan bundle carries arrays; import remaps each element.
-
-| Site | Change |
-|---|---|
-| `buildPlanBundle` (`:104`) | `if (S.week?.[d]?.length) week[d] = [].concat(S.week[d])` |
-| `parsePlan.scheduledDays` (`:149`) | `WEEK_DAYS.filter(d => data.week?.[d]?.length).length` |
-| `mergePlan` schedule (`:184-186`) | per-element remap — see below |
-| `weekHTML` (`:246-247`) | render `[].concat(S.week?.[d])` → routine names, joined by `deriveSessionName` (one cell per day) |
-
-```js
-// mergePlan — replace the scalar lookup
-Object.entries(bundle.week || {}).forEach(([d, val]) => {
-  const ids = [].concat(val).map(oldId => ridMap[oldId]).filter(Boolean)
-  if (ids.length) s.week[d] = ids            // element whose id didn't survive parsing is dropped
-})
-```
-
-A pre-upgrade bundle with scalar `week[d]` strings is tolerated by `[].concat`.
+The plan JSON share/import bundle was removed when OlyGym became local-only; only the printed PDF
+plan remains. Nothing in this section applies to the fork.
 
 ---
 
@@ -325,77 +311,10 @@ excluded routine, through `buildSessionEntries`.
 
 ---
 
-## 7. Coach — read-context & plan fingerprint
+## 7. Coach — RETIRED
 
-From [ENG-15](https://linear.app/factical/issue/ENG-15). The plan fingerprint is computed in
-two runtimes that share no build step (`frontend/src/lib/coach.js` and `api/coach/core/`) and
-must stay byte-for-byte matched. See `docs/AI_COACH.md` for the feature overview.
-
-**Canonical form** — one string form shared by both runtimes. `canonicalPlan` (both) and
-`cleanPlan` (server) normalise every day to an array:
-
-```js
-week: Object.fromEntries(
-  [1,2,3,4,5,6,0].filter(d => S.week?.[d]?.length).map(d => [d, [].concat(S.week[d])])
-)
-```
-
-Bare string `'r1'` and `['r1']` both normalise to `['r1']` — legacy and new-shape values are
-indistinguishable downstream. `?.length` replaces the old truthiness filter so a stray `[]`
-cannot leak in. Insertion order is preserved and **never sorted** (it is the merge order).
-
-**`hashPlan`** (both runtimes) joins each day's list explicitly:
-
-```js
-week: Object.keys(plan?.week || {}).sort().map(k => k + '=' + plan.week[k].join('+'))
-```
-
-`{1:['r1']}` → `"1=r1"` — **byte-identical to the pre-upgrade fingerprint** for every
-existing single-routine plan, so no false-stale storm on the first load after the update.
-`{3:['r2','r3']}` → `"3=r2+r3"`. The outer `Object.keys().sort()` still sorts the weekday
-keys; only the inner routine list is order-significant. `+` matches the ENG-12 display join.
-
-**Model payload.** `build()` sends `plan: cleanPlan(S)`, so `p.plan.week` values become
-`string[]`. The model is told, and told it still cannot compose a combined day:
-
-- `api/coach/prompts/common.md`, plan-reading notes — add: *"`plan.week` maps a weekday to
-  the list of routine ids trained that day — usually one; a combined day lists several, in
-  training order."*
-- `api/coach/prompts/review.md`, the `week` change-op row — add: a proposed `week` change
-  names **exactly one** routine (or `"rest"` / `null`) and **replaces** the day; the Coach
-  can move a day's routine but cannot build a combined day. On a combined day, `before` is
-  the list, `after` is a single id.
-
-**`api/` change list:**
-
-| File | Change |
-|---|---|
-| `api/coach/core/payload.js` — `canonicalPlan` | day value → `[].concat(S.week[d])`; filter `S.week?.[d]?.length` |
-| `api/coach/core/payload.js` — `cleanPlan` | same normalisation (stays ≡ `canonicalPlan` — the parity `coach.test.js` pins) |
-| `api/coach/core/payload.js` — `aggregates` | `plannedDays`: `filter(k => S.week[k]?.length)` — a combined day already counts as 1 |
-| `api/coach/core/plan-hash.js` — `hashPlan` | week join → `k + '=' + plan.week[k].join('+')` |
-| `api/coach/prompts/common.md` | one plan-reading bullet |
-| `api/coach/prompts/review.md` | `week` change-op clause |
-
-`api/coach/jobs.js:315` (calls the fixed helpers), `api/coach/core/validate.js` (validates
-the model's scalar proposed `week`; an array `beforeValue` for a combined day is
-display-only), the `api/coach/routes.js` handlers, and `cadence.js` (reads `cadence.weekly`)
-all need **no change**.
-
-**Frontend `lib/coach.js` change list:**
-
-| Function | Change |
-|---|---|
-| `canonicalPlan` / `hashPlan` | mirror the two server changes above |
-| `currentValue` `case 'week'` (`:143`) | `return [].concat(S.week?.[wd] ?? [])` (empty array = rest) |
-| `markStale` (`:168`) | `week` branch: stale when `norm(cur).join('+') !== norm(before).join('+')` |
-| `CHANGE_APPLY.week` (`:506-509`) | `else s.week[d] = [c.after]` — single-routine op, slot stays an array; collapses a combined day to one routine (same limitation as `DayOverride`, §8) |
-| `changeValues.fmt` (`:610-618`) | handle `c.type === 'week'` **before** the generic `Array.isArray` branch — render an array as `" + "`-joined routine names, `null` / empty as *Rest* |
-
-`markStale`'s `planMoved` check needs nothing (the stable canonical form means an untouched
-legacy plan hashes the same after the upgrade). Revert needs nothing — `snapshotPlan` /
-`revertLast` deep-clone the whole `{ routines, week }`. The `week` change op stays **strictly
-scalar**.
+The AI Coach (and with it the plan-fingerprint parity work) was removed when OlyGym became
+local-only. Nothing in this section applies to the fork.
 
 ---
 
@@ -456,8 +375,7 @@ From [ENG-12](https://linear.app/factical/issue/ENG-12) (prototype branch
   rows. **A legacy single-routine workout** (one `routineIds`, or entries without `rid`)
   renders as one implicit group with no subheader — exactly as today.
 - **Name-derivation rule** — `deriveSessionName` (§2). Used by the Today card, the
-  `WorkoutRow` / `WorkoutDetail` headers, `s.active.name` / `w.name`, and the printed plan
-  grid (`plan-share.js` `weekHTML`).
+  `WorkoutRow` / `WorkoutDetail` headers, `s.active.name` / `w.name`, and the printed plan grid.
 
 ---
 
@@ -472,7 +390,6 @@ Ruled beyond this effort's destination — each returns only as its own later ef
   order only.
 - **Consolidating the other workout-footer actions into the ⋮ menu** — adjacent cleanup, not
   required here.
-- **Coach reasoning about or proposing composite days** — read-context array-tolerance only;
   a `week` proposal stays single-routine.
 - **Past-workout logging / backfill going multi-routine** — `LogPastWorkout` stays
   single-routine.
@@ -539,27 +456,9 @@ helper in `lib/` with a unit test beside it**. New/changed helpers and their cov
 19. `w.excludeFromProgression` mirror written **iff** every completed entry is `noProg` —
     rehab-only combined session → present; rehab + strength → absent; all-normal → absent.
 
-### `plan-share.test.js`
+### Plan-share & Coach tests — retired
 
-20. `mergePlan` remaps each element of an array `week[d]` through `ridMap`; an element whose
-    id didn't survive parsing is dropped, not written as `undefined`.
-21. `scheduledDays` counts a populated array day as 1; a `[]` / absent day as 0.
-22. Populated `week` round-trips (build → parse → merge) with arrays intact; a legacy scalar
-    bundle value is tolerated.
-
-### Coach — `api/test/jobs.test.js` + frontend `coach.test.js`
-
-23. Shared fixture with a combined day (`week: {1:['r1','r2']}`) — client `hashPlan` ===
-    server `hashPlan`.
-24. Legacy fixture: `week: {1:'r1'}` vs `week: {1:['r1']}` — identical fingerprint (upgrade
-    stability).
-25. `canonicalPlan` / `cleanPlan`: a `[]` day is omitted; order preserved
-    (`['r2','r3']` ≠ `['r3','r2']`).
-26. `CHANGE_APPLY.week`: `after:'r3'` onto `['r1','r2']` → `['r3']`; `after:null` deletes the
-    key.
-27. `markStale`: `before:['r1','r2']`, live `['r1','r2']` → not stale; live
-    `['r1','r2','r4']` → stale.
-28. `changeValues`: `before:['r1','r2']` renders as `"Rehab + Core"`, not `"2"`.
+The plan-share and Coach test checklist (former items 20–28) went with those features.
 
 ### Component
 
@@ -576,9 +475,6 @@ helper in `lib/` with a unit test beside it**. New/changed helpers and their cov
 ### Test fixtures to migrate (scalar `week` / `routineId` → new shape)
 
 `lib/history.test.js`, `lib/mobile.test.js`, `lib/finish-workout.test.js`,
-`lib/starter.test.js`, `lib/coach.test.js`, `lib/coach-local.test.js`,
-`sheets.starter.test.jsx`, `sheets.swap.test.jsx`, `views/Workout.test.jsx`,
-`views/Workout.remove.test.jsx`, `views/week-start.test.jsx`, `views/CoachChat.test.jsx`,
-`store/useStore.restore.test.jsx`, `lib/notes-render.test.jsx`. (`lib/plan-share.test.js`
-only has `week: {}` fixtures today — it won't break, but it's the natural home for the new
-plan-share coverage above.)
+`lib/starter.test.js`, `sheets.starter.test.jsx`, `sheets.swap.test.jsx`,
+`views/Workout.test.jsx`, `views/Workout.remove.test.jsx`, `views/week-start.test.jsx`,
+`store/useStore.restore.test.jsx`, `lib/notes-render.test.jsx`.

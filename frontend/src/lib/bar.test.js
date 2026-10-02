@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { BAR_EQ, DEFAULT_BAR_KG, DEFAULT_BAR_LB, usesBar, defaultBarWeight, barWeightFor, hasBarOverride, plateSplit } from './bar.js'
+import { BAR_EQ, DEFAULT_BAR_KG, usesBar, defaultBarWeight, barWeightFor, hasBarOverride, plateSplit } from './bar.js'
 import { EXDB } from './exercises-data.js'
 
 const idOf = eq => EXDB.find(e => e.eq === eq)?.id
@@ -33,26 +33,22 @@ describe('bar equipment', () => {
 })
 
 describe('per-unit defaults', () => {
-  test('every bar type has a default in both units', () => {
+  test('every bar type has a default in kilos', () => {
     for (const eq of BAR_EQ) {
       expect(DEFAULT_BAR_KG[eq], eq).toBeGreaterThan(0)
-      expect(DEFAULT_BAR_LB[eq], eq).toBeGreaterThan(0)
     }
-    expect(defaultBarWeight('ez barbell', 'kg')).toBe(10)
-    expect(defaultBarWeight('ez barbell', 'lb')).toBe(25)
-    expect(defaultBarWeight('olympic barbell', 'kg')).toBe(20)
-    // A lb profile gets the bar its gym actually racks, not a 44.1 lb conversion.
-    expect(defaultBarWeight('barbell', 'lb')).toBe(45)
-    expect(defaultBarWeight('dumbbell', 'kg')).toBeNull()
+    expect(defaultBarWeight('ez barbell')).toBe(10)
+    expect(defaultBarWeight('olympic barbell')).toBe(20)
+    expect(defaultBarWeight('barbell')).toBe(20)
+    expect(defaultBarWeight('dumbbell')).toBeNull()
   })
 })
 
 describe('barWeightFor', () => {
   const barbell = idOf('barbell')
 
-  test('falls back to the equipment default in the profile unit', () => {
+  test('falls back to the equipment default', () => {
     expect(barWeightFor({ unit: 'kg', barWeights: {} }, barbell)).toBe(20)
-    expect(barWeightFor({ unit: 'lb', barWeights: {} }, barbell)).toBe(45)
     expect(barWeightFor({ unit: 'kg' }, EZ)).toBe(10)
   })
 

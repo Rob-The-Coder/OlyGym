@@ -1,96 +1,74 @@
 # Contributing to OlyGym
 
-Thanks for taking a look! OlyGym is intentionally small and dependency-light, and the goal is
-to keep it that way — easy to read, easy to self-host.
+Thanks for taking a look! OlyGym is a personal, local-only fork of openGym and is intentionally
+small and dependency-light; the goal is to keep it that way — easy to read, easy to run on a phone.
 
 ## Project layout
 
 ```
 frontend/  React + Vite app (src/views, src/components, src/store, src/lib). Builds to static files.
-           android/ + ios/ are the Capacitor shells for the standalone mobile app (docs/MOBILE.md).
-api/       backend — server.js (Node, no framework), one dependency (@simplewebauthn/server).
-web/       multi-stage Dockerfile (builds frontend → nginx) + nginx.conf (serves app, proxies /api).
-media/     exercise img/gif (gitignored, fetched at runtime).
-docs/      self-hosting guide.
-mcp/       optional Model Context Protocol server — read-only stdio bridge for LLM apps
-           (Claude Desktop, Cursor, …) to query a user's workouts/1RM/muscle balance. Not in
-           the Docker build; only runs when an LLM client spawns it. See mcp/README.md.
+           android/ is the Capacitor shell for the standalone Android app (docs/MOBILE.md).
+docs/      MOBILE.md, DATA_IMPORTS.md, COMBINE_ROUTINES.md, LIST_VIEW.md.
+scripts/   oly-catalogue/ — the generator for the Catalyst exercise catalogue.
 ```
+
+There is no backend and no server: the app is device-local and offline-first. There is no iOS
+target.
 
 ## Running for development
 
 ```bash
-cp .env.example .env
-docker compose up -d --build      # api + web + media on :8080
-# frontend hot reload:
-cd frontend && npm install && npm run dev
-# training logic (progression rules, 1RM, how a session is read back):
-cd frontend && npm test
+cd frontend
+npm install
+npm run dev          # Vite dev server, hot reload
+
+# domain logic (session read-back, recovery model, coach-plan import, workout models):
+npm test             # vitest run
 ```
 
 ## Guidelines
 
-- **Keep it dependency-light.** The frontend uses React + Router + Zustand and nothing else;
-  new deps (front or back) are a hard sell. `api/` has two (`@simplewebauthn/server` for passkeys,
-  `web-push` for notifications) — keep it near that.
+- **Keep it dependency-light.** The frontend uses React + Router + Zustand and the `@capacitor/*`
+  plugins and nothing else; new runtime deps are a hard sell. The coach's `.xlsx` is read with the
+  platform's own `DecompressionStream` and `DOMParser` rather than a spreadsheet library.
+- **Nothing talks to a server.** No API client, no sync, no telemetry. State stays on the device.
 - **Match the style.** Small components, clear names, comments only where the "why" isn't obvious.
   State lives in the Zustand store (`src/store`); pure helpers in `src/lib`.
-- **Don't commit** the exercise media (`media/`) or `data/` — they're gitignored.
+- **Don't commit** build output (`frontend/dist`), the native build tree, or user backup files.
 - **Test the flow** you touched — click through the affected screens (and the workout flow) in a
   browser before opening a merge request.
-- **Training logic gets a unit test.** Anything deciding what you lift next, or reading a logged
-  session back, belongs in a pure helper in `src/lib` with tests beside it (`npm test`). These
-  rules are easy to get subtly wrong and nearly impossible to verify by clicking — the
-  progression engine grew two real bugs that only a test pinned down.
+- **Training logic gets a unit test.** Anything that reads a logged session back, or decides what the
+  training numbers mean, belongs in a pure helper in `src/lib` with tests beside it (`npm test`).
+  These rules are easy to get subtly wrong and nearly impossible to verify by clicking.
 
 ## What CI does with your pull request
 
-A pull request runs the three test suites (frontend, MCP, api) through GitHub Actions and
-builds and boots both api image targets. The APK and the published images come from the CI
-on the GitLab mirror, which builds them from `main` after the merge; if your change needs an
-APK to be judged, say so in the PR and a maintainer runs that build.
-
-Merge requests that are still open on the GitLab mirror keep working as before. Every MR runs the three test suites (frontend, MCP, api), with the results and the coverage
-of your diff shown in the MR itself, plus a build of the web image and the api image when you
-touched their inputs. The frontend job also prints how much your change adds to the gzipped
-bundle compared with main. The APK and the published images are manual jobs there (on
-`main` both build on every push).
-
-One gitlab.com quirk: an MR from a fork runs its pipeline in *your* fork, which usually has
-no runners enabled — so it would show "no pipeline" forever. For that reason the project
-starts the pipeline on its own runners for you: automatically if you have had an MR merged
-here before, otherwise a maintainer presses "Run pipeline" after a first look at the diff
-(the MR gets the `ci-approval-needed` label until then). Changes to `.gitlab-ci.yml` or
-`scripts/ci/` always go through that manual step.
+The only CI job is the signed Android APK build (`build:apk` in `.gitlab-ci.yml`). There are no
+backend, MCP, Pages or container jobs any more. If your change needs an APK to be judged, say so in
+the MR. Merge requests opened from a fork keep working the same way they always did; the pipeline is
+started on the project's runners after a maintainer has looked at the diff.
 
 ## Good first issues
 
-- Additional starter plans (upper/lower, full-body, 5×5…)
-- More languages for the exercise instructions (the dataset ships several)
-- Percentage / training-max programming (5/3/1-style) on top of the progression engine in
-  `src/lib/progression.js` — the policy interface is already there
+- Additional starter plans
 - Accessibility passes on the workout and chart screens
+- More accurate coach-shorthand aliases in `src/lib/plan-aliases.js`
+- Cleanup and extra unit tests in `src/lib`
 
 ## Where to ask what
 
+OlyGym is a personal fork; the software itself is upstream's, and questions and bug reports that
+belong to the software are upstream's to answer:
+
 | You have | Goes to |
 | --- | --- |
-| A quick question, or you'd rather just chat | [The Discord](https://discord.gg/e62jY6fwVb) |
-| A question, or self-hosting that won't behave | [An issue labelled `question`](https://github.com/DuarteSantos8/OlyGym/issues) |
-| An idea you're not sure about yet | [An issue labelled `idea`](https://github.com/DuarteSantos8/OlyGym/issues) |
-| A reproducible bug | [Issues](https://github.com/DuarteSantos8/OlyGym/issues) |
-| A change you've already built | [A pull request](https://github.com/DuarteSantos8/OlyGym/pulls) |
-
-Questions and ideas are issues too (one tracker is enough) — just labelled, so nobody
-mistakes a question for agreed-on work. An answered question is worth more than the same answer
-in a chat log: the next person searching "passkey login fails behind my reverse proxy" finds it.
-That is the one thing the Discord can't do, so if an answer there turns out to be worth keeping,
-it belongs in an issue afterwards.
+| A reproducible bug in the shared app | [Upstream issues](https://github.com/DuarteSantos8/openGym/issues) |
+| A change you've already built | [An upstream pull request](https://github.com/DuarteSantos8/openGym/pulls) |
+| A quick question | [Upstream's Discord](https://discord.gg/e62jY6fwVb) |
 
 ## Reporting bugs
 
-Open an issue with: what you did, what you expected, what happened, and your browser/OS. If it's
-about login/passkeys, include your `RP_ID`/`ORIGIN` (not the `data/` contents) — most login
-issues are an origin mismatch.
+Open an issue with: what you did, what you expected, what happened, and your browser/OS. If it
+involves the Android app, include the app version and Android version.
 
 By contributing you agree your work is licensed under the project's [GNU AGPL v3.0](LICENSE).

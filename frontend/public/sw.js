@@ -28,46 +28,6 @@ self.addEventListener('activate', e => {
   ).then(() => self.clients.claim()))
 })
 
-// The payload is parsed inside waitUntil: a push whose handler throws before showing anything is
-// a "silent push", which Chrome counts against the site and eventually revokes. A body that is
-// not JSON still shows a notification.
-self.addEventListener('push', e => {
-  e.waitUntil((async () => {
-    let data = {}
-    try { data = e.data ? e.data.json() : {} } catch { data = { body: (() => { try { return e.data.text() } catch { return '' } })() } }
-    // One alert per kind: a new rest-timer push replaces the last one instead of stacking
-    // up in the tray (issue #172). `tag` alone should do that, but iOS keeps every one, so
-    // the previous notification with the same tag is closed by hand first.
-    const tag = data.tag || 'opengym'
-    try { for (const n of await self.registration.getNotifications({ tag })) n.close() } catch {}
-    await self.registration.showNotification(data.title || 'OlyGym', {
-      body: data.body || '',
-      icon: 'icon-512.png',
-      badge: 'icon-180.png',
-      tag,
-      renotify: true
-    })
-  })())
-})
-self.addEventListener('notificationclick', e => {
-  e.notification.close()
-  e.waitUntil(self.clients.matchAll({ type: 'window' }).then(clients => {
-    const c = clients.find(c => 'focus' in c)
-    return c ? c.focus() : self.clients.openWindow('./')
-  }))
-})
-// The push service rotated the subscription (key change, expiry): subscribe again with the same
-// server key and tell the server, so the row it holds keeps pointing at this browser.
-self.addEventListener('pushsubscriptionchange', e => {
-  e.waitUntil((async () => {
-    const old = e.oldSubscription || (await self.registration.pushManager.getSubscription())
-    const key = e.newSubscription?.options?.applicationServerKey || old?.options?.applicationServerKey
-    if (!key) return
-    const sub = e.newSubscription || await self.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key })
-    await fetch('api/push/subscribe', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON() }) }).catch(() => {})
-  })())
-})
-
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url)
   if (e.request.method !== 'GET' || url.origin !== location.origin) return

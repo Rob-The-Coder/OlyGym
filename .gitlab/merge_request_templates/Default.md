@@ -6,11 +6,11 @@
 
 ### Checklist
 
-- [ ] `npm test` passes in `frontend/` (and in `mcp/` if you touched it)
+- [ ] `npm test` passes in `frontend/`
 - [ ] `npm run build` succeeds
-- [ ] User-facing strings are in every locale pack — `node scripts/check-locales.mjs`
+- [ ] User-facing strings exist in both locale packs (`it` and `en`)
 - [ ] No new runtime dependency, or the MR explains why one is unavoidable
 - [ ] CHANGELOG.md is left alone — release notes are written at release time
 
-<!-- The pipeline runs the same checks on every MR. An APK build and a container build are
-     available as manual jobs on the pipeline if your change needs one. -->
+<!-- The only pipeline job is the Android APK build. It runs on `main` and is available as a
+     manual job on merge requests if your change needs one. -->

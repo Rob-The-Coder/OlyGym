@@ -205,7 +205,7 @@ describe('muscle balance windows and ranking', () => {
 describe('MUSCLE_NAME as i18n keys', () => {
   const packs = import.meta.glob('../locales/*.js', { eager: true })
   it('every display name is a key in every locale pack', () => {
-    expect(Object.keys(packs).length).toBe(14)
+    expect(Object.keys(packs).length).toBe(1)   // only the Italian pack ships; English is the built-in fallback
     for (const [file, mod] of Object.entries(packs)) {
       const missing = Object.values(MUSCLE_NAME).filter(name => !(name in mod.default))
       expect(missing, file).toEqual([])

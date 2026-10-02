@@ -36,20 +36,10 @@ describe('exercise configuration progression row', () => {
     act(() => { mounted.splice(0).forEach(root => root.unmount()) })
   })
 
-  it('marks the four-stepper double-progression row so it can wrap into pairs on phones', () => {
-    const { row } = renderConfig({ prog: 'double' })
-    expect(row.querySelectorAll('.stp-w')).toHaveLength(4)
-    expect(row.classList.contains('cfgrow-4')).toBe(true)
-  })
-
-  it('leaves the shorter rows alone', () => {
-    // linear on a weighted exercise: Step + Deload, two steppers
+  it('shows the single step stepper on the linear progression row', () => {
+    // linear on a weighted exercise: the Step control only
     const linear = renderConfig({ prog: 'linear' })
-    expect(linear.row.querySelectorAll('.stp-w')).toHaveLength(2)
+    expect(linear.row.querySelectorAll('.stp-w')).toHaveLength(1)
     expect(linear.row.classList.contains('cfgrow-4')).toBe(false)
-    // double on a body-weight exercise: no Epley deload, three steppers
-    const bw = renderConfig({ prog: 'double', weight: 0, bodyweight: true })
-    expect(bw.row.querySelectorAll('.stp-w')).toHaveLength(3)
-    expect(bw.row.classList.contains('cfgrow-4')).toBe(false)
   })
 })

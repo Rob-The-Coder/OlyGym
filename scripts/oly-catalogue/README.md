@@ -51,13 +51,3 @@ fallback chain live there). Nothing is downloaded, committed or bundled — the 
 Two examples of why the sidecar exists, both from the OlyGym swap: push-ups, pull-ups, chin-ups and
 dips arrived tagged `barbell` (so the app asked for a weight and started the plate maths from a 20 kg
 bar) and the EZ-bar movements were `barbell` too (20 kg instead of 10). Both are one-line edits here.
-
-## After the catalogue changes
-
-`api/coach/core/library-data.js` is a second, deliberately separate copy of the catalogue for the
-Coach server, which has no shared build step with the frontend. Regenerate it too:
-
-```bash
-node scripts/build-coach-assets.mjs            # writes api/coach/core/library-data.js
-node scripts/build-coach-assets.mjs --check    # CI runs this as well
-```

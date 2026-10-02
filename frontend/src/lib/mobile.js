@@ -48,43 +48,6 @@ export async function nativeSave(state) {
   } catch (e) { /* keep the localStorage copy */ }
 }
 
-// "Connect to my server" mode (lib/remote.js): which of local-only / a paired remote account this
-// device chose, kept in its own file — never inside opengym-state.json, since that file's content
-// is exactly what pushState() PUTs to a server, and a device's own connection secret must never
-// travel as if it were training data.
-const REMOTE_FILE = 'opengym-remote.json'
-
-// Small JSON files in the app's private data directory, for device facts that must not ride
-// in S (which syncs and exports): the pairing, and how the Coach runs on this phone.
-export async function readJsonFile(name) {
-  try {
-    const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
-    const r = await Filesystem.readFile({ path: name, directory: Directory.Data, encoding: Encoding.UTF8 })
-    return JSON.parse(r.data)
-  } catch (e) { return null }
-}
-export async function writeJsonFile(name, data) {
-  try {
-    const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
-    await Filesystem.writeFile({ path: name, directory: Directory.Data, data: JSON.stringify(data), encoding: Encoding.UTF8 })
-  } catch (e) { /* not a Capacitor build, or the write failed — the caller's in-memory copy stands */ }
-}
-
-export async function loadRemoteFile() {
-  try {
-    const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
-    const r = await Filesystem.readFile({ path: REMOTE_FILE, directory: Directory.Data, encoding: Encoding.UTF8 })
-    return JSON.parse(r.data)
-  } catch (e) { return null }   // never decided yet
-}
-
-export async function saveRemoteFile(data) {
-  try {
-    const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
-    await Filesystem.writeFile({ path: REMOTE_FILE, directory: Directory.Data, data: JSON.stringify(data), encoding: Encoding.UTF8 })
-  } catch (e) { /* worst case: onboarding asks again next launch */ }
-}
-
 // Keep enough dates queued to cover normal app use between foregrounds without creating an
 // unbounded notification list. The next sync cancels and replaces this whole window.
 export const REMINDER_WINDOW_DAYS = 60

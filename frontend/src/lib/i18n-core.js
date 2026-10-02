@@ -4,10 +4,7 @@
 // loads, the React subscription hook) live in i18n.js and re-export from here.
 
 export const LANGS = {
-  en: 'English', de: 'Deutsch', 'de-CH': 'Deutsch (Schweiz)', es: 'Español', fr: 'Français',
-  it: 'Italiano', pt: 'Português (Portugal)', 'pt-BR': 'Português (Brasil)', pl: 'Polski',
-  tr: 'Türkçe', ru: 'Русский', zh: '中文',
-  ko: '한국어', hi: 'हिन्दी', th: 'ไทย', hu: 'Magyar'
+  en: 'English', it: 'Italiano'
 }
 // Exercise instructions and translated exercise names ship as per-language packs keyed by exercise
 // id. Every id in the catalogue was replaced by the OlyGym swap, so the packs that came with the old
@@ -19,25 +16,12 @@ export const LANGS = {
 export const INSTR_LANGS = ['en']
 export const EXERCISE_NAME_LANGS = []
 export const DATE_LOCALES = {
-  en: 'en-GB', de: 'de-DE', 'de-CH': 'de-CH', es: 'es-ES', fr: 'fr-FR', it: 'it-IT',
-  pt: 'pt-PT', 'pt-BR': 'pt-BR',
-  pl: 'pl-PL', tr: 'tr-TR', ru: 'ru-RU', zh: 'zh-CN', ko: 'ko-KR', hi: 'hi-IN', th: 'th-TH', hu: 'hu-HU'
+  en: 'en-GB', it: 'it-IT'
 }
 
-// Locales derived from another language by a pure text transform rather than carried as their
-// own pack. Swiss Standard German has no ß — every one is written ss — so de-CH is de with a
-// single substitution. Deriving it keeps one German source of truth: a hand-maintained de-CH
-// would be 98.7% identical to de.js (16 of 1265 values differ), and check-locales.mjs would
-// then require every future German string to be written twice, forever.
-//
-// The transform is exact in this direction ONLY. Going back needs vowel length — "Maße" and
-// "Masse" both collapse to "Masse" — so de is always the base and never the derivative.
-//
-// Note this covers orthography, not vocabulary: a Swiss-specific word choice (Velo for
-// Fahrrad) would need a real pack. None of the current strings contain one.
-export const DERIVED_LOCALES = {
-  'de-CH': { base: 'de', transform: s => s.replace(/ß/g, 'ss') }
-}
+// No locale is derived from another any more: English and Italian each ship their own pack.
+// The seam is kept so the loader and the language picker keep a single code path.
+export const DERIVED_LOCALES = {}
 
 // The language whose packs a locale actually loads: a derived locale reads its base's, every
 // other language its own. Used for the INSTR_LANGS/EXERCISE_NAME_LANGS membership tests too,

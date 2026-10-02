@@ -1,45 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
-import { EXIDX, matchExercise, betterWeight } from '../lib/exercises.js'
+import { EXIDX, matchExercise } from '../lib/exercises.js'
 import { lastBW, streakWeeks, setLabel, modeOf, effortOf, metricModeForEntry, metricRowsForEntry, bestWeightForEntry } from '../lib/history.js'
 import { fmtNum, fmtDate, fmtVol, todayISO, weekStartOf } from '../lib/format.js'
-import { t, exerciseNameFor, getLang } from '../lib/i18n.js'
+import { t, exerciseNameFor } from '../lib/i18n.js'
 import { bwSheet, goalSheet, calendarSheet, workoutDetailSheet, exerciseHistorySheet, WorkoutRow, bwDeltaColor } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
 import Heatmap from '../components/Heatmap.jsx'
 import Icon from '../components/Icon.jsx'
 import BodyMap, { BodyMapLegend } from '../components/BodyMap.jsx'
-import { loadOfWorkouts, muscleBalanceWindow, rankOf, MUSCLE_NAME, musclesOf } from '../lib/muscles.js'
-import { fatigueOf, strengthOf, STRENGTH_FLOOR, LB_TO_KG } from '../lib/recovery.js'
-import { strengthExerciseRowsForMuscle } from '../lib/strength-exercises.js'
+import { loadOfWorkouts, muscleBalanceWindow, rankOf, MUSCLE_NAME } from '../lib/muscles.js'
+import { fatigueOf } from '../lib/recovery.js'
 import { fatigueStateOf } from '../lib/recovery-view.js'
-import { e1rmSeries, best1RM } from '../lib/onerm.js'
 import {
   hasEffort, displayScale, scaleName, toScale, avgRir, effortSummary, effortWeeks,
   effortHistogram, isHardSet, HARD_RIR
 } from '../lib/effort.js'
 import { Button, Segmented, SelectRow } from '../components/ui.jsx'
 import { tappable } from '../lib/use-sheet-keyboard.js'
-import { isWarmupRow } from '../lib/workout-model.js'
-
-// Which muscles the training in a window actually hit — and, the point of the card,
-// which ones it keeps missing. Shading is relative within the window (lib/muscles.js).
-function latestMuscleTraining(workouts) {
-  const latest = {}
-  for (const workout of workouts || []) {
-    const timestamp = Number(workout?.start || new Date(workout?.d).getTime())
-    if (!Number.isFinite(timestamp)) continue
-    for (const entry of workout.entries || []) {
-      if (!(entry.sets || []).some(set => set?.done === true && !isWarmupRow(set))) continue
-      const exercise = EXIDX[entry.id] || entry.exercise || entry
-      for (const slug of Object.keys(musclesOf(exercise))) {
-        if (latest[slug] == null || timestamp > latest[slug]) latest[slug] = timestamp
-      }
-    }
-  }
-  return latest
-}
 
 export const FATIGUE_LEVELS = [
   { at: 0, level: 0 },
@@ -47,14 +26,6 @@ export const FATIGUE_LEVELS = [
   { at: 0.25, level: 2 },
   { at: 0.4, level: 3 },
   { at: 0.55, level: 4, exclusive: true },
-]
-
-export const STRENGTH_LEVELS = [
-  { at: STRENGTH_FLOOR, level: 0 },
-  { at: 0.625, level: 1 },
-  { at: 0.75, level: 2 },
-  { at: 0.875, level: 3 },
-  { at: 1, level: 4 },
 ]
 
 function useNow() {
@@ -85,13 +56,6 @@ function FatigueLegend() {
   </div>
 }
 
-function StrengthLegend() {
-  return <div className="hm-legend hm-strength" aria-label={t('Strength')}>
-    <span>1 <span className="dim">{t('full')}</span></span><div className="hm-c l4" /><div className="hm-c l3" /><div className="hm-c l2" />
-    <div className="hm-c l1" /><div className="hm-c l0" /><span>{fmtNum(STRENGTH_FLOOR)} <span className="dim">{t('floor')}</span></span>
-  </div>
-}
-
 function fatigueLabel(value) {
   const state = fatigueStateOf(value)
   return t(state === 'ready' ? 'Ready' : state === 'recovering' ? 'Recovering' : 'Fatigued')
@@ -103,7 +67,6 @@ function MuscleBalance({ S }) {
   const [hard, setHard] = useState(false)
   const [sel, setSel] = useState(null)
   const now = useNow()
-  const lang = getLang()
   const workouts = S.workouts
   // The user's own last registered bodyweight drives bodyweight-exercise tonnage.
   const bodyweightKg = useMemo(() => {
@@ -111,17 +74,9 @@ function MuscleBalance({ S }) {
     if (!entries.length) return null
     const last = entries.slice().sort((a, b) => String(a.d).localeCompare(String(b.d))).at(-1)
     if (!last || !(last.w > 0)) return null
-    return S.unit === 'lb' ? last.w * LB_TO_KG : last.w
+    return last.w
   }, [S.bodyweight, S.unit])
   const fatigue = useMemo(() => fatigueOf(workouts, now, { bodyweightKg, unit: S.unit }), [workouts, now, bodyweightKg, S.unit])
-  const strength = useMemo(() => strengthOf(workouts, now, { bodyweightKg, unit: S.unit }), [workouts, now, bodyweightKg, S.unit])
-  const muscleExercises = useMemo(() => (sel ? strengthExerciseRowsForMuscle(S, now, sel) : []), [S, now, sel, lang])
-  const lastTrained = useMemo(() => latestMuscleTraining(workouts), [workouts])
-  const strengthHint = slug => {
-    if (lastTrained[slug] == null) return t('not trained')
-    const weeks = weeksSinceTraining(now, lastTrained[slug])
-    return t('Weeks since training: {0}', weeks)
-  }
   const toggleSel = m => setSel(s => (s === m ? null : m))
   const inWin = muscleBalanceWindow(S.workouts, win, now, todayISO(), weekStartOf(S))
   // Counting only the sets taken near failure turns the map from "where did the volume go"
@@ -131,18 +86,13 @@ function MuscleBalance({ S }) {
   const rated = inWin.some(w => w.entries.some(e => e.sets.some(s => s.done && isHardSet(s))))
   const on = hard && rated
   const load = loadOfWorkouts(inWin, on ? isHardSet : null)
-  const volWin = S.workouts.filter(w => (w.start || new Date(w.d).getTime()) > now - 90 * 86400000)
-  const vol90 = loadOfWorkouts(volWin, null)
   const { worked, missed } = rankOf(load)
-  const { worked: strengthOrder } = rankOf(strength)
-  const detrained = strengthOrder.filter(slug => strength[slug] < 1)
   const top = worked.slice(0, 4)
   const max = worked.length ? load[worked[0]] : 0
   const sets = m => fmtNum(Math.round((load[m] || 0) * 10) / 10)
-
   return <div className="card">
     <Segmented className="seg-range" value={view} onChange={setView}
-      options={[{ value: 'balance', label: t('Muscle balance') }, { value: 'fatigue', label: t('Fatigue') }, { value: 'strength', label: t('Strength') }]} />
+      options={[{ value: 'balance', label: t('Muscle balance') }, { value: 'fatigue', label: t('Fatigue') }]} />
     {view === 'balance' ? <>
       <div className="row between" style={{ marginBottom: 8 }}>
         <h2 style={{ margin: 0 }}>{t('Muscle balance')} <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}>· {on ? t('by hard sets') : t('by sets worked')}</span></h2>
@@ -182,48 +132,7 @@ function MuscleBalance({ S }) {
         <span className="nm"><b>{t(MUSCLE_NAME[sel])}</b></span>
         <span className="v">{fatigueLabel(fatigue[sel])}</span>
       </div>}
-    </> : <>
-      <h2>{t('Strength')}</h2>
-      <BodyMap className="tappable hm-strength" load={strength} thresholds={STRENGTH_LEVELS} body={S.body} selected={sel} onMuscle={toggleSel} />
-      <StrengthLegend />
-      <div className="muted small" style={{ marginTop: 10 }}>{t('Strength shows retained muscle strength. Train again to reset it.')}</div>
-      {sel && <>
-        <h4 className="sec" style={{ marginTop: 14 }}>{t('Exercises')} · {t(MUSCLE_NAME[sel])}</h4>
-        {/* A row quotes the exercise's estimated 1RM, so a tap opens the exercise history
-            sheet — the curve behind that number plus the last sessions set by set. */}
-        {muscleExercises.length ? muscleExercises.map(row => (
-          <div key={row.id} className="mrow" style={{ minHeight: 48, alignItems: 'stretch', cursor: 'pointer' }} {...tappable(() => exerciseHistorySheet(row.id))}>
-            <span className="nm" style={{ whiteSpace: 'normal', lineHeight: 1.35, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {row.name}
-                {row.primary === sel
-                  ? <span className="dim" style={{ fontSize: 11, marginLeft: 6 }}>{t('primary')}</span>
-                  : <span className="dim" style={{ fontSize: 11, marginLeft: 6 }}>{t('secondary')}</span>}
-              </span>
-              <span className="small dim" style={{ display: 'block', fontWeight: 400 }}>{t('Est. 1RM')}: {fmtNum(row.est)} {S.unit} · {fmtDate(row.estDate, true)}</span>
-            </span>
-            <span className="bar" style={{ alignSelf: 'center' }}><i style={{ width: '100%', background: 'linear-gradient(to right, var(--acc) ' + Math.round(row.decay * 100) + '%, var(--surface-2) ' + Math.round(row.decay * 100) + '%)' }} /></span>
-            <span className="v" style={{ alignSelf: 'center' }}>{fmtNum(row.current)} {S.unit}<span className="dim"> · {Math.round(row.decay * 100)}%</span></span>
-          </div>
-        )) : <div className="muted small">{t('No exercises with an estimated 1RM yet.')}</div>}
-      </>}
-      {!sel && <div className="muted small" style={{ marginTop: 10 }}>{t('Tap a muscle to see its exercises.')}</div>}
-      {/* Detrained muscles: the bar is retained strength, the value says how long ago the
-          muscle was last trained. Sets in the last 90 days ride along only when there are
-          any — a muscle is on this list precisely because it has not been trained lately, so
-          that number alone read as "0 sets" all the way down and told nobody anything. */}
-      {detrained.map(slug => {
-        const sets90 = Math.round((vol90[slug] || 0) * 10) / 10
-        return <div key={slug} className="mrow">
-          <span className="nm">{t(MUSCLE_NAME[slug])}</span>
-          <span className="bar"><i style={{ width: Math.round(strength[slug] * 100) + '%' }} /></span>
-          <span className="v" style={{ textAlign: 'right' }}>
-            {sets90 ? t('{0} sets', fmtNum(sets90)) : strengthHint(slug)}
-            {sets90 ? <span className="dim small" style={{ display: 'block', fontWeight: 400 }}>{strengthHint(slug)}</span> : null}
-          </span>
-        </div>
-      })}
-    </>}
+    </> : null}
   </div>
 }
 
@@ -339,8 +248,8 @@ export default function Stats() {
       if (!en) continue
       const mode = metricModeForEntry(en) || modeOf({ id })
       const rows = metricRowsForEntry(en, mode)
-      const mx = mode === 'reps' ? bestWeightForEntry(en) : Math.max(0, ...rows.map(s => mode === 'cardio' ? (s.speed || 0) : mode === 'time' ? (s.sec || 0) : (s.w || 0)))
-      if (mx > 0) return { mx, unit: mode === 'cardio' ? 'km/h' : mode === 'time' ? 's' : S.unit }
+      const mx = mode === 'reps' ? bestWeightForEntry(en) : Math.max(0, ...rows.map(s => mode === 'time' ? (s.sec || 0) : (s.w || 0)))
+      if (mx > 0) return { mx, unit: mode === 'time' ? 's' : S.unit }
       // Unloaded reps work still has a current figure — its rep count. Without this the whole
       // picker label went blank and the exercise sorted to the bottom as if it had no history.
       if (mode === 'reps') {
@@ -355,7 +264,7 @@ export default function Stats() {
   exHist.sort((a, b) => exCurrent[b].mx - exCurrent[a].mx || nameOf(a).localeCompare(nameOf(b)))
   const curEx = exId && exHist.includes(exId) ? exId : exHist[0] || null
   // A completed reps work row is authoritative for strength metrics, even when the parent
-  // target also contains timed/cardio work. Entries without reps rows use their selected mode.
+  // target also contains timed work. Entries without reps rows use their selected mode.
   const curMode = curEx ? (() => {
     for (let i = workouts.length - 1; i >= 0; i--) {
       const en = workouts[i].entries.find(e => e.id === curEx)
@@ -366,7 +275,6 @@ export default function Stats() {
     }
     return modeOf({ id: curEx })
   })() : 'reps'
-  const curCardio = curMode === 'cardio'
   const curTimed = curMode === 'time'
   // A pull-up or a push-up carries no weight, so its "best weight" is 0 — and dropping every
   // zero point left the card reading "No data yet" for exercises with a full history behind
@@ -378,8 +286,8 @@ export default function Stats() {
     return en && bestWeightForEntry(en) > 0
   })
   const bestRepsOf = en => Math.max(0, ...metricRowsForEntry(en, 'reps').map(s => Number(s.r) || 0))
-  const metric = s => curCardio ? (s.speed || 0) : curTimed ? (s.sec || 0) : (s.w || 0)
-  const exUnit = curCardio ? 'km/h' : curTimed ? 's' : repsOnly ? t('reps') : S.unit
+  const metric = s => (curTimed ? (s.sec || 0) : (s.w || 0))
+  const exUnit = curTimed ? 's' : repsOnly ? t('reps') : S.unit
   let exPts = [], exList = [], exBest = 0
   if (curEx) {
     workouts.forEach(w => {
@@ -393,35 +301,18 @@ export default function Stats() {
           : Math.max(0, ...doneSets.map(metric))
         if (mx > 0) {
           exPts.push({ t: w.start, y: mx, d: w.d, sets: doneSets, target: en.target })
-          // Weighted work on an assistance machine reads the other way: the smallest load is the
-          // best (issue #232). Reps, duration and speed are always "more is better".
-          const better = curMode === 'reps' && !repsOnly ? betterWeight(curEx, exBest || mx, mx) : Math.max(exBest, mx)
-          exBest = exBest > 0 ? better : mx
+          exBest = Math.max(exBest, mx)
         }
       }
     })
     exList = exPts.slice(-5).reverse()
   }
-  // Estimated 1RM (issue #18) — only reps-mode training produces one, so cardio and timed
-  // work simply have no points and the toggle stays hidden.
-  // Both memoised on the same inputs, and it has to start at e1rmSeries: LineChart clears its
-  // hover whenever `points` changes identity, so a chart array rebuilt on every render made the
-  // tooltip vanish under your finger the moment anything else on this screen re-rendered.
-  // Memoising only the .map() would not have helped — its dependency was itself rebuilt each time.
-  const e1Pts = useMemo(
-    () => (curEx && curMode === 'reps' ? e1rmSeries(S, curEx) : []),
-    [S, curEx, curMode],
-  )
-  const e1ChartPts = useMemo(() => e1Pts.map(p => ({ t: p.t, y: p.y, d: p.d })), [e1Pts])
-  const e1Best = curEx && curMode === 'reps' ? best1RM(S, curEx) : null
-  const showE1 = e1Pts.length > 0
   // Effort on this exercise, per session. It rides on the top-set curve as well as having a
   // curve of its own, because the two only mean something together: the same weight moved
   // with more left in the tank is progress a weight-only chart draws as a flat line.
   const exRir = exPts.map(p => avgRir(p.sets))
   const showEff = exRir.filter(v => v != null).length >= 3
   const effPts = exPts.map((p, i) => (exRir[i] == null ? null : { t: p.t, y: toScale(kind, exRir[i]), d: p.d })).filter(Boolean)
-  const onE1 = showE1 && exMetric === 'e1rm'
   const onEff = showEff && exMetric === 'effort'
   const topPts = exPts.map((p, i) => ({
     t: p.t, y: p.y, d: p.d,
@@ -430,7 +321,6 @@ export default function Stats() {
     note: exRir[i] == null ? undefined : hd + ' ' + fmtNum(toScale(kind, exRir[i]))
   }))
   const exOpts = [{ value: 'top', label: t('Top set') }]
-  if (showE1) exOpts.push({ value: 'e1rm', label: t('Est. 1RM') })
   if (showEff) exOpts.push({ value: 'effort', label: t('Effort') })
 
   return <>
@@ -480,22 +370,19 @@ export default function Stats() {
                 match: (option, query) => matchExercise(matcherOf(option.value), query),
               }} />
           </div>
-          {exOpts.length > 1 && <Segmented className="seg-range" value={onEff ? 'effort' : onE1 ? 'e1rm' : 'top'} onChange={setExMetric} options={exOpts} />}
+          {exOpts.length > 1 && <Segmented className="seg-range" value={onEff ? 'effort' : 'top'} onChange={setExMetric} options={exOpts} />}
           <div className="chart">
             {onEff
               ? <LineChart points={effPts} h={150} unit={hd} color="var(--yellow)" invert={kind === 'rir'} />
-              : <LineChart points={onE1 ? e1ChartPts : topPts} h={150} unit={exUnit} color="var(--blue)" />}
+              : <LineChart points={topPts} h={150} unit={exUnit} color="var(--blue)" />}
           </div>
           <div style={{ marginTop: 8 }}>{exList.map((p, i) => <div key={i} className="row between small" style={{ padding: '6px 0', borderBottom: 'var(--hair) solid var(--sep)' }}>
             <span className="muted">{fmtDate(p.d, true)}</span><span>{p.sets.map(s => setLabel(curEx, s, p.target)).join('  ')}</span></div>)}</div>
           <div className="small dim" style={{ marginTop: 8 }}>
-            {onEff ? t('Average effort per workout') : onE1 ? t('Estimated 1RM per workout') : curCardio ? t('Top speed per workout') : curTimed ? t('Longest hold per workout') : repsOnly ? t('Most reps in a set per workout') : t('Best set weight per workout')}
-            {onEff ? '' : <> · {t('Best:')}{' '}<b className="accent">{fmtNum(onE1 ? e1Best.est : exBest)} {onE1 ? S.unit : exUnit}</b></>}
+            {onEff ? t('Average effort per workout') : curTimed ? t('Longest hold per workout') : repsOnly ? t('Most reps in a set per workout') : t('Best set weight per workout')}
+            {onEff ? '' : <> · {t('Best:')}{' '}<b className="accent">{fmtNum(exBest)} {exUnit}</b></>}
           </div>
-          {onE1 && <div className="small dim" style={{ marginTop: 4 }}>
-            {t('Best estimate from {0} on {1} — an estimate, not a tested max.', fmtNum(e1Best.w) + ' ' + S.unit + ' × ' + e1Best.r, fmtDate(e1Best.d, true))}
-          </div>}
-          {!onEff && !onE1 && showEff && <div className="small dim" style={{ marginTop: 4 }}>
+          {!onEff && showEff && <div className="small dim" style={{ marginTop: 4 }}>
             {t('A fuller dot means less left in the tank — the same weight at a lower {0} is progress the line alone does not show.', hd)}
           </div>}
         </> : <div className="muted small">{t('Finish your first workout to see progress curves here.')}</div>}

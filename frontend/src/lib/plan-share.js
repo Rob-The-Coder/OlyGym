@@ -1,47 +1,26 @@
 // Share a plan.
 //
-// Two jobs:
-//  1. A small, self-contained file a friend can import into THEIR OlyGym — the dated weeks, the
-//     exercises they prescribe and the custom exercises those weeks use. It never carries
-//     workouts, weigh-ins or settings, and importing MERGES (adds weeks with fresh ids) so
-//     nothing the friend already has is touched.
-//  2. A clean, printable page (Save as PDF) where a single exercise never splits across a page
-//     break — each exercise, and each day that fits, stays in one place.
+// The printable page (Save as PDF) where a single exercise never splits across a page break —
+// each exercise, and each day that fits, stays in one place.
 //
-// The container is `weeks` (the dated-weeks model, see lib/weeks.js). Format 2 is that shape;
-// format 1 — `routines` + `week` — is still read, and its schedule becomes one week.
+// The dated-weeks model (see lib/weeks.js) is what a plan is. A week that is already local and
+// trusted (the coach's reviewed sheet) lands in the plan through `mergeWeek`.
 
-import { EXIDX, isBodyweightEq } from './exercises.js'
-import { modeOf, fmtSec, isBw, isPerSide, sideReps, MAX_PLANNED_WARMUPS } from './history.js'
+import { EXIDX } from './exercises.js'
+import { modeOf, fmtSec, isBw } from './history.js'
 import { uid, todayISO, isoOf, startOfWeek, fmtDate, DAYN, MONDAY, fmtNum, exCount } from './format.js'
-import { weekDayForPosition } from './migrate-weeks.js'
 import { t, exerciseNameFor } from './i18n-core.js'
 import { convertWeight } from './units.js'
 import { MUSCLES, inMuscleOrder } from './muscles.js'
 
-const PLAN_FMT = 2
-const PLAN_UNITS = new Set(['kg', 'lb'])
+const PLAN_UNITS = new Set(['kg'])
 
-// A plan's numbers are in the unit that wrote it. Missing unit is deliberately legacy-compatible:
-// old files were read as already being in the recipient's unit, so keep their values unchanged.
-const planUnit = value => value === 'lbs' ? 'lb' : PLAN_UNITS.has(value) ? value : null
+// Kilos only. Missing unit is deliberately legacy-compatible: old files were read as already
+// being in the recipient's unit, so keep their values unchanged.
+const planUnit = value => PLAN_UNITS.has(value) ? value : null
 const unitError = () => { throw new Error(t('this isn’t an OlyGym plan file')) }
-
-function declaredPlanUnit(data) {
-  let declared = null
-  for (const key of ['unit', 'weightUnit']) {
-    if (data[key] == null) continue
-    const unit = planUnit(data[key])
-    if (!unit || (declared && declared !== unit)) unitError()
-    declared = unit
-  }
-  return declared
-}
-
-/** The first day of the week a plan written without a date should land in: this one. */
 const currentMonday = () => isoOf(startOfWeek(todayISO(), MONDAY))
 const isIsoDay = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)
-const isDow = v => Number.isInteger(v) && v >= 0 && v <= 6
 
 /** A load written in `sourceUnit` as the same prescription in `destinationUnit`. */
 export function convertedExercise(e, sourceUnit, destinationUnit) {
@@ -53,109 +32,12 @@ export function convertedExercise(e, sourceUnit, destinationUnit) {
   return out
 }
 
-/** The whole bundle's prescriptions, moved from its own unit into the destination's. */
-function convertedBundle(bundle, destinationUnit) {
-  const sourceUnit = declaredPlanUnit(bundle)
-  if (!sourceUnit || sourceUnit === destinationUnit) return bundle
-  return {
-    ...bundle,
-    unit: destinationUnit,
-    weeks: (bundle.weeks || []).map(w => ({
-      ...w,
-      days: (w.days || []).map(d => ({
-        ...d,
-        ex: (d.ex || []).map(e => convertedExercise(e, sourceUnit, destinationUnit))
-      }))
-    }))
-  }
-}
-
-// Keep only the meaningful config fields, so the file stays small and readable.
-function cleanEx(e) {
-  const o = { id: e.id, sets: e.sets }
-  const mode = modeOf(e)
-  if (mode === 'cardio') {
-    if (e.min != null) o.min = e.min
-    if (e.speed != null) o.speed = e.speed
-  } else if (mode === 'time') {
-    // Written out even though 'reps' is the fallback for a non-cardio id: a plan file that
-    // dropped the mode would turn a 45-second plank into a 45-rep one at the other end.
-    o.mode = 'time'
-    if (e.sec != null) o.sec = e.sec
-    if (e.weight) o.weight = e.weight
-  } else {
-    if (e.reps != null) o.reps = e.reps
-    if (e.weight) o.weight = e.weight
-  }
-  // How the exercise is logged travels too (issues #31/#32) — the bodyweight flag only when
-  // it disagrees with the catalogue, since agreeing is what the other end already assumes.
-  if (e.bodyweight != null && e.bodyweight !== isBodyweightEq(e.id)) o.bodyweight = e.bodyweight
-  // Only on reps work — `side` counts reps, and a timed hold has none to split.
-  if (e.side && mode !== 'time' && mode !== 'cardio') o.side = true
-  // Progression settings travel with the plan — a shared Greyskull routine that arrives
-  // without its rule is just a list of weights.
-  if (e.prog) o.prog = e.prog
-  if (e.inc > 0) o.inc = e.inc
-  // Epley deload factor is a per-occurrence progression setting. Omit the default so older
-  // exports remain compact and importing them preserves the default 90% behaviour.
-  if (e.deloadFactor != null && Number(e.deloadFactor) !== 0.9) o.deloadFactor = e.deloadFactor
-  if (e.repsMin != null) o.repsMin = e.repsMin
-  if (e.repsMax != null) o.repsMax = e.repsMax
-  // The exercise's own rest (issue #10) is part of how it is prescribed, so it travels too —
-  // only when set, so a plan that never asked for one leaves the recipient's own default
-  // timer in charge. parsePlan and mergePlan carry it through by spread.
-  if (e.restSec > 0) o.restSec = e.restSec
-  if (e.warmupRestSec > 0) o.warmupRestSec = e.warmupRestSec   // the ramp's own rest travels with the work rest
-  if (e.sg) o.sg = e.sg
-  if (e.note) o.note = e.note
-  const warm = cleanWarmupSets(e.warmupSets)
-  if (warm) o.warmupSets = warm
-  // Drop-sets and rest-pause are part of how the exercise is prescribed, not a logging detail.
-  // Without this a shared "3x5 with a double drop" arrived at the other end as a plain 3x5,
-  // silently — parsePlan's `dropped` counter only tracks exercises it cannot resolve at all.
-  const intens = cleanIntensifier(e.intensifier)
-  if (intens) o.intensifier = intens
-  return o
-}
-
-/** Clamped the same way buildSets clamps it on the way out — the stepper showed a hand-edited
- *  plan file's "999" verbatim, because the clamp only happened when the rows were built. */
-function cleanWarmupSets(v) {
-  const n = Math.round(Number(v)) || 0
-  return n > 0 ? Math.min(MAX_PLANNED_WARMUPS, n) : 0
-}
-
-/** A positive whole number of seconds or nothing — the same gate cleanEx applies on the way
- *  out, so a hand-edited plan file can't hand the rest timer a string or a negative. */
-function cleanRestSec(v) {
-  const n = Math.round(Number(v)) || 0
-  return n > 0 ? n : 0
-}
-
-/** Keep the floors the config sheet and applyIntensifierPlan already enforce, and nothing else:
- *  a plan file is someone else's data, so anything unrecognised is dropped rather than trusted. */
-function cleanIntensifier(x) {
-  const type = x && x.type
-  if (type === 'dropset') {
-    return { type, count: Math.max(1, Math.round(Number(x.count)) || 1), pct: Math.max(5, Math.round(Number(x.pct)) || 20) }
-  }
-  if (type === 'restpause') {
-    return { type, totalReps: Math.max(1, Math.round(Number(x.totalReps)) || 1), restSec: Math.max(5, Math.round(Number(x.restSec)) || 15) }
-  }
-  return null
-}
-
-// The muscles the map can draw, plus the one label the form gives a cardio exercise.
-const CUSTOM_MUSCLES = new Set([...MUSCLES, 'cardiovascular system'])
+// The muscles the map can draw.
+const CUSTOM_MUSCLES = new Set(MUSCLES)
 const muscleList = v => inMuscleOrder([...new Set((Array.isArray(v) ? v : []).filter(m => CUSTOM_MUSCLES.has(m)))])
 
 /** A custom exercise with its own metadata — equipment, muscles, description — in the shape
- *  CustomExForm writes, minus the recipient-side `custom`/`sm` fields mergePlan adds. The bundle
- *  used to carry only {id, n, bp}, so the exercise arrived with an empty equipment tag, no muscle
- *  credit, and (stored without `custom: true`) no way to edit or delete it (QA C7). The same gate
- *  runs on the way in as on the way out, since a plan file is someone else's data: only muscles the
- *  map can draw, a secondary never repeating a primary, the way the form itself enforces. Fields
- *  that are empty stay absent, so a file written before this change reads the same as one after. */
+ *  CustomExForm writes, minus the recipient-side `custom`/`sm` fields mergeWeek adds. */
 function cleanCustom(c) {
   const o = { id: c.id, n: c.n, bp: c.bp }
   if (c.desc) o.desc = c.desc
@@ -169,151 +51,6 @@ function cleanCustom(c) {
   if (sm.length) o.secondaries = sm
   if (prim.length || sm.length) o.muscleGroups = [...prim, ...sm]
   return o
-}
-
-/** Every exercise id a set of weeks prescribes. */
-const weekExIds = weeks =>
-  new Set(weeks.flatMap(w => (w.days || []).flatMap(d => (d.ex || []).map(e => e.id))))
-
-/** Build the shareable bundle: every dated week, and the customs those weeks reference. */
-export function buildPlanBundle(S, name) {
-  const unit = planUnit(S.unit == null ? 'kg' : S.unit)
-  if (!unit) unitError()
-  const weeks = (S.weeks || []).map(w => ({
-    id: w.id,
-    startIso: w.startIso,
-    name: w.name || '',
-    days: (w.days || []).map(d => ({
-      dow: d.dow,
-      name: d.name || '',
-      ...(d.excludeFromProgression === true ? { excludeFromProgression: true } : {}),
-      ex: (d.ex || []).map(cleanEx)
-    }))
-  }))
-  const usedIds = weekExIds(weeks)
-  const customEx = (S.customEx || [])
-    .filter(c => usedIds.has(c.id))
-    .map(cleanCustom)
-  return { opengym_plan: PLAN_FMT, exported: todayISO(), name: name || '', unit, weeks, customEx }
-}
-
-/* ----------------------------- reading a file ----------------------------- */
-
-/** The raw weeks of a format-2 file, as written — the same pass below validates them. */
-const v2Weeks = data => (Array.isArray(data.weeks) ? data.weeks : [])
-  .filter(w => w && typeof w === 'object')
-  .map(w => ({
-    id: typeof w.id === 'string' ? w.id : null,
-    startIso: isIsoDay(w.startIso) ? w.startIso : currentMonday(),
-    name: typeof w.name === 'string' ? w.name : '',
-    days: (Array.isArray(w.days) ? w.days : []).filter(d => d && typeof d === 'object').map(d => ({
-      dow: isDow(d.dow) ? d.dow : weekDayForPosition(0),
-      name: typeof d.name === 'string' ? d.name : '',
-      ...(d.excludeFromProgression === true ? { excludeFromProgression: true } : {}),
-      ex: Array.isArray(d.ex) ? d.ex : []
-    }))
-  }))
-
-/**
- * A format-1 file's `routines` + `week` as one dated week — exported because the Coach's proposal
- * bundle is written in that same shape and lands in the plan the same way.
- *
- * The scheduled routines become days on their weekday; a routine the schedule leaves out is
- * appended on the remaining Mon/Wed/Fri-first order rather than dropped — a file that carried a
- * routine is a file that meant to hand it over. Each day is the whole session, so several
- * routines on one weekday become several days with the same dow (dayFor takes the first).
- */
-export function weeksFromRoutines(data) {
-  const routines = (data.routines || []).filter(r => r && Array.isArray(r.ex))
-  const week = data.week || {}
-  const byId = new Map(routines.map(r => [r.id, r]))
-  const scheduled = new Set()
-  const days = []
-  for (const key of Object.keys(week)) {
-    const dow = Number(key)
-    if (!isDow(dow)) continue
-    for (const id of [].concat(week[key] || [])) {
-      const r = byId.get(id)
-      if (!r) continue
-      scheduled.add(id)
-      days.push(dayOfRoutine(r, dow))
-    }
-  }
-  const rest = routines.filter(r => !scheduled.has(r.id))
-  rest.forEach(r => days.push(dayOfRoutine(r, weekDayForPosition(days.length))))
-  return [{
-    id: uid(),
-    startIso: currentMonday(),
-    name: typeof data.name === 'string' ? data.name.trim() : '',
-    days
-  }]
-}
-
-const dayOfRoutine = (r, dow) => ({
-  dow,
-  name: typeof r.name === 'string' ? r.name : '',
-  ...(r.excludeFromProgression === true ? { excludeFromProgression: true } : {}),
-  ex: r.ex
-})
-
-/**
- * Validate + normalise an imported file. Throws with a friendly message if it isn't one.
- *
- * Every exercise id has to resolve — either to the built-in library or to a custom
- * exercise carried in the same file. An id that resolves to neither (a hand-edited file,
- * an export from a build with a different exercise dataset) is dropped here: kept, it
- * would sit invisibly in the day and only surface as a blank screen when it is trained.
- *
- * Format 1 (`routines` + `week`) is still accepted: its schedule becomes one week starting
- * this Monday, so an old file lands as a plan like any other.
- */
-export function parsePlan(raw, destinationUnit = 'kg') {
-  const data = typeof raw === 'string' ? JSON.parse(raw) : raw
-  const destination = planUnit(destinationUnit)
-  const isV2 = Array.isArray(data?.weeks)
-  const isV1 = Array.isArray(data?.routines)
-  if (!data || typeof data !== 'object' || Array.isArray(data) || !data.opengym_plan || (!isV2 && !isV1) || !destination) {
-    throw new Error(t('this isn’t an OlyGym plan file'))
-  }
-  const sourceUnit = declaredPlanUnit(data)
-  const customEx = (Array.isArray(data.customEx) ? data.customEx : []).filter(c => c && c.id)
-  const known = new Set(customEx.map(c => c.id))
-  let dropped = 0
-  const weeks = (isV2 ? v2Weeks(data) : weeksFromRoutines(data)).map(w => ({
-    ...w,
-    days: (w.days || []).map(d => ({
-      ...d,
-      ex: (d.ex || []).filter(e => {
-        const ok = !!e && (known.has(e.id) || !!EXIDX[e.id])
-        if (!ok) dropped++
-        return ok
-      }).map(e => {
-        // The exercises pass through as written, so the fields that carry numbers into the
-        // planner get the same clamps on the way in that they get on the way out.
-        const warm = cleanWarmupSets(e.warmupSets)
-        const intens = cleanIntensifier(e.intensifier)
-        const rest = cleanRestSec(e.restSec)
-        const warmRest = cleanRestSec(e.warmupRestSec)
-        const { warmupSets, intensifier, restSec, warmupRestSec, ...passthrough } = e
-        return convertedExercise({ ...passthrough, ...(warm ? { warmupSets: warm } : {}), ...(intens ? { intensifier: intens } : {}), ...(rest ? { restSec: rest } : {}), ...(warmRest ? { warmupRestSec: warmRest } : {}) }, sourceUnit || destination, destination)
-      })
-    }))
-  }))
-  const exercisesIn = w => (w.days || []).reduce((n, d) => n + d.ex.length, 0)
-  return {
-    name: (data.name || '').trim(),
-    weeks,
-    customEx,
-    dropped,
-    weekCount: weeks.length,
-    dayCount: weeks.reduce((n, w) => n + w.days.length, 0),
-    exerciseCount: weeks.reduce((n, w) => n + exercisesIn(w), 0),
-    // `unit` is the unit of the returned prescriptions. `sourceUnit` is null for a legacy file;
-    // that absence means its numbers were intentionally treated as already in `destination`.
-    unit: destination,
-    sourceUnit: sourceUnit || null,
-    destinationUnit: destination
-  }
 }
 
 /* -------------------------------- merging -------------------------------- */
@@ -355,29 +92,16 @@ function pushWeek(s, week, exIdMap) {
 }
 
 /**
- * Merge a parsed bundle into a draft state `s` (call inside store.update).
+ * Merge one already-local week (the coach's reviewed sheet) into state.
  *  - customs: reuse one you already have with the same name + body part, else add it fresh
- *  - weeks: every shared week is appended as a NEW week (fresh ids) — never overwrites yours
+ *  - the week: appended as a NEW week (fresh id) — never overwrites yours
  *
- * A week is inherently scheduled: it is a concrete calendar week, so there is no "take the
- * schedule or not" switch any more. The week keeps the dates it was written with.
- */
-export function mergePlan(s, bundle) {
-  const destination = planUnit(s.unit == null ? 'kg' : s.unit)
-  if (!destination) unitError()
-  const source = convertedBundle(bundle, destination)
-  const exIdMap = addCustomEx(s, source.customEx)
-  ;(source.weeks || []).forEach(w => pushWeek(s, w, exIdMap))
-  return { weeks: (source.weeks || []).length }
-}
-
-/**
- * Merge one already-local week (the coach's reviewed sheet, a Hevy routine list) into state.
- * Same contract as mergePlan, without the file-parsing layer: the review is already trusted, so
- * it is never re-serialised through parsePlan. A week built for this path carries its own
- * `customEx` (see import-plan.js) — the id remap is what keeps them from doubling.
+ * A week built for this path carries its own `customEx` (see import-plan.js) — the id remap
+ * is what keeps them from doubling.
  */
 export function mergeWeek(s, week) {
+  const destination = planUnit(s.unit == null ? 'kg' : s.unit)
+  if (!destination) unitError()
   const exIdMap = addCustomEx(s, week.customEx)
   pushWeek(s, week, exIdMap)
   return { weeks: 1 }
@@ -388,18 +112,11 @@ export function mergeWeek(s, week) {
 const esc = str => String(str == null ? '' : str)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-// One exercise's scheme, e.g. "3 × 10 · 60 kg", "3 × 0:45" or "2 × 20 min @ 8 km/h".
+// One exercise's scheme, e.g. "3 × 10 · 60 kg" or "3 × 0:45".
 function scheme(e, unit) {
   const sets = e.sets || 1
-  const mode = modeOf(e)
-  if (mode === 'cardio') {
-    const body = `${e.min || 20} min @ ${fmtNum(e.speed || 8)} km/h`
-    return sets > 1 ? `${sets} × ${body}` : body
-  }
-  let s = mode === 'time' ? `${sets} × ${fmtSec(e.sec || 45)}` : `${sets} × ${e.reps ?? 10}`
+  let s = modeOf(e) === 'time' ? `${sets} × ${fmtSec(e.sec || 45)}` : `${sets} × ${e.reps ?? 10}`
   if (e.weight) s += ` · ${isBw(e) ? '+' : ''}${fmtNum(e.weight)} ${unit}`
-  // A printed plan is read at the rack, so the split earns its four characters.
-  if (mode !== 'time' && isPerSide(e)) s += ` · ${t('{0}/side', fmtNum(sideReps(e.reps ?? 10)))}`
   return s
 }
 
@@ -419,7 +136,7 @@ function dayHTML(day, unit) {
     const items = u.map(e => {
       const ex = EXIDX[e.id]
       const name = ex ? exerciseNameFor(ex) : t('Unknown exercise')
-      const part = ex && ex.bp && ex.bp !== 'cardio' ? `<span class="part">${esc(ex.bp)}</span>` : ''
+      const part = ex && ex.bp ? `<span class="part">${esc(ex.bp)}</span>` : ''
       const note = e.note ? `<div class="ex-note">${esc(e.note)}</div>` : ''
       return `<div class="ex"><div class="ex-row"><div class="ex-n">${esc(name)}${part}</div><div class="ex-s">${esc(scheme(e, unit))}</div></div>${note}</div>`
     }).join('')

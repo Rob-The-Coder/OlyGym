@@ -1,50 +1,31 @@
 import { useEffect, useRef, useState, forwardRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useStore, DEF, hasData } from '../store/useStore.js'
+import { useStore, DEF } from '../store/useStore.js'
 import { workoutControls } from '../lib/workout-controls.js'
 import { videoMode } from '../lib/video.js'
-import { convertStateUnit } from '../lib/units.js'
 import { useUI } from '../store/useUI.js'
 import { ACCENTS, todayISO, localTZ, weekStartOf, MONDAY, SUNDAY } from '../lib/format.js'
 import { effortOf } from '../lib/history.js'
 import { unlock, playOnSilentSupported } from '../lib/sound.js'
-import { api, webauthnOK, passkeyLogin, passkeyRegister, IS_ANDROID } from '../lib/api.js'
-import { pushSupported, enablePush, disablePush, sendTestPush, syncPushSubscription } from '../lib/push.js'
 import { wakeLockSupported } from '../lib/wakelock.js'
 import { t, LANGS, INSTR_LANGS } from '../lib/i18n.js'
-import { DEMO, REPO } from '../lib/demo.js'
 import { MOBILE, isAndroid, shareExport, syncReminder } from '../lib/mobile.js'
 import { checkForUpdate, downloadAndInstall, RELEASES_PAGE } from '../lib/update.js'
-import { ConnectSheet } from './MobileOnboarding.jsx'
-import { starterPlanSheet, confirmSheet, importFromApp, importFromHevy, importCoachPlan, importCoachPlanFromDrive, equipmentProfileSheet, menuSheet, askAddDeviceData } from '../sheets.jsx'
+import { starterPlanSheet, confirmSheet, importCoachPlan, importCoachPlanFromDrive, equipmentProfileSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
-import { Section, Row, SelectRow, Switch, Segmented, Button, TextField } from '../components/ui.jsx'
+import { Section, Row, SelectRow, Switch, Segmented } from '../components/ui.jsx'
+
+// Web-only "Add to Home screen" hint, kept local now that lib/api.js is gone.
+const IS_ANDROID = /Android/.test(navigator.userAgent)
 
 export default function Settings() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
-  const user = useStore(s => s.user)
-  const { update, replaceState, setUser, pullState, pushState, adoptProfile, signOut, signOutAll, resetDemo, disconnectServer } = useStore()
+  const { update, replaceState } = useStore()
   const toast = useUI(s => s.toast)
   const fileRef = useRef(null)
-  const importRef = useRef(null)
   const coachRef = useRef(null)
   const wakeOK = wakeLockSupported()
-
-  // Two honest choices on a unit switch (issue #22): convert the numbers, or keep them and only
-  // change the label — the old behaviour, still right for someone who logged in lb all along
-  // under a kg label. Closing the sheet leaves the unit as it was.
-  const switchUnit = v => {
-    if (v === S.unit) return
-    menuSheet({
-      title: t('Convert to {0}?', v),
-      subtitle: t('Every stored weight — logged sets, working weights, routine targets, body weight, bar weights — is in {0}. Convert the numbers, or keep them and only change the label?', S.unit),
-      items: [
-        { icon: 'shuffle', label: t('Convert the numbers'), onClick: () => replaceState(convertStateUnit(useStore.getState().S, v)) },
-        { icon: 'pencil', label: t('Keep the numbers, change the label'), onClick: () => update(s => { s.unit = v }) },
-      ],
-    })
-  }
 
   // --- update check state ---
   const [updateInfo, setUpdateInfo] = useState(null) // { hasUpdate, latestVersion, apkUrl, hashUrl } | null
@@ -148,30 +129,9 @@ export default function Settings() {
     }
     rd.readAsText(f)
   }
-  const signInHere = async () => {
-    try { const u = await passkeyLogin(); setUser(u); await adoptProfile(askAddDeviceData); toast(t('Welcome back, {0}', u.name)) }
-    catch (e) { if (e.name !== 'NotAllowedError' && e.name !== 'AbortError') toast(e.message || t('Sign-in failed')) }
-  }
-  const registerHere = () => useUI.getState().openSheet(close => <RegisterInline close={close} setUser={setUser} pushState={pushState} pullState={pullState} toast={toast} />)
-  // Ends the profile's sessions on every device — this one included, so on success it lands in
-  // the same place as the plain sign-out above (home, local data cleared). On failure nothing
-  // local is touched: still signed in here, and say so rather than leaving a half-signed-out app.
-  const signOutEverywhere = () => confirmSheet({
-    title: t('Sign out everywhere?'),
-    message: t('Signs this profile out on every device, including this one. Your passkeys keep working — sign in with them again anytime.'),
-    confirmText: t('Sign out everywhere'), danger: true,
-    onConfirm: async () => {
-      try { await signOutAll(); nav('/home'); toast(t('Signed out on all devices')) }
-      catch (e) { toast(t('Could not sign out everywhere — you are still signed in.')) }
-    },
-  })
-  // Signed in, the empty state is pushed to the profile like any other change, so the wipe
-  // reaches the server and every device that syncs with it — the dialog has to say so.
   const resetEverything = () => confirmSheet({
     title: t('Reset everything?'),
-    message: user
-      ? t('Deletes your plan, workouts and body weight from your profile on this server and on every signed-in device. This cannot be undone.')
-      : t('Deletes your plan, workouts and body weight on this device. This cannot be undone.'),
+    message: t('Deletes your plan, workouts and body weight on this device. This cannot be undone.'),
     confirmText: t('Delete everything'), danger: true,
     onConfirm: () => {
       replaceState(JSON.parse(JSON.stringify(DEF)), true)
@@ -185,45 +145,8 @@ export default function Settings() {
       <div style={{ flex: 1, marginLeft: 10 }}><h1>{t('Settings')}</h1></div>
     </div>
 
-    {/* ---------- account (demo and mobile builds have nothing to sign in to) ---------- */}
-    <Section title={MOBILE ? (user ? t('Your server') : t('Your data')) : DEMO ? t('Demo') : t('Account')}>
-      {MOBILE ? (user ? <>
-        <Row icon="personCircle" iconTint="var(--grey)" title={user.name} subtitle={t('Synced with your OlyGym server.')} />
-        {user.admin && <Row icon="wrench" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
-        <Row icon="signOut" iconTint="var(--red)" title={t('Disconnect')} danger onClick={() => confirmSheet({
-          title: t('Disconnect from your server?'),
-          message: t('Your data is synced to your server first, then this device switches back to local-only.'),
-          confirmText: t('Disconnect'), danger: true,
-          onConfirm: async () => { await disconnectServer(); nav('/home'); toast(t('Disconnected — back to local-only')) },
-        })} />
-      </> : <>
-        <Row icon="lock" iconTint="var(--acc)" title={t('All data stays on this phone')} subtitle={t('No account, no cloud — back it up anytime with Export below.')} />
-        <Row icon="link" iconTint="var(--indigo)" title={t('Connect to my server')} subtitle={t('Sync this device to your own self-hosted OlyGym instead.')} accessory="chevron"
-          onClick={() => useUI.getState().openSheet(close => <ConnectSheet close={close} />)} />
-      </>) : DEMO ? <>
-        <Row icon="sparkles" iconTint="var(--acc)" title={t('You’re in the demo')} subtitle={t('Example data, stored only in this browser — change anything you like.')} />
-        <Row icon="reset" iconTint="var(--blue)" title={t('Reset demo data')} accessory="chevron"
-          onClick={() => confirmSheet({ title: t('Reset demo data?'), message: t('Puts the example plan, workouts and weigh-ins back the way they started.'), confirmText: t('Reset'), onConfirm: () => { resetDemo(); nav('/home'); toast(t('Demo data reset')) } })} />
-        <Row icon="rocket" iconTint="var(--indigo)" title={t('Self-host OlyGym')} subtitle={t('Passkey sign-in, sync across your devices, your own data.')} accessory="chevron"
-          onClick={() => window.open(REPO, '_blank', 'noopener')} />
-      </> : user ? <>
-        <Row icon="personCircle" iconTint="var(--grey)" title={user.name} subtitle={t('Signed in with passkey — data syncs to this profile.')} />
-        {user.admin && <Row icon="wrench" iconTint="var(--indigo)" title={t('Admin dashboard')} accessory="chevron" onClick={() => nav('/admin')} />}
-        <Row icon="link" iconTint="var(--blue)" title={t('Pair the mobile app')} subtitle={t('Connect the OlyGym app on your phone to this account.')} accessory="chevron"
-          onClick={() => useUI.getState().openSheet(close => <PairSheet close={close} />)} />
-        <Row icon="signOut" iconTint="var(--red)" title={t('Sign out')} danger onClick={() => confirmSheet({ title: t('Sign out?'), message: t('Your data is synced to your profile first, then cleared from this device.'), confirmText: t('Sign out'), danger: true, onConfirm: () => { signOut(); nav('/home') } })} />
-        <Row icon="shield" iconTint="var(--red)" title={t('Sign out everywhere')} subtitle={t('Ends this profile’s sessions on all your devices.')} danger onClick={signOutEverywhere} />
-      </> : webauthnOK() ? <>
-        <Row icon="sparkles" iconTint="var(--acc)" title={t('Create passkey profile')} subtitle={t('Keeps your data safe and separate per person.')} accessory="chevron" onClick={registerHere} />
-        <Row icon="person" iconTint="var(--blue)" title={t('Sign in with passkey')} accessory="chevron" onClick={signInHere} />
-      </> : (
-        <Row icon="lock" iconTint="var(--grey)" title={t('Passkeys not supported in this browser.')} />
-      )}
-    </Section>
-    {!user && !DEMO && !MOBILE && <p className="sect-f" style={{ marginTop: -18, marginBottom: 22 }}>{t('Guest mode — data lives only in this browser.')}</p>}
-
     {/* ---------- general ---------- */}
-    <Section title={t('General')} footer={t('Switching the unit offers to convert every stored weight.')}>
+    <Section title={t('General')}>
       <SelectRow
         icon="globe" iconTint="var(--blue)" title={t('Language')}
         value={S.lang || 'en'} onChange={v => update(s => { s.lang = v })}
@@ -232,11 +155,6 @@ export default function Settings() {
           subtitle: INSTR_LANGS.includes(k) ? null : t("Exercise instructions aren't available in this language yet — they stay in English."),
         }))}
       />
-      <Row icon="scale" iconTint="var(--teal)" title={t('Weight unit')}>
-        <Segmented className="seg-inline"
-          options={[{ value: 'kg', label: 'kg' }, { value: 'lb', label: 'lb' }]}
-          value={S.unit} onChange={v => switchUnit(v)} />
-      </Row>
       {/* Display only: one decimal reads fine for plate-loadable numbers, two for anyone whose
           per-side figure lands on .25 or .75, or who loads microplates (issue #139). Nothing is
           stored or rounded differently — lib/format.js fmtNum just prints what is already there. */}
@@ -252,11 +170,7 @@ export default function Settings() {
           options={[{ value: MONDAY, label: t('Monday') }, { value: SUNDAY, label: t('Sunday') }]}
           value={weekStartOf(S)} onChange={v => update(s => { s.weekStart = v })} />
       </Row>
-      {/* Membership QR codes on Home (views/CheckIn.jsx); off = no Home card, no route. */}
-      <Row icon="qr" iconTint="var(--blue)" title={t('Gym check-in')}
-        subtitle={t('Show a card on Home with your membership QR codes.')}>
-        <Switch checked={S.checkIn !== false} onChange={v => update(s => { s.checkIn = v })} />
-      </Row>
+
     </Section>
 
     {/* ---------- during a workout ---------- */}
@@ -285,12 +199,6 @@ export default function Settings() {
       <SelectRow icon="timer" iconTint="var(--orange)" title={t('Rest timer')}
         value={S.restSec} onChange={v => update(s => { s.restSec = v })}
         options={[{ value: 0, label: t('Off') }, ...[60, 90, 120, 150, 180].map(v => ({ value: v, label: v + 's' }))]} />
-      {/* Default for a rest-pause burst added live on a plain set — a planned exercise's own
-          "Rest (s)" (in its Intensifier config) overrides this, same as the main rest timer
-          is the fallback whenever an exercise has no progression rule of its own. */}
-      <SelectRow icon="bolt" iconTint="var(--acc)" title={t('Rest-pause rest')}
-        value={S.restPauseSec} onChange={v => update(s => { s.restPauseSec = v })}
-        options={[10, 15, 20, 30].map(v => ({ value: v, label: v + 's' }))} />
       {(wakeOK || !MOBILE) && (
         <Row icon="sun" iconTint="var(--yellow)" title={t('Keep screen awake')}
           subtitle={wakeOK ? null : t('Not supported in this browser.')}>
@@ -344,13 +252,13 @@ export default function Settings() {
       </Row>
     </Section>
 
-    {(user || MOBILE) && <NotificationsCard S={S} update={update} toast={toast} />}
+    {MOBILE && <MobileReminderCard S={S} update={update} toast={toast} />}
 
     {/* ---------- equipment ---------- */}
     <EquipmentCard S={S} update={update} />
 
     {/* ---------- appearance ---------- */}
-    <Section title={t('Appearance')} footer={DEMO || MOBILE ? undefined : t('synced with your profile')}>
+    <Section title={t('Appearance')}>
       <Row icon="moon" iconTint="var(--indigo)" title={t('Theme')}>
         <Segmented
           className="seg-inline"
@@ -386,12 +294,6 @@ export default function Settings() {
     {/* ---------- data: fill it, bring things over, back it up, wipe it ---------- */}
     <Section title={t('Data')}>
       <Row icon="sparkles" iconTint="var(--acc)" title={t('Load starter plan')} accessory="chevron" onClick={starterPlanSheet} />
-      <Row icon="shuffle" iconTint="var(--teal)" title={t('Import from another app')}
-        subtitle={t('FitNotes, Strong, Hevy — or body weight from Apple Health')}
-        accessory="chevron" onClick={() => importRef.current.click()} />
-      <Row icon="key" iconTint="var(--teal)" title={t('Import from Hevy')}
-        subtitle={t('Pull your history with a Hevy Pro API key')}
-        accessory="chevron" onClick={importFromHevy} />
       <Row icon="upload" iconTint="var(--teal)" title={t('Import a coach’s plan')}
         subtitle={t('An Excel, CSV or Google Sheets week: his exercises, sets, reps and loads, read and reviewed before they land in your plan')}
         accessory="chevron" onClick={() => coachRef.current.click()} />
@@ -407,9 +309,6 @@ export default function Settings() {
       <Row icon="trash" iconTint="var(--red)" title={t('Reset everything')} danger onClick={resetEverything} />
     </Section>
     <input ref={fileRef} type="file" accept=".json,application/json" style={{ display: 'none' }} onChange={doImport} />
-    {/* Reset after reading so picking the same file twice still fires onChange. */}
-    <input ref={importRef} type="file" accept=".csv,.xml,text/csv,text/xml" style={{ display: 'none' }}
-      onChange={ev => { const f = ev.target.files[0]; if (f) importFromApp(f); ev.target.value = '' }} />
     <input ref={coachRef} type="file" accept=".xlsx,.csv" style={{ display: 'none' }}
       onChange={ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) importCoachPlan(f) }} />
 
@@ -417,7 +316,7 @@ export default function Settings() {
     {!MOBILE && <Section title={t('Tip')}>
       <Row icon="lightbulb" iconTint="var(--yellow)"
         title={IS_ANDROID ? t('In Chrome: ⋮ menu → Add to Home screen') : t('In Safari: Share → Add to Home Screen')}
-        subtitle={t('to install OlyGym as a full-screen app.') + ' ' + (user ? t('Your data syncs with your profile — sign in anywhere to see it.') : t('Guest data stays on this device — export a backup now and then!'))} />
+        subtitle={t('to install OlyGym as a full-screen app.') + ' ' + t('Guest data stays on this device — export a backup now and then!')} />
     </Section>}
 
     {/* ---------- updates: the last thing on the page, so keeping OlyGym current is one tap ----------
@@ -477,9 +376,6 @@ function WorkoutControlsSheet() {
       <Row icon="plus" iconTint="var(--acc)" title={t('Weight and reps buttons')} subtitle={t('Off: tap the number and type it')}>
         <Switch checked={wc.steppers} onChange={v => set('steppers', v)} />
       </Row>
-      <Row icon="bolt" iconTint="var(--orange)" title={t('Drop and burst shortcuts on every set')}>
-        <Switch checked={wc.setShortcuts} onChange={v => set('setShortcuts', v)} />
-      </Row>
       <Row icon="link" iconTint="var(--blue)" title={t('Complex buttons in the exercise header')}>
         <Switch checked={wc.pairButtons} onChange={v => set('pairButtons', v)} />
       </Row>
@@ -535,15 +431,10 @@ function effortHelpSheet() {
     </div>
     <div className="dim small" style={{ lineHeight: 1.5, display: 'grid', gap: 8 }}>
       <div>{t('RIR counts the reps you left; RPE reads the same effort off a 10-point scale — so RPE ≈ 10 − RIR. Pick the one you already think in.')}</div>
-      <div>{t('The highlighted row is where most working sets land. Sets you have already logged keep their own scale, and nothing else reads the value — progression and estimated 1RM are unaffected.')}</div>
+      <div>{t('The highlighted row is where most working sets land. Sets you have already logged keep their own scale, and nothing else reads the value — progression is unaffected.')}</div>
     </div>
     <div style={{ height: 8 }} />
   </>)
-}
-
-function NotificationsCard({ S, update, toast }) {
-  if (MOBILE) return <MobileReminderCard S={S} update={update} toast={toast} />
-  return <PushCard S={S} update={update} toast={toast} />
 }
 
 // Mobile build: the reminder is a native local notification scheduled on planned weekdays —
@@ -573,70 +464,6 @@ function MobileReminderCard({ S, update, toast }) {
       )}
     </Section>
   )
-}
-
-function PushCard({ S, update, toast }) {
-  const [on, setOn] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const supported = pushSupported()
-
-  // "On" means the server holds this browser's subscription, not merely that the browser has
-  // one: a row the instance dropped (dead send, rebuilt db.json) left the switch on with nothing
-  // ever arriving. syncPushSubscription re-registers on the way; if the server cannot be asked
-  // (offline), the browser's side is the best answer available.
-  useEffect(() => {
-    if (!supported) return
-    let gone = false
-    syncPushSubscription()
-      .then(ok => { if (!gone) setOn(ok) })
-      .catch(() => navigator.serviceWorker.ready.then(reg => reg.pushManager.getSubscription()).then(sub => { if (!gone) setOn(!!sub) }).catch(() => {}))
-    return () => { gone = true }
-  }, [supported])
-
-  const toggle = async v => {
-    setBusy(true)
-    try {
-      if (!v) { await disablePush(); setOn(false); toast(t('Notifications off')) }
-      else { await enablePush(); setOn(true); toast(t('Notifications on')) }
-    } catch (e) { toast(e.message || t('Could not change notification settings')) }
-    setBusy(false)
-  }
-  const test = async () => {
-    try { await sendTestPush(); toast(t('Test sent — should arrive any second')) }
-    catch (e) { toast(e.message || t('Test failed')) }
-  }
-
-  if (!supported) return (
-    <Section title={t('Notifications')}>
-      <Row icon="bellSlash" iconTint="var(--grey)" title={t('Not supported in this browser.')} />
-    </Section>
-  )
-
-  return <>
-    <Section
-      title={t('Notifications')}
-      footer={on && S.reminder?.on
-        ? t("Only sent on days you have a routine planned and haven't logged a workout yet.") +
-          (S.reminder?.tz ? ' ' + t('Timezone: {0} (auto-detected, updates if you travel).', S.reminder.tz) : '')
-        : null}
-    >
-      <Row icon="bell" iconTint="var(--red)" title={t('Push notifications')} subtitle={t('Rest-timer alerts, even if OlyGym is closed.')}>
-        <Switch checked={on} disabled={busy} onChange={toggle} />
-      </Row>
-      {on && (
-        <Row icon="calendar" iconTint="var(--orange)" title={t('Workout day reminder')}>
-          <Switch checked={!!S.reminder?.on} onChange={() => update(s => { s.reminder = { ...(s.reminder || DEF.reminder), on: !s.reminder?.on, tz: localTZ() } })} />
-        </Row>
-      )}
-      {on && S.reminder?.on && (
-        <Row icon="clock" iconTint="var(--purple)" title={t('Reminder time')}>
-          <input type="time" className="timef" value={S.reminder?.time || DEF.reminder.time}
-            onChange={e => update(s => { s.reminder = { ...(s.reminder || DEF.reminder), time: e.target.value, tz: localTZ() } })} />
-        </Row>
-      )}
-    </Section>
-    {on && <div style={{ marginTop: -12, marginBottom: 22 }}><Button size="sm" icon="bell" onClick={test}>{t('Send test notification')}</Button></div>}
-  </>
 }
 
 // Equipment profiles ("Home", "Gym", ...) — each an id/name/eq-list; the active one filters
@@ -670,56 +497,4 @@ function EquipmentCard({ S, update }) {
   </Section>
 }
 
-// Lets the mobile app's "connect to my server" mode (lib/remote.js) authenticate without a
-// WebAuthn ceremony of its own — the code is minted here, from an already signed-in session,
-// and redeemed by the app for a bearer token. See /api/pair/create in api/server.js.
-function PairSheet({ close }) {
-  const [code, setCode] = useState(null)
-  const [err, setErr] = useState(null)
-  useEffect(() => { api('/api/pair/create', { method: 'POST', body: '{}' }).then(r => setCode(r.code)).catch(e => setErr(e.message || t('Could not generate a code'))) }, [])
-  return <>
-    <h3>{t('Pair the mobile app')}</h3>
-    <div className="muted small" style={{ marginBottom: 14 }}>
-      {t('On the OlyGym app, choose “Connect to my server”, then enter this address and the code below. It expires in 5 minutes.')}
-    </div>
-    {err ? <div className="dim small">{err}</div> : (
-      <div className="card" style={{ textAlign: 'center', fontSize: 30, fontWeight: 700, letterSpacing: '.16em', padding: '18px 0' }}>
-        {code || '········'}
-      </div>
-    )}
-    <div style={{ height: 12 }} />
-    <Button onClick={close}>{t('Done')}</Button>
-  </>
-}
 
-// The same registration as the sign-in screen's, reached from Settings instead. It asks for
-// the invite code on the same terms: an invite-only instance rejects a registration without
-// one, so a form that cannot collect it is a form that cannot succeed.
-function RegisterInline({ close, setUser, pushState, pullState, toast }) {
-  const nameRef = useRef(null)
-  const [code, setCode] = useState('')
-  const [inviteOnly, setInviteOnly] = useState(false)
-  useEffect(() => { api('/api/config').then(c => setInviteOnly(!!c.invite_only)).catch(() => {}) }, [])
-  const go = async () => {
-    const n = (nameRef.current.value || '').trim()
-    if (!n) { toast(t('Enter a name')); return }
-    if (inviteOnly && !code.trim()) { toast(t('An invite code is required')); return }
-    try {
-      const u = await passkeyRegister(n, code.trim()); setUser(u); close()
-      if (hasData(useStore.getState().S)) { await pushState(); toast(t('Profile created — data moved into it')) }
-      else { await pullState(); toast(t('Welcome, {0}', u.name)) }
-    } catch (e) { if (e.name !== 'NotAllowedError' && e.name !== 'AbortError') toast(e.message || t('Registration failed')) }
-  }
-  return <>
-    <h3>{t('Create your profile')}</h3>
-    <div className="muted small" style={{ marginBottom: 14 }}>{t('Pick a name, then confirm with your device.')}</div>
-    <TextField ref={nameRef} placeholder={t('Your name')} maxLength={40} />
-    {inviteOnly && <>
-      <div style={{ height: 10 }} />
-      <input className="input" placeholder={t('Invite code')} maxLength={40} value={code}
-        onChange={e => setCode(e.target.value.toUpperCase())} style={{ letterSpacing: '.14em', fontWeight: 600, textAlign: 'center' }} />
-      <div className="dim small" style={{ marginTop: 6 }}>{t('This app is invite-only — enter the code you were given.')}</div>
-    </>}
-    <div style={{ height: 12 }} /><Button variant="primary" onClick={go}>{t('Create passkey')}</Button>
-  </>
-}

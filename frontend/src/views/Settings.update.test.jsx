@@ -39,10 +39,6 @@ vi.mock('../store/useUI.js', () => {
   return { useUI }
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
-vi.mock('../lib/api.js', () => ({
-  api: vi.fn(), webauthnOK: () => false, passkeyLogin: vi.fn(), passkeyRegister: vi.fn(), IS_ANDROID: false,
-}))
-vi.mock('../lib/push.js', () => ({ pushSupported: () => false, enablePush: vi.fn(), disablePush: vi.fn(), sendTestPush: vi.fn() }))
 vi.mock('../lib/wakelock.js', () => ({ wakeLockSupported: () => false }))
 // MOBILE is read at render time through a getter so one module mock serves both builds.
 vi.mock('../lib/mobile.js', () => ({
@@ -54,10 +50,9 @@ vi.mock('../lib/update.js', () => ({
   checkForUpdate: (...a) => mocks.checkForUpdate(...a),
   downloadAndInstall: vi.fn(),
 }))
-vi.mock('./MobileOnboarding.jsx', () => ({ ConnectSheet: () => null }))
 vi.mock('../sheets.jsx', () => ({
-  starterPlanSheet: vi.fn(), confirmSheet: (...a) => mocks.confirmSheet(...a), importFromApp: vi.fn(),
-  importFromHevy: vi.fn(), equipmentProfileSheet: vi.fn(), menuSheet: vi.fn(), importCoachPlanFromDrive: vi.fn(),
+  starterPlanSheet: vi.fn(), confirmSheet: (...a) => mocks.confirmSheet(...a),
+  equipmentProfileSheet: vi.fn(), menuSheet: vi.fn(), importCoachPlanFromDrive: vi.fn(),
 }))
 
 globalThis.__APP_VERSION__ ??= 'test'
@@ -65,7 +60,7 @@ globalThis.__APP_VERSION__ ??= 'test'
 let host, root
 beforeEach(() => {
   mocks.S = {
-    unit: 'kg', restSec: 90, restPauseSec: 15, sound: false, effort: 'none',
+    unit: 'kg', restSec: 90, sound: false, effort: 'none',
     gifSize: 'full', workouts: [], routines: [], exWeights: {},
   }
   mocks.MOBILE = false

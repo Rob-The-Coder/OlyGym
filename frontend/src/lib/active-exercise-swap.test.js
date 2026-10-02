@@ -9,7 +9,7 @@ const entry = (id, { sg, done = false, target, sets } = {}) => ({
 })
 
 const replacement = () => entry('incline', {
-  target: { mode: 'reps', sets: 2, reps: 8, weight: 32.5, note: 'Keep elbows tucked.', intensifier: { type: 'dropset', count: 1, pct: 20 } },
+  target: { mode: 'reps', sets: 2, reps: 8, weight: 32.5, note: 'Keep elbows tucked.' },
   sets: [{ w: 32.5, r: 8, done: false }, { w: 32.5, r: 8, done: false }]
 })
 

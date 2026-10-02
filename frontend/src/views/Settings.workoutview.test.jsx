@@ -33,16 +33,11 @@ vi.mock('../store/useUI.js', () => {
   return { useUI }
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
-vi.mock('../lib/api.js', () => ({
-  api: vi.fn(), webauthnOK: () => false, passkeyLogin: vi.fn(), passkeyRegister: vi.fn(), IS_ANDROID: false,
-}))
-vi.mock('../lib/push.js', () => ({ pushSupported: () => false, enablePush: vi.fn(), disablePush: vi.fn(), sendTestPush: vi.fn() }))
 vi.mock('../lib/wakelock.js', () => ({ wakeLockSupported: () => false }))
 vi.mock('../lib/mobile.js', () => ({ MOBILE: false, isAndroid: () => Promise.resolve(false), shareExport: vi.fn(), syncReminder: vi.fn() }))
-vi.mock('./MobileOnboarding.jsx', () => ({ ConnectSheet: () => null }))
 vi.mock('../sheets.jsx', () => ({
-  loadStarterPlan: vi.fn(), starterPlanSheet: vi.fn(), confirmSheet: vi.fn(), importFromApp: vi.fn(),
-  importFromHevy: vi.fn(), equipmentProfileSheet: vi.fn(), importCoachPlanFromDrive: vi.fn(),
+  loadStarterPlan: vi.fn(), starterPlanSheet: vi.fn(), confirmSheet: vi.fn(),
+  equipmentProfileSheet: vi.fn(), importCoachPlanFromDrive: vi.fn(),
 }))
 
 // The Settings view reads the build-time version constant at render time.
@@ -51,7 +46,7 @@ globalThis.__APP_VERSION__ ??= 'test'
 let host, root
 beforeEach(() => {
   mocks.S = {
-    unit: 'kg', restSec: 90, restPauseSec: 15, sound: false, effort: 'none',
+    unit: 'kg', restSec: 90, sound: false, effort: 'none',
     gifSize: 'full', workouts: [], routines: [], exWeights: {},
   }
   host = document.createElement('div')

@@ -5,7 +5,6 @@
 // references it.
 export const WC_DEFAULT = Object.freeze({
   steppers: true,         // +/- buttons on every weight/reps/effort field
-  setShortcuts: false,    // "+ Drop" / "+ Burst" chips on every set and the warm-up/remove/add row
   pairButtons: false,     // "Make superset with previous/next" in the exercise header
   exerciseButtons: false, // Move up/down, Swap, Remove exercise below the exercise
 })
