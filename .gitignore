@@ -28,6 +28,10 @@ node_modules
 .claude/
 .agents/
 
+# graphify's local knowledge graph and its ignore file (regenerated on every run, never published)
+graphify-out/
+.graphifyignore
+
 # CI reports (test:* jobs write these next to the suites)
 junit.xml
 coverage/
