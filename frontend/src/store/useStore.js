@@ -30,7 +30,7 @@ export const DEF = {
   workoutView: 'cards',
   // Which controls the workout screen shows besides the sets themselves. The default is the
   // lean layout: one "more" button per exercise and a menu on each set number. Every switch
-  // brings one of the old always-visible button groups back (Settings → During a workout).
+  // brings one of the old always-visible button groups back (Settings → Workout).
   wc: { ...WC_DEFAULT },
   // effort: which per-set effort scale is logged — 'none' | 'rir' | 'rpe'. null, not 'none', so
   // that a profile which never chose (loaded state is overlaid on DEF, on every path) still falls

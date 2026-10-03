@@ -301,7 +301,6 @@ export default {
   'System': 'Sistema',
   'Accent color': 'Colore accento',
   'General': 'Generale',
-  'During a workout': 'Durante l’allenamento',
   'Keep screen awake': 'Mantieni lo schermo acceso',
   'The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.': 'Lo schermo resta acceso mentre un allenamento è in corso, così non devi sbloccare il telefono tra una serie e l’altra.',
   'Weight unit': 'Unità di peso',

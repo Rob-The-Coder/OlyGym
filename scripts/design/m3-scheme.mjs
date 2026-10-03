@@ -176,6 +176,17 @@ const block = (selector, s, indent = '  ') => {
     + '\n' + indent + '--acc: var(--m3-primary); --on-acc: var(--m3-on-primary); --red: var(--m3-error);\n}'
 }
 
+/* Every accent's primary as the *current* theme paints it. The per-accent blocks below only
+   apply to the accent that is on, so a picker showing all eight needs its own variables — and
+   they have to come from here, or the swatch would disagree with the filled button it previews. */
+export function accentSwatchSection() {
+  const rows = theme => Object.entries(SEEDS)
+    .map(([key, seed]) => '  --m3-accent-' + key.padEnd(7) + ': ' + scheme(seed, theme).primary + ';')
+    .join('\n')
+  return '/* the picker: each accent primary, dark and light */\n:root {\n' + rows('dark') + '\n}\n'
+    + ':root[data-theme="light"] {\n' + rows('light') + '\n}'
+}
+
 export function colourSection() {
   const defaultScheme = { light: scheme(SEEDS[DEFAULT_ACCENT], 'light'), dark: scheme(SEEDS[DEFAULT_ACCENT], 'dark') }
   const parts = []
@@ -183,8 +194,9 @@ export function colourSection() {
   parts.push('/* The default is the M3 baseline purple (' + SEEDS[DEFAULT_ACCENT] + '). Every other accent re-declares')
   parts.push('   the same roles, so a scheme is always complete: swap --acc and the whole UI follows. */')
   parts.push('')
-  parts.push(':root ' + block('', defaultScheme.dark).replace(/^\{/, '{').replace(/\n\}/, '\n}').replace('{\n', '{\n').replace('}', '}').replace('^', ''))
-  parts.push(':root[data-theme="light"] ' + block('', defaultScheme.light).trimStart())
+  parts.push(':root ' + block('', defaultScheme.dark))
+  parts.push(':root[data-theme="light"] ' + block('', defaultScheme.light))
+  parts.push(accentSwatchSection())
   for (const [key, seed] of Object.entries(SEEDS)) {
     parts.push(':root[data-accent="' + key + '"] ' + block('', scheme(seed, 'dark')).trimStart())
   }

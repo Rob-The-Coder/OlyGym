@@ -31,6 +31,21 @@ describe('the token file', () => {
   it('ships a scheme for every accent in the picker', () => {
     expect(accentKeys.length).toBeGreaterThanOrEqual(8)
   })
+
+  it('gives the picker a primary for every accent, in both themes', () => {
+    // The swatches read --m3-accent-<key> so the dot is the colour a filled button will be. A
+    // seed added to ACCENTS without re-running scripts/design/m3-scheme.mjs would leave a
+    // transparent swatch, which is exactly the kind of thing nobody notices until they pick it.
+    const format = readFileSync(resolve(process.cwd(), 'src/lib/format.js'), 'utf8')
+    const keys = [...format.match(/export const ACCENTS = \{([^}]*)\}/)[1].matchAll(/([a-z]+):/g)].map(m => m[1])
+    expect(keys.length).toBeGreaterThanOrEqual(8)
+    const dark = resolveCustomProperties(darkVars)
+    const light = resolveCustomProperties(lightVars)
+    for (const key of keys) {
+      expect(dark['--m3-accent-' + key], 'dark: --m3-accent-' + key).toMatch(/^#[0-9a-f]{6}$/i)
+      expect(light['--m3-accent-' + key], 'light: --m3-accent-' + key).toMatch(/^#[0-9a-f]{6}$/i)
+    }
+  })
 })
 
 describe.each(schemes.map(([name, vars]) => [name, resolveCustomProperties(vars)]))('the %s scheme', (name, t) => {

@@ -119,6 +119,27 @@
   --m3-on-error-container       : #410E0B;
   --acc: var(--m3-primary); --on-acc: var(--m3-on-primary); --red: var(--m3-error);
 }
+/* the picker: each accent primary, dark and light */
+:root {
+  --m3-accent-lime   : #87d992;
+  --m3-accent-sky    : #bfc1ff;
+  --m3-accent-teal   : #82d4d3;
+  --m3-accent-violet : #d2bbff;
+  --m3-accent-pink   : #ffb0c9;
+  --m3-accent-red    : #ffb4a5;
+  --m3-accent-orange : #ffb77b;
+  --m3-accent-gold   : #edc06c;
+}
+:root[data-theme="light"] {
+  --m3-accent-lime   : #156d2f;
+  --m3-accent-sky    : #0756cf;
+  --m3-accent-teal   : #006a6a;
+  --m3-accent-violet : #6750a4;
+  --m3-accent-pink   : #984061;
+  --m3-accent-red    : #b4271f;
+  --m3-accent-orange : #904d01;
+  --m3-accent-gold   : #7a5900;
+}
 :root[data-accent="lime"] {
   --m3-surface                  : #0e150e;
   --m3-surface-container-low    : #171d18;

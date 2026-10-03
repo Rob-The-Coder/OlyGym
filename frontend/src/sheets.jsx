@@ -938,7 +938,12 @@ function EffortPicker({ kind, value, onPick, close }) {
   // tinted like the logged cell in the set row, so the sheet and the row read as one thing.
   return <>
     <h3 style={{ marginBottom: 2 }}>{t('How hard was that set?')}</h3>
-    <div className="muted small" style={{ marginBottom: 10 }}>{t('Tap how many reps you had left, or type an exact {0}.', hd)}</div>
+    <div className="muted small">{t('Tap how many reps you had left, or type an exact {0}.', hd)}</div>
+    {/* The (i) that used to sit in the Settings row lives here now: this is where the choice is
+        actually made, and a value row cannot hold a second button inside itself. */}
+    <button className="helpbtn" style={{ margin: '2px 0 10px' }} onClick={effortHelpSheet}>
+      <Icon name="info" /> {t('What are RIR and RPE?')}
+    </button>
     <div className="list menu-list effpick">
       {EFFORT_PRESETS.map(p => {
         const label = fmtNum(toScale(kind, p.rir)) + (p.tail ? '+' : '')
@@ -968,6 +973,41 @@ function EffortPicker({ kind, value, onPick, close }) {
     <div style={{ height: 4 }} />
   </>
 }
+// The two scales are one judgement counted from opposite ends, and a paragraph is a bad way to
+// say that — the table shows it in one look, and reading down a column answers "what do I put
+// here". Opened from the picker above; it used to hang off the Settings row.
+const EFFORT_ROWS = [
+  ['0', '10', 'Nothing left — went to failure'],
+  ['1', '9', 'One more rep in the tank'],
+  ['2', '8', 'Two more reps'],
+  ['3', '7', 'Three more reps'],
+  ['4+', '≤6', 'Easy — warm-up territory'],
+]
+// RIR 2 / RPE 8: the row a working set usually lands on — the anchor the others are read against.
+const EFFORT_TYPICAL = 2
+
+export function effortHelpSheet() {
+  ui().openSheet(close => <>
+    <h3>{t('Effort per set')}</h3>
+    <div className="muted small" style={{ lineHeight: 1.5 }}>
+      {t('How hard a set was, logged next to weight and reps. Two scales for the same judgement, counted from opposite ends.')}
+    </div>
+    <div className="efftbl">
+      <div className="r hd"><span className="n">{t('RIR')}</span><span className="n">{t('RPE')}</span><span className="f">{t('How it felt')}</span></div>
+      {EFFORT_ROWS.map(([rir, rpe, feel], i) => (
+        <div key={rir} className={'r' + (i === EFFORT_TYPICAL ? ' on' : '')}>
+          <span className="n">{rir}</span><span className="n">{rpe}</span><span className="f">{t(feel)}</span>
+        </div>
+      ))}
+    </div>
+    <div className="dim small" style={{ lineHeight: 1.5, display: 'grid', gap: 8 }}>
+      <div>{t('RIR counts the reps you left; RPE reads the same effort off a 10-point scale — so RPE ≈ 10 − RIR. Pick the one you already think in.')}</div>
+      <div>{t('The highlighted row is where most working sets land. Sets you have already logged keep their own scale, and nothing else reads the value — progression is unaffected.')}</div>
+    </div>
+    <div style={{ height: 8 }} />
+  </>, { })
+}
+
 // kind is 'rir' | 'rpe'; value is the set's current rating on that scale (or null); onPick
 // receives the new value on that same scale (null to clear). The caller stores it exactly as
 // weight/reps are stored — a null drops the key rather than writing a zero.
@@ -1240,7 +1280,7 @@ export function WorkoutRow({ w, onClick }) {
 // `day` is a day object from the dated weeks (S.weeks[].days), or null for an explicit freestyle
 // session. A day holds the whole session, so there is nothing to merge and no per-entry routine.
 export function startFlow(day) {
-  // The weigh-in is a setting (Settings → During a workout, issue #137): off goes straight
+  // The weigh-in is a setting (Settings → Workout, issue #137): off goes straight
   // into the session with no body weight on it, same as "Start without weighing in".
   if (S().weighIn === false) { beginWorkout(day, null); return }
   bwSheet({ required: true, onDone: bw => beginWorkout(day, bw) })

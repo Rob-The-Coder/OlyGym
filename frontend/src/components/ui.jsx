@@ -306,7 +306,7 @@ export function Row({ icon, title, subtitle, value, accessory = 'none', onClick,
 // theme entirely — on dark mode it flashes a white sheet — and can't show more
 // than a bare label per option. This opens our own sheet with a checkmark on the
 // current value, which is also how iOS itself handles a long option list.
-export function SelectRow({ icon, title, value, options, onChange, sheetTitle, stackedValue = false, search }) {
+export function SelectRow({ icon, title, value, options, onChange, sheetTitle, stackedValue = false, search, children }) {
   const cur = options.find(o => o.value === value)
   const open = () => {
     const { openSheet } = require_ui()
@@ -316,7 +316,7 @@ export function SelectRow({ icon, title, value, options, onChange, sheetTitle, s
   }
   return (
     <Row icon={icon} title={title} value={cur ? cur.label : value} accessory="chevron" onClick={open}
-      className={stackedValue ? 'lrow-stack-value' : ''} />
+      className={stackedValue ? 'lrow-stack-value' : ''}>{children}</Row>
   )
 }
 

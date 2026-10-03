@@ -446,7 +446,7 @@ function ActiveWorkout() {
   const unitIdx = units.findIndex(u => u === unit)
   const isSuperset = unit.length > 1
   // Cards show one unit at a time with Prev/Next + swipe; list and compact stack every unit so
-  // the whole session is visible and scrollable (Settings → During a workout → Workout view,
+  // the whole session is visible and scrollable (Settings → Workout → Workout view,
   // seeded onto s.active and overridable for this session from the header ⋮). compact is list
   // with the per-exercise media, tag chips, note lines, "last time" and progression line
   // stripped — just names and set rows. Every set handler below is already entry-index
@@ -682,7 +682,7 @@ function ActiveWorkout() {
   // keep operating on it, and completing sets still advances it on its own.
   const focusUnit = firstIdx => update(s => { if (s.active) s.active.cur = firstIdx })
   // The header ⋮ re-lays-out the running session without touching the saved default
-  // (Settings → During a workout → Workout view). It writes s.active.workoutView, which the
+  // (Settings → Workout → Workout view). It writes s.active.workoutView, which the
   // render above prefers over S.workoutView.
   const setWorkoutView = v => update(s => { if (s.active) s.active.workoutView = v })
   const LAYOUT_LABEL = { cards: t('Cards'), list: t('List'), compact: t('Compact') }

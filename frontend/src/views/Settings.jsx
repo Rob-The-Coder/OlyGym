@@ -4,7 +4,7 @@ import { useStore, DEF } from '../store/useStore.js'
 import { workoutControls } from '../lib/workout-controls.js'
 import { videoMode } from '../lib/video.js'
 import { useUI } from '../store/useUI.js'
-import { ACCENTS, todayISO, localTZ, weekStartOf, MONDAY, SUNDAY } from '../lib/format.js'
+import { ACCENTS, DEFAULT_ACCENT, todayISO, localTZ, weekStartOf, MONDAY, SUNDAY } from '../lib/format.js'
 import { effortOf } from '../lib/history.js'
 import { unlock, playOnSilentSupported } from '../lib/sound.js'
 import { wakeLockSupported } from '../lib/wakelock.js'
@@ -174,7 +174,7 @@ export default function Settings() {
     </Section>
 
     {/* ---------- during a workout ---------- */}
-    <Section title={t('During a workout')} footer={wakeOK ? t('The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.') : null}>
+    <Section title={t('Workout')} footer={wakeOK ? t('The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.') : null}>
       {/* The quick weigh-in that opens on Start (sheets.jsx startFlow, issue #137); off skips straight
           to the session. Home and Stats still log weight by hand. */}
       <Row icon="scale" title={t('Weigh in before workouts')}
@@ -184,8 +184,8 @@ export default function Settings() {
       {/* Automatic progression (lib/progression.js policyFor / defaultPolicy). Off is the
           default: the weight on the plan is the weight on the bar, and hitting every rep means
           nothing changes until you edit the plan. On restores the linear rule for every exercise
-          whose own rule is still "follow the routine". Built like Effort per set below: the two
-          states are a button group and the (i) carries the reasoning, so the row stays one line.
+          whose own rule is still "follow the routine". The two states stay a button group with
+          the (i) beside them rather than a value row: two options are not worth a tap.
           The arrowUp + accent treatment is the one the workout's .progline already uses for
           "the load went up". */}
       <Row icon="arrowUp" title={t('Automatic progression')}>
@@ -199,12 +199,10 @@ export default function Settings() {
           scrollable list, or that list stripped to just names and set rows (compact).
           Legacy/unknown values read as cards. The running session can override this from
           the workout header's ⋮ menu without changing this default. */}
-      <Row icon="list" title={t('Workout view')}>
-        <Segmented className="seg-inline"
-          options={[{ value: 'cards', label: t('Cards') }, { value: 'list', label: t('List') }, { value: 'compact', label: t('Compact') }]}
-          value={['list', 'compact'].includes(S.workoutView) ? S.workoutView : 'cards'}
-          onChange={v => update(s => { s.workoutView = v })} />
-      </Row>
+      <SelectRow icon="list" title={t('Workout view')}
+        value={['list', 'compact'].includes(S.workoutView) ? S.workoutView : 'cards'}
+        onChange={v => update(s => { s.workoutView = v })}
+        options={[{ value: 'cards', label: t('Cards') }, { value: 'list', label: t('List') }, { value: 'compact', label: t('Compact') }]} />
       {/* The lean workout screen keeps the sets and one "more" button per exercise; each switch
           brings one of the old always-visible button groups back for people who liked them. */}
       <Row icon="wrench" title={t('Workout controls')} accessory="chevron"
@@ -224,21 +222,17 @@ export default function Settings() {
           picture in the workout entirely (library, detail sheet and picker thumbs are unaffected).
           Legacy/unknown values read as 'full'. The key is still called gifSize: renaming it would
           be a state migration for no behaviour. */}
-      <Row icon="figureRun" title={t('Exercise pictures')}>
-        <Segmented className="seg-inline"
-          options={[{ value: 'full', label: t('Full') }, { value: 'mini', label: t('Small') }, { value: 'off', label: t('Hidden') }]}
-          value={S.gifSize === 'mini' || S.gifSize === 'off' ? S.gifSize : 'full'}
-          onChange={v => update(s => { s.gifSize = v })} />
-      </Row>
+      <SelectRow icon="figureRun" title={t('Exercise pictures')}
+        value={S.gifSize === 'mini' || S.gifSize === 'off' ? S.gifSize : 'full'}
+        onChange={v => update(s => { s.gifSize = v })}
+        options={[{ value: 'full', label: t('Full') }, { value: 'mini', label: t('Small') }, { value: 'off', label: t('Hidden') }]} />
       {/* A layer of its own, deliberately not the same setting as the picture above: the frame
           comes from img.youtube.com, the video is an embed. 'On tap' is the default and the
           reason the poster exists at all — nothing is requested from YouTube until you ask. */}
-      <Row icon="play" title={t('Demo videos')}>
-        <Segmented className="seg-inline"
-          options={[{ value: 'off', label: t('Hidden') }, { value: 'button', label: t('On tap') }, { value: 'inline', label: t('Always') }]}
-          value={videoMode(S.video)}
-          onChange={v => update(s => { s.video = v })} />
-      </Row>
+      <SelectRow icon="play" title={t('Demo videos')}
+        value={videoMode(S.video)}
+        onChange={v => update(s => { s.video = v })}
+        options={[{ value: 'off', label: t('Hidden') }, { value: 'button', label: t('On tap') }, { value: 'inline', label: t('Always') }]} />
       <Row icon="bell" title={t('Sounds')}>
         {/* Turning Sounds on is a tap: unlock the audio context now so a timer that ends before
             the next set check can already sound (iOS, #152). */}
@@ -256,14 +250,12 @@ export default function Settings() {
       <Row icon="sun" title={t('Flash screen when timer ends')}>
         <Switch checked={!!S.timerFlash} onChange={v => update(s => { s.timerFlash = v })} />
       </Row>
-      {/* Two names for the same judgement, so the column asks in the scale you already think in.
-          The (i) sits before the control — you read it on the way to the choice, not after it. */}
-      <Row icon="target" title={t('Effort per set')}>
-        <button className="helpbtn" aria-label={t('What are RIR and RPE?')} onClick={effortHelpSheet}><Icon name="info" /></button>
-        <Segmented className="seg-inline"
-          options={[{ value: 'none', label: t('Off') }, { value: 'rir', label: t('RIR') }, { value: 'rpe', label: t('RPE') }]}
-          value={effortOf(S)} onChange={v => update(s => { s.effort = v; delete s.showRir })} />
-      </Row>
+      {/* Two names for the same judgement, so the picker asks in the scale you already think in.
+          The RIR/RPE table moved into that picker (sheets.jsx), where the choice is actually made:
+          a value row cannot hold a second button inside itself. */}
+      <SelectRow icon="target" title={t('Effort per set')}
+        value={effortOf(S)} onChange={v => update(s => { s.effort = v; delete s.showRir })}
+        options={[{ value: 'none', label: t('Off') }, { value: 'rir', label: t('RIR') }, { value: 'rpe', label: t('RPE') }]} />
     </Section>
 
     {MOBILE && <MobileReminderCard S={S} update={update} toast={toast} />}
@@ -297,9 +289,13 @@ export default function Settings() {
       <div className="lrow" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12, paddingTop: 13, paddingBottom: 14 }}>
         <span className="lrow-t">{t('Accent color')}</span>
         <div className="swatches">
-          {Object.entries(ACCENTS).map(([k, c]) => (
-            <button key={k} className={'swatch' + ((S.accent || 'lime') === k ? ' on' : '')}
-              style={{ background: c }} onClick={() => update(s => { s.accent = k })} aria-label={k} />
+          {Object.entries(ACCENTS).map(([k, seed]) => (
+            // The dot is that accent's own primary for the theme that is on — the colour a filled
+            // button will actually be — not the seed hex, which is a tone-40 value that reads muddy
+            // in dark. --m3-accent-* is generated with the schemes; the seed is the fallback.
+            <button key={k} className={'swatch' + ((S.accent || DEFAULT_ACCENT) === k ? ' on' : '')}
+              style={{ background: 'var(--m3-accent-' + k + ', ' + seed + ')' }}
+              onClick={() => update(s => { s.accent = k })} aria-label={k} />
           ))}
         </div>
       </div>
@@ -362,20 +358,6 @@ export default function Settings() {
   </div>
 }
 
-// The whole point is that the two scales are one judgement counted from opposite ends, and a
-// paragraph is a bad way to say that — the conversion table shows it in one look. Reading down
-// a column is the answer to "what do I put here", so the numbers get their own aligned columns.
-const EFFORT_ROWS = [
-  ['0', '10', 'Nothing left — went to failure'],
-  ['1', '9', 'One more rep in the tank'],
-  ['2', '8', 'Two more reps'],
-  ['3', '7', 'Three more reps'],
-  ['4+', '≤6', 'Easy — warm-up territory'],
-]
-// RIR 2 / RPE 8: the row a working set usually lands on — the anchor the others are read
-// against. Not where the stepper starts; + walks up from the bottom of the scale.
-const EFFORT_TYPICAL = 2
-
 // Settings → During a workout → Workout controls. S.wc overlays DEF.wc, so a profile from
 // before this setting existed reads as the lean default.
 function WorkoutControlsSheet() {
@@ -429,31 +411,9 @@ const DownloadProgress = forwardRef(function DownloadProgress(_, ref) {
   )
 })
 
-function effortHelpSheet() {
-  useUI.getState().openSheet(close => <>
-    <h3>{t('Effort per set')}</h3>
-    <div className="muted small" style={{ lineHeight: 1.5 }}>
-      {t('How hard a set was, logged next to weight and reps. Two scales for the same judgement, counted from opposite ends.')}
-    </div>
-    <div className="efftbl">
-      <div className="r hd"><span className="n">{t('RIR')}</span><span className="n">{t('RPE')}</span><span className="f">{t('How it felt')}</span></div>
-      {EFFORT_ROWS.map(([rir, rpe, feel], i) => (
-        <div key={rir} className={'r' + (i === EFFORT_TYPICAL ? ' on' : '')}>
-          <span className="n">{rir}</span><span className="n">{rpe}</span><span className="f">{t(feel)}</span>
-        </div>
-      ))}
-    </div>
-    <div className="dim small" style={{ lineHeight: 1.5, display: 'grid', gap: 8 }}>
-      <div>{t('RIR counts the reps you left; RPE reads the same effort off a 10-point scale — so RPE ≈ 10 − RIR. Pick the one you already think in.')}</div>
-      <div>{t('The highlighted row is where most working sets land. Sets you have already logged keep their own scale, and nothing else reads the value — progression is unaffected.')}</div>
-    </div>
-    <div style={{ height: 8 }} />
-  </>)
-}
-
-// Settings → During a workout → Automatic progression, the (i) beside the button group. The row
-// can only say off or on, so the reasoning lives here, the way effortHelpSheet carries the RIR/RPE
-// table for the row next to it. Everything below has to stay true to lib/progression.js: the step
+// Settings → Workout → Automatic progression, the (i) beside the button group. The row can only
+// say off or on, so the reasoning lives here, the way the effort picker carries the RIR/RPE table.
+// Everything below has to stay true to lib/progression.js: the step
 // (defaultIncrement), the deload (DELOAD_FACTOR / DELOAD_AFTER) and the per-exercise override
 // (policyFor), which is what makes the switch a default rather than a setting that overrules you.
 const PROG_STATES = [
