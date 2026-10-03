@@ -9,7 +9,8 @@ import { bestWeightFor } from '../lib/history.js'
 import { fmtNum } from '../lib/format.js'
 import { t, exerciseNameFor } from '../lib/i18n.js'
 import { Thumb } from '../components/Media.jsx'
-import { exerciseDetailSheet, customExSheet, libraryFilterSheet } from '../sheets.jsx'
+import { exerciseDetailSheet, customExSheet } from '../sheets.jsx'
+import { libraryFilterSheet, FilterBar, AppliedFilters } from '../components/LibraryFilters.jsx'
 import Icon from '../components/Icon.jsx'
 import TopAppBar from '../components/TopAppBar.jsx'
 import { Button } from '../components/ui.jsx'
@@ -65,16 +66,8 @@ export default function Library() {
     {/* Two chip strips used to sit here — one body part, one equipment — with nothing saying which
         was which, and between them they took about 100px before the first exercise. One row and
         one sheet instead, with the count saying what you are looking at. */}
-    <div className="lib-bar">
-      <span className="dim">{t('{0} exercises', f.length)}</span>
-      <button className="chip nocap lib-filters" onClick={openFilters}>
-        {t('Filters')}{applied.length ? ' · ' + applied.length : ''}
-        <Icon name="chevronDown" />
-      </button>
-    </div>
-    {applied.length > 0 && <div className="chips lib-applied">
-      {applied.map(a => <button key={a.key} className="chip on nocap" onClick={a.clear}>{a.label}<Icon name="xmark" /></button>)}
-    </div>}
+    <FilterBar count={f.length} appliedCount={applied.length} onOpen={openFilters} />
+    <AppliedFilters applied={applied} />
 
     <div className="list">
       <div className="item" {...tappable(() => customExSheet(null, ex => exerciseDetailSheet(ex), q.trim()))}>

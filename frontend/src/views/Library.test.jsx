@@ -26,7 +26,9 @@ vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
 // the props is how these tests drive the filter without rendering the sheet itself.
 let filterArgs = null
 vi.mock('../sheets.jsx', () => ({
-  effortHelpSheet: vi.fn(), exerciseDetailSheet: vi.fn(), addToRoutineSheet: vi.fn(), customExSheet: vi.fn(),
+  effortHelpSheet: vi.fn(), exerciseDetailSheet: vi.fn(), addToRoutineSheet: vi.fn(), customExSheet: vi.fn() }))
+vi.mock('../components/LibraryFilters.jsx', async () => ({
+  ...(await vi.importActual('../components/LibraryFilters.jsx')),
   libraryFilterSheet: vi.fn(args => { filterArgs = args }),
 }))
 
