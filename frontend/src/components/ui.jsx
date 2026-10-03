@@ -283,19 +283,37 @@ export function Section({ title, footer, children, className = '' }) {
   )
 }
 
-export function Row({ icon, title, subtitle, value, accessory = 'none', onClick, danger, children, className = '' }) {
+export function Row({ icon, title, subtitle, value, accessory = 'none', onClick, danger, children, help, className = '' }) {
   const Tag = onClick ? 'button' : 'div'
+  // children and help sit between the title and the value, which is where a control in a row has
+  // always gone: [icon] Title (i) Value ›
+  const body = <>
+    {icon && <span className="lrow-i"><Icon name={icon} /></span>}
+    <span className="lrow-m">
+      <span className="lrow-t">{title}</span>
+      {subtitle && <span className="lrow-s">{subtitle}</span>}
+    </span>
+    {children}
+    {help}
+    {value != null && <span className="lrow-v">{value}</span>}
+    {accessory === 'chevron' && <Icon name="chevronRight" className="lrow-c" />}
+    {accessory === 'check' && <Icon name="check" className="lrow-k" />}
+  </>
+  // A row that carries a help button of its own cannot be a button: a button may not contain one,
+  // and a nested button's click would also fire the row. The row becomes a container instead, the
+  // tap target becomes an overlay covering it, and the help keeps its own pointer events above the
+  // overlay. Same look, valid markup, and two real buttons in the tab order.
+  if (help && onClick) {
+    return (
+      <div className={'lrow has-hit tap' + (danger ? ' danger' : '') + ' ' + className}>
+        <button className="lrow-hit" onClick={onClick} aria-label={typeof title === 'string' ? title : undefined} />
+        {body}
+      </div>
+    )
+  }
   return (
     <Tag className={'lrow' + (onClick ? ' tap' : '') + (danger ? ' danger' : '') + ' ' + className} onClick={onClick}>
-      {icon && <span className="lrow-i"><Icon name={icon} /></span>}
-      <span className="lrow-m">
-        <span className="lrow-t">{title}</span>
-        {subtitle && <span className="lrow-s">{subtitle}</span>}
-      </span>
-      {children}
-      {value != null && <span className="lrow-v">{value}</span>}
-      {accessory === 'chevron' && <Icon name="chevronRight" className="lrow-c" />}
-      {accessory === 'check' && <Icon name="check" className="lrow-k" />}
+      {body}
     </Tag>
   )
 }
@@ -306,7 +324,7 @@ export function Row({ icon, title, subtitle, value, accessory = 'none', onClick,
 // theme entirely — on dark mode it flashes a white sheet — and can't show more
 // than a bare label per option. This opens our own sheet with a checkmark on the
 // current value, which is also how iOS itself handles a long option list.
-export function SelectRow({ icon, title, value, options, onChange, sheetTitle, stackedValue = false, search, children }) {
+export function SelectRow({ icon, title, value, options, onChange, sheetTitle, stackedValue = false, search, children, help }) {
   const cur = options.find(o => o.value === value)
   const open = () => {
     const { openSheet } = require_ui()
@@ -316,7 +334,7 @@ export function SelectRow({ icon, title, value, options, onChange, sheetTitle, s
   }
   return (
     <Row icon={icon} title={title} value={cur ? cur.label : value} accessory="chevron" onClick={open}
-      className={stackedValue ? 'lrow-stack-value' : ''}>{children}</Row>
+      className={stackedValue ? 'lrow-stack-value' : ''} help={help}>{children}</Row>
   )
 }
 

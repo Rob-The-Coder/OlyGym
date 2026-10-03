@@ -14,6 +14,7 @@ import Stats from './Stats.jsx'
 
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
 vi.mock('../sheets.jsx', () => ({
+  effortHelpSheet: vi.fn(),
   bwSheet: () => {}, goalSheet: () => {}, calendarSheet: () => {}, workoutDetailSheet: () => {},
   exerciseHistorySheet: () => {}, WorkoutRow: () => React.createElement('div'), bwDeltaColor: () => 'inherit',
 }))

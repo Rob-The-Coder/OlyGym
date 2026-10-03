@@ -11,6 +11,7 @@ import { DEF, useStore } from '../store/useStore.js'
 
 const mocks = vi.hoisted(() => ({ confirmSheet: vi.fn(), complexConfigSheet: vi.fn() }))
 vi.mock('../sheets.jsx', () => ({
+  effortHelpSheet: vi.fn(),
   exercisePicker: vi.fn(), exConfigSheet: vi.fn(), complexConfigSheet: mocks.complexConfigSheet,
   confirmSheet: mocks.confirmSheet,
 }))

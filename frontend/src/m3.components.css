@@ -555,5 +555,13 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
    left for the one case where it means something: a destructive row keeps the error roles,
    M3's fixed error hue, so "Reset everything" is red under every accent. */
 .lrow-i{background:var(--m3-primary-container);color:var(--m3-on-primary-container)}
+
+/* A row with a help button of its own (Effort per set, in Settings). The row cannot be a button,
+   so the tap target is an overlay that covers it and the help sits above the overlay: everything
+   else in the row lets clicks through, and the help keeps its own. */
+.lrow.has-hit{position:relative}
+.lrow-hit{position:absolute;inset:0;width:100%;padding:0;background:none;border:0;z-index:0;cursor:pointer}
+.lrow.has-hit>*:not(.lrow-hit){position:relative;z-index:1;pointer-events:none}
+.lrow.has-hit>.helpbtn{pointer-events:auto;z-index:2}
 .lrow.danger .lrow-i{background:var(--m3-error-container);color:var(--m3-on-error-container)}
 

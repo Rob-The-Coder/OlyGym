@@ -11,7 +11,7 @@ import { wakeLockSupported } from '../lib/wakelock.js'
 import { t, LANGS, INSTR_LANGS } from '../lib/i18n.js'
 import { MOBILE, isAndroid, shareExport, syncReminder } from '../lib/mobile.js'
 import { checkForUpdate, downloadAndInstall, RELEASES_PAGE } from '../lib/update.js'
-import { starterPlanSheet, confirmSheet, importCoachPlan, importCoachPlanFromDrive, equipmentProfileSheet } from '../sheets.jsx'
+import { starterPlanSheet, confirmSheet, importCoachPlan, importCoachPlanFromDrive, equipmentProfileSheet, effortHelpSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Section, Row, SelectRow, Switch, Segmented } from '../components/ui.jsx'
 
@@ -251,11 +251,13 @@ export default function Settings() {
         <Switch checked={!!S.timerFlash} onChange={v => update(s => { s.timerFlash = v })} />
       </Row>
       {/* Two names for the same judgement, so the picker asks in the scale you already think in.
-          The RIR/RPE table moved into that picker (sheets.jsx), where the choice is actually made:
-          a value row cannot hold a second button inside itself. */}
+          The (i) sits before the value, the way it always did: Row renders a row that carries its
+          own help as a container with an overlay tap target, because a button may not contain a
+          button. The same table is also one tap away inside the picker. */}
       <SelectRow icon="target" title={t('Effort per set')}
         value={effortOf(S)} onChange={v => update(s => { s.effort = v; delete s.showRir })}
-        options={[{ value: 'none', label: t('Off') }, { value: 'rir', label: t('RIR') }, { value: 'rpe', label: t('RPE') }]} />
+        options={[{ value: 'none', label: t('Off') }, { value: 'rir', label: t('RIR') }, { value: 'rpe', label: t('RPE') }]}
+        help={<button className="helpbtn" aria-label={t('What are RIR and RPE?')} onClick={effortHelpSheet}><Icon name="info" /></button>} />
     </Section>
 
     {MOBILE && <MobileReminderCard S={S} update={update} toast={toast} />}

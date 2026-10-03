@@ -22,7 +22,8 @@ vi.mock('../store/useStore.js', () => {
   return { useStore }
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
-vi.mock('../sheets.jsx', () => ({ exerciseDetailSheet: vi.fn(), addToRoutineSheet: vi.fn(), customExSheet: vi.fn() }))
+vi.mock('../sheets.jsx', () => ({
+  effortHelpSheet: vi.fn(), exerciseDetailSheet: vi.fn(), addToRoutineSheet: vi.fn(), customExSheet: vi.fn() }))
 
 const mounted = []
 function render() {

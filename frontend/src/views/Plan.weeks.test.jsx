@@ -34,7 +34,8 @@ vi.mock('../store/useStore.js', () => {
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.nav }))
 vi.mock('../lib/mobile.js', () => ({ MOBILE: false, isAndroid: () => Promise.resolve(false), shareExport: vi.fn(), syncReminder: vi.fn() }))
-vi.mock('../sheets.jsx', () => ({ planToolsSheet: vi.fn(), starterPlanSheet: vi.fn() }))
+vi.mock('../sheets.jsx', () => ({
+  effortHelpSheet: vi.fn(), planToolsSheet: vi.fn(), starterPlanSheet: vi.fn() }))
 
 // This week's first day, the anchor `weekFor` and the New week button both work from.
 const monday = () => isoOf(startOfWeek(todayISO(), 1))
