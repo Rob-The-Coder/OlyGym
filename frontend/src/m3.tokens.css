@@ -35,13 +35,56 @@
   --m3-shape-full: 999px;
 }
 
-/* ---- motion: M3 standard / emphasized curves and durations ---------------- */
+/* ---- motion: the curves, and one duration scale --------------------------- */
+/* Five names used to describe three durations and two curves. A private :root
+   halfway down m3.components.css held --m3-dur-spatial (350ms), --m3-dur-enter
+   (400ms) and three curves; this file held a 150/250/400 scale and two more.
+   350ms and 400ms are the same duration to a reader, and --m3-dur-enter was
+   --m3-dur-long written a second time, so both names are gone and the Expressive
+   curves live here with the rest of the scale. --m3-ease-spring-soft is gone
+   too: it was defined and referenced by nothing, which is the one thing a token
+   layer must not carry. */
 :root {
   --m3-ease-standard:   cubic-bezier(.2, 0, 0, 1);
   --m3-ease-emphasized: cubic-bezier(.3, 0, 0, 1);
+  /* A spring with a gentle overshoot — the shape Expressive uses for spatial
+     changes. Too much bounce reads as a toy on a training log, so this is the
+     soft end of the spec. */
+  --m3-ease-spring:     cubic-bezier(.34, 1.32, .64, 1);
+  /* Emphasized decelerate: fast out of the gate, long settle — entrance motion. */
+  --m3-ease-emphasized-decelerate: cubic-bezier(.05, .7, .1, 1);
   --m3-dur-short:  150ms;
   --m3-dur-medium: 250ms;
   --m3-dur-long:   400ms;
+}
+
+/* ---- state layers: one percentage per interaction state ------------------- */
+/* The layer is painted in the container's own on-colour, at the percentage for
+   the state — color-mix(in srgb, var(--m3-on-primary) var(--m3-state-press),
+   var(--m3-primary)). The component sheet used to hand-roll a different value
+   for every family: 10% on chips and rows, 12% on icon buttons and steppers,
+   14% on Home's day strips. The filled button had no layer at all; it brightened
+   itself with a filter, which on the light theme moves the accent toward the
+   page, so pressing it lowered its contrast. */
+:root {
+  --m3-state-hover: 8%;
+  --m3-state-focus: 10%;
+  --m3-state-press: 10%;
+  --m3-state-drag:  16%;
+}
+
+/* ---- elevation: the shadow half ------------------------------------------- */
+/* There is deliberately no tonal ladder here. M3's tonal elevation *is* the
+   surface-container roles above, which the app already paints with everywhere,
+   so a second set of tone tokens would be the same ladder spelled twice. What
+   the roles cannot express is a cast shadow, and that is what separates two
+   surfaces of the same tone on the light theme. Levels follow the spec: 1 sits
+   barely off the page, 3 floats over everything. */
+:root {
+  --m3-shadow-0: none;
+  --m3-shadow-1: 0 1px 2px rgba(0,0,0,.30), 0 1px 3px 1px rgba(0,0,0,.15);
+  --m3-shadow-2: 0 1px 2px rgba(0,0,0,.30), 0 2px 6px 2px rgba(0,0,0,.15);
+  --m3-shadow-3: 0 4px 8px 3px rgba(0,0,0,.15), 0 1px 3px rgba(0,0,0,.30);
 }
 
 /* ---- the app's own names, defined by the roles above ---------------------- */
@@ -59,6 +102,10 @@
   --label-2: var(--m3-on-surface-variant);   /* text */
   --label-3: var(--m3-on-surface-disabled);  /* NOT text: decorative, disabled */
   --label-4: var(--m3-hairline);             /* NOT text: hairlines, disabled fills */
+  /* index.css asks for this on the set-table phase heading and never defines it. An
+     undefined custom property does not fall back — it invalidates the whole declaration —
+     so the heading was inheriting the body tone. It is a dimmer secondary, nothing more. */
+  --dim:     var(--m3-on-surface-variant);
 
   --r-sm:   var(--m3-shape-s);
   --r:      var(--m3-shape-m);
