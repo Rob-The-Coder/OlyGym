@@ -39,8 +39,20 @@
   --m3-surface-container:          #1d1b21;   /* cards, grouped lists */
   --m3-surface-container-high:     #27252c;   /* nested fills, pressed state */
   --m3-surface-container-highest:  #33313a;   /* controls: segmented track, switch */
-  --m3-outline:         rgba(147, 143, 153, .50);
-  --m3-outline-variant: rgba(147, 143, 153, .28);
+  --m3-outline:         rgba(147, 143, 153, .72);   /* component edges: 3.2:1 and up */
+  --m3-outline-variant: rgba(147, 143, 153, .34);   /* dividers: decorative, no ratio owed */
+
+  /* ---- text: two levels, and nothing under them carries words --------------
+     M3 has on-surface and on-surface-variant — both pass AA — plus outline and
+     disabled tones, which are not text. This app had a third *text* level at
+     32%, which measured 2.66:1 in dark and 1.72:1 in light: every caption,
+     placeholder and legend was failing. It is now the disabled/decorative tone,
+     and every selector that used it for words reads --m3-on-surface-variant
+     instead (see the contrast block in m3.components.css). */
+  --m3-on-surface:           #ffffff;                  /* 15.7:1 on a card */
+  --m3-on-surface-variant:   rgba(235, 235, 245, .66); /* 5.7:1 at worst — the floor for text */
+  --m3-on-surface-disabled:  rgba(235, 235, 245, .32); /* never text */
+  --m3-hairline:             rgba(235, 235, 245, .18); /* never text */
 
   /* ---- motion: M3 standard / emphasized curves and durations -------------- */
   --m3-ease-standard:   cubic-bezier(.2, 0, 0, 1);
@@ -57,6 +69,11 @@
   --surface-3: var(--m3-surface-container-highest);
   --sep:       var(--m3-outline);
   --sep-op:    var(--m3-outline-variant);
+
+  --label:   var(--m3-on-surface);
+  --label-2: var(--m3-on-surface-variant);   /* text */
+  --label-3: var(--m3-on-surface-disabled);  /* NOT text: decorative, disabled */
+  --label-4: var(--m3-hairline);             /* NOT text: hairlines, disabled fills */
 
   --r-sm:   var(--m3-shape-s);
   --r:      var(--m3-shape-m);
@@ -78,6 +95,10 @@
   --m3-surface-container:         #ffffff;
   --m3-surface-container-high:    #ece7f1;
   --m3-surface-container-highest: #e3dde9;
-  --m3-outline:         rgba(73, 69, 79, .50);
-  --m3-outline-variant: rgba(73, 69, 79, .24);
+  --m3-outline:         rgba(73, 69, 79, .62);   /* component edges: 3.1:1 and up */
+  --m3-outline-variant: rgba(73, 69, 79, .28);
+  --m3-on-surface:           #000000;
+  --m3-on-surface-variant:   rgba(60, 60, 67, .78);  /* 4.7:1 at worst, up to 5.9:1 */
+  --m3-on-surface-disabled:  rgba(60, 60, 67, .30);  /* never text */
+  --m3-hairline:             rgba(60, 60, 67, .16);  /* never text */
 }

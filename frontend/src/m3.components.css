@@ -481,7 +481,7 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
   background:color-mix(in srgb,var(--acc) 22%,transparent);color:var(--acc);font-size:12px;font-weight:600;
 }
 /* The "+" sits in the number's column: same width, same left edge, so it reads as a list of steps. */
-.cx-plus{width:24px;margin:0 0 0 14px;text-align:center;color:var(--label-3);font-size:13px;line-height:1.1}
+.cx-plus{width:24px;margin:0 0 0 14px;text-align:center;color:var(--label-2);font-size:13px;line-height:1.1}
 .cx-card .cx-item{background:var(--surface)}
 .cx-card .cx-item .cx-reps{margin-top:2px;font-size:13px;color:var(--label-2)}
 .cx-card .cx-item .cx-reps b{color:var(--label);font-weight:600}
@@ -496,4 +496,53 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
 /* The "+" stands in the numbers' column: both are the first thing inside .ss-card's padding, so
    the separator takes no inset of its own and the two line up at every width. */
 .ss-amp{display:flex;align-items:center;gap:6px;margin:12px 0 6px;text-align:left}
-.ss-amp .ss-plus{font-size:15px;font-weight:600;color:var(--label-3)}
+.ss-amp .ss-plus{font-size:15px;font-weight:600;color:var(--label-2)}
+/* ============================================================================
+   Contrast — the text that used to sit on --label-3
+   ----------------------------------------------------------------------------
+   --label-3 is the disabled/decorative tone (m3.tokens.css): as a text colour it
+   measured 2.66:1 in dark and 1.72:1 in light, so every caption, placeholder,
+   legend and control below was failing WCAG AA. They read --label-2
+   (on-surface-variant: 5.7:1 in dark, 4.7:1 in light) instead.
+   The index.css selectors, with their line numbers at the time of writing:
+     .dim 152, .helpbtn 301, .wday .lbl 399, .field::placeholder 501,
+     .searchf .lead 512, .searchf .clear 519, .search>svg 528, .exmedia-x 706,
+     .sethead 711, .setph 722, .effpick placeholder 832, .sidetag 849,
+     .subrow .subn 952, .efftbl .hd 1111, .hm-months span 1172, .hm-legend 1187,
+     .steps-list::marker 1278, .cal-h 1282, .cal-legend 1295,
+     .today-row .lbl2 1373 — plus #tabbar button 344, already fixed in Primitives.
+   src/lib/contrast.test.js asserts the ratios and that this list stays complete.
+   ============================================================================ */
+
+.dim,
+.helpbtn,
+.wday .lbl,
+.field::placeholder,.input::placeholder,
+.effpick .effpick-free .stp .num::placeholder,
+.exmedia-x,
+.sethead,
+.sidetag,
+.subrow .subn,
+.efftbl .hd .n,.efftbl .hd .f,
+.hm-months span,
+.hm-legend,
+.cal-h,
+.cal-legend,
+.today-row .lbl2,
+.steps-list::marker{color:var(--label-2)}
+
+/* the picker's magnifier is a stroked SVG, so it takes stroke rather than color */
+.search>svg{stroke:var(--label-2)}
+.searchf .lead{color:var(--label-2)}
+/* the clear button is a control, so its fill is what has to clear 3:1 — and its glyph
+   is --bg, which is why the fill can afford to be the text tone */
+.searchf .clear{background:var(--label-2)}
+/* one up on the decorative tone: a day dot is the only mark a planned day has, and at
+   1.7:1 in light mode it was not there at all (its twin, .wday .dot.plan, is up in Home) */
+.cal-d i.plan{background:var(--m3-outline)}
+
+/* index.css writes this one as `color: var(--dim)`, and --dim was never defined: an
+   undefined custom property makes the whole declaration invalid at computed-value time,
+   so the set-table phase headings were falling back to whatever they inherited. */
+.setph{color:var(--label-2)}
+
