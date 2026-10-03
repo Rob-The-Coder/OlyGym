@@ -218,14 +218,17 @@ export default function Settings() {
             onChange={v => update(s => { s.keepAwake = v })} />
         </Row>
       )}
-      {/* 'full'/'mini' is also what the minimise toggle in the workout writes; 'off' hides the
-          picture in the workout entirely (library, detail sheet and picker thumbs are unaffected).
-          Legacy/unknown values read as 'full'. The key is still called gifSize: renaming it would
-          be a state migration for no behaviour. */}
-      <SelectRow icon="figureRun" title={t('Exercise pictures')}
-        value={S.gifSize === 'mini' || S.gifSize === 'off' ? S.gifSize : 'full'}
-        onChange={v => update(s => { s.gifSize = v })}
-        options={[{ value: 'full', label: t('Full') }, { value: 'mini', label: t('Small') }, { value: 'off', label: t('Hidden') }]} />
+      {/* The picture is a thumbnail in the exercise header now and opens to full size on tap, so
+          the old three-way size ('full'/'mini'/'off') has one option left that means anything:
+          hidden. Legacy 'mini' reads as 'full' — it meant "always small", which is what the
+          collapsed header does anyway. The key is still called gifSize: renaming it would be a
+          state migration for no behaviour. */}
+      <Row icon="figureRun" title={t('Exercise pictures')}>
+        <Segmented className="seg-inline"
+          options={[{ value: 'full', label: t('On tap') }, { value: 'off', label: t('Hidden') }]}
+          value={S.gifSize === 'off' ? 'off' : 'full'}
+          onChange={v => update(s => { s.gifSize = v })} />
+      </Row>
       {/* A layer of its own, deliberately not the same setting as the picture above: the frame
           comes from img.youtube.com, the video is an embed. 'On tap' is the default and the
           reason the poster exists at all — nothing is requested from YouTube until you ask. */}

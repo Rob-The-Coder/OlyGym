@@ -563,5 +563,37 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
 .lrow-hit{position:absolute;inset:0;width:100%;padding:0;background:none;border:0;z-index:0;cursor:pointer}
 .lrow.has-hit>*:not(.lrow-hit){position:relative;z-index:1;pointer-events:none}
 .lrow.has-hit>.helpbtn{pointer-events:auto;z-index:2}
+
+/* ============================================================================
+   The exercise header
+   ----------------------------------------------------------------------------
+   The poster is a thumbnail beside the name, not a 16:9 block above it: on a phone the old block
+   pushed the first set row below the fold on the one screen where you are holding the phone and
+   logging. Tapping the thumbnail mounts the demo and expands the picture to full width — a size
+   and shape change, so it runs on the spatial duration and the emphasized curve, and the poster's
+   own aspect-ratio carries the height (animating the width is enough).
+   ============================================================================ */
+.ex-head{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px;margin-bottom:8px}
+.ex-head-text{flex:1;min-width:0}
+.ex-head-acts{flex:none;align-self:flex-start}
+.ex-head .exmedia{
+  width:88px;flex:none;margin:0;border-radius:var(--m3-shape-m);
+  transition:width var(--m3-dur-spatial) var(--m3-emph-dec), border-radius var(--m3-dur-spatial) var(--m3-emph-dec);
+}
+.ex-head .exmedia img{border-radius:inherit}
+/* Collapsed, the badge covers the whole chip: on an 88px square the ▶ is the tap target, and the
+   pill that names the video is noise. */
+.ex-head .exmedia .gifhint.fill{inset:0;width:auto;padding:0;justify-content:center;background:transparent;border-radius:inherit}
+.ex-head .exmedia .gifhint.fill .icn{font-size:22px;color:#fff;filter:drop-shadow(0 1px 3px rgba(0,0,0,.55))}
+/* Expanded: the picture takes a line of its own above the name, at 16:9. */
+.ex-head .exmedia.open{order:-1;width:100%;border-radius:var(--m3-shape-l)}
+.ex-head .exmedia.open .gifhint.fill{display:none}
+
+/* The effort band as a shape, not only a colour: four dots beside the value. Below 430px they go —
+   the effort column has no width to spare there and its ± buttons are already gone (index.css:911). */
+.effdots{display:inline-flex;gap:2px;margin-left:4px;vertical-align:middle}
+.effdots i{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.3}
+.effdots i.on{opacity:1}
+@media (max-width:429px){.effdots{display:none}}
 .lrow.danger .lrow-i{background:var(--m3-error-container);color:var(--m3-on-error-container)}
 

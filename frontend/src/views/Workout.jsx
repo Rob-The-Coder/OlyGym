@@ -215,11 +215,19 @@ function ExerciseBlock({ entryIdx, step, compact, dense, headOnly, onToggle, onF
       <button className="effcell is-empty" aria-label={col.hd} onClick={open}>{col.hd}</button>
     )
     const step = dir => onField(i, col.f, stepEffort(col.eff, v, dir))
+    // How close to failure as a shape, not only as a colour: four dots filled from the left, so the
+    // band is readable off the tint and on a cell this small, where colour alone is worst. RIR 0
+    // (a set to failure) fills all four; 3 or more leaves one. Hidden below 430px, where the effort
+    // column has no width to spare — its ± buttons already go there (index.css:911).
+    const band = rir == null ? 0 : Math.max(1, 4 - Math.min(3, Math.max(0, Math.round(rir))))
     return (
       <div className={'stp effcell-stp' + (wc.steppers ? '' : ' plain')}
         style={color ? { color, borderColor: color, background: `color-mix(in srgb, ${color} 20%, var(--surface-2))` } : undefined}>
         {wc.steppers && <button aria-label="Decrease" onClick={() => step(-1)}><Icon name="minus" /></button>}
-        <button className="val" aria-label={col.hd} onClick={open}>{fmtNum(v)}</button>
+        <button className="val" aria-label={col.hd + ' ' + fmtNum(v)} onClick={open}>
+          {fmtNum(v)}
+          <span className="effdots" aria-hidden="true">{[0, 1, 2, 3].map(d => <i key={d} className={d < band ? 'on' : ''} />)}</span>
+        </button>
         {wc.steppers && <button aria-label="Increase" onClick={() => step(1)}><Icon name="plus" /></button>}
       </div>
     )
@@ -231,16 +239,27 @@ function ExerciseBlock({ entryIdx, step, compact, dense, headOnly, onToggle, onF
     ? (entry.target?.reps || entry.sets.find(s => !isWarmupRow(s))?.r || 0)
     : 0
   return <>
-    {!dense && <Media ex={ex} key={entry.id} compact={compact} minimizable />}
-    <div className="row between" style={{ marginBottom: 6 }}>
-      {/* A complex numbers its movements: the number sits beside the exercise, centred on its
-          name line, so the set table below keeps every pixel of its width. */}
-      <div className="row" style={{ gap: 8, minWidth: 0, alignItems: 'center' }}>
-        {step != null && <span className="cx-step">{step}</span>}
-        <div style={{ fontSize: (compact || dense) ? 17 : 20, fontWeight: 600, letterSpacing: '-.02em', textTransform: 'capitalize', lineHeight: 1.2 }}>{exerciseNameFor(ex)}</div>
-        {prescribedReps > 0 && <span className="muted small" style={{ flex: 'none' }}>×{prescribedReps}</span>}
+    {/* The picture sits in the exercise header at thumbnail size: the demo is one tap away and the
+        set table — what a session is actually for — starts a screen higher. Tapping the poster
+        mounts the video and expands the block to 16:9; the collapsed and expanded shapes are both
+        laid out in m3.components.css, under "the exercise header". */}
+    <div className="ex-head">
+      {!dense && <Media ex={ex} key={entry.id} compact={compact} minimizable />}
+      <div className="ex-head-text">
+        {/* A complex numbers its movements: the number sits beside the exercise, centred on its
+            name line, so the set table below keeps every pixel of its width. */}
+        <div className="row" style={{ gap: 8, minWidth: 0, alignItems: 'center' }}>
+          {step != null && <span className="cx-step">{step}</span>}
+          <div style={{ fontSize: (compact || dense) ? 17 : 20, fontWeight: 600, letterSpacing: '-.02em', textTransform: 'capitalize', lineHeight: 1.2 }}>{exerciseNameFor(ex)}</div>
+          {prescribedReps > 0 && <span className="muted small" style={{ flex: 'none' }}>×{prescribedReps}</span>}
+        </div>
+        {!dense && <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 5 }}>
+          {(ex.tg || ex.bp) && <span className="tag">{t(MUSCLE_NAME[ex.tg] || ex.tg || ex.bp)}</span>}
+          {ex.eq && <span className="tag">{t(ex.eq)}</span>}
+          {best > 0 && <span className="tag nocap">{t('Best:')} {fmtNum(best)} {S.unit}</span>}
+        </div>}
       </div>
-      <div className="row" style={{ gap: 2, flex: 'none' }}>
+      <div className="row ex-head-acts" style={{ gap: 2, flex: 'none' }}>
         {entry.note && <button className="iconbtn" aria-label={t('Note')} title={t('Note')} style={{ color: 'var(--acc)' }}
           onClick={() => exerciseNoteSheet(entryIdx)}><Icon name="pencil" /></button>}
         <button className="iconbtn" aria-label={t('More')} title={t('More')} onClick={openMore}><Icon name="more" /></button>
@@ -253,11 +272,6 @@ function ExerciseBlock({ entryIdx, step, compact, dense, headOnly, onToggle, onF
     {/* compact view drops everything from here to the sets card — it is all still on the ⋯ menu
         (note, details, history, bar weight, progression) or is display-only (tags, "last time"). */}
     {!dense && <>
-    <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-      {(ex.tg || ex.bp) && <span className="tag">{t(MUSCLE_NAME[ex.tg] || ex.tg || ex.bp)}</span>}
-      {ex.eq && <span className="tag">{t(ex.eq)}</span>}
-      {best > 0 && <span className="tag nocap">{t('Best:')} {fmtNum(best)} {S.unit}</span>}
-    </div>
     {/* Three notes can apply to one exercise and they are not interchangeable, so each keeps its
         own line and its own icon: the plan's instruction (cfg.note, from the routine), the
         standing fact about the movement (exNotes), and the message you pinned to yourself last
