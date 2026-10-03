@@ -42,4 +42,39 @@ describe('buildSessionEntries', () => {
     const r = { id: 'r', prog: 'off', ex: [{ id: '0025', sets: 3, reps: 5, weight: 60 }] }
     expect(buildSessionEntries(st, r)[0].rid).toBeUndefined()
   })
+
+  // Settings → During a workout → Automatic progression (lib/progression.js defaultPolicy). A
+  // day's weight is the weight you lift; only the setting asks for it to climb.
+  const stWithHistory = autoProg => ({
+    unit: 'kg', exWeights: {}, routines: [], autoProg,
+    workouts: [{
+      d: '2026-01-01',
+      entries: [{
+        id: '0025',
+        target: { sets: 3, reps: 5 },
+        sets: [{ w: 60, r: 5, done: true }, { w: 60, r: 5, done: true }, { w: 60, r: 5, done: true }],
+      }],
+    }],
+  })
+  const plannedDay = prog => ({
+    id: 'r', ex: [{ id: '0025', sets: 3, reps: 5, weight: 40, ...(prog ? { prog } : {}) }],
+  })
+  const workWeights = entries => entries[0].sets.filter(s => !isWarmupRow(s)).map(s => s.w)
+
+  it('opens at the day’s own weight with automatic progression off (the default)', () => {
+    const entries = buildSessionEntries(stWithHistory(false), plannedDay())
+    expect(entries[0].plan).toEqual({ policy: 'off', kind: 'off' })
+    expect(workWeights(entries)).toEqual([40, 40, 40])
+  })
+
+  it('adds a step once the profile turns automatic progression on', () => {
+    const entries = buildSessionEntries(stWithHistory(true), plannedDay())
+    expect(entries[0].plan.kind).toBe('up')
+    expect(workWeights(entries)).toEqual([62.5, 62.5, 62.5])
+  })
+
+  it('lets the exercise’s own rule beat the setting, both ways', () => {
+    expect(buildSessionEntries(stWithHistory(false), plannedDay('linear'))[0].plan.kind).toBe('up')
+    expect(buildSessionEntries(stWithHistory(true), plannedDay('off'))[0].plan.kind).toBe('off')
+  })
 })

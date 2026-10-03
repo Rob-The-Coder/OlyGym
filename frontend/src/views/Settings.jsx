@@ -181,6 +181,20 @@ export default function Settings() {
         subtitle={t('Asks for your body weight when a workout starts. Off starts the session straight away.')}>
         <Switch checked={S.weighIn !== false} onChange={v => update(s => { s.weighIn = v })} />
       </Row>
+      {/* Automatic progression (lib/progression.js policyFor / defaultPolicy). Off is the
+          default: the weight on the plan is the weight on the bar, and hitting every rep means
+          nothing changes until you edit the plan. On restores the linear rule for every exercise
+          whose own rule is still "follow the routine". Built like Effort per set below: the two
+          states are a button group and the (i) carries the reasoning, so the row stays one line.
+          The arrowUp + accent treatment is the one the workout's .progline already uses for
+          "the load went up". */}
+      <Row icon="arrowUp" iconTint="var(--acc)" title={t('Automatic progression')}>
+        <button className="helpbtn" aria-label={t('How does automatic progression work?')} onClick={progressionHelpSheet}><Icon name="info" /></button>
+        <Segmented className="seg-inline"
+          options={[{ value: 'off', label: t('Off') }, { value: 'on', label: t('On') }]}
+          value={S.autoProg ? 'on' : 'off'}
+          onChange={v => update(s => { s.autoProg = v === 'on' })} />
+      </Row>
       {/* One exercise at a time (cards with Prev/Next), the whole session stacked as a
           scrollable list, or that list stripped to just names and set rows (compact).
           Legacy/unknown values read as cards. The running session can override this from
@@ -435,6 +449,47 @@ function effortHelpSheet() {
     </div>
     <div style={{ height: 8 }} />
   </>)
+}
+
+// Settings → During a workout → Automatic progression, the (i) beside the button group. The row
+// can only say off or on, so the reasoning lives here, the way effortHelpSheet carries the RIR/RPE
+// table for the row next to it. Everything below has to stay true to lib/progression.js: the step
+// (defaultIncrement), the deload (DELOAD_FACTOR / DELOAD_AFTER) and the per-exercise override
+// (policyFor), which is what makes the switch a default rather than a setting that overrules you.
+const PROG_STATES = [
+  ['xmark', 'var(--label-3)', 'With the switch off',
+    'Every planned weight stays exactly as written. A session starts there and the next one starts there again, so the only way the weight changes is you editing the plan.'],
+  ['check', 'var(--acc)', 'With the switch on',
+    'Hit every rep in every set and the next session starts one step heavier. Fall short and the weight holds where it is until you hit it.'],
+]
+const PROG_NOTES = [
+  'Most lifts add 2.5 kg. Lower-body work (quads, glutes, hamstrings, lower back, adductors, calves) adds 5 kg.',
+  'Each exercise can set its own step in its Progression row, and that step is what the weight steppers on the set rows use too.',
+  'Three sessions in a row missed at the same weight back it off by 10%, rounded to something you can load. One clean session starts the climb again.',
+  'Bodyweight work adds a rep instead of a weight. Timed holds never move on their own.',
+  'A rule set on the exercise itself, under Progression → Rule, wins over this switch in both directions.',
+]
+
+function ProgressionHelpSheet() {
+  return <>
+    <h3>{t('Automatic progression')}</h3>
+    <div className="muted small" style={{ lineHeight: 1.5 }}>
+      {t('Whether OlyGym moves the weight for you. It decides what a session starts at and what the next one is prescribed; it never rewrites a workout you have already logged.')}
+    </div>
+    <Section>
+      {PROG_STATES.map(([icon, tint, title, body]) => (
+        <Row key={title} icon={icon} iconTint={tint} title={t(title)} subtitle={t(body)} />
+      ))}
+    </Section>
+    <h4 className="sec">{t('How the step is worked out')}</h4>
+    <div className="dim small" style={{ lineHeight: 1.5, display: 'grid', gap: 8 }}>
+      {PROG_NOTES.map(note => <div key={note}>{t(note)}</div>)}
+    </div>
+    <div style={{ height: 8 }} />
+  </>
+}
+function progressionHelpSheet() {
+  useUI.getState().openSheet(() => <ProgressionHelpSheet />)
 }
 
 // Mobile build: the reminder is a native local notification scheduled on planned weekdays —

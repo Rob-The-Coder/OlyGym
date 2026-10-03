@@ -26,7 +26,7 @@ import { pickFromDrive, fileMeta, exportSheetToXlsx, downloadFile } from './lib/
 import CoachImport from './components/CoachImport.jsx'
 import { printPlan, planPrintHTML } from './lib/plan-share.js'
 import { exerciseHistory } from './lib/exercise-history.js'
-import { nextPrescription, applyPrescription, policyFor, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, weightIncrement } from './lib/progression.js'
+import { nextPrescription, applyPrescription, policyFor, defaultPolicy, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, weightIncrement } from './lib/progression.js'
 import { MOBILE, printHtml } from './lib/mobile.js'
 import { buildCompletedWorkout } from './lib/finish-workout.js'
 import { isWarmupRow, hasCompletedWork } from './lib/workout-model.js'
@@ -738,17 +738,18 @@ export const equipmentProfileSheet = profile => ui().openSheet(close => <Equipme
 /* ============================ exercise config ============================ */
 // Progression settings for one exercise (issue #17). Shown inside the config sheet because
 // "how does this lift go up" belongs next to sets and reps, not in a separate screen. Left
-// on "follow the routine" it inherits, so most people never touch it.
+// on "follow the routine" it inherits the profile's own setting (Settings → Automatic
+// progression), so most people never touch it.
 const progressionStepOf = (c, mode, ex, unit) =>
   c.inc >= 0 ? c.inc : (mode === 'time' ? 5 : defaultIncrement(ex.id, unit))
 const progressionStepIsValid = (step, policy) =>
   policy === 'off' || (Number.isFinite(step) && step > 0)
 
-function ProgressionFields({ ex, mode, c, setC, routine, unit }) {
+function ProgressionFields({ ex, mode, c, setC, routine, unit, fallback }) {
   const options = POLICIES_FOR[mode] || ['off']
   if (options.length < 2) return null
-  const inherited = policyFor({ id: ex.id }, routine, mode)
-  const active = policyFor({ ...c, id: ex.id }, routine, mode)
+  const inherited = policyFor({ id: ex.id }, routine, mode, fallback)
+  const active = policyFor({ ...c, id: ex.id }, routine, mode, fallback)
   const inc = progressionStepOf(c, mode, ex, unit)
   const invalid = !progressionStepIsValid(inc, active)
   const setRule = v => setC(x => ({ ...x, prog: v || undefined }))
@@ -781,7 +782,7 @@ function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, init
   const mode = modeOf({ ...c, id: ex.id })
   // Both default from the dataset and are then whatever the config says — see isBw.
   const bw = isBw({ ...c, id: ex.id })
-  const progressionPolicy = policyFor({ ...c, id: ex.id }, routine, mode)
+  const progressionPolicy = policyFor({ ...c, id: ex.id }, routine, mode, defaultPolicy(st))
   const progressionStepInvalid = !progressionStepIsValid(progressionStepOf(c, mode, ex, st.unit), progressionPolicy)
   // Keep whatever the other mode already had (sets, weight) and fill only what is missing.
   const setMode = m => setC(x => ({ ...defaultConfig(ex.id, m), ...x, mode: m }))
@@ -877,7 +878,7 @@ function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, init
       <h4 className="sec">{t('Bar weight')}</h4>
       <BarWeightEditor ex={ex} extra={t('Applies to this exercise everywhere, not just this plan.')} />
     </>}
-    <ProgressionFields ex={ex} mode={mode} c={c} setC={setC} routine={routine} unit={st.unit} />
+    <ProgressionFields ex={ex} mode={mode} c={c} setC={setC} routine={routine} unit={st.unit} fallback={defaultPolicy(st)} />
     <textarea className="input" rows={3} maxLength={500} style={{ marginBottom: 18 }}
       placeholder={t('Note (optional) — loading cues, "bar only then +1 plate/side each set", anything worth remembering here')}
       value={c.note || ''} onChange={e => setC(x => ({ ...x, note: e.target.value }))} />
