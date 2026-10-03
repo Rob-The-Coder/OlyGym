@@ -6,7 +6,7 @@ import { DAYS, DAYN, fmtDate, fmtNum, uid, exCount, weekOrder, weekStartOf } fro
 import { t, exerciseNameFor } from '../lib/i18n.js'
 import { exOr } from '../lib/exercises.js'
 import { supersetUnits, moveSupersetUnit, cleanupSg, exLine, defaultConfig } from '../lib/history.js'
-import { exercisePicker, exConfigSheet, complexConfigSheet, confirmSheet } from '../sheets.jsx'
+import { exercisePicker, exConfigSheet, complexConfigSheet, confirmSheet, menuSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import TopAppBar from '../components/TopAppBar.jsx'
 import { Button, Segmented, TextField } from '../components/ui.jsx'
@@ -22,6 +22,8 @@ import { tappable } from '../lib/use-sheet-keyboard.js'
  *  edit still finds the right day after the order changes. */
 const dayEntries = (week, ws) => weekOrder(ws)
   .flatMap(d => (week.days || []).flatMap((day, index) => (day.dow === d ? [{ day, index }] : [])))
+
+const dayCount = n => t(n === 1 ? '{0} day' : '{0} days', n)
 
 /** The first weekday this week leaves free — where "Add day" lands. */
 const firstFreeDow = (week, ws) => {
@@ -165,24 +167,43 @@ export default function WeekEdit() {
 
   const dowOptions = weekOrder(ws).map(d => ({ value: d, label: t(DAYS[d]) }))
 
+  const fallback = t('Week of {0}', fmtDate(week.startIso, false, true))
+  const dayMenu = (day, index) => menuSheet({
+    title: day.name || t(DAYN[day.dow]),
+    items: [{ icon: 'trash', label: t('Remove this day'), danger: true, onClick: () => deleteDay(index) }],
+  })
+  const weekMenu = () => menuSheet({
+    title: weekName(), subtitle: fmtDate(week.startIso, true, true),
+    items: [{ icon: 'trash', label: t('Delete this week'), danger: true, onClick: deleteWeek }],
+  })
+
   return <div className="narrow">
     <TopAppBar
       leading={<button className="iconbtn ab-ico" onClick={() => nav('/plan')} aria-label={t('Plan')}><Icon name="chevronLeft" /></button>}
-      smallTitle={week.name || t('Week of {0}', fmtDate(week.startIso, false, true))}
-      title={<TextField className="ab-title" value={week.name || ''} aria-label={t('Week of {0}', fmtDate(week.startIso, false, true))}
-        onChange={e => edit(w => { w.name = e.target.value })} />} />
-    <div className="small dim" style={{ margin: '0 2px 16px' }}>{fmtDate(week.startIso, true, true)}</div>
+      smallTitle={week.name || fallback}
+      subtitle={[
+        fmtDate(week.startIso, true, true),
+        (week.days || []).length ? dayCount((week.days || []).length) : null,
+        (week.days || []).length ? exCount((week.days || []).reduce((n, d) => n + (d.ex || []).length, 0)) : null,
+      ].filter(Boolean).join(' · ')}
+      title={<TextField className="ab-title" value={week.name || ''} placeholder={fallback}
+        aria-label={fallback} onChange={e => edit(w => { w.name = e.target.value })} />}
+      actions={<button className="iconbtn ab-ico" onClick={weekMenu} aria-label={t('Week options')} title={t('Week options')}><Icon name="more" /></button>} />
 
     <h4 className="sec">{t('Weekdays')}</h4>
     <div className="list">
       {dayEntries(week, ws).map(({ day, index }) => <div key={index} className="item day-card" data-day={index}>
         <div className="row between" style={{ marginBottom: 6, gap: 10 }}>
-          <Segmented options={dowOptions} value={day.dow} onChange={v => editDay(index, d => { d.dow = v })} />
-          <button className="iconbtn sm" aria-label={t('Remove')} title={t('Remove')}
-            onClick={() => deleteDay(index)}><Icon name="xmark" /></button>
+          <Segmented className="seg7" options={dowOptions} value={day.dow} onChange={v => editDay(index, d => { d.dow = v })} />
+          <button className="iconbtn sm" aria-label={t('Day options')} title={t('Day options')}
+            onClick={() => dayMenu(day, index)}><Icon name="more" /></button>
         </div>
-        <div className="row" style={{ gap: 10 }}>
-          <TextField className="grow" value={day.name || ''} aria-label={t(DAYN[day.dow])}
+        {/* An editable title that does not look like one: the dashed rule under the text is the
+            whole affordance, so the day keeps reading as a name and not as a form. The wrapper is
+            what keeps the exercise count on the next line — a shrink-to-fit field would otherwise
+            let it ride up beside the name. */}
+        <div className="row">
+          <TextField className="day-name" value={day.name || ''} aria-label={t(DAYN[day.dow])}
             onChange={e => editDay(index, d => { d.name = e.target.value })} />
         </div>
         {/* The day's body is this row: it opens the exercise editor for that weekday. */}
@@ -195,7 +216,5 @@ export default function WeekEdit() {
 
     <div style={{ height: 10 }} />
     <Button icon="plus" onClick={addDay}>{t('Add day')}</Button>
-    <div style={{ height: 10 }} />
-    <Button variant="danger" onClick={deleteWeek}>{t('Delete week')}</Button>
   </div>
 }

@@ -9,11 +9,11 @@ import WeekEdit from './WeekEdit.jsx'
 import { exercisePicker, exConfigSheet, complexConfigSheet } from '../sheets.jsx'
 import { DEF, useStore } from '../store/useStore.js'
 
-const mocks = vi.hoisted(() => ({ confirmSheet: vi.fn(), complexConfigSheet: vi.fn() }))
+const mocks = vi.hoisted(() => ({ confirmSheet: vi.fn(), complexConfigSheet: vi.fn(), menuSheet: vi.fn() }))
 vi.mock('../sheets.jsx', () => ({
   effortHelpSheet: vi.fn(),
   exercisePicker: vi.fn(), exConfigSheet: vi.fn(), complexConfigSheet: mocks.complexConfigSheet,
-  confirmSheet: mocks.confirmSheet,
+  confirmSheet: mocks.confirmSheet, menuSheet: mocks.menuSheet,
 }))
 vi.mock('../components/Media.jsx', () => ({ Thumb: () => null }))
 
@@ -30,6 +30,7 @@ beforeEach(() => {
   localStorage.clear()
   mocks.confirmSheet.mockClear()
   mocks.complexConfigSheet.mockClear()
+  mocks.menuSheet.mockClear()
   useStore.setState({
     S: {
       ...clone(DEF),
@@ -68,15 +69,37 @@ describe('WeekEdit', () => {
     expect(week().days[1]).toEqual({ dow: 2, name: 'New day', ex: [] })
   })
 
-  it('deletes a day through the confirm sheet', () => {
+  // Removing a day is destructive, so it is behind the day's own menu rather than an unlabelled
+  // X sitting on the card face next to the weekday control (WS17).
+  it('deletes a day through its menu and the confirm sheet', () => {
     mount()
-    act(() => { host.querySelector('[data-day="0"] button[aria-label="Remove"]').click() })
+    act(() => { host.querySelector('[data-day="0"] button[aria-label="Day options"]').click() })
+    expect(mocks.menuSheet).toHaveBeenCalledTimes(1)
+    const menu = mocks.menuSheet.mock.calls[0][0]
+    expect(menu.title).toBe('Push')
+    expect(menu.items.map(i => i.label)).toEqual(['Remove this day'])
+    expect(menu.items[0].danger).toBe(true)
+
+    act(() => { menu.items[0].onClick() })
     expect(mocks.confirmSheet).toHaveBeenCalledTimes(1)
     const dialog = mocks.confirmSheet.mock.calls[0][0]
     expect(dialog.title).toBe('Delete day?')
     expect(dialog.message).toBe('“Push” and its exercises will be removed.')
     act(() => { dialog.onConfirm() })
     expect(week().days).toEqual([])
+  })
+
+  // The week's own destructive action lives in the app bar menu now: it used to be a full-width
+  // red button at the end of the screen, the largest target on it.
+  it('keeps deleting the week in the app bar menu, not on the page', () => {
+    mount()
+    expect([...host.querySelectorAll('button')].some(b => b.textContent === 'Delete week')).toBe(false)
+    act(() => { host.querySelector('button[aria-label="Week options"]').click() })
+    const menu = mocks.menuSheet.mock.calls[0][0]
+    expect(menu.subtitle).toBe('Mon, 9 Feb 2026')
+    expect(menu.items[0].label).toBe('Delete this week')
+    act(() => { menu.items[0].onClick() })
+    expect(mocks.confirmSheet.mock.calls[0][0].title).toBe('Delete week?')
   })
 
   it('opens a day into its exercise editor', () => {

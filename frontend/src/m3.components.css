@@ -830,3 +830,34 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
 }
 #toast.show{transform:translateX(-50%)}
 #toast span{flex:1;min-width:0}
+
+/* ============================================================================
+   Plan and the week editor (WS17)
+   ============================================================================ */
+/* The weekday on a day row: the one part of a week's line that is a date rather than a name. */
+.ddow{width:30px;flex:none;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--m3-on-surface-variant)}
+.hero-rail .ddow{color:inherit;opacity:.78}
+.hero-rail .day-row .ss{color:inherit;opacity:.78}
+.hero-rail .day-row .tt{color:inherit}
+/* Trained, on the week you are in. */
+.dtick{width:22px;height:22px;flex:none;border-radius:var(--m3-shape-full);display:grid;place-items:center;
+  background:var(--m3-primary);color:var(--m3-on-primary);font-size:13px}
+.dtick .icn{--icon-stroke:2.6}
+.hero-cta{width:100%;margin-top:12px}
+
+/* The weekday segmented: same control, less of the card. Seven full-size targets for one value
+   is what made a day row two lines tall on a narrow phone. */
+.seg7{flex:1;min-width:0}
+.seg7 button{padding:6px 4px;font-size:11.5px}
+
+/* An editable title that does not look like a form field: the dashed rule is the affordance, and
+   it is on the text rather than around it. */
+/* field-sizing keeps the rule under the text rather than across the card, and grows the field as
+   the name is typed. Where it is unsupported the field keeps its full width and the rule becomes a
+   line across the card — a worse look, not a broken one. */
+.day-name{
+  /* .input is width:100%, which would beat field-sizing; the field has to be allowed to shrink */
+  width:auto;field-sizing:content;-webkit-field-sizing:content;max-width:100%;min-width:64px;
+  border-bottom:1.5px dashed color-mix(in srgb,var(--m3-primary) 45%,transparent);border-radius:0;
+}
