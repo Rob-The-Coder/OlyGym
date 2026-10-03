@@ -1,0 +1,83 @@
+/* ============================================================================
+   Material 3 — the token layer
+   ----------------------------------------------------------------------------
+   Roles only: no component styles live in this file. Every value is either an
+   M3 role (shape, tonal surface, colour, state layer, elevation, type, motion)
+   or one of the legacy names this app already uses, pointed at one of those roles.
+
+   index.css is upstream and stays untouched, which is why this is a second file
+   instead of an edit: upstream merges keep costing nothing, and the override
+   lives in one place. Load order, from main.jsx:
+
+     index.css   →  m3.tokens.css   →  m3.components.css
+
+   Equal-specificity :root rules here win over index.css; the component sheet
+   loads last and wins over both.
+
+   Split out of m3.css on 2026-10-03 (WS12/A2). The two were one file, and the
+   single header claimed no component styles lived in it while the body carried
+   105 component selectors and 9 shadows. Nothing changed but the file boundary:
+   the rules below are the old file lines 1-85, verbatim.
+   ============================================================================ */
+
+:root {
+  /* ---- shape: M3 none / xs 4 / s 8 / m 12 / l 16 / xl 28 / full ------------ */
+  --m3-shape-xs:   4px;
+  --m3-shape-s:    8px;
+  --m3-shape-m:   12px;
+  --m3-shape-l:   16px;
+  --m3-shape-xl:  28px;
+  --m3-shape-full: 999px;
+
+  /* ---- colour roles, dark -------------------------------------------------
+     M3's dark surfaces are near-black with a faint tint raised toward the
+     primary hue, and they step by tone. Pure #000 with hairline separators is
+     the iOS look this replaces. */
+  --m3-surface:                    #0b0b0e;   /* the page behind everything */
+  --m3-surface-container-lowest:   #060608;   /* recessed wells (track, rail) */
+  --m3-surface-container-low:      #151419;   /* bars, sheets */
+  --m3-surface-container:          #1d1b21;   /* cards, grouped lists */
+  --m3-surface-container-high:     #27252c;   /* nested fills, pressed state */
+  --m3-surface-container-highest:  #33313a;   /* controls: segmented track, switch */
+  --m3-outline:         rgba(147, 143, 153, .50);
+  --m3-outline-variant: rgba(147, 143, 153, .28);
+
+  /* ---- motion: M3 standard / emphasized curves and durations -------------- */
+  --m3-ease-standard:   cubic-bezier(.2, 0, 0, 1);
+  --m3-ease-emphasized: cubic-bezier(.3, 0, 0, 1);
+  --m3-dur-short:  150ms;
+  --m3-dur-medium: 250ms;
+  --m3-dur-long:   400ms;
+
+  /* ---- the app's own names, defined by the roles above -------------------- */
+  --bg:        var(--m3-surface);
+  --bg-el:     var(--m3-surface-container-low);
+  --surface:   var(--m3-surface-container);
+  --surface-2: var(--m3-surface-container-high);
+  --surface-3: var(--m3-surface-container-highest);
+  --sep:       var(--m3-outline);
+  --sep-op:    var(--m3-outline-variant);
+
+  --r-sm:   var(--m3-shape-s);
+  --r:      var(--m3-shape-m);
+  --r-card: var(--m3-shape-l);
+  --r-lg:   var(--m3-shape-l);
+  --r-xl:   var(--m3-shape-xl);
+
+  --ease: var(--m3-ease-standard);
+  --fast: var(--m3-dur-short);
+  --med:  var(--m3-dur-medium);
+}
+
+/* Light: M3's light surfaces carry the same faint tint. The card keeps its
+   contrast against the page (white on a tinted background), as before. */
+:root[data-theme="light"] {
+  --m3-surface:                   #f8f5fb;
+  --m3-surface-container-lowest:  #f2eef6;
+  --m3-surface-container-low:     #f4f0f8;
+  --m3-surface-container:         #ffffff;
+  --m3-surface-container-high:    #ece7f1;
+  --m3-surface-container-highest: #e3dde9;
+  --m3-outline:         rgba(73, 69, 79, .50);
+  --m3-outline-variant: rgba(73, 69, 79, .24);
+}

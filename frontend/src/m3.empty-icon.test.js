@@ -16,7 +16,7 @@ const rule = (css, selector) => {
   return css.slice(at, css.indexOf('}', at))
 }
 
-const m3 = readFileSync(resolve(process.cwd(), 'src/m3.css'), 'utf8')
+const m3 = readFileSync(resolve(process.cwd(), 'src/m3.components.css'), 'utf8')
 const base = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8')
 
 describe('the empty state’s icon', () => {

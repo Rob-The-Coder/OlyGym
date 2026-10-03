@@ -1,88 +1,21 @@
 /* ============================================================================
-   Material 3 Expressive — the token layer
+   Material 3 Expressive — components
    ----------------------------------------------------------------------------
-   Two rules hold this file together:
+   Every rule here either restyles a class index.css already defines (.btn, .chip,
+   .seg, .lrow, #tabbar, .chk, .stp, .tag, .tile, .wday …) or introduces a class
+   the JSX composes with (.cx-*, .day-row, .ss-*). All values come from
+   m3.tokens.css — a raw colour, radius, shadow or duration does not belong in
+   this file, and neither does a value that only one screen needs.
 
-   1. Every value here is a Material 3 role or a step of an M3 scale (shape,
-      motion, tonal surface). No component styles live here yet — this layer
-      only re-points the variables the app already uses, so all 15k lines of JSX
-      and index.css keep working untouched.
-   2. index.css is upstream's file and stays untouched, which is why this is a
-      second file instead of an edit: upstream merges keep costing nothing, and
-      the override lives in one place. It is loaded after index.css (main.jsx),
-      so equal-specificity `:root` rules here win.
+   Loaded after m3.tokens.css and index.css, so equal-specificity rules win and a
+   screen never has to out-specify upstream. The app keeps its own sections below
+   (Workout, Home, Lists, Sheets, Type, Plan, Stats, Motion, Complex): put a new
+   rule in the section it belongs to, not at the end of the file.
 
-   What it changes today: corner radii (M3 shape scale — sheets and the tab bar
-   get M3's 28dp extra-large corner), the tonal surface ladder (a card separates
-   from its background by tone, not by a hairline), and the motion curves
-   (M3 standard easing, longer durations than iOS's snappy ones).
-
-   What deliberately is NOT here yet: elevation shadows, state layers and the
-   type scale. Nothing reads them today, and a token nobody reads is dead code —
-   they arrive with the screens that use them (WS4b), in this same file.
+   Split out of m3.css on 2026-10-03 (WS12/A2); the rules below are the old file
+   lines 86-566, verbatim.
    ============================================================================ */
 
-:root {
-  /* ---- shape: M3 none / xs 4 / s 8 / m 12 / l 16 / xl 28 / full ------------ */
-  --m3-shape-xs:   4px;
-  --m3-shape-s:    8px;
-  --m3-shape-m:   12px;
-  --m3-shape-l:   16px;
-  --m3-shape-xl:  28px;
-  --m3-shape-full: 999px;
-
-  /* ---- colour roles, dark -------------------------------------------------
-     M3's dark surfaces are near-black with a faint tint raised toward the
-     primary hue, and they step by tone. Pure #000 with hairline separators is
-     the iOS look this replaces. */
-  --m3-surface:                    #0b0b0e;   /* the page behind everything */
-  --m3-surface-container-lowest:   #060608;   /* recessed wells (track, rail) */
-  --m3-surface-container-low:      #151419;   /* bars, sheets */
-  --m3-surface-container:          #1d1b21;   /* cards, grouped lists */
-  --m3-surface-container-high:     #27252c;   /* nested fills, pressed state */
-  --m3-surface-container-highest:  #33313a;   /* controls: segmented track, switch */
-  --m3-outline:         rgba(147, 143, 153, .50);
-  --m3-outline-variant: rgba(147, 143, 153, .28);
-
-  /* ---- motion: M3 standard / emphasized curves and durations -------------- */
-  --m3-ease-standard:   cubic-bezier(.2, 0, 0, 1);
-  --m3-ease-emphasized: cubic-bezier(.3, 0, 0, 1);
-  --m3-dur-short:  150ms;
-  --m3-dur-medium: 250ms;
-  --m3-dur-long:   400ms;
-
-  /* ---- the app's own names, defined by the roles above -------------------- */
-  --bg:        var(--m3-surface);
-  --bg-el:     var(--m3-surface-container-low);
-  --surface:   var(--m3-surface-container);
-  --surface-2: var(--m3-surface-container-high);
-  --surface-3: var(--m3-surface-container-highest);
-  --sep:       var(--m3-outline);
-  --sep-op:    var(--m3-outline-variant);
-
-  --r-sm:   var(--m3-shape-s);
-  --r:      var(--m3-shape-m);
-  --r-card: var(--m3-shape-l);
-  --r-lg:   var(--m3-shape-l);
-  --r-xl:   var(--m3-shape-xl);
-
-  --ease: var(--m3-ease-standard);
-  --fast: var(--m3-dur-short);
-  --med:  var(--m3-dur-medium);
-}
-
-/* Light: M3's light surfaces carry the same faint tint. The card keeps its
-   contrast against the page (white on a tinted background), as before. */
-:root[data-theme="light"] {
-  --m3-surface:                   #f8f5fb;
-  --m3-surface-container-lowest:  #f2eef6;
-  --m3-surface-container-low:     #f4f0f8;
-  --m3-surface-container:         #ffffff;
-  --m3-surface-container-high:    #ece7f1;
-  --m3-surface-container-highest: #e3dde9;
-  --m3-outline:         rgba(73, 69, 79, .50);
-  --m3-outline-variant: rgba(73, 69, 79, .24);
-}
 
 /* ============================================================================
    Primitives

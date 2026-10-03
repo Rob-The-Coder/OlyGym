@@ -3,9 +3,11 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import { MOBILE } from './lib/mobile.js'
 import './index.css'
-// Material 3 Expressive tokens, loaded after index.css on purpose: equal-specificity
-// `:root` rules here win, and upstream's index.css stays untouched. See m3.css.
-import './m3.css'
+// Material 3, layered on purpose in this order: roles first, components last.
+// index.css is upstream's and stays untouched; equal-specificity `:root` rules in
+// m3.tokens.css win over it, and m3.components.css wins over both. See the headers.
+import './m3.tokens.css'
+import './m3.components.css'
 
 // App.jsx restores per-route scroll itself; the browser's own attempt races it.
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
