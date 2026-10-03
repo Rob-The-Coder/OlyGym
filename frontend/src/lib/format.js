@@ -91,4 +91,13 @@ export const weekKey = (iso, ws = MONDAY) => isoOf(startOfWeek(iso, ws))
 export const localTZ = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' } catch { return 'UTC' } }
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7)
-export const ACCENTS = { lime: '#30d158', sky: '#0a84ff', orange: '#ff9f0a', violet: '#bf5af2', pink: '#ff375f', red: '#ff453a', teal: '#40c8e0', gold: '#ffd60a' }
+// The accent picker: eight M3 seeds — the tone-40 value of each hue family — not eight ad-hoc
+// colours. Each seed expands into a full Material 3 scheme (primary, containers, tinted neutrals)
+// in frontend/src/m3.tokens.css, which is GENERATED: change a seed here and in
+// scripts/design/m3-scheme.mjs, then run `node scripts/design/m3-scheme.mjs`.
+// These hexes are only the swatch and the validity map; never paint with them.
+export const ACCENTS = { lime: '#146C2E', sky: '#0B57D0', orange: '#8F4C00', violet: '#6750A4', pink: '#984061', red: '#B3261E', teal: '#006A6A', gold: '#7A5900' }
+
+// The default is M3's baseline purple. Any stored accent that is no longer in the map falls
+// back here, so removing a seed can never leave the UI without a scheme.
+export const DEFAULT_ACCENT = 'violet'

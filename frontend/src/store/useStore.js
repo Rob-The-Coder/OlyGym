@@ -10,7 +10,7 @@ import { convertStateUnit } from '../lib/units.js'
 const KEY = 'gym_state_v1'
 export const DEF = {
   unit: 'kg', restSec: 90, sound: true, soundOnSilent: false, timerFlash: false, keepAwake: true, lang: 'en',
-  theme: 'dark', accent: 'lime', body: 'male', targetW: null,
+  theme: 'dark', accent: 'violet', body: 'male', targetW: null,   // M3 baseline purple (lib/format.js)
   bodyweight: [], weeks: [],
   exWeights: {}, workouts: [], active: null, customEx: [], gifSize: 'full',
   // Corrections to the reading of a coach's spreadsheet, keyed by the words he wrote (see

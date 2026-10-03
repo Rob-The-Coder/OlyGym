@@ -52,15 +52,24 @@ export function contrastOn(fgValue, bgValue) {
   return contrastRatio(fg[3] === 1 ? fg : composite(fg, bg), bg)
 }
 
-/** every `--name: value` in the first `selector { … }` block of a stylesheet */
+/**
+ * Every `--name: value` declared for `selector`, over all of its blocks, merged in source
+ * order — the way the cascade treats a selector that is written more than once (this file has
+ * a shape block, a motion block, a legacy-mapping block and then the generated schemes).
+ */
 export function readCustomProperties(css, selector) {
-  const spaced = css.indexOf(selector + ' {')
-  const at = spaced >= 0 ? spaced : css.indexOf(selector + '{')
-  if (at < 0) throw new Error('no block for ' + selector)
-  const open = css.indexOf('{', at)
-  const body = css.slice(open + 1, css.indexOf('}', open)).replace(/\/\*[\s\S]*?\*\//g, '')
   const vars = {}
-  for (const m of body.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/gi)) vars[m[1]] = m[2].trim()
+  for (const form of [selector + ' {', selector + '{']) {
+    for (let from = 0; ;) {
+      const at = css.indexOf(form, from)
+      if (at < 0) break
+      const open = css.indexOf('{', at)
+      const body = css.slice(open + 1, css.indexOf('}', open)).replace(/\/\*[\s\S]*?\*\//g, '')
+      for (const m of body.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/gi)) vars[m[1]] = m[2].trim()
+      from = open + 1
+    }
+  }
+  if (!Object.keys(vars).length) throw new Error('no block for ' + selector)
   return vars
 }
 

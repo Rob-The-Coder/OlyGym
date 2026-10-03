@@ -2,8 +2,8 @@
    Material 3 — the token layer
    ----------------------------------------------------------------------------
    Roles only: no component styles live in this file. Every value is either an
-   M3 role (shape, tonal surface, colour, state layer, elevation, type, motion)
-   or one of the legacy names this app already uses, pointed at one of those roles.
+   M3 role (shape, colour, outline, state layer, elevation, type, motion) or one
+   of the legacy names this app already uses, pointed at one of those roles.
 
    index.css is upstream and stays untouched, which is why this is a second file
    instead of an edit: upstream merges keep costing nothing, and the override
@@ -14,61 +14,46 @@
    Equal-specificity :root rules here win over index.css; the component sheet
    loads last and wins over both.
 
-   Split out of m3.css on 2026-10-03 (WS12/A2). The two were one file, and the
-   single header claimed no component styles lived in it while the body carried
-   105 component selectors and 9 shadows. Nothing changed but the file boundary:
-   the rules below are the old file lines 1-85, verbatim.
+   The colour section at the bottom is GENERATED — do not edit it by hand.
+   The eight accent seeds and the tone rule live in scripts/design/m3-scheme.mjs:
+
+     node scripts/design/m3-scheme.mjs            # rewrite this file
+     node scripts/design/m3-scheme.mjs --check    # print the contrast audit
+
+   Every text and edge tone is chosen by measurement there, and
+   src/lib/contrast.test.js re-checks the written CSS, so a palette cannot ship
+   unreadable. Split out of m3.css on 2026-10-03 (WS12/A2).
    ============================================================================ */
 
+/* ---- shape: M3 none / xs 4 / s 8 / m 12 / l 16 / xl 28 / full ------------- */
 :root {
-  /* ---- shape: M3 none / xs 4 / s 8 / m 12 / l 16 / xl 28 / full ------------ */
   --m3-shape-xs:   4px;
   --m3-shape-s:    8px;
   --m3-shape-m:   12px;
   --m3-shape-l:   16px;
   --m3-shape-xl:  28px;
   --m3-shape-full: 999px;
+}
 
-  /* ---- colour roles, dark -------------------------------------------------
-     M3's dark surfaces are near-black with a faint tint raised toward the
-     primary hue, and they step by tone. Pure #000 with hairline separators is
-     the iOS look this replaces. */
-  --m3-surface:                    #0b0b0e;   /* the page behind everything */
-  --m3-surface-container-lowest:   #060608;   /* recessed wells (track, rail) */
-  --m3-surface-container-low:      #151419;   /* bars, sheets */
-  --m3-surface-container:          #1d1b21;   /* cards, grouped lists */
-  --m3-surface-container-high:     #27252c;   /* nested fills, pressed state */
-  --m3-surface-container-highest:  #33313a;   /* controls: segmented track, switch */
-  --m3-outline:         rgba(147, 143, 153, .72);   /* component edges: 3.2:1 and up */
-  --m3-outline-variant: rgba(147, 143, 153, .34);   /* dividers: decorative, no ratio owed */
-
-  /* ---- text: two levels, and nothing under them carries words --------------
-     M3 has on-surface and on-surface-variant — both pass AA — plus outline and
-     disabled tones, which are not text. This app had a third *text* level at
-     32%, which measured 2.66:1 in dark and 1.72:1 in light: every caption,
-     placeholder and legend was failing. It is now the disabled/decorative tone,
-     and every selector that used it for words reads --m3-on-surface-variant
-     instead (see the contrast block in m3.components.css). */
-  --m3-on-surface:           #ffffff;                  /* 15.7:1 on a card */
-  --m3-on-surface-variant:   rgba(235, 235, 245, .66); /* 5.7:1 at worst — the floor for text */
-  --m3-on-surface-disabled:  rgba(235, 235, 245, .32); /* never text */
-  --m3-hairline:             rgba(235, 235, 245, .18); /* never text */
-
-  /* ---- motion: M3 standard / emphasized curves and durations -------------- */
+/* ---- motion: M3 standard / emphasized curves and durations ---------------- */
+:root {
   --m3-ease-standard:   cubic-bezier(.2, 0, 0, 1);
   --m3-ease-emphasized: cubic-bezier(.3, 0, 0, 1);
   --m3-dur-short:  150ms;
   --m3-dur-medium: 250ms;
   --m3-dur-long:   400ms;
+}
 
-  /* ---- the app's own names, defined by the roles above -------------------- */
+/* ---- the app's own names, defined by the roles above ---------------------- */
+:root {
   --bg:        var(--m3-surface);
   --bg-el:     var(--m3-surface-container-low);
   --surface:   var(--m3-surface-container);
   --surface-2: var(--m3-surface-container-high);
   --surface-3: var(--m3-surface-container-highest);
-  --sep:       var(--m3-outline);
-  --sep-op:    var(--m3-outline-variant);
+  --sep:       var(--m3-outline-variant);   /* dividers, not boundaries: every --sep use in
+                                               index.css is a hairline between rows */
+  --sep-op:    var(--m3-hairline);          /* the faintest tone, for an edge over a blurred bar */
 
   --label:   var(--m3-on-surface);
   --label-2: var(--m3-on-surface-variant);   /* text */
@@ -86,19 +71,332 @@
   --med:  var(--m3-dur-medium);
 }
 
-/* Light: M3's light surfaces carry the same faint tint. The card keeps its
-   contrast against the page (white on a tinted background), as before. */
-:root[data-theme="light"] {
-  --m3-surface:                   #f8f5fb;
-  --m3-surface-container-lowest:  #f2eef6;
-  --m3-surface-container-low:     #f4f0f8;
-  --m3-surface-container:         #ffffff;
-  --m3-surface-container-high:    #ece7f1;
-  --m3-surface-container-highest: #e3dde9;
-  --m3-outline:         rgba(73, 69, 79, .62);   /* component edges: 3.1:1 and up */
-  --m3-outline-variant: rgba(73, 69, 79, .28);
-  --m3-on-surface:           #000000;
-  --m3-on-surface-variant:   rgba(60, 60, 67, .78);  /* 4.7:1 at worst, up to 5.9:1 */
-  --m3-on-surface-disabled:  rgba(60, 60, 67, .30);  /* never text */
-  --m3-hairline:             rgba(60, 60, 67, .16);  /* never text */
+/* == begin generated: colour schemes — scripts/design/m3-scheme.mjs == */
+/* The default is the M3 baseline purple (#6750A4). Every other accent re-declares
+   the same roles, so a scheme is always complete: swap --acc and the whole UI follows. */
+
+:root {
+  --m3-surface                  : #151219;
+  --m3-surface-container-low    : #1d1a21;
+  --m3-surface-container        : #252229;
+  --m3-surface-container-high   : #2d2b32;
+  --m3-surface-container-highest: #3b383f;
+  --m3-on-surface               : #e4e1ea;
+  --m3-on-surface-variant       : #c8c5ce;
+  --m3-on-surface-disabled      : #48454d;
+  --m3-hairline                 : #322f36;
+  --m3-outline                  : #928f98;
+  --m3-outline-variant          : #48454d;
+  --m3-primary                  : #d2bbff;
+  --m3-on-primary               : #32226f;
+  --m3-primary-container        : #4c3889;
+  --m3-on-primary-container     : #e9ddff;
+  --acc: var(--m3-primary); --on-acc: var(--m3-on-primary);
 }
+:root[data-theme="light"] {
+  --m3-surface                  : #fbf8ff;
+  --m3-surface-container-low    : #f6f2fc;
+  --m3-surface-container        : #ffffff;
+  --m3-surface-container-high   : #eae7f0;
+  --m3-surface-container-highest: #e4e1ea;
+  --m3-on-surface               : #1d1a21;
+  --m3-on-surface-variant       : #48454d;
+  --m3-on-surface-disabled      : #bbb7c0;
+  --m3-hairline                 : #29272e;
+  --m3-outline                  : #79767e;
+  --m3-outline-variant          : #c8c5ce;
+  --m3-primary                  : #6750a4;
+  --m3-on-primary               : #ffffff;
+  --m3-primary-container        : #e9ddff;
+  --m3-on-primary-container     : #150d56;
+  --acc: var(--m3-primary); --on-acc: var(--m3-on-primary);
+}
+:root[data-accent="lime"] {
+  --m3-surface                  : #0e150e;
+  --m3-surface-container-low    : #171d18;
+  --m3-surface-container        : #1f2520;
+  --m3-surface-container-high   : #282e28;
+  --m3-surface-container-highest: #353b35;
+  --m3-on-surface               : #dde4dd;
+  --m3-on-surface-variant       : #c1c8c1;
+  --m3-on-surface-disabled      : #424842;
+  --m3-hairline                 : #2c322c;
+  --m3-outline                  : #8b938c;
+  --m3-outline-variant          : #424842;
+  --m3-primary                  : #87d992;
+  --m3-on-primary               : #003912;
+  --m3-primary-container        : #00531e;
+  --m3-on-primary-container     : #a3f5ac;
+  --acc: var(--m3-primary); --on-acc: var(--m3-on-primary);
+}
+:root[data-accent="sky"] {
+  --m3-surface                  : #13121c;
+  --m3-surface-container-low    : #1a1b25;
+  --m3-surface-container        : #23232d;
+  --m3-surface-container-high   : #2b2b36;
+  --m3-surface-container-highest: #383843;
+  --m3-on-surface               : #e2e1ef;
+  --m3-on-surface-variant       : #c6c5d3;
+  --m3-on-surface-disabled      : #464651;
+  --m3-hairline                 : #2f2f3a;
+  --m3-outline                  : #90909c;
+  --m3-outline-variant          : #464651;
+  --m3-primary                  : #bfc1ff;
+  --m3-on-primary               : #002c72;
+  --m3-primary-container        : #0040a0;
+  --m3-on-primary-container     : #e0e0ff;
+  --acc: var(--m3-primary); --on-acc: var(--m3-on-primary);
+}
+:root[data-accent="teal"] {
+  --m3-surface                  : #0e1514;
+  --m3-surface-container-low    : #171d1c;
+  --m3-surface-container        : #1f2525;
+  --m3-surface-container-high   : #272d2d;
+  --m3-surface-container-highest: #343a3a;
+  --m3-on-surface               : #dce4e4;
+  --m3-on-surface-variant       : #c1c8c8;
+  --m3-on-surface-disabled      : #424848;
+  --m3-hairline                 : #2c3131;
+  --m3-outline                  : #8b9292;
+  --m3-outline-variant          : #424848;
+  --m3-primary                  : #82d4d3;
+  --m3-on-primary               : #003737;
+  --m3-primary-container        : #005050;
+  --m3-on-primary-container     : #9ef1f0;
+  --acc: var(--m3-primary); --on-acc: var(--m3-on-primary);
+}
+:root[data-accent="violet"] {
+  --m3-surface                  : #151219;
+  --m3-surface-container-low    : #1d1a21;
+  --m3-surface-container        : #252229;
+  --m3-surface-container-high   : #2d2b32;
+  --m3-surface-container-highest: #3b383f;
+  --m3-on-surface               : #e4e1ea;
+  --m3-on-surface-variant       : #c8c5ce;
+  --m3-on-surface-disabled      : #48454d;
+  --m3-hairline                 : #322f36;
+  --m3-outline                  : #928f98;
+  --m3-outline-variant          : #48454d;
+  --m3-primary                  : #d2bbff;
+  --m3-on-primary               : #32226f;
+  --m3-primary-container        : #4c3889;
+  --m3-on-primary-container     : #e9ddff;
+  --acc: var(--m3-primary); --on-acc: var(--m3-on-primary);
+}
+:root[data-accent="pink"] {
+  --m3-surface                  : #191114;
+  --m3-surface-container-low    : #211a1c;
+  --m3-surface-container        : #292224;
+  --m3-surface-container-high   : #322a2c;
+  --m3-surface-container-highest: #3f3739;
+  --m3-on-surface               : #eae0e3;
+  --m3-on-surface-variant       : #cec4c7;
+  --m3-on-surface-disabled      : #4d4547;
+  --m3-hairline                 : #362e31;
+  --m3-outline                  : #988e91;
+  --m3-outline-variant          : #4d4547;
+  --m3-primary                  : #ffb0c9;
+  --m3-on-primary               : #620833;
+  --m3-primary-container        : #7d2649;
+  --m3-on-primary-container     : #ffd9e4;
+  --acc: var(--m3-primary); --on-acc: var(--m3-on-primary);
+}
+:root[data-accent="red"] {
+  --m3-surface                  : #1d100c;
+  --m3-surface-container-low    : #251916;
+  --m3-surface-container        : #2d211e;
+  --m3-surface-container-high   : #362926;
+  --m3-surface-container-highest: #443633;
+  --m3-on-surface               : #f1dfdb;
+  --m3-on-surface-variant       : #d4c3bf;
+  --m3-on-surface-disabled      : #524441;
+  --m3-hairline                 : #3a2d2b;
+  --m3-outline                  : #9d8d8a;
+  --m3-outline-variant          : #524441;
+  --m3-primary                  : #ffb4a5;
+  --m3-on-primary               : #690000;
+  --m3-primary-container        : #93000b;
+  --m3-on-primary-container     : #ffdad2;
+  --acc: var(--m3-primary); --on-acc: var(--m3-on-primary);
+}
+:root[data-accent="orange"] {
+  --m3-surface                  : #1a120a;
+  --m3-surface-container-low    : #211a15;
+  --m3-surface-container        : #2a221d;
+  --m3-surface-container-high   : #322b25;
+  --m3-surface-container-highest: #403832;
+  --m3-on-surface               : #ebe1d9;
+  --m3-on-surface-variant       : #cfc5bd;
+  --m3-on-surface-disabled      : #4e453f;
+  --m3-hairline                 : #372f29;
+  --m3-outline                  : #998f88;
+  --m3-outline-variant          : #4e453f;
+  --m3-primary                  : #ffb77b;
+  --m3-on-primary               : #4c2700;
+  --m3-primary-container        : #6e3900;
+  --m3-on-primary-container     : #ffdcc2;
+  --acc: var(--m3-primary); --on-acc: var(--m3-on-primary);
+}
+:root[data-accent="gold"] {
+  --m3-surface                  : #17130a;
+  --m3-surface-container-low    : #1f1b15;
+  --m3-surface-container        : #27231d;
+  --m3-surface-container-high   : #302b25;
+  --m3-surface-container-highest: #3d3832;
+  --m3-on-surface               : #e8e2d9;
+  --m3-on-surface-variant       : #ccc6bd;
+  --m3-on-surface-disabled      : #4b463f;
+  --m3-hairline                 : #343029;
+  --m3-outline                  : #959088;
+  --m3-outline-variant          : #4b463f;
+  --m3-primary                  : #edc06c;
+  --m3-on-primary               : #402d00;
+  --m3-primary-container        : #5c4200;
+  --m3-on-primary-container     : #ffdea7;
+  --acc: var(--m3-primary); --on-acc: var(--m3-on-primary);
+}
+:root[data-theme="light"][data-accent="lime"] {
+  --m3-surface                  : #f4fbf4;
+  --m3-surface-container-low    : #eef6ee;
+  --m3-surface-container        : #fefffe;
+  --m3-surface-container-high   : #e2eae3;
+  --m3-surface-container-highest: #dde4dd;
+  --m3-on-surface               : #171d18;
+  --m3-on-surface-variant       : #424842;
+  --m3-on-surface-disabled      : #b3bbb3;
+  --m3-hairline                 : #242924;
+  --m3-outline                  : #727972;
+  --m3-outline-variant          : #c1c8c1;
+  --m3-primary                  : #156d2f;
+  --m3-on-primary               : #fefffe;
+  --m3-primary-container        : #a3f5ac;
+  --m3-on-primary-container     : #002202;
+  --acc: var(--m3-primary); --on-acc: var(--m3-on-primary);
+}
+:root[data-theme="light"][data-accent="sky"] {
+  --m3-surface                  : #f9f9ff;
+  --m3-surface-container-low    : #f3f2ff;
+  --m3-surface-container        : #ffffff;
+  --m3-surface-container-high   : #e7e7f5;
+  --m3-surface-container-highest: #e2e1ef;
+  --m3-on-surface               : #1a1b25;
+  --m3-on-surface-variant       : #464651;
+  --m3-on-surface-disabled      : #b8b8c5;
+  --m3-hairline                 : #272731;
+  --m3-outline                  : #767682;
+  --m3-outline-variant          : #c6c5d3;
+  --m3-primary                  : #0756cf;
+  --m3-on-primary               : #ffffff;
+  --m3-primary-container        : #e0e0ff;
+  --m3-on-primary-container     : #001847;
+  --acc: var(--m3-primary); --on-acc: var(--m3-on-primary);
+}
+:root[data-theme="light"][data-accent="teal"] {
+  --m3-surface                  : #f3fbfb;
+  --m3-surface-container-low    : #eef5f5;
+  --m3-surface-container        : #fdffff;
+  --m3-surface-container-high   : #e2eae9;
+  --m3-surface-container-highest: #dce4e4;
+  --m3-on-surface               : #171d1c;
+  --m3-on-surface-variant       : #424848;
+  --m3-on-surface-disabled      : #b3baba;
+  --m3-hairline                 : #232929;
+  --m3-outline                  : #727878;
+  --m3-outline-variant          : #c1c8c8;
+  --m3-primary                  : #006a6a;
+  --m3-on-primary               : #fdffff;
+  --m3-primary-container        : #9ef1f0;
+  --m3-on-primary-container     : #002020;
+  --acc: var(--m3-primary); --on-acc: var(--m3-on-primary);
+}
+:root[data-theme="light"][data-accent="violet"] {
+  --m3-surface                  : #fbf8ff;
+  --m3-surface-container-low    : #f6f2fc;
+  --m3-surface-container        : #ffffff;
+  --m3-surface-container-high   : #eae7f0;
+  --m3-surface-container-highest: #e4e1ea;
+  --m3-on-surface               : #1d1a21;
+  --m3-on-surface-variant       : #48454d;
+  --m3-on-surface-disabled      : #bbb7c0;
+  --m3-hairline                 : #29272e;
+  --m3-outline                  : #79767e;
+  --m3-outline-variant          : #c8c5ce;
+  --m3-primary                  : #6750a4;
+  --m3-on-primary               : #ffffff;
+  --m3-primary-container        : #e9ddff;
+  --m3-on-primary-container     : #150d56;
+  --acc: var(--m3-primary); --on-acc: var(--m3-on-primary);
+}
+:root[data-theme="light"][data-accent="pink"] {
+  --m3-surface                  : #fff7f9;
+  --m3-surface-container-low    : #fcf1f4;
+  --m3-surface-container        : #ffffff;
+  --m3-surface-container-high   : #f0e6e8;
+  --m3-surface-container-highest: #eae0e3;
+  --m3-on-surface               : #211a1c;
+  --m3-on-surface-variant       : #4d4547;
+  --m3-on-surface-disabled      : #c0b6b9;
+  --m3-hairline                 : #2d2628;
+  --m3-outline                  : #7e7577;
+  --m3-outline-variant          : #cec4c7;
+  --m3-primary                  : #984061;
+  --m3-on-primary               : #ffffff;
+  --m3-primary-container        : #ffd9e4;
+  --m3-on-primary-container     : #3f001d;
+  --acc: var(--m3-primary); --on-acc: var(--m3-on-primary);
+}
+:root[data-theme="light"][data-accent="red"] {
+  --m3-surface                  : #fff8f6;
+  --m3-surface-container-low    : #fff0ed;
+  --m3-surface-container        : #ffffff;
+  --m3-surface-container-high   : #f6e4e1;
+  --m3-surface-container-highest: #f1dfdb;
+  --m3-on-surface               : #251916;
+  --m3-on-surface-variant       : #524441;
+  --m3-on-surface-disabled      : #c6b5b1;
+  --m3-hairline                 : #322522;
+  --m3-outline                  : #837470;
+  --m3-outline-variant          : #d4c3bf;
+  --m3-primary                  : #b4271f;
+  --m3-on-primary               : #ffffff;
+  --m3-primary-container        : #ffdad2;
+  --m3-on-primary-container     : #390c00;
+  --acc: var(--m3-primary); --on-acc: var(--m3-on-primary);
+}
+:root[data-theme="light"][data-accent="orange"] {
+  --m3-surface                  : #fff8f3;
+  --m3-surface-container-low    : #fcf2ea;
+  --m3-surface-container        : #fffffe;
+  --m3-surface-container-high   : #f1e6df;
+  --m3-surface-container-highest: #ebe1d9;
+  --m3-on-surface               : #211a15;
+  --m3-on-surface-variant       : #4e453f;
+  --m3-on-surface-disabled      : #c1b7b0;
+  --m3-hairline                 : #2e2621;
+  --m3-outline                  : #7f756f;
+  --m3-outline-variant          : #cfc5bd;
+  --m3-primary                  : #904d01;
+  --m3-on-primary               : #fffffe;
+  --m3-primary-container        : #ffdcc2;
+  --m3-on-primary-container     : #2b1700;
+  --acc: var(--m3-primary); --on-acc: var(--m3-on-primary);
+}
+:root[data-theme="light"][data-accent="gold"] {
+  --m3-surface                  : #fff8f0;
+  --m3-surface-container-low    : #f9f3ea;
+  --m3-surface-container        : #fffffe;
+  --m3-surface-container-high   : #ede7df;
+  --m3-surface-container-highest: #e8e2d9;
+  --m3-on-surface               : #1f1b15;
+  --m3-on-surface-variant       : #4b463f;
+  --m3-on-surface-disabled      : #beb8b0;
+  --m3-hairline                 : #2b2721;
+  --m3-outline                  : #7c766f;
+  --m3-outline-variant          : #ccc6bd;
+  --m3-primary                  : #7a5900;
+  --m3-on-primary               : #fffffe;
+  --m3-primary-container        : #ffdea7;
+  --m3-on-primary-container     : #251a00;
+  --acc: var(--m3-primary); --on-acc: var(--m3-on-primary);
+}
+/* == end generated == */
