@@ -535,8 +535,10 @@ describe('active workout weight controls', () => {
 
   it('matches automatic progression rounding for a fractional configured step', async () => {
     const target = { mode: 'reps', sets: 1, reps: 5, weight: 60, bodyweight: false, inc: 1.25 }
+    // The profile has automatic progression on, so this is the path the manual stepper has to
+    // agree with (Settings → Automatic progression is off by default).
     const automatic = nextPrescription({
-      unit: 'kg',
+      unit: 'kg', autoProg: true,
       workouts: [{ d: '2026-08-30', entries: [{ id: 'plain-bench', target, sets: [{ w: 60, r: 5, done: true }] }] }],
     }, { id: 'plain-bench', ...target })
 

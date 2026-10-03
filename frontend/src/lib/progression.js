@@ -5,7 +5,9 @@
 // it every time it is needed.
 //
 // One policy remains: linear. Hit every rep in every set and the weight goes up; repeated
-// misses trigger a deload. Reading a session honestly is the whole game:
+// misses trigger a deload. It is opt-in now: off unless Settings → Automatic progression turns
+// it on, or an exercise names a rule of its own, so a planned weight stays the planned weight.
+// Reading a session honestly is the whole game:
 //   · a set checked off with at least its target reps  → hit
 //   · a set checked off with fewer reps                → miss (you logged what you got)
 //   · a set never checked off                          → miss (it was not performed)
@@ -68,12 +70,17 @@ export function weightIncrement(cfg) {
   return cfg && cfg.inc > 0 ? cfg.inc : defaultIncrement(cfg?.id)
 }
 
-// The policy in force for one exercise: its own override, else the routine's default, else
-// the mode's default. Reps keeps behaving the way the app always did (all reps → add a step).
-export function policyFor(cfg, routine, mode) {
+// What automatic progression does when neither the exercise nor its day names a rule: nothing,
+// unless the profile switched it on (Settings → During a workout → Automatic progression writes
+// S.autoProg). A planned weight is a target, not a starting point to add to.
+export const defaultPolicy = S => (S && S.autoProg === true ? 'linear' : 'off')
+
+// The policy in force for one exercise: its own override, else the routine's default, else the
+// profile's default. A rule set by hand still beats the setting, in both directions.
+export function policyFor(cfg, routine, mode, fallback = 'off') {
   const m = mode || modeOf(cfg || {})
   const allowed = POLICIES_FOR[m] || ['off']
-  const pick = (cfg && cfg.prog) || (routine && routine.prog) || (m === 'reps' ? 'linear' : 'off')
+  const pick = (cfg && cfg.prog) || (routine && routine.prog) || fallback
   return allowed.includes(pick) ? pick : 'off'
 }
 
@@ -177,7 +184,7 @@ export function stallCount(sessions) {
  */
 export function nextPrescription(S, cfg, routine) {
   const mode = modeOf(cfg)
-  const policy = policyFor(cfg, routine, mode)
+  const policy = policyFor(cfg, routine, mode, defaultPolicy(S))
   const unit = S.unit || 'kg'
   const inc = weightIncrement(cfg)
   if (policy === 'off') return { policy, kind: 'off' }

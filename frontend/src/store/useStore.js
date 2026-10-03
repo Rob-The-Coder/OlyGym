@@ -59,6 +59,11 @@ export const DEF = {
   // the session straight away; weight can still be logged from Home/Stats. Defaults on; an
   // older profile without the key reads as on (`!== false`).
   weighIn: true,
+  // Automatic progression (lib/progression.js policyFor / defaultPolicy): when neither an
+  // exercise nor its day names a rule, does the weight go up on its own? Off by default, so the
+  // weight on the plan is the weight on the bar; on restores the linear rule for everything that
+  // does not override it. Absent reads as off.
+  autoProg: false,
 }
 const clone = o => JSON.parse(JSON.stringify(o))
 

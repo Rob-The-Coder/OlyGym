@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   readSession, sessionsFor, stallCount, nextPrescription, applyPrescription,
-  policyFor, defaultIncrement, weightIncrement, POLICIES_FOR, DELOAD_AFTER
+  policyFor, defaultPolicy, defaultIncrement, weightIncrement, POLICIES_FOR, DELOAD_AFTER
 } from './progression.js'
 import { entryExcluded } from './history.js'
 import { EXDB } from './exercises.js'
@@ -79,21 +79,52 @@ describe('stallCount', () => {
 
 })
 
+describe('defaultPolicy', () => {
+  it('is off unless the profile switched automatic progression on', () => {
+    expect(defaultPolicy({ autoProg: true })).toBe('linear')
+    expect(defaultPolicy({ autoProg: false })).toBe('off')
+    expect(defaultPolicy({})).toBe('off')          // every profile written before the setting
+    expect(defaultPolicy(null)).toBe('off')
+  })
+})
+
 describe('policyFor', () => {
-  it('keeps the app\'s long-standing behaviour as the default for reps work', () => {
-    expect(policyFor({ id: LIFT }, null, 'reps')).toBe('linear')
+  const on = defaultPolicy({ autoProg: true })
+  it('leaves reps work alone until the profile asks for progression', () => {
+    expect(policyFor({ id: LIFT }, null, 'reps', defaultPolicy({}))).toBe('off')
+    expect(policyFor({ id: LIFT }, null, 'reps', on)).toBe('linear')
   })
-  it('leaves timed work alone unless asked', () => {
-    expect(policyFor({ id: LIFT, mode: 'time' }, null, 'time')).toBe('off')
+  it('leaves timed work alone even with the setting on', () => {
+    expect(policyFor({ id: LIFT, mode: 'time' }, null, 'time', on)).toBe('off')
   })
-  it('lets the exercise override the routine, and the routine override the default', () => {
-    expect(policyFor({ id: LIFT, prog: 'off' }, { prog: 'linear' }, 'reps')).toBe('off')
-    expect(policyFor({ id: LIFT }, { prog: 'off' }, 'reps')).toBe('off')
-    expect(policyFor({ id: LIFT }, null, 'reps')).toBe('linear')
+  it('lets the exercise override the routine, and the routine override the setting', () => {
+    expect(policyFor({ id: LIFT, prog: 'off' }, { prog: 'linear' }, 'reps', 'linear')).toBe('off')
+    expect(policyFor({ id: LIFT }, { prog: 'off' }, 'reps', 'linear')).toBe('off')
+    expect(policyFor({ id: LIFT, prog: 'linear' }, { prog: 'off' }, 'reps', 'off')).toBe('linear')
+    expect(policyFor({ id: LIFT }, null, 'reps', 'linear')).toBe('linear')
   })
   it('refuses a policy that makes no sense for the mode', () => {
     expect(policyFor({ id: LIFT, mode: 'time', prog: 'linear' }, null, 'time')).toBe('off')
     expect(POLICIES_FOR.time).toEqual(['off'])
+  })
+})
+
+// Settings → During a workout → Automatic progression. The recipe is off until the profile asks;
+// nothing else about the engine changes when it is on.
+describe('automatic progression is opt-in', () => {
+  const cfg = { id: LIFT, sets: 3, reps: 5, weight: 60 }
+  const clean = () => hist(LIFT, [[60, 5, 5, 5]])
+  it('prescribes nothing at all for a profile that never chose', () => {
+    expect(nextPrescription(clean(), cfg)).toEqual({ policy: 'off', kind: 'off' })
+  })
+  it('hands back the linear answer once the profile turns it on', () => {
+    const p = nextPrescription({ ...clean(), autoProg: true }, cfg)
+    expect(p.kind).toBe('up')
+    expect(p.weight).toBe(62.5)
+  })
+  it('does not override a rule the exercise already named, in either direction', () => {
+    expect(nextPrescription({ ...clean(), autoProg: true }, { ...cfg, prog: 'off' })).toEqual({ policy: 'off', kind: 'off' })
+    expect(nextPrescription(clean(), { ...cfg, prog: 'linear' }).kind).toBe('up')
   })
 })
 
