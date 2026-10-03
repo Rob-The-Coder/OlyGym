@@ -1017,6 +1017,48 @@ export const effortPickerSheet = (kind, value, onPick) =>
 /* ============================ print / import a plan ============================ */
 export const planToolsSheet = () => ui().openSheet(close => <PlanTools close={close} />)
 
+/* ============================ the library's filters ============================ */
+// The two chip strips that used to sit under the search became one sheet (WS14): one body part
+// and one equipment row, grouped and named, with the sheet holding its own state until "Show N
+// exercises" commits. Nothing changes behind the sheet while you try things out.
+//
+// `describeFor` is the screen's own filter function, so the count on that button is the count
+// you get — the sheet cannot drift from the list it is filtering.
+export const libraryFilterSheet = props => ui().openSheet(close => <LibraryFilters {...props} close={close} />)
+
+function LibraryFilters({ bp, eq, showAll, profile, describeFor, onApply, close }) {
+  const [b, setB] = useState(bp)
+  const [e, setE] = useState(eq)
+  const [all, setAll] = useState(showAll)
+  const { count, eqOpts } = describeFor({ bp: b, eq: e, showAll: all })
+  // Same guard as the screen: a body part with no dumbbell work cannot leave "Dumbbell" chosen.
+  const eOn = eqOpts.includes(e) ? e : ''
+  const clean = !b && !eOn
+  return <>
+    <h3>{t('Filters')}</h3>
+    <div className="sect-t">{t('Body part')}</div>
+    <div className="chips wrap">
+      <button className={'chip nocap' + (!b ? ' on' : '')} aria-pressed={!b} onClick={() => setB('')}>{t('All')}</button>
+      {BODYPARTS.map(x => <button key={x} className={'chip' + (b === x ? ' on' : '')} aria-pressed={b === x}
+        onClick={() => setB(b === x ? '' : x)}>{t(x)}</button>)}
+    </div>
+    {eqOpts.length > 1 && <>
+      <div className="sect-t">{t('Equipment')}</div>
+      <div className="chips wrap">
+        <button className={'chip nocap' + (!eOn ? ' on' : '')} aria-pressed={!eOn} onClick={() => setE('')}>{t('Any equipment')}</button>
+        {eqOpts.map(x => <button key={x} className={'chip' + (eOn === x ? ' on' : '')} aria-pressed={eOn === x}
+          onClick={() => setE(eOn === x ? '' : x)}>{t(x)}</button>)}
+      </div>
+    </>}
+    {profile && <Row icon="dumbbell" title={t('Only my equipment')} subtitle={t('Leave out anything "{0}" does not cover', profile.name)}>
+      <Switch checked={!all} onChange={v => setAll(!v)} />
+    </Row>}
+    <div style={{ height: 14 }} />
+    <Button variant="primary" onClick={() => { onApply({ bp: b, eq: eOn, showAll: all }); close() }}>{t('Show {0} exercises', count)}</Button>
+    {!clean && <><div style={{ height: 8 }} /><Button variant="ghost" className="dim" onClick={() => { setB(''); setE('') }}>{t('Clear filters')}</Button></>}
+  </>
+}
+
 /* ============================ the complex ============================ */
 // A complex is one card in a day, and its sets and load belong to the whole thing: the coach
 // writes "3+3 @ 30kg" once, not once per movement. The rows keep their own reps (that is what

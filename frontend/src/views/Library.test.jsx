@@ -22,8 +22,13 @@ vi.mock('../store/useStore.js', () => {
   return { useStore }
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
+// The filter sheet is opened by the screen and hands its choices back through onApply; capturing
+// the props is how these tests drive the filter without rendering the sheet itself.
+let filterArgs = null
 vi.mock('../sheets.jsx', () => ({
-  effortHelpSheet: vi.fn(), exerciseDetailSheet: vi.fn(), addToRoutineSheet: vi.fn(), customExSheet: vi.fn() }))
+  effortHelpSheet: vi.fn(), exerciseDetailSheet: vi.fn(), addToRoutineSheet: vi.fn(), customExSheet: vi.fn(),
+  libraryFilterSheet: vi.fn(args => { filterArgs = args }),
+}))
 
 const mounted = []
 function render() {
@@ -38,6 +43,7 @@ const names = host => [...host.querySelectorAll('.item .tt')].map(el => el.textC
 const cssSource = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8')
 
 beforeEach(() => {
+  filterArgs = null
   mocks.S = { unit: 'kg', lang: 'en', routines: [], workouts: [], customEx: [], exWeights: {}, equipProfiles: [], activeEquipId: null, equipFilterOn: false }
   document.body.innerHTML = ''
 })
@@ -73,16 +79,34 @@ describe('Library favourites', () => {
   })
 
   it('keeps a favourite on top inside a category filter, but never pulls one in from elsewhere', () => {
-    // The catalogue's `bp` is a movement family now, so that is what the chips filter by.
+    // The catalogue's `bp` is a movement family now, so that is what the filter sheet groups by.
     const FAMILY = 'Accessory - Upper Body'
     const inFamily = EXDB.filter(e => e.bp === FAMILY)
     const other = EXDB.find(e => e.bp !== FAMILY)
     mocks.S.favEx = [inFamily[4].id, other.id]
     const host = render()
-    const chip = [...host.querySelectorAll('.chips .chip')].find(b => b.textContent === FAMILY)
-    act(() => chip.click())
+    act(() => host.querySelector('.lib-filters').click())
+    // the sheet's button is labelled with the count it would produce — undefined here means the
+    // sheet and the screen have drifted apart again
+    expect(filterArgs.describeFor({ bp: FAMILY, eq: '', showAll: true }).count).toBe(inFamily.length)
+    act(() => filterArgs.onApply({ bp: FAMILY, eq: '', showAll: true }))
     const shown = names(host)
     expect(shown[0]).toBe(inFamily[4].n)
     expect(shown).not.toContain(other.n)
+  })
+
+  // The two chip strips became one row plus a sheet (WS14), so what used to be two rows of chrome
+  // is a count and one chip — and what is filtered is visible without opening it.
+  it('shows the count, and each applied filter as a chip that drops itself', () => {
+    const host = render()
+    expect(host.querySelector('.lib-bar').textContent).toContain('624 exercises')
+    expect(host.querySelector('.lib-applied')).toBeNull()
+    act(() => host.querySelector('.lib-filters').click())
+    act(() => filterArgs.onApply({ bp: 'Accessory - Upper Body', eq: '', showAll: false }))
+    const chips = [...host.querySelectorAll('.lib-applied .chip')]
+    expect(chips.map(c => c.textContent)).toEqual(['Accessory - Upper Body'])
+    expect(host.querySelector('.lib-filters').textContent).toContain('1')
+    act(() => chips[0].click())
+    expect(host.querySelector('.lib-applied')).toBeNull()
   })
 })
