@@ -859,7 +859,7 @@ function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, init
     </div>
     {/* bodyweight (issues #31/#32) */}
     <div className="sect-b" style={{ marginBottom: 8 }}>
-      <Row icon="figureStrength" iconTint="var(--acc)" title={t('Bodyweight')}
+      <Row icon="figureStrength" title={t('Bodyweight')}
         subtitle={bw ? t('No weight to enter — just log the reps.') : t('Ask for a weight on every set.')}>
         <Switch checked={bw} onChange={v => setC(x => ({ ...x, bodyweight: v, weight: v ? 0 : x.weight }))} />
       </Row>
@@ -1450,7 +1450,7 @@ function ExerciseNote({ entryIdx, close }) {
       onFocus={onNoteFocus} onChange={e => setNote(e.target.value)} />
     <div style={{ height: 10 }} />
     <div className="sect-b">
-      <Row icon="flag" iconTint="var(--yellow)" title={t('Show this next time')}
+      <Row icon="flag" title={t('Show this next time')}
         subtitle={t('Brings it up again the next time you train this exercise.')}>
         <Switch checked={pin} onChange={setPin} disabled={!note.trim()} />
       </Row>

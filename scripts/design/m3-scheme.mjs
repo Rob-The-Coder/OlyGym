@@ -87,6 +87,13 @@ export const SEEDS = {
 export const DEFAULT_ACCENT = 'violet'
 const NEUTRAL = 0.10   // how much of the seed the neutrals keep: M3 neutral, not grey
 
+// M3 keeps one error hue for every scheme — a red is only recognisable as a warning if it stays
+// the same red. Published baseline values, so a destructive row looks the same under any accent.
+const ERROR = {
+  light: { error: '#B3261E', onError: '#FFFFFF', errorContainer: '#F9DEDC', onErrorContainer: '#410E0B' },
+  dark: { error: '#F2B8B5', onError: '#601410', errorContainer: '#8C1D18', onErrorContainer: '#F9DEDC' },
+}
+
 const TARGET = { body: 7, text: 4.5, edge: 3 }
 
 /* ---------- one scheme ---------- */
@@ -94,6 +101,7 @@ export function scheme(seed, theme) {
   const n = L => tone(seed, L, NEUTRAL)
   const p = L => tone(seed, L, 1)
   const light = theme === 'light'
+  const err = ERROR[light ? 'light' : 'dark']
   const s = light
     ? { surface: n(98), low: n(96), container: n(100), high: n(92), highest: n(90) }
     : { surface: n(6), low: n(10), container: n(14), high: n(18), highest: n(24) }
@@ -123,6 +131,10 @@ export function scheme(seed, theme) {
     onPrimary,
     primaryContainer,
     onPrimaryContainer: atTone(seed, light ? 10 : 90, primaryContainer, TARGET.text, { chroma: 1, step: light ? -2 : 2 }),
+    error: err.error,
+    onError: err.onError,
+    errorContainer: err.errorContainer,
+    onErrorContainer: err.onErrorContainer,
   }
 }
 
@@ -139,6 +151,9 @@ export function audit(name, theme, s) {
     ['outline on a nested fill', s.outline, s.high, TARGET.edge],
     ['label on an accent fill', s.onPrimary, s.primary, TARGET.text],
     ['label on an accent container', s.onPrimaryContainer, s.primaryContainer, TARGET.text],
+    ['error as text on a card', s.error, s.container, TARGET.text],
+    ['label on an error fill', s.onError, s.error, TARGET.text],
+    ['label on an error container', s.onErrorContainer, s.errorContainer, TARGET.text],
   ]
   return checks.map(([what, a, b, target]) => ({ name, theme, what, ratio: r2(contrast(a, b)), target, ok: contrast(a, b) >= target }))
 }
@@ -153,10 +168,12 @@ const block = (selector, s, indent = '  ') => {
     ['--m3-outline', s.outline], ['--m3-outline-variant', s.outlineVariant],
     ['--m3-primary', s.primary], ['--m3-on-primary', s.onPrimary],
     ['--m3-primary-container', s.primaryContainer], ['--m3-on-primary-container', s.onPrimaryContainer],
+    ['--m3-error', s.error], ['--m3-on-error', s.onError],
+    ['--m3-error-container', s.errorContainer], ['--m3-on-error-container', s.onErrorContainer],
   ]
   const width = Math.max(...rows.map(([k]) => k.length))
   return selector + '{\n' + rows.map(([k, v]) => indent + k.padEnd(width) + ': ' + v + ';').join('\n')
-    + '\n' + indent + '--acc: var(--m3-primary); --on-acc: var(--m3-on-primary);\n}'
+    + '\n' + indent + '--acc: var(--m3-primary); --on-acc: var(--m3-on-primary); --red: var(--m3-error);\n}'
 }
 
 export function colourSection() {

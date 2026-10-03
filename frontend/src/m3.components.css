@@ -546,3 +546,14 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
    so the set-table phase headings were falling back to whatever they inherited. */
 .setph{color:var(--label-2)}
 
+/* ============================================================================
+   The leading tile on a row
+   ----------------------------------------------------------------------------
+   Every row's tile sits on the scheme's own container. It used to be a solid saturated fill
+   tinted per row from the iOS palette — nine hues that carried no meaning — which is why the
+   `iconTint` prop is gone from the JSX: the tile is a role now, not a decoration. Colour is
+   left for the one case where it means something: a destructive row keeps the error roles,
+   M3's fixed error hue, so "Reset everything" is red under every accent. */
+.lrow-i{background:var(--m3-primary-container);color:var(--m3-on-primary-container)}
+.lrow.danger .lrow-i{background:var(--m3-error-container);color:var(--m3-on-error-container)}
+

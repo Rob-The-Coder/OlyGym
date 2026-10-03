@@ -283,11 +283,11 @@ export function Section({ title, footer, children, className = '' }) {
   )
 }
 
-export function Row({ icon, iconTint, title, subtitle, value, accessory = 'none', onClick, danger, children, className = '' }) {
+export function Row({ icon, title, subtitle, value, accessory = 'none', onClick, danger, children, className = '' }) {
   const Tag = onClick ? 'button' : 'div'
   return (
     <Tag className={'lrow' + (onClick ? ' tap' : '') + (danger ? ' danger' : '') + ' ' + className} onClick={onClick}>
-      {icon && <span className="lrow-i" style={iconTint ? { '--tint': iconTint } : null}><Icon name={icon} /></span>}
+      {icon && <span className="lrow-i"><Icon name={icon} /></span>}
       <span className="lrow-m">
         <span className="lrow-t">{title}</span>
         {subtitle && <span className="lrow-s">{subtitle}</span>}
@@ -306,7 +306,7 @@ export function Row({ icon, iconTint, title, subtitle, value, accessory = 'none'
 // theme entirely — on dark mode it flashes a white sheet — and can't show more
 // than a bare label per option. This opens our own sheet with a checkmark on the
 // current value, which is also how iOS itself handles a long option list.
-export function SelectRow({ icon, iconTint, title, value, options, onChange, sheetTitle, stackedValue = false, search }) {
+export function SelectRow({ icon, title, value, options, onChange, sheetTitle, stackedValue = false, search }) {
   const cur = options.find(o => o.value === value)
   const open = () => {
     const { openSheet } = require_ui()
@@ -315,7 +315,7 @@ export function SelectRow({ icon, iconTint, title, value, options, onChange, she
     return h
   }
   return (
-    <Row icon={icon} iconTint={iconTint} title={title} value={cur ? cur.label : value} accessory="chevron" onClick={open}
+    <Row icon={icon} title={title} value={cur ? cur.label : value} accessory="chevron" onClick={open}
       className={stackedValue ? 'lrow-stack-value' : ''} />
   )
 }
@@ -410,7 +410,7 @@ function SelectSheet({ title, value, options, onChange, search, close }) {
 
 /** Multi-select row for additive exercise metadata. The sheet mirrors selection locally so
  * each tap updates its checkmark immediately while the caller persists the value. */
-export function MultiSelectRow({ icon, iconTint, title, values, options, onToggle, sheetTitle, noneLabel, doneLabel }) {
+export function MultiSelectRow({ icon, title, values, options, onToggle, sheetTitle, noneLabel, doneLabel }) {
   const selected = options.filter(o => values.includes(o.value))
   const summary = selected.length ? selected.map(o => o.label).join(', ') : (noneLabel || '')
   const open = () => {
@@ -419,7 +419,7 @@ export function MultiSelectRow({ icon, iconTint, title, values, options, onToggl
       title={sheetTitle || title} doneLabel={doneLabel} close={close} />)
   }
   return (
-    <Row icon={icon} iconTint={iconTint} title={title} value={summary} accessory="chevron" onClick={open} />
+    <Row icon={icon} title={title} value={summary} accessory="chevron" onClick={open} />
   )
 }
 
