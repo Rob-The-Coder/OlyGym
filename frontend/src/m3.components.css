@@ -597,3 +597,76 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
 @media (max-width:429px){.effdots{display:none}}
 .lrow.danger .lrow-i{background:var(--m3-error-container);color:var(--m3-on-error-container)}
 
+/* ============================================================================
+   The top app bar (WS13)
+   ----------------------------------------------------------------------------
+   Every screen used to draw its own heading — a 32px h1, a .sub line under it and
+   a 36px round button — and all of it scrolled away with the page. A long
+   Library lost the name of the screen and its action; a sub-screen lost the way
+   back. The bar is now one component, with room for a nav icon, a title that
+   changes type role, and actions.
+
+   It is two siblings, not one box. The 64dp action row is the sticky element and
+   the big title scrolls UNDER it. That is what keeps it honest: a bar that
+   shrinks as you scroll changes the height of everything above the content, and
+   the page jumps under your thumb. Here nothing changes height, so the only
+   movement is the title sliding behind the row and the small title fading in.
+   ============================================================================ */
+.ab-row{
+  position:sticky;top:0;z-index:20;
+  display:flex;align-items:center;
+  min-height:calc(64px + var(--sat));
+  /* pull up over #app's own top padding so the row pins flush with the screen edge from the
+     first pixel, and pad the safe area back inside it — the same trick as .whdr.stick */
+  margin:calc(-1 * var(--sat)) calc(-1 * var(--pad)) 0;
+  padding:var(--sat) var(--pad) 0;
+  background:color-mix(in srgb,var(--bg) 92%,transparent);
+  -webkit-backdrop-filter:saturate(180%) blur(14px);backdrop-filter:saturate(180%) blur(14px);
+}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .ab-row{background:var(--bg)}
+}
+/* The hairline belongs to the pinned state only: at the top of a page there is nothing under
+   the bar yet, and a line there would cut the actions off from the title they belong to. */
+.ab-row.pinned::after{
+  content:'';position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--m3-outline-variant);
+}
+
+/* The icon button is the 48dp one M3 asks for, not the app's 36px .iconbtn: in a bar you
+   reach for it without looking. .ab-ico loads after index.css, so it wins on the shared
+   properties while .iconbtn keeps supplying the press animation. */
+.ab-ico{
+  width:48px;height:48px;flex:none;border:0;padding:0;background:transparent;
+  color:var(--m3-on-surface);border-radius:var(--m3-shape-full);
+  display:grid;place-items:center;font-size:24px;
+}
+.ab-ico .icn{--icon-stroke:1.9}
+/* A 48dp target around a 24dp glyph carries 12px of slack: take it off the outer edges so the
+   glyph itself sits on the same line as the big title, at M3's 4dp inset from the screen. */
+/* No nav icon: the title is the first thing on the line, so it belongs on the 16dp content
+   edge rather than the 8dp it would sit at after an icon that is not there. */
+.ab-row.nolead>.ab-t{padding-left:0}
+.ab-row>.ab-ico:first-child{margin-left:-12px}
+.ab-acts>.ab-ico:last-child{margin-right:-12px}
+
+.ab-sp{flex:1;min-width:0}
+.ab-acts{display:flex;align-items:center;gap:2px;flex:none}
+.ab-t{
+  min-width:0;padding:0 8px;
+  font-size:22px;line-height:28px;font-weight:500;letter-spacing:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  animation:abtitle var(--m3-dur-short) var(--m3-ease-standard);
+}
+@keyframes abtitle{from{opacity:0}to{opacity:1}}
+
+.ab-big{padding:2px 0 0}
+.ab-title{
+  margin:0;font-size:32px;line-height:40px;font-weight:500;letter-spacing:-.012em;
+  overflow-wrap:break-word;
+}
+/* index.css steps the old heading down on a narrow phone; that rule lives in .hdr, and this is
+   a different class, so the step has to be restated here or it is lost. */
+@media (max-width:420px){.ab-title{font-size:30px}}
+.ab-sub{color:var(--m3-on-surface-variant);font-size:16px;letter-spacing:-.002em;margin-top:4px}
+
+

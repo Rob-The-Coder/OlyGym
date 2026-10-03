@@ -57,7 +57,7 @@ const button = text => [...host.querySelectorAll('button')].find(b => b.textCont
 describe('WeekEdit', () => {
   it('writes the week name back into S.weeks', () => {
     mount()
-    act(() => type(host.querySelector('.hdr input'), 'Deload'))
+    act(() => type(host.querySelector('.ab-big input'), 'Deload'))
     expect(week().name).toBe('Deload')
   })
 

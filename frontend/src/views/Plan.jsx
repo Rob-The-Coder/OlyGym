@@ -5,6 +5,7 @@ import { addDays, weeksInOrder, weekFor } from '../lib/weeks.js'
 import { t } from '../lib/i18n.js'
 import { planToolsSheet, starterPlanSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
+import TopAppBar from '../components/TopAppBar.jsx'
 import { Button } from '../components/ui.jsx'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 
@@ -40,10 +41,8 @@ export default function Plan() {
   }
 
   return <>
-    <div className="hdr">
-      <div><h1>{t('Plan')}</h1><div className="sub">{t('Your weeks')}</div></div>
-      <button className="iconbtn" onClick={planToolsSheet} aria-label={t('Share your plan')} title={t('Share your plan')}><Icon name="upload" /></button>
-    </div>
+    <TopAppBar title={t('Plan')} subtitle={t('Your weeks')}
+      actions={<button className="iconbtn ab-ico" onClick={planToolsSheet} aria-label={t('Share your plan')} title={t('Share your plan')}><Icon name="upload" /></button>} />
     {weeks.length ? <div className="list">
       {weeks.map(w => {
         const days = daysInOrder(w.days, weekStartOf(S))

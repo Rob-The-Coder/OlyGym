@@ -8,6 +8,7 @@ import { exOr } from '../lib/exercises.js'
 import { supersetUnits, moveSupersetUnit, cleanupSg, exLine, defaultConfig } from '../lib/history.js'
 import { exercisePicker, exConfigSheet, complexConfigSheet, confirmSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
+import TopAppBar from '../components/TopAppBar.jsx'
 import { Button, Segmented, TextField } from '../components/ui.jsx'
 import { Thumb } from '../components/Media.jsx'
 import SwipeToDelete from '../components/SwipeToDelete.jsx'
@@ -165,14 +166,11 @@ export default function WeekEdit() {
   const dowOptions = weekOrder(ws).map(d => ({ value: d, label: t(DAYS[d]) }))
 
   return <div className="narrow">
-    <div className="hdr">
-      <button className="iconbtn" onClick={() => nav('/plan')} aria-label={t('Plan')}><Icon name="chevronLeft" /></button>
-      <div style={{ flex: 1, margin: '0 12px' }}>
-        <TextField value={week.name || ''} aria-label={t('Week of {0}', fmtDate(week.startIso, false, true))}
-          style={{ fontWeight: 600, fontSize: 20, letterSpacing: '-.021em' }}
-          onChange={e => edit(w => { w.name = e.target.value })} />
-      </div>
-    </div>
+    <TopAppBar
+      leading={<button className="iconbtn ab-ico" onClick={() => nav('/plan')} aria-label={t('Plan')}><Icon name="chevronLeft" /></button>}
+      smallTitle={week.name || t('Week of {0}', fmtDate(week.startIso, false, true))}
+      title={<TextField className="ab-title" value={week.name || ''} aria-label={t('Week of {0}', fmtDate(week.startIso, false, true))}
+        onChange={e => edit(w => { w.name = e.target.value })} />} />
     <div className="small dim" style={{ margin: '0 2px 16px' }}>{fmtDate(week.startIso, true, true)}</div>
 
     <h4 className="sec">{t('Weekdays')}</h4>

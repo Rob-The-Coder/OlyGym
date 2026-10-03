@@ -58,19 +58,18 @@ describe('Library favourites', () => {
     expect(rows[2].querySelector('.fav-star')).toBeNull()
   })
 
-  // The Library is the one page whose header puts a text button beside the title, so it leaves the
-  // title the least room of anywhere in the app — 95px for Polish, 125px for Russian on a 320px
-  // screen. The button must stay reachable (it is flex:none, the title block shrinks), but a title
-  // squeezed that far must not come apart: at 34px "Упражнения" broke into three lines, so the
-  // title drops a step on phone widths and breaks a word only as a last resort.
-  it('keeps the header button reachable without shredding the title', () => {
-    expect(cssSource).toContain('.hdr>div{min-width:0}')
-    expect(cssSource).toContain('.hdr>.btn{flex:none}')
-    expect(cssSource).toMatch(/@media \(max-width:420px\)\{\.hdr h1\{font-size:30px\}\}/)
-    const h1 = cssSource.match(/^\.hdr h1\{([^}]*)\}/m)
+  // The Library's action ("By muscle") moved into the app bar's action row (WS13), so it no longer
+  // competes with the title for width — but a single long word still has to survive a 320px screen,
+  // and at 34px "Упражнения" broke into three lines. The title keeps its step down and breaks a
+  // word only as a last resort; the action row never shrinks.
+  it('leaves the title the width of the screen without shredding it', () => {
+    const bar = readFileSync(resolve(process.cwd(), 'src/m3.components.css'), 'utf8')
+    const h1 = bar.match(/^\.ab-title\{([^}]*)\}/m)
     expect(h1?.[1]).toContain('overflow-wrap:break-word')
     expect(h1[1]).not.toContain('overflow-wrap:anywhere')
     expect(h1[1]).not.toContain('hyphens:auto')
+    expect(bar).toMatch(/@media \(max-width:420px\)\{\.ab-title\{font-size:30px\}\}/)
+    expect(bar).toContain('.ab-acts{display:flex;align-items:center;gap:2px;flex:none}')
   })
 
   it('keeps a favourite on top inside a category filter, but never pulls one in from elsewhere', () => {

@@ -9,6 +9,7 @@ import { effortOf } from '../lib/history.js'
 import { unlock, playOnSilentSupported } from '../lib/sound.js'
 import { wakeLockSupported } from '../lib/wakelock.js'
 import { t, LANGS, INSTR_LANGS } from '../lib/i18n.js'
+import TopAppBar from '../components/TopAppBar.jsx'
 import { MOBILE, isAndroid, shareExport, syncReminder } from '../lib/mobile.js'
 import { checkForUpdate, downloadAndInstall, RELEASES_PAGE } from '../lib/update.js'
 import { starterPlanSheet, confirmSheet, importCoachPlan, importCoachPlanFromDrive, equipmentProfileSheet, effortHelpSheet } from '../sheets.jsx'
@@ -140,10 +141,8 @@ export default function Settings() {
   })
 
   return <div className="narrow">
-    <div className="hdr">
-      <button className="iconbtn" onClick={() => nav('/home')} aria-label={t('Home')}><Icon name="chevronLeft" /></button>
-      <div style={{ flex: 1, marginLeft: 10 }}><h1>{t('Settings')}</h1></div>
-    </div>
+    <TopAppBar title={t('Settings')}
+      leading={<button className="iconbtn ab-ico" onClick={() => nav('/home')} aria-label={t('Home')}><Icon name="chevronLeft" /></button>} />
 
     {/* ---------- general ---------- */}
     <Section title={t('General')}>

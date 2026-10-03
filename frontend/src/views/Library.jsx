@@ -10,6 +10,7 @@ import { t, exerciseNameFor } from '../lib/i18n.js'
 import { Thumb } from '../components/Media.jsx'
 import { exerciseDetailSheet, customExSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
+import TopAppBar from '../components/TopAppBar.jsx'
 import { Button } from '../components/ui.jsx'
 import { tappable, useRevealActiveChip } from '../lib/use-sheet-keyboard.js'
 import { isFav, sortFavouritesFirst } from '../lib/favourites.js'
@@ -35,9 +36,8 @@ export default function Library() {
   useRevealActiveChip(eqStrip, eqOn)
 
   return <>
-    <div className="hdr"><div><h1>{t('Exercises')}</h1><div className="sub">{t('{0} exercises with video demos', EXDB.length)}</div></div>
-      <Button size="sm" variant="tinted" icon="target" onClick={() => nav('/muscles')}>{t('By muscle')}</Button>
-    </div>
+    <TopAppBar title={t('Exercises')} subtitle={t('{0} exercises with video demos', EXDB.length)}
+      actions={<Button size="sm" variant="tinted" icon="target" onClick={() => nav('/muscles')}>{t('By muscle')}</Button>} />
     <div className="search" style={{ marginBottom: 10 }}><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
       <input className="input" placeholder={t('Search…')} value={q} onChange={e => { setQ(e.target.value); setShown(40) }} /></div>
     {profile && <div className="small dim row" style={{ margin: '-4px 2px 10px', gap: 6, alignItems: 'center' }}>

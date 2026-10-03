@@ -8,6 +8,7 @@ import { t, dateLocale } from '../lib/i18n.js'
 import { bwSheet, goalSheet, calendarSheet, startFlow, starterPlanSheet, bwDeltaColor } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
+import TopAppBar from '../components/TopAppBar.jsx'
 import { Button } from '../components/ui.jsx'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 
@@ -64,10 +65,8 @@ export default function Home() {
   const onToday = () => { if (S.active) nav('/workout'); else if (todaySession) startFlow(todaySession); else nav('/plan') }
 
   return <div className="narrow">
-    <div className="hdr">
-      <div><h1>OlyGym</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
-      <button className="iconbtn" onClick={() => nav('/settings')} aria-label={t('Settings')}><Icon name="gear" /></button>
-    </div>
+    <TopAppBar title="OlyGym" subtitle={today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}
+      actions={<button className="iconbtn ab-ico" onClick={() => nav('/settings')} aria-label={t('Settings')}><Icon name="gear" /></button>} />
 
     <div className="card">
       <div className="row between" style={{ marginBottom: 8 }}>

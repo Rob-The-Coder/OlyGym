@@ -9,6 +9,7 @@ import { bwSheet, goalSheet, calendarSheet, workoutDetailSheet, exerciseHistoryS
 import LineChart from '../components/LineChart.jsx'
 import Heatmap from '../components/Heatmap.jsx'
 import Icon from '../components/Icon.jsx'
+import TopAppBar from '../components/TopAppBar.jsx'
 import BodyMap, { BodyMapLegend } from '../components/BodyMap.jsx'
 import { loadOfWorkouts, muscleBalanceWindow, rankOf, MUSCLE_NAME } from '../lib/muscles.js'
 import { fatigueOf } from '../lib/recovery.js'
@@ -324,8 +325,8 @@ export default function Stats() {
   if (showEff) exOpts.push({ value: 'effort', label: t('Effort') })
 
   return <>
-    <div className="hdr"><div><h1>{t('Stats')}</h1><div className="sub">{t('Progress & history')}</div></div>
-      <button className="iconbtn" onClick={() => nav('/history')} aria-label={t('History')}><Icon name="history" /></button></div>
+    <TopAppBar title={t('Stats')} subtitle={t('Progress & history')}
+      actions={<button className="iconbtn ab-ico" onClick={() => nav('/history')} aria-label={t('History')}><Icon name="history" /></button>} />
 
     <div className="tiles">
       <div className="tile"><div className="l"><Icon name="dumbbell" />{t('Workouts')}</div><div className="v">{workouts.length}</div></div>

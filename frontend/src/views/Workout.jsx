@@ -15,6 +15,7 @@ import Media from '../components/Media.jsx'
 import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, workoutCompleteSheet, confirmSheet, exerciseNoteSheet, sessionNoteSheet, renameWorkoutSheet, swapActiveWorkoutExercise, barWeightSheet, menuSheet, effortPickerSheet, exerciseHistorySheet } from '../sheets.jsx'
 import { effortColor } from '../lib/effort.js'
 import Icon from '../components/Icon.jsx'
+import TopAppBar from '../components/TopAppBar.jsx'
 import { Button, Check, NumberField } from '../components/ui.jsx'
 import { nextPrescription, applyPrescription, defaultIncrement, weightIncrement, stepWeight } from '../lib/progression.js'
 import { progressionGuidance } from '../lib/progression-copy.js'
@@ -36,7 +37,8 @@ function StartChooser() {
   // there is no separate pool of routines to merge in any more.
   const others = (weekFor(S, todayISO())?.days || []).filter(d => d !== todayDay && (d.ex || []).length)
   return <div className="narrow">
-    <div className="hdr"><div><h1>{t('Start workout')}</h1><div className="sub">{t(DAYN[new Date().getDay()])} — {todayDay ? t('today is {0}', todayName) : t('rest day, but no one’s stopping you')}</div></div></div>
+    <TopAppBar title={t('Start workout')}
+      subtitle={t(DAYN[new Date().getDay()]) + ' — ' + (todayDay ? t('today is {0}', todayName) : t('rest day, but no one’s stopping you'))} />
     {todayDay && (todayDay.ex || []).length > 0 && <div className="card" style={{ borderColor: 'var(--acc)' }}>
       <h2 className="accent">{t("Today's plan")}</h2>
       <div className="row between" style={{ marginBottom: 12 }}>
@@ -948,11 +950,11 @@ function ActiveWorkout() {
         while you are somewhere in the middle of a long stack. Cards mode never scrolls far. */}
     <div className={'whdr' + (listMode ? ' stick' : '')} ref={hdrRef}>
     <div className="hdr">
-      <button className="iconbtn" aria-label={t('Discard')} onClick={() => confirmSheet({ title: t('Discard workout?'), message: t('The sets you logged in this session will be lost.'), confirmText: t('Discard'), danger: true, onConfirm: () => { update(s => { s.active = null }); stopRest(); stopWork(); nav('/home') } })}><Icon name="xmark" /></button>
+      <button className="iconbtn ab-ico" aria-label={t('Discard')} onClick={() => confirmSheet({ title: t('Discard workout?'), message: t('The sets you logged in this session will be lost.'), confirmText: t('Discard'), danger: true, onConfirm: () => { update(s => { s.active = null }); stopRest(); stopWork(); nav('/home') } })}><Icon name="xmark" /></button>
       <div style={{ textAlign: 'center' }}><div style={{ fontWeight: 600 }}>{A.name}</div><div className="sub">{A.backfill ? fmtDate(A.d, true) : <Elapsed start={A.start} />} · {t('{0} sets', done + '/' + total)}</div></div>
       <div className="row" style={{ gap: 4, flex: 'none' }}>
-        <button className="iconbtn" aria-label={t('Workout view')} title={t('Workout view')} onClick={openViewMenu}><Icon name="more" /></button>
-        <button className="iconbtn" style={{ color: 'var(--acc)' }} aria-label={t('Finish')} onClick={finishWorkout}><Icon name="check" /></button>
+        <button className="iconbtn ab-ico" aria-label={t('Workout view')} title={t('Workout view')} onClick={openViewMenu}><Icon name="more" /></button>
+        <button className="iconbtn ab-ico" style={{ color: 'var(--acc)' }} aria-label={t('Finish')} onClick={finishWorkout}><Icon name="check" /></button>
       </div>
     </div>
     <div className="wprog"><i style={{ width: (total ? done / total * 100 : 0) + '%' }} /></div>
