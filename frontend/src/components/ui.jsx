@@ -283,6 +283,20 @@ export function Section({ title, footer, children, className = '' }) {
   )
 }
 
+// A card's own heading (WS15): the block title, the line that five cards on Stats were each
+// writing inline as a "· dim" span, and room for the control that belongs to the whole block.
+export function CardHead({ title, subtitle, children }) {
+  return (
+    <div className="chead">
+      <div className="chead-m">
+        <h2>{title}</h2>
+        {subtitle ? <div className="chead-s">{subtitle}</div> : null}
+      </div>
+      {children}
+    </div>
+  )
+}
+
 export function Row({ icon, title, subtitle, value, accessory = 'none', onClick, danger, children, help, className = '' }) {
   const Tag = onClick ? 'button' : 'div'
   // children and help sit between the title and the value, which is where a control in a row has

@@ -18,7 +18,7 @@ import {
   hasEffort, displayScale, scaleName, toScale, avgRir, effortSummary, effortWeeks,
   effortHistogram, isHardSet, HARD_RIR
 } from '../lib/effort.js'
-import { Button, Segmented, SelectRow } from '../components/ui.jsx'
+import { Button, CardHead, Segmented, SelectRow } from '../components/ui.jsx'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 
 export const FATIGUE_LEVELS = [
@@ -28,6 +28,13 @@ export const FATIGUE_LEVELS = [
   { at: 0.4, level: 3 },
   { at: 0.55, level: 4, exclusive: true },
 ]
+
+// One set of labels for one idea. A window is a window whether it is body weight, effort or
+// the balance map, so they read the same and sit in the same place in the card. The balance map
+// keeps "Week" as well: the training week is the unit you plan the next one from, which is not
+// the same thing as the last 30 days.
+const rangeOpts = extra => [...extra,
+  { value: 30, label: '1M' }, { value: 90, label: '3M' }, { value: 365, label: '1Y' }, { value: 0, label: t('All') }]
 
 function useNow() {
   const [, setTick] = useState(0)
@@ -92,16 +99,17 @@ function MuscleBalance({ S }) {
   const max = worked.length ? load[worked[0]] : 0
   const sets = m => fmtNum(Math.round((load[m] || 0) * 10) / 10)
   return <div className="card">
-    <Segmented className="seg-range" value={view} onChange={setView}
-      options={[{ value: 'balance', label: t('Muscle balance') }, { value: 'fatigue', label: t('Fatigue') }]} />
+    <CardHead title={t('Muscle balance')} subtitle={on ? t('by hard sets') : t('by sets worked')}>
+      <Segmented className="seg-two" value={view} onChange={v => { setView(v); setSel(null) }}
+        options={[{ value: 'balance', label: t('Balance') }, { value: 'fatigue', label: t('Fatigue') }]} />
+    </CardHead>
     {view === 'balance' ? <>
-      <div className="row between" style={{ marginBottom: 8 }}>
-        <h2 style={{ margin: 0 }}>{t('Muscle balance')} <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}>· {on ? t('by hard sets') : t('by sets worked')}</span></h2>
+      <div className="seg-row">
+        <Segmented className="seg-range" value={win} onChange={v => { setWin(v); setSel(null) }}
+          options={rangeOpts([{ value: 7, label: t('Week') }])} />
         {rated && <Button size="sm" icon="flame" style={on ? { color: 'var(--yellow)' } : undefined}
-          onClick={() => { setHard(h => !h); setSel(null) }}>{on ? t('Hard') : t('All')}</Button>}
+          onClick={() => { setHard(h => !h); setSel(null) }}>{on ? t('Hard sets') : t('All sets')}</Button>}
       </div>
-      <Segmented className="seg-range" value={win} onChange={v => { setWin(v); setSel(null) }}
-        options={[{ value: 7, label: t('Week') }, { value: 30, label: '30d' }, { value: 90, label: '90d' }, { value: 0, label: t('All') }]} />
       {inWin.length ? <>
         <BodyMap className="tappable" load={load} body={S.body} selected={sel}
           onMuscle={m => setSel(s => (s === m ? null : m))} />
@@ -125,7 +133,7 @@ function MuscleBalance({ S }) {
             : t('Every muscle group got some work in this period.')}</div>}
       </> : <div className="muted small">{t('No workouts in this period yet.')}</div>}
     </> : view === 'fatigue' ? <>
-      <h2>{t('Fatigue')}</h2>
+      <h2 style={{ margin: 0 }}>{t('Fatigue')}</h2>
       <BodyMap className="tappable hm-fatigue" load={fatigue} thresholds={FATIGUE_LEVELS} body={S.body} selected={sel} onMuscle={toggleSel} />
       <FatigueLegend />
       <div className="muted small" style={{ marginTop: 10 }}>{t('Fatigue shows how recently each muscle was trained. High means rest.')}</div>
@@ -158,9 +166,8 @@ function EffortCard({ S }) {
   const binLabel = b => kind === 'rpe' ? (b.tail ? '≤ 6' : String(10 - b.rir)) : (b.tail ? b.rir + '+' : String(b.rir))
 
   return <div className="card">
-    <h2>{t('Effort')} <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}>· {t('how close to failure')}</span></h2>
-    <Segmented className="seg-range" value={win} onChange={setWin}
-      options={[{ value: 30, label: '30d' }, { value: 90, label: '90d' }, { value: 365, label: '1Y' }, { value: 0, label: t('All') }]} />
+    <CardHead title={t('Effort')} subtitle={t('how close to failure')} />
+    <Segmented className="seg-range" value={win} onChange={setWin} options={rangeOpts([])} />
     {sum.rated === 0 ? <div className="muted small">{t('No rated sets in this period.')}</div> : <>
       <div className="row between" style={{ alignItems: 'flex-end', gap: 12 }}>
         <div>
@@ -328,6 +335,7 @@ export default function Stats() {
     <TopAppBar title={t('Stats')} subtitle={t('Progress & history')}
       actions={<button className="iconbtn ab-ico" onClick={() => nav('/history')} aria-label={t('History')}><Icon name="history" /></button>} />
 
+    <div className="sech">{t('Overview')}</div>
     <div className="tiles">
       <div className="tile"><div className="l"><Icon name="dumbbell" />{t('Workouts')}</div><div className="v">{workouts.length}</div></div>
       <div className="tile"><div className="l"><Icon name="calendar" />{t('This month')}</div><div className="v">{monthW}</div></div>
@@ -337,29 +345,34 @@ export default function Stats() {
     </div>
 
     <div className="card">
-      <h2>{t('Activity — last 12 months')} <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}>· {t('by time trained')}</span></h2>
+      <CardHead title={t('Activity — last 12 months')} subtitle={t('by time trained')} />
       <Heatmap S={S} onDay={iso => { const ws = workouts.filter(w => w.d === iso); if (ws.length === 1) workoutDetailSheet(ws[0]); else if (ws.length) calendarSheet(iso) }} />
     </div>
 
-    {workouts.length > 0 && <MuscleBalance S={S} />}
-    {hasEffort(S) && <EffortCard S={S} />}
+    {workouts.length > 0 && <>
+      <div className="sech">{t('Balance')}</div>
+      <MuscleBalance S={S} />
+    </>}
+    {hasEffort(S) && <>
+      <div className="sech">{t('Effort')}</div>
+      <EffortCard S={S} />
+    </>}
 
+    <div className="sech">{t('Progress')}</div>
     <div className="cols">
       <div className="card">
-        <div className="row between bw-head" style={{ marginBottom: 8 }}>
-          <h2 style={{ margin: 0 }}>{t('Body weight')}</h2>
+        <CardHead title={t('Body weight')}>
           <div className="row" style={{ gap: 8 }}>
             <Button size="sm" icon="target" style={S.targetW ? { color: 'var(--yellow)' } : undefined} onClick={goalSheet}>{S.targetW ? fmtNum(S.targetW) : t('Goal')}</Button>
             <Button size="sm" icon="plus" onClick={() => bwSheet()}>{t('Log')}</Button>
           </div>
-        </div>
-        <Segmented className="seg-range" value={range} onChange={setRange}
-          options={[{ value: 30, label: '1M' }, { value: 90, label: '3M' }, { value: 365, label: '1Y' }, { value: 0, label: t('All') }]} />
+        </CardHead>
+        <Segmented className="seg-range" value={range} onChange={setRange} options={rangeOpts([])} />
         <div className="chart"><LineChart points={bwPts} h={160} unit={S.unit} goal={S.targetW} /></div>
       </div>
 
       <div className="card">
-        <h2>{t('Exercise progress')}</h2>
+        <CardHead title={t('Exercise progress')} />
         {exHist.length ? <>
           <div className="sect-b" style={{ marginBottom: 10 }}>
             <SelectRow title={t('Exercise')} sheetTitle={t('Exercise progress')} value={curEx} onChange={setExId} stackedValue

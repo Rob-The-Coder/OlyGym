@@ -747,3 +747,42 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
 
 
 
+
+/* ============================================================================
+   A card's own heading (WS15)
+   ----------------------------------------------------------------------------
+   Every card on Stats wrote its subtitle the same way — an inline dim span with the
+   text-transform and letter-spacing reset by hand, five times over. That is one
+   component. While it is being made one component the title also stops being the
+   section-label role: at 12/500 and dim it sat *below* the 16px row titles inside
+   it, so a card read as a caption for its own contents.
+   ============================================================================ */
+.card h2:not(.sect-t){font-size:16px;font-weight:500;letter-spacing:-.008em;color:var(--m3-on-surface)}
+.chead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.chead-m{min-width:0}
+.chead h2{margin:0}
+.chead-s{font-size:12px;color:var(--m3-on-surface-variant);margin-top:2px}
+.chead .seg{flex:none;margin-bottom:0}
+
+/* The label above a group of cards: under the screen title, over the card headings. */
+.sech{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--m3-on-surface-variant);margin:18px 2px 8px}
+
+/* A two-option switch that belongs in a card heading — the card's identity, not its range. */
+.seg-two button{padding:5px 11px;font-size:12px}
+
+/* A range control that shares its line with one other control (the balance map's "Hard" filter). */
+.seg-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.seg-row .seg{margin-bottom:0;flex:1;min-width:0}
+.seg-row .btn{flex:none}
+
+/* History's four totals. Four across, and a step down in type: the numbers are short and the
+   row is a summary, not the content of the screen. */
+.hist-tiles{grid-template-columns:repeat(4,1fr);gap:8px}
+.hist-tiles .tile{padding:10px 8px}
+.hist-tiles .tile .l{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-tiles .tile .v{font-size:17px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* A month heading in the history list: the one place a date is a section, not a row. */
+.mlabel{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--m3-on-surface-variant);margin:14px 2px 8px}
