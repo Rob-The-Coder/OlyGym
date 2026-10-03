@@ -3,9 +3,38 @@ import { useUI } from '../store/useUI.js'
 import { keyboardOpen } from '../lib/viewport-guard.js'
 
 // One bottom sheet (or centered dialog) with swipe-to-dismiss.
+let sheetSeq = 0
 function Sheet({ sheet }) {
   const { closeSheet } = useUI()
-  const ref = useRef(null)
+  const ref = useRef(null)      // the drag target — .sheet only
+  const box = useRef(null)      // the dialog itself, whichever kind it is
+  const labelId = useRef('sheet-t-' + (++sheetSeq))
+
+  // A dialog has to say that it is one, that the page behind it is not the thing to read, and
+  // what it is called. Every sheet in the app already opens with an h3 that names it, so the name
+  // is taken from that heading rather than from thirty new props — and the id is generated, so a
+  // second sheet's heading cannot collide with the first's.
+  //
+  // Focus moves into the sheet, and goes back where it came from when the sheet closes. That is
+  // not a nicety: the page behind is inert while a sheet is open, so a Tab that started on the
+  // button that opened it would otherwise land in nothing at all.
+  useEffect(() => {
+    const el = box.current
+    if (!el) return
+    el.setAttribute('role', 'dialog')
+    el.setAttribute('aria-modal', 'true')
+    const heading = el.querySelector('h2, h3, .sect-t')
+    if (heading) {
+      heading.id = labelId.current
+      el.setAttribute('aria-labelledby', labelId.current)
+    }
+    const from = document.activeElement
+    el.setAttribute('tabindex', '-1')
+    el.focus?.({ preventScroll: true })
+    return () => {
+      if (from && from !== document.body && from.focus && document.contains(from)) from.focus({ preventScroll: true })
+    }
+  }, [])
   // startY null = no gesture. axis stays null until the finger has travelled far enough to
   // tell a vertical pull from a sideways scroll; 'x' hands the gesture to whatever scrolls
   // horizontally under it (chip strips, heatmap) and the sheet stays put.
@@ -84,14 +113,14 @@ function Sheet({ sheet }) {
     return (
       <div>
         <div className="mback" onClick={() => { if (!sheet.locked) close() }} />
-        <div className="center">{sheet.render(close)}</div>
+        <div className="center" ref={box}>{sheet.render(close)}</div>
       </div>
     )
   }
   return (
     <div>
       <div className="mback" onClick={() => { if (!sheet.locked) close() }} />
-      <div className="sheet" ref={ref} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+      <div className="sheet" ref={el => { ref.current = el; box.current = el }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
         onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
         <div className="grab" />
         {sheet.render(close)}
@@ -156,10 +185,47 @@ export default function Modals() {
     return () => window.removeEventListener('popstate', onPop)
   }, [sheets, closeSheet])
 
-  // lock the page behind any open sheet (iOS-safe)
+  // The page behind an open sheet is inert. Focus cannot reach it and a screen reader does not
+  // read it — which is the whole point of a modal, and was the one thing nothing said before.
+  // Feature-detected: this is Chrome and the Android WebView, but a missing inert must not leave
+  // the sheet open with the page focusable, so the Tab ring below carries the keyboard on its own.
   useEffect(() => {
     if (!sheets.length) return
-    const onKey = e => { if (e.key === 'Escape') { const top = useUI.getState().sheets[useUI.getState().sheets.length - 1]; if (top && !top.locked) useUI.getState().closeSheet(top.id) } }
+    if (typeof HTMLElement === 'undefined' || !('inert' in HTMLElement.prototype)) return
+    const root = document.getElementById('modal-root')
+    // #modal-root is a sibling of #app inside the React container, not a child of body: inerting
+    // body's children would inert the dialog itself.
+    const behind = root ? [...root.parentElement.children].filter(el => el !== root) : []
+    behind.forEach(el => el.setAttribute('inert', ''))
+    return () => behind.forEach(el => el.removeAttribute('inert'))
+  }, [sheets.length > 0])
+
+  // lock the page behind any open sheet (iOS-safe), and keep the keyboard inside the top one
+  useEffect(() => {
+    if (!sheets.length) return
+    const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    const onKey = e => {
+      const st = useUI.getState()
+      const top = st.sheets[st.sheets.length - 1]
+      if (e.key === 'Escape') {
+        if (top && !top.locked) st.closeSheet(top.id)
+        return
+      }
+      // Tab closes the ring inside the topmost dialog. It would otherwise leave the sheet for the
+      // browser's own chrome and come back to the first control, which reads as the sheet having
+      // gone away — and with several sheets stacked, focus must not wander into the ones below.
+      if (e.key !== 'Tab') return
+      const boxes = document.querySelectorAll('#modal-root .sheet, #modal-root .center')
+      const el = boxes[boxes.length - 1]
+      if (!el) return
+      const items = [...el.querySelectorAll(FOCUSABLE)]
+      const active = document.activeElement
+      const inside = el.contains(active)
+      if (!items.length) { e.preventDefault(); el.focus?.({ preventScroll: true }); return }
+      const first = items[0], last = items[items.length - 1]
+      if (e.shiftKey && (!inside || active === first || active === el)) { e.preventDefault(); last.focus?.({ preventScroll: true }) }
+      else if (!e.shiftKey && (!inside || active === last)) { e.preventDefault(); first.focus?.({ preventScroll: true }) }
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [sheets.length])

@@ -46,12 +46,20 @@ const snd = () => S().sound
 
 /* ============================ custom confirm dialog ============================ */
 function ConfirmDialog({ title, message, confirmText, cancelText, danger, onConfirm, onCancel, close }) {
-  return <div style={{ textAlign: 'center', padding: '4px 0' }}>
-    {title && <h3 style={{ marginBottom: 8 }}>{title}</h3>}
-    <div className="muted" style={{ marginBottom: 18, lineHeight: 1.5 }}>{message}</div>
-    <button className={'btn ' + (danger ? 'danger' : 'primary')} onClick={() => { close(); onConfirm && onConfirm() }}>{confirmText || t('Confirm')}</button>
-    <div style={{ height: 8 }} />
-    <Button variant="ghost" className="dim" onClick={() => { close(); onCancel && onCancel() }}>{cancelText || t('Cancel')}</Button>
+  const go = fn => { close(); fn && fn() }
+  // The M3 basic dialog: body text on the left, the actions as text buttons on the right with the
+  // confirming one last. It used to be the iOS alert shape — everything centred, the confirming
+  // action a full-width filled button above a ghost Cancel — which gave the destructive choice
+  // the most weight on the screen. A destructive dialog carries an icon: that is what says
+  // "danger" before the sentence has been read.
+  return <div className="dlg">
+    {danger && <div className="dlg-ico"><Icon name="warning" /></div>}
+    {title && <h3 className={danger ? 'ctr' : ''}>{title}</h3>}
+    <div className={'dlg-body' + (danger ? ' ctr' : '')}>{message}</div>
+    <div className="dlg-acts">
+      <button className="dlg-btn" onClick={() => go(onCancel)}>{cancelText || t('Cancel')}</button>
+      <button className={'dlg-btn' + (danger ? ' err' : '')} onClick={() => go(onConfirm)}>{confirmText || t('Confirm')}</button>
+    </div>
   </div>
 }
 /* ============================ menu sheet ============================ */

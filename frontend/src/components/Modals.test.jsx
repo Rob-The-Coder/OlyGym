@@ -55,6 +55,9 @@ function installDom() {
   globalThis.document = dom.document
   Object.defineProperty(globalThis, 'navigator', { configurable: true, value: dom.navigator })
   for (const key of ['HTMLElement', 'Node', 'Element', 'Event']) globalThis[key] = dom[key]
+  // linkedom knows nothing about inert, and the host feature-detects it — so the feature has to
+  // exist here for the assertion below to be about the host's behaviour rather than linkedom's.
+  Object.defineProperty(dom.HTMLElement.prototype, 'inert', { configurable: true, value: false, writable: true })
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
   locationMock = { href: 'https://opengym.test/#/workout' }
@@ -72,6 +75,14 @@ async function setSheets(sheets) {
 
 async function popstate() {
   await act(async () => { window.dispatchEvent(new dom.Event('popstate')) })
+}
+
+async function keyDown(k, opts = {}) {
+  const event = new dom.Event('keydown', { bubbles: true, cancelable: true })
+  Object.defineProperty(event, 'key', { value: k })
+  Object.defineProperty(event, 'shiftKey', { value: !!opts.shift })
+  await act(async () => { window.dispatchEvent(event) })
+  return event
 }
 
 function mouse(target, type, clientY, clientX = 0) {
@@ -313,6 +324,52 @@ describe('Modals scroll restore on close', () => {
     await act(async () => { vi.advanceTimersByTime(400) })
     expect(dom.scrollTo).toHaveBeenCalledTimes(1)
     vi.useRealTimers()
+  })
+
+  it('names the dialog from its own heading', async () => {
+    await setSheets([sheet('menu', {
+      render: () => React.createElement('div', null, React.createElement('h3', null, 'Set 3')),
+    })])
+    const box = container.querySelector('.sheet')
+    expect(box.getAttribute('role')).toBe('dialog')
+    expect(box.getAttribute('aria-modal')).toBe('true')
+    const heading = box.querySelector('h3')
+    expect(heading.id).toBeTruthy()
+    expect(box.getAttribute('aria-labelledby')).toBe(heading.id)
+  })
+
+  // The page behind is inert while a sheet is open. Without it a Tab that started on the button
+  // that opened the sheet walked into the tab bar underneath, and a screen reader read both.
+  it('makes the page behind inert, and gives it back on close', async () => {
+    const behind = document.createElement('div')
+    behind.id = 'app'
+    container.appendChild(behind)
+    await setSheets([sheet('menu')])
+    expect(behind.getAttribute('inert')).toBe('')
+    await setSheets([])
+    expect(behind.hasAttribute('inert')).toBe(false)
+  })
+
+  it('closes the top sheet on Escape, and never a locked one', async () => {
+    await setSheets([sheet('one'), sheet('two')])
+    await keyDown('Escape')
+    expect(mocks.state.sheets.map(s => s.id)).toEqual(['one'])
+
+    await setSheets([sheet('locked', { locked: true })])
+    await keyDown('Escape')
+    expect(mocks.state.sheets).toHaveLength(1)
+  })
+
+  // Tab closes the ring inside the topmost dialog: focus leaving for the browser's own chrome and
+  // coming back to the first control reads as the sheet having gone away.
+  it('takes Tab away from anything outside the top dialog', async () => {
+    await setSheets([sheet('menu', {
+      render: () => React.createElement('div', null,
+        React.createElement('button', null, 'One'), React.createElement('button', null, 'Two')),
+    })])
+    expect((await keyDown('Tab')).defaultPrevented).toBe(true)
+    expect((await keyDown('Tab', { shift: true })).defaultPrevented).toBe(true)
+    expect((await keyDown('a')).defaultPrevented).toBe(false)
   })
 
   it('restores again after the keyboard dismiss animation when the sheet closed with the keyboard up', async () => {

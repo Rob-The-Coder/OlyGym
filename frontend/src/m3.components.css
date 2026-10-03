@@ -786,3 +786,47 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
 /* A month heading in the history list: the one place a date is a section, not a row. */
 .mlabel{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
   color:var(--m3-on-surface-variant);margin:14px 2px 8px}
+
+/* ============================================================================
+   Dialogs, sheets and the snackbar (WS16)
+   ----------------------------------------------------------------------------
+   The container was already M3-shaped — 28dp on the high surface. What was not
+   M3 was everything inside it: the confirm dialog was the iOS alert, centred with
+   the destructive action as a full-width filled button and Cancel as a ghost under
+   it, which gives the destructive choice the most weight on the screen.
+   ============================================================================ */
+.center{width:min(84vw,320px);padding:24px}
+.dlg-ico{
+  width:44px;height:44px;border-radius:var(--m3-shape-full);display:grid;place-items:center;
+  margin:0 auto 16px;font-size:22px;
+  background:var(--m3-error-container);color:var(--m3-on-error-container);
+}
+.dlg h3{font-size:24px;font-weight:400;line-height:1.25;letter-spacing:0;margin:0 0 12px}
+.dlg h3.ctr{text-align:center;font-size:22px}
+.dlg-body{color:var(--m3-on-surface-variant);font-size:14px;line-height:1.45}
+.dlg-body.ctr{text-align:center}
+.dlg-acts{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
+.dlg-btn{
+  border:0;background:transparent;color:var(--m3-primary);font-family:inherit;
+  font-size:14px;font-weight:500;padding:9px 12px;border-radius:var(--m3-shape-full);
+}
+.dlg-btn.err{color:var(--m3-error)}
+
+/* An open sheet's dialog box must not draw a focus ring: it takes focus on open so a screen
+   reader starts at the top of it, and the ring belongs on the control the reader has reached. */
+.sheet:focus,.center:focus{outline:none}
+
+/* The snackbar: a surface at the bottom, a message on the left and room for one action on the
+   right. It was a blurred pill, which said "tooltip" and changed width with the message. */
+#toast{
+  left:50%;right:auto;bottom:calc(96px + var(--sab));
+  width:min(520px,calc(100vw - 32px));max-width:none;
+  display:flex;align-items:center;gap:12px;
+  background:var(--m3-surface-container-highest);color:var(--m3-on-surface);
+  -webkit-backdrop-filter:none;backdrop-filter:none;
+  border-radius:var(--m3-shape-xs);padding:13px 16px;
+  font-size:14px;font-weight:400;text-align:left;line-height:1.35;
+  transform:translateX(-50%) translateY(6px);
+}
+#toast.show{transform:translateX(-50%)}
+#toast span{flex:1;min-width:0}
