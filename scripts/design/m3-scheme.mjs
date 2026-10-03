@@ -195,17 +195,20 @@ export function colourSection() {
   return parts.join('\n')
 }
 
-/* ---------- run ---------- */
+/* ---------- run (only when executed, so a mockup can import the palette) ---------- */
+const invoked = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/^.*\//, ''))
 const checkOnly = process.argv.includes('--check')
 const rows = []
-for (const [key, seed] of Object.entries(SEEDS)) for (const theme of ['light', 'dark']) rows.push(...audit(key, theme, scheme(seed, theme)))
+if (invoked) for (const [key, seed] of Object.entries(SEEDS)) for (const theme of ['light', 'dark']) rows.push(...audit(key, theme, scheme(seed, theme)))
 const failed = rows.filter(r => !r.ok)
-for (const theme of ['light', 'dark']) {
-  const worst = rows.filter(r => r.theme === theme).sort((a, b) => (a.ratio / a.target) - (b.ratio / b.target))[0]
-  console.log(theme + ': ' + rows.filter(r => r.theme === theme).length + ' pairs checked, worst is ' + worst.name + ' — ' + worst.what + ' at ' + worst.ratio + ':1 (target ' + worst.target + ')')
+if (invoked) {
+  for (const theme of ['light', 'dark']) {
+    const worst = rows.filter(r => r.theme === theme).sort((a, b) => (a.ratio / a.target) - (b.ratio / b.target))[0]
+    console.log(theme + ': ' + rows.filter(r => r.theme === theme).length + ' pairs checked, worst is ' + worst.name + ' — ' + worst.what + ' at ' + worst.ratio + ':1 (target ' + worst.target + ')')
+  }
+  console.log(failed.length ? 'FAILURES:\n' + failed.map(f => '  ' + f.name + ' ' + f.theme + ' ' + f.what + ' ' + f.ratio).join('\n') : 'all ' + rows.length + ' pairs pass')
 }
-console.log(failed.length ? 'FAILURES:\n' + failed.map(f => '  ' + f.name + ' ' + f.theme + ' ' + f.what + ' ' + f.ratio).join('\n') : 'all ' + rows.length + ' pairs pass')
-if (!checkOnly) {
+if (invoked && !checkOnly) {
   const css = readFileSync(TOKENS, 'utf8')
   const start = css.indexOf('/* == begin generated: colour schemes')
   const end = css.indexOf('/* == end generated == */')
