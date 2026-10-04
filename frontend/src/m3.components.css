@@ -888,6 +888,16 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
 #toast.show{transform:translateX(-50%)}
 #toast span{flex:1;min-width:0}
 
+/* The four surfaces that were still carrying a hand-written shadow sit on the scale now: the
+   dialog floats over everything at 3, and the rest timer, the snackbar and the wide tab bar float
+   over the page at 2 — which is --m3-shadow-2's first consumer. The values they replace had a blur
+   of 30-60 and a negative spread, so this is visibly flatter on the light theme, where a cast
+   shadow is the only thing separating two surfaces of the same tone. */
+.center{box-shadow:var(--m3-shadow-3)}
+#timer{box-shadow:var(--m3-shadow-2)}
+#toast{box-shadow:var(--m3-shadow-2)}
+@media (min-width:1000px){ #tabbar{box-shadow:var(--m3-shadow-2)} }
+
 /* ============================================================================
    Plan and the week editor (WS17)
    ============================================================================ */
