@@ -16,7 +16,7 @@ import LineChart from './components/LineChart.jsx'
 import Stepper from './components/Stepper.jsx'
 import Icon from './components/Icon.jsx'
 import { Button, Slider, Switch, Segmented, SelectRow, Row, TextField, NumberField, MultiSelectRow } from './components/ui.jsx'
-import { glyphOf, GLYPH_GROUPS, DEFAULT_GLYPH } from './lib/glyphs.js'
+import { DEFAULT_GLYPH } from './lib/glyphs.js'
 import BodyMap from './components/BodyMap.jsx'
 import MuscleExplorer from './components/MuscleExplorer.jsx'
 import { libraryFilterSheet, FilterBar, AppliedFilters } from './components/LibraryFilters.jsx'
@@ -959,29 +959,7 @@ function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, init
 
 export const exConfigSheet = (ex, existing, onSave, onDelete, routine, initial) => ui().openSheet(close => <ExConfig ex={ex} existing={existing} initial={initial} onSave={onSave} onDelete={onDelete} routine={routine} close={close} />)
 
-/* ============================ glyph picker ============================ */
-// Grouped by what the glyph means for a training day, so picking one is a scan
-// of four short rows rather than a hunt through twenty loose icons.
-export const glyphPicker = (current, onPick) => {
-  const cur = glyphOf(current)
-  return ui().openSheet(close => <>
-    <h3>{t('Pick an icon')}</h3>
-    {GLYPH_GROUPS.map(g => (
-      <div key={g.key} style={{ marginBottom: 14 }}>
-        <div className="sect-t" style={{ padding: '0 2px 7px' }}>{t(g.key)}</div>
-        <div className="glyph-grid">
-          {g.items.map(n => (
-            <button key={n} className={'glyph-cell' + (n === cur ? ' on' : '')}
-              onClick={() => { close(); onPick(n) }} aria-label={n}>
-              <Icon name={n} />
-            </button>
-          ))}
-        </div>
-      </div>
-    ))}
-    <div style={{ height: 4 }} />
-  </>)
-}
+
 
 /* ============================ effort quick picker (RIR / RPE) ============================ */
 // Rating a set used to mean walking a +/- stepper up the scale — eleven taps to log "5 reps
@@ -1455,59 +1433,7 @@ function beginBackfill({ iso, time, durationMin, replaceId }) {
   nav('/workout')
 }
 
-function TopWeight({ entryIdx, close }) {
-  const st = useStore(s => s.S)
-  const A = st.active
-  // The workout can end underneath this sheet: finishing from the last exercise clears
-  // `active`, and this re-renders before the sheet is torn down. Everything below is
-  // read defensively and the sheet dismisses itself — reading A.entries straight took
-  // the whole app down with it. Hooks still run unconditionally, so the bail-out has
-  // to sit after every one of them.
-  const entry = A ? A.entries[entryIdx] : null
-  const ex = entry && EXIDX[entry.id]
-  // "Best" runs the other way on an assistance machine: the lightest setting is the record, and
-  // a 0 means nothing logged rather than a new low (issue #232).
-  const fold = (a, b) => Math.max(a, b)
-  const doneW = entry ? entry.sets.filter(s => s.done && !isWarmupRow(s)).map(s => s.w || 0).filter(w => w > 0) : []
-  const maxSet = entry && doneW.length ? Math.max(...doneW) : 0
-  const prevBest = entry ? fold((st.exWeights[entry.id] || {}).w || 0, bestWeightFor(st, entry.id)) : 0
-  const [v, setV] = useState(entry ? (fold(maxSet, prevBest) || entry.target.weight || 0) : 0)
-  useEffect(() => { if (!entry) close() }, [!entry])
 
-  const units = supersetUnits(A ? A.entries : [])
-  const unit = entry ? unitOf(units, entryIdx) : []
-  const unitDone = !!entry && unit.every(i => A.entries[i].sets.every(s => s.done))
-  const nextUnit = unitDone ? nextUnfinishedUnit(A.entries, units, entryIdx) : null
-  const workoutDone = unitDone && !nextUnit
-  if (!entry || !ex) return null
-
-  const commit = advance => {
-    const n = Math.round((v || 0) * 10) / 10
-    if (!isFinite(n) || n < 0) { toast(t('Enter a valid weight')); return }
-    update(s => {
-      s.active.entries[entryIdx].topW = n
-      const cur = s.exWeights[entry.id]
-      s.exWeights[entry.id] = { w: Math.max(n, cur ? cur.w : 0), d: todayISO() }
-    })
-    close()
-    if (advance && unitDone) {
-      if (workoutDone) workoutCompleteSheet()               // no unfinished unit → finish/continue prompt
-      else update(s => { s.active.cur = nextUnit[0] })
-    } else toast(t('Tracked — next time starts at {0}', fmtNum(S().exWeights[entry.id].w) + ' ' + st.unit))
-  }
-  return <>
-    <h3 className="capitalize row" style={{ gap: 8 }}><Icon name="checkCircle" style={{ color: 'var(--acc)' }} />{t('{0} done', exerciseNameFor(ex))}</h3>
-    <div className="muted small">{t('Confirm the weight you worked with — your highest becomes the default next time.')}{!unitDone && unit.length > 1 ? ' ' + t('Then finish the complex partner.') : ''}</div>
-    <WeightInput value={v} setValue={setV} unit={st.unit} />
-    <div style={{ height: 10 }} />
-    {prevBest > 0 ? <div className="small dim" style={{ textAlign: 'center', marginBottom: 12 }}>{t('Previous best:')} {fmtNum(prevBest)} {st.unit}{maxSet > prevBest && <span style={{ color: 'var(--yellow)' }}> — {t('new record!')}</span>}</div> : <div style={{ height: 4 }} />}
-    {unitDone ? <>
-      <Button variant="primary" trailingIcon={workoutDone ? null : 'chevronRight'} onClick={() => commit(true)}>{workoutDone ? t('Save') : t('Save & next exercise')}</Button>
-      <div style={{ height: 8 }} /><Button variant="ghost" className="dim" onClick={() => commit(false)}>{t('Just close')}</Button>
-    </> : <Button variant="primary" onClick={() => commit(false)}>{t('Save weight')}</Button>}
-  </>
-}
-export const topWeightSheet = entryIdx => ui().openSheet(close => <TopWeight entryIdx={entryIdx} close={close} />)
 
 /* ============================ exercise notes ============================
    Two notes, one sheet, because from the user's side it is one question — "what do I want to
