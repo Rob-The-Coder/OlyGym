@@ -1477,24 +1477,33 @@ function ExerciseNote({ entryIdx, close }) {
     close()
   }
 
+  // Both lifetimes used to be explained in the placeholders — "kept with today's workout",
+  // "shown every session" — and a placeholder goes the moment you start typing, so the sentence
+  // telling you which note you are writing disappeared exactly when you were writing it. It sits
+  // under the label now, where it stays. The labels themselves were .small.muted: 13px of muted
+  // prose where a label wants the label role.
   return <>
     <h3 className="capitalize">{exerciseNameFor(ex)}</h3>
-    <div className="small muted" style={{ marginBottom: 6 }}>{t('This session')}</div>
-    <textarea ref={noteRef} className="input" rows={3} maxLength={NOTE_MAX} value={note}
-      placeholder={t('How it went, what to change — kept with today’s workout.')}
-      onFocus={onNoteFocus} onChange={e => setNote(e.target.value)} />
-    <div style={{ height: 10 }} />
-    <div className="sect-b">
-      <Row icon="flag" title={t('Show this next time')}
-        subtitle={t('Brings it up again the next time you train this exercise.')}>
-        <Switch checked={pin} onChange={setPin} disabled={!note.trim()} />
-      </Row>
+    <div className="fnote">
+      <div className="flabel">{t('This session')}</div>
+      <div className="fhint">{t('Kept with today’s workout — what happened, how it felt.')}</div>
+      <textarea ref={noteRef} className="input" rows={3} maxLength={NOTE_MAX} value={note}
+        placeholder={t('How it went, what to change.')}
+        onFocus={onNoteFocus} onChange={e => setNote(e.target.value)} />
+      <div className="sect-b" style={{ marginTop: 10 }}>
+        <Row icon="flag" title={t('Show this next time')}
+          subtitle={t('Brings it up again the next time you train this exercise.')}>
+          <Switch checked={pin} onChange={setPin} disabled={!note.trim()} />
+        </Row>
+      </div>
     </div>
-    <div style={{ height: 18 }} />
-    <div className="small muted" style={{ marginBottom: 6 }}>{t('Always for this exercise')}</div>
-    <textarea className="input" rows={2} maxLength={NOTE_MAX} value={standing}
-      placeholder={t('Seat height, pin position, a form cue — shown every session.')}
-      onChange={e => setStanding(e.target.value)} />
+    <div className="fnote">
+      <div className="flabel">{t('Every session')}</div>
+      <div className="fhint">{t('Shown every time you train this exercise — seat height, pin position, a form cue.')}</div>
+      <textarea className="input" rows={2} maxLength={NOTE_MAX} value={standing}
+        placeholder={t('Seat height, pin position, a form cue.')}
+        onChange={e => setStanding(e.target.value)} />
+    </div>
     <div style={{ height: 18 }} />
     <Button variant="primary" onClick={save}>{t('Save')}</Button>
   </>
@@ -1524,9 +1533,13 @@ function SessionNote({ close }) {
 
   return <>
     <h3>{t('Session note')}</h3>
-    <textarea ref={noteRef} className="input" rows={4} maxLength={NOTE_MAX} value={note}
-      placeholder={t('How the session went as a whole.')}
-      onFocus={onNoteFocus} onChange={e => setNote(e.target.value)} />
+    <div className="fnote">
+      <div className="flabel">{t('The session')}</div>
+      <div className="fhint">{t('How the whole workout went. Kept with today’s workout, and editable from History afterwards.')}</div>
+      <textarea ref={noteRef} className="input" rows={4} maxLength={NOTE_MAX} value={note}
+        placeholder={t('How the session went as a whole.')}
+        onFocus={onNoteFocus} onChange={e => setNote(e.target.value)} />
+    </div>
     <div style={{ height: 18 }} />
     <Button variant="primary" onClick={save}>{t('Save')}</Button>
   </>

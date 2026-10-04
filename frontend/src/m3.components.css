@@ -906,3 +906,18 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
 .dlg .tile .l{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--m3-on-surface-variant)}
 .dlg .tile .v{font-size:18px;font-weight:500;letter-spacing:-.006em;margin-top:3px}
 .dlg .tile .s{font-size:11.5px;color:var(--m3-on-surface-variant);margin-top:2px}
+
+/* --- a labelled field -------------------------------------------------------- */
+/* The two note sheets labelled their fields with .small.muted — 13px of muted prose where a
+   label wants the label role — and explained each note's lifetime in its placeholder. A
+   placeholder goes the moment you type, so the sentence saying which note you were writing
+   vanished exactly when you were writing it. */
+.fnote{
+  background:var(--m3-surface-container);border-radius:var(--m3-shape-l);padding:14px;
+}
+.fnote + .fnote{margin-top:14px}
+.flabel{
+  font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-spacing:var(--m3-type-label-m-track);
+  color:var(--m3-on-surface-variant);margin-bottom:3px;
+}
+.fhint{font-size:12px;line-height:16px;color:var(--m3-on-surface-variant);margin-bottom:9px}
