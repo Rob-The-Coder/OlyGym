@@ -855,7 +855,9 @@ function EquipmentProfileSheet({ profile, close }) {
   const toggle = k => setChecked(s => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n })
   const save = () => {
     const name = (nameRef.current.value || '').trim()
-    if (!name) { return }
+    // It used to return in silence: the button looked dead on an empty name, with nothing on screen
+    // saying why. Every other form in the module names the missing thing.
+    if (!name) { toast(t('Give it a name')); return }
     update(s => {
       s.equipProfiles = s.equipProfiles || []
       const equipment = [...checked]
@@ -877,7 +879,10 @@ function EquipmentProfileSheet({ profile, close }) {
     </div>
     <TextField ref={nameRef} defaultValue={profile?.name || ''} placeholder={t('Profile name')} maxLength={40} />
     <div style={{ height: 12 }} />
-    <div className="chips">
+    {/* The chip set is this sheet's own body, not a strip of filters travelling beside a list, so it
+        wraps — .chips.wrap is the modifier the filter sheet already uses. As a strip it left nine of
+        the thirteen kinds of equipment off-screen behind a scrollbar that is never drawn. */}
+    <div className="chips wrap">
       {ALL_EQUIPMENT.map(k => (
         <button key={k} className={'chip' + (checked.has(k) ? ' on' : '')} onClick={() => toggle(k)}>{t(k)}</button>
       ))}
