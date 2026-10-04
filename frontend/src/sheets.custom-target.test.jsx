@@ -39,6 +39,12 @@ const click = (host, sel, text) => {
   if (!el) throw new Error(`nothing with text "${text}"`)
   act(() => el.click())
 }
+// Body part and Equipment open the single-choice picker, which closes on the tap.
+function pick(form, rowTitle, label) {
+  const row = [...form.querySelectorAll('.lrow')].find(e => e.textContent.includes(rowTitle))
+  act(() => row.click())
+  click(renderTop(), 'button', label)
+}
 // The form's multi-select rows open a nested sheet; tap the given labels there, in order, then Done.
 function pickMuscles(form, rowTitle, labels) {
   const row = [...form.querySelectorAll('.lrow')].find(e => e.textContent.includes(rowTitle))
@@ -72,13 +78,56 @@ afterEach(() => {
   registerCustom([])
 })
 
+describe('the custom exercise form', () => {
+  // Body part and equipment were two horizontal scroll strips with the scrollbar hidden — three of
+  // ten body parts on screen, five of eight kinds of equipment — beside two muscle rows that were
+  // already using the app's own picker.
+  it('picks the body part and the equipment from rows, not from scroll strips', () => {
+    customExSheet(null)
+    const form = renderTop()
+    expect(form.querySelectorAll('.chip')).toHaveLength(0)
+    const row = title => [...form.querySelectorAll('.lrow')].find(r => r.textContent.includes(title))
+    expect(row('Body part').textContent).toContain('Choose…')
+    pick(form, 'Equipment', 'Barbell')
+    // The capital belongs to the label now — the id in the catalogue is 'barbell', and the chip was
+    // borrowing a text-transform from .chip that a row does not have.
+    expect(row('Equipment').textContent).toContain('Barbell')
+  })
+
+  // A body part the catalogue's list does not hold — a muscle-map word, or one written before the
+  // list existed. SelectRow falls back to printing the raw value, which for these is a lower-case id.
+  it('shows a body part the list does not hold, rather than printing its id', () => {
+    const ex = custom({ bp: 'upper legs', eq: 'machine' })
+    seed(ex)
+    customExSheet(EXIDX[ex.id])
+    const form = renderTop()
+    const row = title => [...form.querySelectorAll('.lrow')].find(r => r.textContent.includes(title))
+    expect(row('Body part').textContent).toContain('Upper Legs')
+    expect(row('Equipment').textContent).toContain('Machine')
+  })
+
+  // The last full-width danger button at the foot of a sheet. The exercise detail sheet keeps the
+  // same action in a ⋯.
+  it('keeps Delete exercise in the ⋯, not at the foot of the form', () => {
+    const ex = custom()
+    seed(ex)
+    customExSheet(EXIDX[ex.id])
+    const form = renderTop()
+    expect([...form.querySelectorAll('button')].some(b => b.textContent === 'Delete exercise')).toBe(false)
+    act(() => form.querySelector('button[aria-label="Exercise options"]').click())
+    const menu = renderTop()
+    expect(menu.textContent).toContain('Delete exercise')
+    expect([...menu.querySelectorAll('.menu-item')].some(r => r.className.includes('danger'))).toBe(true)
+  })
+})
+
 describe('custom exercise target (QA C10)', () => {
   it('is the primary tapped first, while the stored list keeps the map order', () => {
     customExSheet(null)
     const form = renderTop()
     act(() => type(form.querySelector('input.input'), 'QA Hip Thrust Pull'))
-    click(form, '.chip', 'Accessory - Lower/Whole Body')
-    click(form, '.chip', 'barbell')
+    pick(form, 'Body part', 'Accessory - Lower/Whole Body')
+    pick(form, 'Equipment', 'Barbell')
     pickMuscles(form, 'Primary muscle groups', ['Hamstrings', 'Glutes', 'Traps'])
     click(form, 'button', 'Create exercise')
     const c = S().customEx.find(x => x.n === 'QA Hip Thrust Pull')

@@ -3,7 +3,7 @@ import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { EXDB, EXIDX, BODYPARTS, isBodyweightEq, allExercises, smOf, exOr } from './lib/exercises.js'
 import { activeProfile, exAvailable, ALL_EQUIPMENT, newProfile } from './lib/equipment.js'
-import { fmtDate, fmtNum, fmtVol, fmtDur, durPart, todayISO, isoOf, uid, DAYN, DAYS, weekOrder, weekStartOf, weekDayOffset, MONTHS_LONG, ACCENTS } from './lib/format.js'
+import { fmtDate, fmtNum, fmtVol, fmtDur, durPart, todayISO, isoOf, uid, DAYN, DAYS, weekOrder, weekStartOf, weekDayOffset, MONTHS_LONG, ACCENTS, capWords } from './lib/format.js'
 import { lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, effectiveDay, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, EFFORT, capEffort, stepEffort, isBw, workSetsDone, MAX_PLANNED_WARMUPS, NOTE_MAX } from './lib/history.js'
 import { usesBar, barWeightFor, defaultBarWeight, hasBarOverride, isNoBar } from './lib/bar.js'
 import { toScale, rirOf, EFFORT_PRESETS, effortColor } from './lib/effort.js'
@@ -530,6 +530,10 @@ export const exerciseHistorySheet = exId => ui().openSheet(close => <ExerciseHis
 /* ============================ custom exercises (issue #11) ============================ */
 // Name + body part is all it takes — the exercise then behaves like any built-in one
 // (planning, logging, PRs, stats), just without a demo video.
+// One option per pickable value, with the current one kept even if the list has never heard of it.
+const pickable = (list, value) => (value && !list.includes(value) ? [value, ...list] : list)
+  .map(v => ({ value: v, label: capWords(t(v)) }))
+
 function CustomExForm({ existing, prefill, onDone, close }) {
   const nameRef = useRef(null)
   const onNameFocus = useSheetKeyboard(nameRef)
@@ -590,30 +594,47 @@ function CustomExForm({ existing, prefill, onDone, close }) {
     onDone && onDone(EXIDX[id])
   }
   return <>
-    <h3>{existing ? t('Edit custom exercise') : t('Create your own exercise')}</h3>
+    <div className="row between" style={{ gap: 8, alignItems: 'flex-start' }}>
+      <h3 style={{ margin: 0 }}>{existing ? t('Edit custom exercise') : t('Create your own exercise')}</h3>
+      {/* Deleting your own exercise lives in the same ⋯ the exercise detail sheet keeps it in. It was
+          the last full-width danger button at the foot of a sheet, where a thumb lands scrolling. */}
+      {existing && <button className="iconbtn ab-ico" aria-label={t('Exercise options')}
+        onClick={() => menuSheet({
+          title: n.trim() || t('Exercise'),
+          items: [{ icon: 'trash', label: t('Delete exercise'), danger: true, onClick: () => { close(); deleteCustomEx(existing) } }],
+        })}><Icon name="more" /></button>}
+    </div>
     <div className="muted small" style={{ marginBottom: 12 }}>{t('Name it and pick a body part — it behaves like any other exercise, just without a demo video.')}</div>
     <input ref={nameRef} className="input" placeholder={t('Exercise name')} value={n} onFocus={onNameFocus} onChange={e => setN(e.target.value)} />
-    <div className="chips" style={{ margin: '12px 0' }}>
-      {BODYPARTS.map(b => <button key={b} className={'chip' + (bp === b ? ' on' : '')} onClick={() => setBp(b)}>{t(b)}</button>)}
+    {/* Body part and equipment were two horizontal scroll strips with the scrollbar hidden — three of
+        ten body parts visible and five of eight kinds of equipment, in a form, beside two muscle rows
+        that were already using the app's own picker. One vocabulary for the four of them. */}
+    <div className="list menu-list" style={{ marginTop: 12 }}>
+      {/* The ids are the catalogue's own and mostly lower case — 'barbell', 'body weight'. The chip
+          got its capital from text-transform on .chip; a row has no such element, so capWords does
+          it, the same way a toast says its own text. A value the list does not hold (a body part
+          that is a muscle-map word, or one written before this list existed) goes in too, so the row
+          shows it and can replace it rather than printing a raw id. */}
+      <SelectRow title={t('Body part')} value={bp} sheetTitle={t('Body part')}
+        options={[{ value: '', label: t('Choose…') }, ...pickable(BODYPARTS, bp)]} onChange={setBp} />
+      <SelectRow title={t('Equipment')} value={eq} sheetTitle={t('Equipment')}
+        options={[{ value: '', label: t('Choose…') }, ...pickable(ALL_EQUIPMENT, eq)]} onChange={setEq} />
+      {bp && <>
+        <MultiSelectRow title={t('Primary muscle groups')} sheetTitle={t('Primary muscle groups')}
+          values={primaries}
+          options={MUSCLES.map(m => ({ value: m, label: t(MUSCLE_NAME[m]) }))}
+          onToggle={togglePrimary} noneLabel={t('No explicit muscle group')} doneLabel={t('Done')} />
+        <MultiSelectRow title={t('Additional muscle groups')} sheetTitle={t('Additional muscle groups')}
+          values={secondaries}
+          options={MUSCLES.filter(m => !primaries.includes(m)).map(m => ({ value: m, label: t(MUSCLE_NAME[m]) }))}
+          onToggle={toggleSecondary} noneLabel={t('No explicit muscle group')} doneLabel={t('Done')} />
+      </>}
     </div>
-    <div className="chips" style={{ margin: '12px 0' }}>
-      {ALL_EQUIPMENT.map(k => (<button key={k} className={'chip' + (eq === k ? ' on' : '')} onClick={() => setEq(k)}>{t(k)}</button>))}
-    </div>
-    {bp && <>
-      <MultiSelectRow title={t('Primary muscle groups')} sheetTitle={t('Primary muscle groups')}
-        values={primaries}
-        options={MUSCLES.map(m => ({ value: m, label: t(MUSCLE_NAME[m]) }))}
-        onToggle={togglePrimary} noneLabel={t('No explicit muscle group')} doneLabel={t('Done')} />
-      <MultiSelectRow title={t('Additional muscle groups')} sheetTitle={t('Additional muscle groups')}
-        values={secondaries}
-        options={MUSCLES.filter(m => !primaries.includes(m)).map(m => ({ value: m, label: t(MUSCLE_NAME[m]) }))}
-        onToggle={toggleSecondary} noneLabel={t('No explicit muscle group')} doneLabel={t('Done')} />
-    </>}
+    <div style={{ height: 12 }} />
     <textarea className="input" rows={4} maxLength={1000} placeholder={t('Description (optional) — setup, cues, anything you want to remember')}
       value={desc} onChange={e => setDesc(e.target.value)} />
     <div style={{ height: 14 }} />
     <Button variant="primary" onClick={save}>{existing ? t('Save') : t('Create exercise')}</Button>
-    {existing && <><div style={{ height: 8 }} /><Button variant="danger" icon="trash" onClick={() => { close(); deleteCustomEx(existing) }}>{t('Delete exercise')}</Button></>}
   </>
 }
 export const customExSheet = (existing, onDone, prefill) => ui().openSheet(close => <CustomExForm existing={existing} prefill={prefill} onDone={onDone} close={close} />)
