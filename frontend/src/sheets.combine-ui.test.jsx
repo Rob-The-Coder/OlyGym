@@ -73,13 +73,14 @@ describe('WorkoutDetail — legacy per-routine grouping', () => {
   it('renders a legacy single-routine workout flat — no routine subheader', () => {
     const host = (workoutDetailSheet(legacy), renderTop())
     // the only routine name that could appear is the header <h3> (w.name = "Push"); there is
-    // no "Strength" subheader row
-    expect(host.querySelectorAll('.row.between').length).toBe(0)
+    // no "Strength" subheader row. Asserted on the subheader's own class rather than on
+    // .row.between: the title row is a .row.between too, so counting those said nothing.
+    expect(host.querySelectorAll('.wd-group').length).toBe(0)
   })
 
   it('renders a current (weekId/dow, no rid) workout flat — one day is one session', () => {
     const host = (workoutDetailSheet(current), renderTop())
-    expect(host.querySelectorAll('.row.between').length).toBe(0)
+    expect(host.querySelectorAll('.wd-group').length).toBe(0)
     expect(host.textContent).toContain('Push day')
   })
 })

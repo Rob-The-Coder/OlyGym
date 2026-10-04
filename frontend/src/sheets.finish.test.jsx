@@ -79,7 +79,7 @@ describe('“Workout complete!”', () => {
     // The rules live in m3.components.css, because a dialog tile is a third of the width a
     // screen tile gets and neither the tile's own 30px nor an inline 1.1rem fits in it.
     const css = readFileSync(resolve(process.cwd(), 'src/m3.components.css'), 'utf8')
-    expect(css).toMatch(/\.dlg \.tile \.v\{[^}]*font-size:18px/)
+    expect(css).toMatch(/\.sheet \.tile \.v\{[^}]*font-size:18px/)
     expect(css).toMatch(/\.dlg-ico\.ok\{[^}]*--m3-primary-container/)
     expect(finish().match(/className="tile"/g)).toHaveLength(4)
     expect(finish().match(/className="v"/g)).toHaveLength(4)

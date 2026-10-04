@@ -1235,16 +1235,33 @@ function WorkoutDetail({ w, close }) {
     g.items.push([e, i])
   })
   const grouped = groups.length > 1 || (groups[0] && groups[0].rid && (w.routineIds || []).length > 1)
+  const del = () => confirmSheet({ title: t('Delete workout?'), message: t('This removes it from your history for good.'), confirmText: t('Delete'), danger: true, onConfirm: () => { update(s => { s.workouts = s.workouts.filter(x => x.id !== w.id) }); close(); toast(t('Workout deleted')) } })
   return <>
-    <h3>{w.name}</h3>
-    <div className="muted small" style={{ marginBottom: 12 }}>{[fmtDate(w.d, true), ...durPart(w.end - w.start), fmtVol(w.vol, st.unit), ...(w.bw ? [fmtNum(w.bw) + ' ' + st.unit] : [])].join(' · ')}</div>
+    <div className="row between" style={{ gap: 8, alignItems: 'flex-start' }}>
+      <h3 style={{ margin: 0 }}>{w.name}</h3>
+      {/* The last full-width destructive button in the module, at the foot of a sheet where a
+          thumb lands while scrolling. It is a ⋯ here as it is on the week, the day, the config
+          and the exercise detail. */}
+      <button className="iconbtn ab-ico" aria-label={t('Workout options')}
+        onClick={() => menuSheet({ title: w.name, items: [{ icon: 'trash', label: t('Delete workout'), danger: true, onClick: del }] })}>
+        <Icon name="more" /></button>
+    </div>
+    {/* The date and the bodyweight have no tile; the numbers that do are the same four the finish
+        summary shows, so a session reads the same on the day and a month later. */}
+    <div className="muted small" style={{ marginBottom: 12 }}>{[fmtDate(w.d, true), ...(w.bw ? [fmtNum(w.bw) + ' ' + st.unit] : [])].join(' · ')}</div>
+    <div className="tiles">
+      <div className="tile"><div className="l">{t('Duration')}</div><div className="v">{fmtDur(w.end - w.start)}</div></div>
+      <div className="tile"><div className="l">{t('Volume')}</div><div className="v">{fmtVol(w.vol, st.unit)}</div></div>
+      <div className="tile"><div className="l">{t('Sets')}</div><div className="v">{setsDone(w)}</div></div>
+      <div className="tile"><div className="l">{t('PRs')}</div><div className="v">{(w.prs || []).length || '—'}</div></div>
+    </div>
     {grouped ? groups.map(g => {
       // A group's routine is long gone from the profile (the legacy routine model is), so the
       // section shows the session's own stored name and the default glyph.
       const setN = g.items.reduce((n, [e]) => n + e.sets.filter(s => s.done && !isWarmupRow(s)).length, 0)
       const vol = workoutVolume({ entries: g.items.map(([e]) => e) })
       return <div key={g.key}>
-        <div className="row between" style={{ margin: '2px 0 8px', paddingBottom: 6, borderBottom: '1px solid var(--sep)' }}>
+        <div className="row between wd-group" style={{ margin: '2px 0 8px', paddingBottom: 6, borderBottom: '1px solid var(--sep)' }}>
           <div className="row" style={{ gap: 7, fontWeight: 600 }}>
             <Icon name={DEFAULT_GLYPH} />{g.rid ? w.name : t('Freestyle')}
           </div>
@@ -1253,12 +1270,14 @@ function WorkoutDetail({ w, close }) {
         {g.items.map(([e, i]) => entryRow(e, i))}
       </div>
     }) : w.entries.map((e, i) => entryRow(e, i))}
-    <div className="small muted" style={{ margin: '4px 0 6px' }}>{t('Session note')}</div>
-    <textarea ref={noteRef} className="input" rows={2} maxLength={NOTE_MAX} value={note}
-      placeholder={t('How the session went as a whole.')}
-      onFocus={onNoteFocus} onChange={e => setNote(e.target.value)} onBlur={saveNote} />
+    <div className="fnote">
+      <div className="flabel">{t('Session note')}</div>
+      <div className="fhint">{t('How the whole workout went. Editable here any time afterwards.')}</div>
+      <textarea ref={noteRef} className="input" rows={2} maxLength={NOTE_MAX} value={note}
+        placeholder={t('How the session went as a whole.')}
+        onFocus={onNoteFocus} onChange={e => setNote(e.target.value)} onBlur={saveNote} />
+    </div>
     <div style={{ height: 14 }} />
-    <Button variant="danger" onClick={() => confirmSheet({ title: t('Delete workout?'), message: t('This removes it from your history for good.'), confirmText: t('Delete'), danger: true, onConfirm: () => { update(s => { s.workouts = s.workouts.filter(x => x.id !== w.id) }); close(); toast(t('Workout deleted')) } })}>{t('Delete workout')}</Button>
   </>
 }
 export const workoutDetailSheet = w => ui().openSheet(close => <WorkoutDetail w={w} close={close} />)
