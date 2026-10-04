@@ -81,6 +81,12 @@ describe('schemesFor', () => {
   it('reads the coach asking for a rep max or an AMRAP', () => {
     expect(schemesFor('Trova 5RM', 1).schemes).toEqual([{ reps: 5, rmax: true }])
     expect(schemesFor('Amrap', 1).schemes[0]).toMatchObject({ reps: 10, amrap: true })
+    // Neither has a field in the plan, so the coach's words ride in the note: without this
+    // "Amrap" reaches the review as a plain ten reps with nothing saying otherwise.
+    expect(schemesFor('Trova 5RM', 1).note).toBe('Trova 5RM')
+    expect(schemesFor('Amrap', 1).note).toBe('Amrap')
+    expect(schemesFor('Amrap', 2).note).toBe('Amrap')
+    expect(schemesFor('3.0', 1).note).toBe('')
   })
 
   it('keeps a scheme that does not line up with the exercises', () => {
@@ -103,6 +109,12 @@ describe('reviewWeek', () => {
     expect(day1.entries[0].id).toBe(idOf('snatch'))
     expect(day1.entries[0].sg).toBe(day1.entries[1].sg)
     expect(day1.entries[2].sg).toBe(null)
+  })
+
+  it('puts an AMRAP on the note instead of leaving ten reps unexplained', () => {
+    const r = reviewWeek({ name: 'Settimana', grid: grid([{ day: 'Giorno 1', name: 'Snatch', reps: 'Amrap', sets: '3.0' }]) })
+    expect(r.days[0].entries[0].reps).toBe(10)
+    expect(r.days[0].entries[0].note).toBe('Amrap')
   })
 
   it('carries the reps and the sets the coach wrote', () => {

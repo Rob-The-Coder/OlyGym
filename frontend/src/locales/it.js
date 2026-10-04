@@ -588,6 +588,8 @@ export default {
   '{0} weeks in this file': '{0} settimane in questo file',
   'Days': 'Giorni',
   'To check': 'Da controllare',
+  '{0} days · {1} exercises · {2} new': '{0} giorni · {1} esercizi · {2} nuovi',
+  '{0} to check': '{0} da controllare',
   'Read as “{0}”': 'Letto come «{0}»',
   'Pick a different exercise': 'Scegli un altro esercizio',
   'Back to what it read': 'Torna a come l\'aveva letto',

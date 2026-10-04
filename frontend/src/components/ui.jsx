@@ -113,6 +113,7 @@ export function Segmented({ options, value, onChange, className = '' }) {
           key={o.value}
           className={o.value === value ? 'on' : ''}
           aria-pressed={o.value === value}
+          aria-label={o.ariaLabel}
           onClick={() => onChange(o.value)}
         >
           {o.icon && <Icon name={o.icon} />}

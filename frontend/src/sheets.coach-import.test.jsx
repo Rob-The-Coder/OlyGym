@@ -72,11 +72,32 @@ describe('the coach’s plan review', () => {
     expect(text).not.toContain('Snatch primer')
   })
 
-  it('counts the days, the exercises and what needs a look', () => {
+  it('summarises the week in one line instead of four cards', () => {
     coachPlanSheet([week])
     const host = renderTop()
-    const tiles = [...host.querySelectorAll('.tile')].map(t => [t.querySelector('.l').textContent, t.querySelector('.v').textContent])
-    expect(tiles).toEqual([['Days', '2'], ['Exercises', '5'], ['New', '1'], ['To check', '1']])
+    expect(host.querySelectorAll('.tile')).toHaveLength(0)
+    expect(host.textContent).toContain('2 days · 5 exercises · 1 new')
+    expect(host.textContent).toContain('1 to check')
+  })
+
+  it('numbers the days and names the open one above its rows', () => {
+    coachPlanSheet([week])
+    const host = renderTop()
+    expect([...host.querySelectorAll('.seg button')].map(b => b.textContent.trim())).toEqual(['1', '2'])
+    expect(host.querySelector('.sech').textContent).toBe('Giorno 1 · 23-29 marzo')
+    // The segment says the number, the overline says which day of the sheet that is.
+    expect(host.querySelector('.seg button').getAttribute('aria-label')).toBe('Giorno 1')
+    act(() => [...host.querySelectorAll('.seg button')].find(b => b.textContent.trim() === '2').click())
+    expect(host.querySelector('.sech').textContent).toBe('Giorno 2 · 23-29 marzo')
+  })
+
+  it('flags the sets and reps the coach never gave as the app’s guess', () => {
+    coachPlanSheet([week])
+    const host = renderTop()
+    act(() => [...host.querySelectorAll('.seg button')].find(b => b.textContent.trim() === '2').click())
+    // "Pogo jump" is a row with no sets and no reps: the 3 × 10 beside it is filled in.
+    expect([...host.querySelectorAll('.mchip.miss')].map(c => c.textContent))
+      .toEqual(['no sets given', 'no reps given'])
   })
 
   it('puts a correction from a previous week on screen', () => {
@@ -85,7 +106,7 @@ describe('the coach’s plan review', () => {
     coachPlanSheet([week])
     const host = renderTop()
     // It is day 2's row: the review shows one day at a time, like the sheet does.
-    act(() => buttonByText(host, 'Giorno 2').click())
+    act(() => [...host.querySelectorAll('.seg button')].find(b => b.textContent.trim() === '2').click())
     expect(textOf(host)).toContain('push press')
   })
 
