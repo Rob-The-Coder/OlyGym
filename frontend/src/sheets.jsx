@@ -1209,6 +1209,7 @@ function ComplexConfig({ target, unitIndex, close }) {
     <h3>{t('Complex')}</h3>
     <div className="muted small" style={{ marginBottom: 14 }}>{t('Sets and load are the same for every exercise in the complex — each one keeps its own reps.')}</div>
     <Stepper label={t('Sets')} value={first.sets || 1} step={1} decimal={false} onChange={v => apply({ sets: v })} />
+    <div style={{ height: 8 }} />
     <Stepper label={t('Weight ({0})', st.unit)} value={first.weight || 0} step={2.5} onChange={v => apply({ weight: v })} />
     <div style={{ height: 10 }} />
     <Button variant="primary" onClick={close}>{t('Done')}</Button>

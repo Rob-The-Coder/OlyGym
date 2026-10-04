@@ -170,6 +170,18 @@
 .stp{border-radius:var(--m3-shape-full)}
 .stp button:active{background:color-mix(in srgb,var(--label) var(--m3-state-press),transparent)}
 
+/* A labelled stepper that has the line to itself reads as a row — label left, control right, the
+   way every .lrow in the sheet does — instead of a centred caption over a pill the width of the
+   sheet (the backfill Duration, the bar weight, the progression step, the added weight). Two or
+   three sharing a .cfgrow are one control group, and the caption centred over its own control is
+   what makes them a group rather than three rows; :has keeps that case on the column layout. */
+.stp-w{flex-direction:row;align-items:center;gap:12px}
+.stp-w>.stp-l{flex:1;min-width:0;text-align:left;font-size:16px;color:var(--label)}
+.stp-w>.stp{flex:none;width:150px}
+.cfgrow:has(.stp-w+.stp-w)>.stp-w{flex-direction:column;gap:6px}
+.cfgrow:has(.stp-w+.stp-w)>.stp-w>.stp-l{flex:none;text-align:center;font-size:13px;color:var(--label-2)}
+.cfgrow:has(.stp-w+.stp-w)>.stp-w>.stp{flex:1;width:auto;min-width:0}
+
 /* Separators between sets, at the M3 outline tone (was --sep, the heavier one). */
 .setrow+.setrow::before{background:var(--m3-outline-variant)}
 
