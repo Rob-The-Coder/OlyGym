@@ -468,32 +468,54 @@ function ExerciseHistory({ exId }) {
   const ex = exOr(exId)
   const h = useMemo(() => exerciseHistory(st, exId), [st.workouts, exId])
   const unit = h.metric === 'weight' ? st.unit : h.metric === 'reps' ? t('reps') : h.metric === 'sec' ? 's' : t('min')
+  // The exercise's own standing note — the one shown every time you train it. It lived only inside
+  // the note editor, which is the one place you are not standing when you are reading the numbers.
+  // Read here, not written: the editor is keyed to a session entry and only exists mid-workout.
+  const standing = (st.exNotes || {})[exId]
+  const noteBlock = standing ? <div className="fnote" style={{ marginBottom: 14 }}>
+    <div className="flabel">{t('Every session')}</div>
+    <div className="note-read">{standing}</div>
+  </div> : null
   if (!h.total) return <>
     <h3 className="capitalize">{exerciseNameFor(ex)}</h3>
+    {noteBlock}
     <div className="empty"><div className="ico"><Icon name="history" /></div>{t('No sessions logged yet')}</div>
   </>
   const tail = s => [
     s.volume > 0 && t('Volume') + ' ' + fmtVol(s.volume, st.unit),
   ].filter(Boolean).join(' · ')
+  // Best and Last are the two numbers the sheet is opened for. Best was a run-on line above a list
+  // whose first row already carried the same figure; they are the pair of tiles the exercise sheet
+  // uses now, so the two screens read the same way round.
+  const byId = new Map(st.workouts.map(w => [w.id, w]))
+  const last = h.sessions.find(s => s.value != null && s.value > 0)
+  const prDay = (byId.get(h.prId) || {}).d
   return <>
     <h3 className="capitalize" style={{ marginBottom: 2 }}>{exerciseNameFor(ex)}</h3>
-    <div className="muted small" style={{ marginBottom: 10 }}>{t('Exercise history')} · {t(h.total === 1 ? '{0} session' : '{0} sessions', h.total)}</div>
-    <div className="chart" style={{ marginTop: 8 }}>
+    <div className="muted small" style={{ marginBottom: 12 }}>{t('Exercise history')} · {t(h.total === 1 ? '{0} session' : '{0} sessions', h.total)}</div>
+    {noteBlock}
+    <div className="tiles">
+      <div className="tile"><div className="l">{t('Best')}</div><div className="v">{fmtNum(h.best)} {unit}</div>
+        {prDay && <div className="s">{fmtDate(prDay)}</div>}</div>
+      <div className="tile"><div className="l">{t('Last')}</div>
+        <div className="v">{last ? `${fmtNum(last.value)} ${unit}` : '—'}</div>
+        {last && <div className="s">{fmtDate(last.d)}</div>}</div>
+    </div>
+    <div className="chart" style={{ marginTop: 12 }}>
       <LineChart points={h.points} h={140} unit={unit} color="var(--blue)" />
     </div>
-    <div className="small row" style={{ margin: '6px 0 4px', gap: 5 }}>
-      <Icon name="trophy" style={{ fontSize: 14, color: 'var(--yellow)' }} />
-      {t('Best:')} <b className="accent">{fmtNum(h.best)} {unit}</b>
-    </div>
-    <h4 className="sec">{h.sessions.length < h.total ? t('Last {0} sessions', h.sessions.length) : t('Sessions')}</h4>
+    <div className="sech">{h.sessions.length < h.total ? t('Last {0} sessions', h.sessions.length) : t('Sessions')}</div>
     <div className="list">
-      {h.sessions.map(s => <div key={s.id} className="item" style={{ alignItems: 'flex-start' }}>
+      {/* A session you are looking at is a session you can open — every other list in the app
+          does it, and this one was the only place a logged workout could not be reached. */}
+      {h.sessions.map(s => <div key={s.id} className="item" {...tappable(byId.has(s.id) ? () => workoutDetailSheet(byId.get(s.id)) : null)}>
         <div className="grow">
           <div className="tt">{fmtDate(s.d, true)} {s.pr && <span className="pr"><Icon name="trophy" />PR</span>}</div>
           <div className="ss">{s.sets.map(x => setLabel(exId, x, s.target)).join('  ·  ')}</div>
           {tail(s) && <div className="small dim" style={{ marginTop: 3 }}>{tail(s)}</div>}
         </div>
         {s.value != null && s.value > 0 && <b className="accent nocap" style={{ whiteSpace: 'nowrap' }}>{fmtNum(s.value)} {unit}</b>}
+        {byId.has(s.id) && <Icon name="chevronRight" className="chev" />}
       </div>)}
     </div>
   </>

@@ -932,3 +932,6 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
   color:var(--m3-on-surface-variant);margin-bottom:3px;
 }
 .fhint{font-size:12px;line-height:16px;color:var(--m3-on-surface-variant);margin-bottom:9px}
+/* The standing note read rather than written — the body it was written in, where the editor has a
+   textarea. Shown in the exercise history, which is where you look before training the movement. */
+.note-read{white-space:pre-wrap;font-size:15px;line-height:1.45;color:var(--m3-on-surface)}
