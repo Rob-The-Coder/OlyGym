@@ -67,10 +67,23 @@ function DayExercises({ weekId, day, index, unit, editEx, toast }) {
     }
   })
 
+  // The three actions stay on the row: this is the screen where order is worked out, so a reorder
+  // is one tap here. They are the app's own 36px .iconbtn rather than the 32x28 / 28x24 the inline
+  // sizes had them at, and one horizontal group rather than a stacked column — the group is flush
+  // right, so the first row, which has no link above it, keeps its up and down in the same place.
+  const acts = (entry, i) => <div className="ex-acts">
+    {i > 0 && <button className={'iconbtn' + (entry.sg && ex[i - 1].sg === entry.sg ? ' on-ss' : '')}
+      aria-label={t('Complex with exercise above')} title={t('Complex with exercise above')}
+      onClick={ev => { ev.stopPropagation(); toggleLink(i) }}><Icon name="link" /></button>}
+    <button className="iconbtn" aria-label={t('Move up')} title={t('Move up')} disabled={unitIndex.get(i) === 0}
+      onClick={ev => { ev.stopPropagation(); move(i, -1) }}><Icon name="chevronUp" /></button>
+    <button className="iconbtn" aria-label={t('Move down')} title={t('Move down')} disabled={unitIndex.get(i) === units.length - 1}
+      onClick={ev => { ev.stopPropagation(); move(i, 1) }}><Icon name="chevronDown" /></button>
+  </div>
+
   const row = (entry, i, inside) => {
     // An unresolvable id is shown rather than skipped, the way the routine editor shows it.
     const exOrId = exOr(entry.id)
-    const linkedPrev = i > 0 && entry.sg && ex[i - 1].sg === entry.sg
     return <SwipeToDelete className={'item' + (inside ? ' cx-item' : '')}
       deleteLabel={t('Remove')}
       onDelete={() => remove(i)}
@@ -79,19 +92,7 @@ function DayExercises({ weekId, day, index, unit, editEx, toast }) {
       <div className="grow"><div className="tt capitalize">{exerciseNameFor(exOrId)}</div>
         <div className="ss">{exLine(entry, unit)}</div>
         {entry.note && <div className="small dim" style={{ marginTop: 2 }}>{entry.note}</div>}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 'none', alignItems: 'center' }}>
-        {i > 0 && <button className={'iconbtn' + (linkedPrev ? ' on-ss' : '')} title={t('Complex with exercise above')}
-          style={{ width: 32, height: 28, borderRadius: 8, fontSize: 15 }}
-          onClick={ev => { ev.stopPropagation(); toggleLink(i) }}><Icon name="link" /></button>}
-        <div style={{ display: 'flex', gap: 2 }}>
-          <button className="iconbtn" aria-label={t('Move up')} title={t('Move up')} disabled={unitIndex.get(i) === 0}
-            style={{ width: 28, height: 24, borderRadius: 7, fontSize: 12 }}
-            onClick={ev => { ev.stopPropagation(); move(i, -1) }}><Icon name="chevronUp" /></button>
-          <button className="iconbtn" aria-label={t('Move down')} title={t('Move down')} disabled={unitIndex.get(i) === units.length - 1}
-            style={{ width: 28, height: 24, borderRadius: 7, fontSize: 12 }}
-            onClick={ev => { ev.stopPropagation(); move(i, 1) }}><Icon name="chevronDown" /></button>
-        </div>
-      </div>
+      {acts(entry, i)}
     </SwipeToDelete>
   }
 
@@ -206,6 +207,11 @@ export default function WeekEdit() {
           <TextField className="day-name" value={day.name || ''} aria-label={t(DAYN[day.dow])}
             onChange={e => editDay(index, d => { d.name = e.target.value })} />
         </div>
+        {/* What the day holds, before it is opened: a collapsed day used to say only how many
+            exercises it had, which is the one thing about a plan you can already guess. */}
+        {open !== index && (day.ex || []).length > 0 && <div className="day-preview small dim capitalize">
+          {(day.ex || []).map(e => exerciseNameFor(exOr(e.id))).join(' · ')}
+        </div>}
         {/* The day's body is this row: it opens the exercise editor for that weekday. */}
         <button className="btn ghost sm day-add" aria-expanded={open === index} onClick={() => setOpen(open === index ? null : index)}>
           {exCount((day.ex || []).length)} <Icon name={open === index ? 'chevronUp' : 'chevronDown'} />

@@ -337,6 +337,11 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
 .day-row .lrow-i{width:34px;height:34px;border-radius:var(--m3-shape-full);font-size:18px}
 .day-row .tt{font-size:15px}
 .day-add{margin-top:8px}
+/* What a collapsed day holds, one line and clipped rather than wrapped: the card is a glance. */
+.day-preview{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+/* The week editor's row actions: the app's own 36px icon button, flat, as one group at the end of
+   the row. They were a stacked column of inline-sized 32x28 and 28x24 buttons. */
+.ex-acts{display:flex;align-items:center;gap:0;flex:none}
 
 /* ============================================================================
    Stats
@@ -698,6 +703,15 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
 /* index.css steps the old heading down on a narrow phone; that rule lives in .hdr, and this is
    a different class, so the step has to be restated here or it is lost. */
 @media (max-width:420px){.ab-title{font-size:30px}}
+/* WeekEdit puts an input here, so the week's name arrived wearing .field — a 32px filled box, the
+   largest thing on the screen and visibly a form. An editable title has one look in this app (see
+   .day-name): the text, with the dashed rule under it and nothing around it. Scoped to the field so
+   the plain h1 every other screen passes as a string keeps its own rules. */
+.field.ab-title{
+  background:none;border-radius:0;padding:0;
+  border-bottom:1.5px dashed color-mix(in srgb,var(--m3-primary) 45%,transparent);
+  width:auto;field-sizing:content;-webkit-field-sizing:content;max-width:100%;
+}
 .ab-sub{color:var(--m3-on-surface-variant);font-size:16px;letter-spacing:var(--m3-type-body-l-track);margin-top:4px}
 
 /* ============================================================================
