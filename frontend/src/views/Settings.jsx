@@ -12,7 +12,7 @@ import { t, LANGS, INSTR_LANGS } from '../lib/i18n.js'
 import TopAppBar from '../components/TopAppBar.jsx'
 import { MOBILE, isAndroid, shareExport, syncReminder } from '../lib/mobile.js'
 import { checkForUpdate, downloadAndInstall, RELEASES_PAGE } from '../lib/update.js'
-import { starterPlanSheet, confirmSheet, importCoachPlan, importCoachPlanFromDrive, equipmentProfileSheet, effortHelpSheet } from '../sheets.jsx'
+import { starterPlanSheet, confirmSheet, importCoachPlan, importCoachPlanFromDrive, equipmentProfileSheet, effortHelpSheet, timePickerSheet, REMINDER_TIMES } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Section, Row, SelectRow, Switch, Segmented } from '../components/ui.jsx'
 
@@ -476,10 +476,13 @@ function MobileReminderCard({ S, update, toast }) {
         <Switch checked={!!S.reminder?.on} onChange={toggle} />
       </Row>
       {S.reminder?.on && (
-        <Row icon="clock" title={t('Reminder time')}>
-          <input type="time" className="timef" value={S.reminder?.time || DEF.reminder.time}
-            onChange={e => setReminder({ time: e.target.value })} />
-        </Row>
+        <Row icon="clock" title={t('Reminder time')} value={S.reminder?.time || DEF.reminder.time}
+          accessory="chevron"
+          onClick={() => timePickerSheet({
+            value: S.reminder?.time || DEF.reminder.time,
+            title: t('Reminder time'), presets: REMINDER_TIMES,
+            onPick: v => setReminder({ time: v })
+          })} />
       )}
     </Section>
   )

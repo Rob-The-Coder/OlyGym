@@ -1517,7 +1517,10 @@ const datePickerSheet = opts => ui().openSheet(close => <DatePicker {...opts} cl
 // The other half of the pair: an hour and a minute on the stepper every other number in the app
 // uses, plus the handful of times a session actually starts at.
 const START_TIMES = ['06:30', '12:00', '17:30', '18:00', '19:30']
-function TimePicker({ value, onPick, close }) {
+// The reminder is a different job from a session start — one of these is the stored default — so it
+// carries its own handful rather than the gym times above.
+export const REMINDER_TIMES = ['07:00', '08:00', '12:00', '18:00', '20:00']
+function TimePicker({ value, onPick, close, title = t('Start time'), presets = START_TIMES }) {
   const [h0, m0] = String(value || '18:00').split(':').map(Number)
   const [h, setH] = useState(isFinite(h0) ? h0 : 18)
   const [m, setM] = useState(isFinite(m0) ? m0 : 0)
@@ -1525,18 +1528,18 @@ function TimePicker({ value, onPick, close }) {
   const now = pad(h) + ':' + pad(m)
   const pick = x => { const [a, b] = x.split(':').map(Number); setH(a); setM(b) }
   return <>
-    <h3>{t('Start time')}</h3>
+    <h3>{title}</h3>
     <div className="row cfgrow" style={{ marginBottom: 10 }}>
       <Stepper label={t('Hour')} value={h} step={1} decimal={false} onChange={v => setH(Math.min(23, Math.max(0, Math.round(v))))} />
       <Stepper label={t('Minute')} value={m} step={5} decimal={false} onChange={v => setM(Math.min(59, Math.max(0, Math.round(v))))} />
     </div>
     <div className="chips" style={{ marginBottom: 16 }}>
-      {START_TIMES.map(x => <button key={x} className={'chip' + (x === now ? ' on' : '')} onClick={() => pick(x)}>{x}</button>)}
+      {presets.map(x => <button key={x} className={'chip' + (x === now ? ' on' : '')} onClick={() => pick(x)}>{x}</button>)}
     </div>
     <Button variant="primary" onClick={() => { onPick(now); close() }}>{t('Done')}</Button>
   </>
 }
-const timePickerSheet = opts => ui().openSheet(close => <TimePicker {...opts} close={close} />)
+export const timePickerSheet = opts => ui().openSheet(close => <TimePicker {...opts} close={close} />)
 
 /* shared small workout row (used in lists) */
 export function WorkoutRow({ w, onClick }) {
