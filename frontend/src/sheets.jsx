@@ -1102,7 +1102,7 @@ function EffortPicker({ kind, value, onPick, close }) {
     <div className="muted small">{t('Tap how many reps you had left, or type an exact {0}.', hd)}</div>
     {/* The (i) that used to sit in the Settings row lives here now: this is where the choice is
         actually made, and a value row cannot hold a second button inside itself. */}
-    <button className="helpbtn" style={{ margin: '2px 0 10px' }} onClick={effortHelpSheet}>
+    <button className="fieldhelp" onClick={effortHelpSheet}>
       <Icon name="info" /> {t('What are RIR and RPE?')}
     </button>
     <div className="list menu-list effpick">
