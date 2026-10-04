@@ -558,6 +558,12 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
 /* one up on the decorative tone: a day dot is the only mark a planned day has, and at
    1.7:1 in light mode it was not there at all (its twin, .wday .dot.plan, is up in Home) */
 .cal-d i.plan{background:var(--m3-outline)}
+/* The month grid is the date field as well as the calendar (see MonthGrid): the day under the
+   thumb, and the days a past workout cannot be logged on. Both load after index.css, so the
+   selected day reads as the filled M3 day rather than the calendar's tinted "has sessions" one. */
+.cal-d.sel{background:var(--m3-primary);color:var(--m3-on-primary)}
+.cal-d.sel i.done,.cal-d.sel i.plan{background:var(--m3-on-primary)}
+.cal-d:disabled{opacity:.38}
 
 /* No .setph override here any more. A labelled version of the help affordance lives at the end of this file: .helpbtn is icon-only
    in index.css — line-height 0 and negative margins tuned to sit inside a row — so text next to it

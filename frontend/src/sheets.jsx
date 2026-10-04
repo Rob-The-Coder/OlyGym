@@ -1344,49 +1344,145 @@ function WorkoutDetail({ w, close }) {
 export const workoutDetailSheet = w => ui().openSheet(close => <WorkoutDetail w={w} close={close} />)
 
 /* ============================ calendar ============================ */
-function Calendar({ start, close }) {
+// One month grid, two callers: the calendar reads it and the date field picks from it. They were
+// the same twenty lines of arithmetic twice over; the point of keeping them together is that the
+// day you pick and the day you look at are drawn by the same thing.
+function MonthGrid({ y, mo, byDay = {}, plannedOn = () => false, value = null, disabledOn = () => false, onPick }) {
   const st = useStore(s => s.S)
-  const [cur, setCur] = useState(() => { const d = start ? new Date(start) : new Date(); d.setDate(1); return d })
-  const y = cur.getFullYear(), mo = cur.getMonth()
-  const byDay = {}
-  st.workouts.forEach(w => (byDay[w.d] = byDay[w.d] || []).push(w))
-  // Which column the 1st sits in, and therefore how many blanks come before it.
   const ws = weekStartOf(st)
+  // Which column the 1st sits in, and therefore how many blanks come before it.
   const startOffset = weekDayOffset(new Date(y, mo, 1).getDay(), ws)
   const daysIn = new Date(y, mo + 1, 0).getDate()
-  const monthWs = st.workouts.filter(w => w.d.startsWith(y + '-' + String(mo + 1).padStart(2, '0')))
-  const monthVol = monthWs.reduce((a, w) => a + (w.vol || 0), 0)
-  const monthMs = monthWs.reduce((a, w) => a + Math.max(0, (w.end || w.start) - w.start), 0)
   const cells = []
   for (let i = 0; i < startOffset; i++) cells.push(<div key={'e' + i} />)
   for (let d = 1; d <= daysIn; d++) {
-    const iso = y + '-' + String(mo + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0')
-    const dayws = byDay[iso], planned = effectiveDay(st, iso) != null
-    const dotCls = dayws ? 'done' : planned ? 'plan' : ''
-    cells.push(<button key={d} className={'cal-d' + (dayws ? ' has' : '') + (iso === todayISO() ? ' today' : '')} onClick={() => {
-      // A day with nothing trained is where a session would be planned — the plan is the dated
-      // weeks now, so that is where an unplanned day sends you.
-      if (!dayws) { close(); nav('/plan'); return }
-      if (dayws.length === 1) { close(); workoutDetailSheet(dayws[0]); return }
-      close(); ui().openSheet(c2 => <><h3>{fmtDate(iso, true)}</h3><div className="list">{dayws.map(w => <WorkoutRow key={w.id} w={w} onClick={() => { c2(); workoutDetailSheet(w) }} />)}</div></>)
-    }}><span>{d}</span><i className={dotCls} /></button>)
+    const iso = isoOf(new Date(y, mo, d))
+    const dayws = byDay[iso]
+    const dotCls = dayws ? 'done' : plannedOn(iso) ? 'plan' : ''
+    cells.push(<button key={d} type="button" aria-label={fmtDate(iso, true)}
+      className={'cal-d' + (dayws ? ' has' : '') + (iso === todayISO() ? ' today' : '') + (iso === value ? ' sel' : '')}
+      disabled={disabledOn(iso) || undefined}
+      onClick={() => onPick(iso, dayws)}>
+      <span>{d}</span><i className={dotCls} />
+    </button>)
   }
+  return <div className="cal-grid">
+    {weekOrder(ws).map(d => <div key={d} className="cal-h">{t(DAYS[d])}</div>)}{cells}
+  </div>
+}
+
+function Calendar({ start, close }) {
+  const st = useStore(s => s.S)
+  const now = new Date()
+  // `start` is an ISO date when the Stats heatmap opens the calendar on one, and a Date when a
+  // caller has already built one. The ISO form parses at noon: at UTC midnight, a day near the 1st
+  // is the previous month west of UTC, which opened the heatmap's own day in the wrong month.
+  const [cur, setCur] = useState(() => {
+    const d = start ? (typeof start === 'string' ? new Date(start + 'T12:00:00') : new Date(start)) : new Date()
+    d.setDate(1); return d
+  })
+  const y = cur.getFullYear(), mo = cur.getMonth()
+  const byDay = {}
+  st.workouts.forEach(w => (byDay[w.d] = byDay[w.d] || []).push(w))
+  const monthWs = st.workouts.filter(w => w.d.startsWith(y + '-' + String(mo + 1).padStart(2, '0')))
+  const monthVol = monthWs.reduce((a, w) => a + (w.vol || 0), 0)
+  const monthMs = monthWs.reduce((a, w) => a + Math.max(0, (w.end || w.start) - w.start), 0)
+  const onNowMonth = y === now.getFullYear() && mo === now.getMonth()
+
+  // What a day means depends on which side of today it is. A day with sessions opens them; a day
+  // still to come is where one would be planned; a day already gone is where one would be logged —
+  // and only this screen knows which date you meant, so it hands it to the backfill with the date
+  // already in it rather than sending you to the plan to go and find it.
+  const openDay = (iso, dayws) => {
+    if (dayws && dayws.length === 1) { close(); workoutDetailSheet(dayws[0]); return }
+    if (dayws && dayws.length > 1) { close(); daySessionsSheet(iso, dayws); return }
+    if (iso < todayISO()) { close(); logPastWorkoutSheet(iso); return }
+    close(); nav('/plan')
+  }
+
   return <>
     <div className="row between" style={{ marginBottom: 2 }}>
-      <button className="iconbtn" onClick={() => setCur(new Date(y, mo - 1, 1))} aria-label="Previous month"><Icon name="chevronLeft" /></button>
+      <button className="iconbtn" onClick={() => setCur(new Date(y, mo - 1, 1))} aria-label={t('Previous month')}><Icon name="chevronLeft" /></button>
       <h3 style={{ margin: 0 }}>{t(MONTHS_LONG[mo])} {y}</h3>
-      <button className="iconbtn" onClick={() => setCur(new Date(y, mo + 1, 1))} aria-label="Next month"><Icon name="chevronRight" /></button>
+      <button className="iconbtn" onClick={() => setCur(new Date(y, mo + 1, 1))} aria-label={t('Next month')}><Icon name="chevronRight" /></button>
     </div>
     <div className="small muted" style={{ textAlign: 'center' }}>{monthWs.length ? `${t(monthWs.length === 1 ? '{0} workout' : '{0} workouts', monthWs.length)} · ${fmtDur(monthMs)} · ${fmtVol(monthVol, st.unit)}` : t('No workouts this month')}</div>
-    <div className="cal-grid">{weekOrder(ws).map(d => <div key={d} className="cal-h">{t(DAYS[d])}</div>)}{cells}</div>
+    {/* Six months back there was no way forward again but six taps on the same arrow. */}
+    {!onNowMonth && <div style={{ textAlign: 'center', marginTop: 6 }}>
+      <Button size="sm" variant="ghost" onClick={() => setCur(new Date(now.getFullYear(), now.getMonth(), 1))}>{t('Back to this month')}</Button>
+    </div>}
+    <MonthGrid y={y} mo={mo} byDay={byDay} plannedOn={iso => effectiveDay(st, iso) != null} onPick={openDay} />
     <div className="cal-legend">
       <span><i style={{ background: 'var(--acc)' }} />{t('Trained')}</span>
       <span><i style={{ background: 'var(--label-3)' }} />{t('Planned')}</span>
     </div>
-    <div className="small dim" style={{ textAlign: 'center', marginTop: 10 }}>{t('Tap a trained day for details · tap any other day to plan a session')}</div>
+    <div className="small dim" style={{ textAlign: 'center', marginTop: 10 }}>{t('Tap a day you trained for it · a past day to log it · a day to come to plan it')}</div>
   </>
 }
 export const calendarSheet = start => ui().openSheet(close => <Calendar start={start} close={close} />)
+
+// A day holding more than one session. It was an anonymous sheet built inline in the grid cell.
+function DaySessions({ iso, dayws, close }) {
+  const st = useStore(s => s.S)
+  return <>
+    <h3 style={{ marginBottom: 2 }}>{fmtDate(iso, true)}</h3>
+    <div className="muted small" style={{ marginBottom: 10 }}>{t('{0} workouts', dayws.length)}</div>
+    <div className="list">{dayws.map(w => <WorkoutRow key={w.id} w={w} onClick={() => { close(); workoutDetailSheet(w) }} />)}</div>
+  </>
+}
+const daySessionsSheet = (iso, dayws) => ui().openSheet(close => <DaySessions iso={iso} dayws={dayws} close={close} />)
+
+/* ============================ date and time fields ============================ */
+// The backfill sheet's Date and Start time were <input type="date"> and <input type="time"> — the
+// only two platform widgets left inside a sheet, drawn in the platform's colours and the platform's
+// format ("02/10/2026", never "Fri 2 Oct"), against the rule the rest of this control set is built
+// on. The date is the month grid above, so the days that already have sessions are visible while
+// you pick one; the time is the app's own stepper.
+function DatePicker({ value, max, onPick, close }) {
+  const st = useStore(s => s.S)
+  const [cur, setCur] = useState(() => { const d = value ? new Date(value + 'T12:00:00') : new Date(); d.setDate(1); return d })
+  const y = cur.getFullYear(), mo = cur.getMonth()
+  const byDay = {}
+  st.workouts.forEach(w => (byDay[w.d] = byDay[w.d] || []).push(w))
+  return <>
+    <div className="row between" style={{ marginBottom: 2 }}>
+      <button className="iconbtn" onClick={() => setCur(new Date(y, mo - 1, 1))} aria-label={t('Previous month')}><Icon name="chevronLeft" /></button>
+      <h3 style={{ margin: 0 }}>{t(MONTHS_LONG[mo])} {y}</h3>
+      <button className="iconbtn" onClick={() => setCur(new Date(y, mo + 1, 1))} aria-label={t('Next month')}><Icon name="chevronRight" /></button>
+    </div>
+    <MonthGrid y={y} mo={mo} byDay={byDay} plannedOn={iso => effectiveDay(st, iso) != null}
+      value={value} disabledOn={iso => !!max && iso > max} onPick={iso => { onPick(iso); close() }} />
+    <div className="cal-legend">
+      <span><i style={{ background: 'var(--acc)' }} />{t('Trained')}</span>
+      <span><i style={{ background: 'var(--label-3)' }} />{t('Planned')}</span>
+    </div>
+  </>
+}
+const datePickerSheet = opts => ui().openSheet(close => <DatePicker {...opts} close={close} />)
+
+// The other half of the pair: an hour and a minute on the stepper every other number in the app
+// uses, plus the handful of times a session actually starts at.
+const START_TIMES = ['06:30', '12:00', '17:30', '18:00', '19:30']
+function TimePicker({ value, onPick, close }) {
+  const [h0, m0] = String(value || '18:00').split(':').map(Number)
+  const [h, setH] = useState(isFinite(h0) ? h0 : 18)
+  const [m, setM] = useState(isFinite(m0) ? m0 : 0)
+  const pad = n => String(n).padStart(2, '0')
+  const now = pad(h) + ':' + pad(m)
+  const pick = x => { const [a, b] = x.split(':').map(Number); setH(a); setM(b) }
+  return <>
+    <h3>{t('Start time')}</h3>
+    <div className="row cfgrow" style={{ marginBottom: 10 }}>
+      <Stepper label={t('Hour')} value={h} step={1} decimal={false} onChange={v => setH(Math.min(23, Math.max(0, Math.round(v))))} />
+      <Stepper label={t('Minute')} value={m} step={5} decimal={false} onChange={v => setM(Math.min(59, Math.max(0, Math.round(v))))} />
+    </div>
+    <div className="chips" style={{ marginBottom: 16 }}>
+      {START_TIMES.map(x => <button key={x} className={'chip' + (x === now ? ' on' : '')} onClick={() => pick(x)}>{x}</button>)}
+    </div>
+    <Button variant="primary" onClick={() => { onPick(now); close() }}>{t('Done')}</Button>
+  </>
+}
+const timePickerSheet = opts => ui().openSheet(close => <TimePicker {...opts} close={close} />)
 
 /* shared small workout row (used in lists) */
 export function WorkoutRow({ w, onClick }) {
@@ -1437,16 +1533,21 @@ export function beginWorkout(day, bw) {
 // The same screen as a live session, pointed at another day. `backfill` on the active
 // session is what tells the workout screen to drop the clock and the rest timers, and tells
 // the finish path to file the workout where its date belongs instead of at the end.
-function LogPastWorkout({ close }) {
+// `initialDate` is set when the calendar's own day tap opened this sheet: the date it already
+// knows, which is the one thing the sheet used to make you find again in a platform date picker.
+function LogPastWorkout({ initialDate, close }) {
   const st = useStore(s => s.S)
   const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1)
-  const [date, setDate] = useState(isoOf(yesterday))
+  const [date, setDate] = useState(initialDate || isoOf(yesterday))
   const [time, setTime] = useState('18:00')
   const [dur, setDur] = useState(60)
   const today = todayISO()
   // Whatever the dated plan has on that date, or an empty session to fill in by hand — there is
   // no routine to pick any more, so the date alone decides what the screen opens with.
   const planned = effectiveDay(st, date)
+  // The same list the calendar would show for that day, read while the date is being chosen
+  // rather than after Continue has been tapped.
+  const existing = workoutsOn(st, date)
 
   const go = replaceId => {
     close()
@@ -1454,43 +1555,51 @@ function LogPastWorkout({ close }) {
   }
   const submit = () => {
     if (!date || date > today) { toast(t('Pick a day up to today')); return }
-    const existing = workoutsOn(st, date)
     if (!existing.length) { go(null); return }
-    ui().openSheet(c => <SameDayChoice iso={date} existing={existing} close={c}
-      onReplace={id => { c(); go(id) }} onAdd={() => { c(); go(null) }} />, { kind: 'center' })
+    // Deciding what to do about a day that is already spoken for is a list of actions, not the
+    // centred alert with two full-width buttons it was: the destructive action carries the trash
+    // and the danger role, the one that adds a second session reads first, and dismissing it
+    // cancels — which is all the third full-width button ever did.
+    menuSheet({
+      title: fmtDate(date, true),
+      subtitle: t('There is already a workout on that day.'),
+      items: [
+        { icon: 'plus', label: t('Add as second workout'), onClick: () => go(null) },
+        ...existing.map(w => ({
+          icon: 'trash', danger: true, onClick: () => go(w.id),
+          label: existing.length > 1 ? t('Replace {0}', w.name) : t('Replace'),
+        })),
+      ],
+    })
   }
 
   return <>
     <h3>{t('Log a past workout')}</h3>
     <div className="muted small" style={{ marginBottom: 12 }}>{t('Logged on the usual workout screen, without timers.')}</div>
-    <Row icon="calendar" title={t('Date')}>
-      <input type="date" className="timef" value={date} max={today} onChange={e => setDate(e.target.value)} /></Row>
-    <Row icon="clock" title={t('Start time')}>
-      <input type="time" className="timef" value={time} onChange={e => setTime(e.target.value)} /></Row>
+    <div className="list menu-list">
+      <Row icon="calendar" title={t('Date')} value={fmtDate(date, true)} accessory="chevron"
+        onClick={() => datePickerSheet({ value: date, max: today, onPick: setDate })} />
+      <Row icon="clock" title={t('Start time')} value={time} accessory="chevron"
+        onClick={() => timePickerSheet({ value: time, onPick: setTime })} />
+    </div>
+    <div style={{ height: 12 }} />
     <Stepper label={t('Duration')} unit="min" value={dur} step={5} decimal={false} onChange={v => setDur(Math.max(1, Math.round(v)))} />
-    <div style={{ height: 8 }} />
+    <div style={{ height: 10 }} />
     <Row icon="dumbbell" title={t('Plan')} value={planned ? planned.name : t('Freestyle')} />
+    {existing.length > 0 && <>
+      <div className="sech">{t('Already on this day')}</div>
+      <div className="list menu-list">
+        {existing.map(w => <Row key={w.id} icon={DEFAULT_GLYPH} title={w.name}
+          subtitle={[fmtDur((w.end || w.start) - w.start), fmtVol(w.vol || workoutVolume(w), st.unit)].join(' · ')} />)}
+      </div>
+    </>}
     <div style={{ height: 18 }} />
     <Button variant="primary" onClick={submit}>{t('Continue')}</Button>
   </>
 }
-// Three ways out when the day already has a workout. Replacing with several on that day means
-// picking which one; the rest of the day is left alone.
-function SameDayChoice({ iso, existing, onReplace, onAdd, close }) {
-  return <div style={{ textAlign: 'center', padding: '4px 0' }}>
-    <h3 style={{ marginBottom: 8 }}>{fmtDate(iso, true)}</h3>
-    <div className="muted" style={{ marginBottom: 18, lineHeight: 1.5 }}>{t('There is already a workout on that day.')}</div>
-    {existing.map(w => <div key={w.id} style={{ marginBottom: 8 }}>
-      <button className="btn danger" onClick={() => onReplace(w.id)}>{existing.length > 1 ? t('Replace') + ' · ' + w.name : t('Replace')}</button>
-    </div>)}
-    <button className="btn primary" onClick={onAdd}>{t('Add as second workout')}</button>
-    <div style={{ height: 8 }} />
-    <Button variant="ghost" className="dim" onClick={close}>{t('Cancel')}</Button>
-  </div>
-}
-export function logPastWorkoutSheet() {
+export function logPastWorkoutSheet(initialDate) {
   if (S().active) { toast(t('Finish the current workout first.')); return }
-  ui().openSheet(close => <LogPastWorkout close={close} />)
+  ui().openSheet(close => <LogPastWorkout initialDate={initialDate} close={close} />)
 }
 // A backfilled session is the day that date is planned to have, exactly like a live start: the
 // same builder walks up to the same entries. A date with no day planned opens empty.
