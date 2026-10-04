@@ -395,7 +395,7 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
   }
 }
 .btn:focus-visible,.iconbtn:focus-visible,.chip:focus-visible,
-.lrow.tap:focus-visible,.item:focus-visible{
+.lrow.tap:focus-visible,.item:focus-visible,.note-edit:focus-visible{
   background-image:linear-gradient(color-mix(in srgb,var(--label) var(--m3-state-focus),transparent),
                                    color-mix(in srgb,var(--label) var(--m3-state-focus),transparent));
 }
@@ -935,3 +935,12 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
 /* The standing note read rather than written — the body it was written in, where the editor has a
    textarea. Shown in the exercise history, which is where you look before training the movement. */
 .note-read{white-space:pre-wrap;font-size:15px;line-height:1.45;color:var(--m3-on-surface)}
+/* The block is the control: the cue is read and corrected in the same place. A filled surface, so
+   its press layer goes on as a background-image over the tone rather than replacing it. */
+.note-edit{cursor:pointer}
+.note-edit:active{
+  background-image:linear-gradient(color-mix(in srgb,var(--label) var(--m3-state-press),transparent),
+                                   color-mix(in srgb,var(--label) var(--m3-state-press),transparent));
+}
+.note-edit .flabel{display:flex;align-items:center;gap:6px}
+.note-pen{margin-left:auto;font-size:14px;--icon-stroke:1.8}

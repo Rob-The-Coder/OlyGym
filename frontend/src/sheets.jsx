@@ -471,11 +471,16 @@ function ExerciseHistory({ exId }) {
   // The exercise's own standing note — the one shown every time you train it. It lived only inside
   // the note editor, which is the one place you are not standing when you are reading the numbers.
   // Read here, not written: the editor is keyed to a session entry and only exists mid-workout.
+  // Read here and corrected here: the block is the control. It was read-only because the only
+  // editor was keyed to an entry in the running session, so a cue could be seen and not fixed.
   const standing = (st.exNotes || {})[exId]
-  const noteBlock = standing ? <div className="fnote" style={{ marginBottom: 14 }}>
-    <div className="flabel">{t('Every session')}</div>
-    <div className="note-read">{standing}</div>
-  </div> : null
+  const noteBlock = <div className="fnote note-edit" style={{ marginBottom: 14 }}
+    {...tappable(() => exerciseNoteSheet({ exId }))}>
+    <div className="flabel">{t('Every session')}<Icon name="pencil" className="note-pen" /></div>
+    {standing
+      ? <div className="note-read">{standing}</div>
+      : <div className="fhint" style={{ marginBottom: 0 }}>{t('Seat height, pin position, a form cue.')}</div>}
+  </div>
   if (!h.total) return <>
     <h3 className="capitalize">{exerciseNameFor(ex)}</h3>
     {noteBlock}
@@ -1658,32 +1663,41 @@ function beginBackfill({ iso, time, durationMin, replaceId }) {
 
    A routine's own `note` (a plan's instruction for this exercise) is edited in the config sheet
    and is deliberately not here: it belongs to the plan, not to the day or to the movement. */
-function ExerciseNote({ entryIdx, close }) {
+function ExerciseNote({ entryIdx, exId, close }) {
   const noteRef = useRef(null)
   const onNoteFocus = useSheetKeyboard(noteRef)
   const st = useStore(s => s.S)
   const update = useStore(s => s.update)
   const A = st.active
-  const entry = A ? A.entries[entryIdx] : null
-  const ex = entry ? exOr(entry.id) : null
+  const entry = entryIdx == null ? null : A?.entries?.[entryIdx]
+  // Two ways in. From the workout screen the sheet is about one entry and carries both notes: what
+  // happened today, and the cue that outlives it. From the exercise history it is about the
+  // exercise alone — the standing note belongs to the movement, not to a session, so it can be read
+  // and corrected there with nothing running and nothing logged.
+  const id = entry ? entry.id : exId
+  const ex = id ? exOr(id) : null
   const [note, setNote] = useState(entry?.note || '')
   const [pin, setPin] = useState(!!entry?.notePin)
-  const [standing, setStanding] = useState(entry ? (st.exNotes?.[entry.id] || '') : '')
-  useEffect(() => { if (!entry) close() }, [!entry])
-  if (!entry) return null
+  const [standing, setStanding] = useState(id ? (st.exNotes?.[id] || '') : '')
+  // An entry that goes away takes the sheet with it: the session ended, or the exercise was removed
+  // from it. An exercise id has no such state to watch.
+  useEffect(() => { if (entryIdx != null && !entry) close() }, [!entry, entryIdx])
+  if (!ex) return null
 
   const save = () => {
-    const today = note.trim().slice(0, NOTE_MAX)
     const always = standing.trim().slice(0, NOTE_MAX)
     update(s => {
-      const e = s.active?.entries?.[entryIdx]
+      // The session note is written through the entry index rather than the id read above, so a
+      // session that moved under us is still written to the entry this sheet was opened for.
+      const e = entryIdx == null ? null : s.active?.entries?.[entryIdx]
       if (e) {
+        const today = note.trim().slice(0, NOTE_MAX)
         if (today) { e.note = today; if (pin) e.notePin = true; else delete e.notePin }
         else { delete e.note; delete e.notePin }
       }
       s.exNotes = s.exNotes || {}
-      if (always) s.exNotes[entry.id] = always
-      else delete s.exNotes[entry.id]
+      if (always) s.exNotes[id] = always
+      else delete s.exNotes[id]
     })
     close()
   }
@@ -1695,7 +1709,9 @@ function ExerciseNote({ entryIdx, close }) {
   // prose where a label wants the label role.
   return <>
     <h3 className="capitalize">{exerciseNameFor(ex)}</h3>
-    <div className="fnote">
+    {/* Only when there is a session to attach it to. The standing note below is the exercise's own
+        and is the whole sheet when it was opened from the history. */}
+    {entry && <div className="fnote">
       <div className="flabel">{t('This session')}</div>
       <div className="fhint">{t('Kept with today’s workout — what happened, how it felt.')}</div>
       <textarea ref={noteRef} className="input" rows={3} maxLength={NOTE_MAX} value={note}
@@ -1707,11 +1723,11 @@ function ExerciseNote({ entryIdx, close }) {
           <Switch checked={pin} onChange={setPin} disabled={!note.trim()} />
         </Row>
       </div>
-    </div>
+    </div>}
     <div className="fnote">
       <div className="flabel">{t('Every session')}</div>
       <div className="fhint">{t('Shown every time you train this exercise — seat height, pin position, a form cue.')}</div>
-      <textarea className="input" rows={2} maxLength={NOTE_MAX} value={standing}
+      <textarea className="input" rows={entry ? 2 : 3} maxLength={NOTE_MAX} value={standing}
         placeholder={t('Seat height, pin position, a form cue.')}
         onChange={e => setStanding(e.target.value)} />
     </div>
@@ -1719,7 +1735,7 @@ function ExerciseNote({ entryIdx, close }) {
     <Button variant="primary" onClick={save}>{t('Save')}</Button>
   </>
 }
-export const exerciseNoteSheet = entryIdx => ui().openSheet(close => <ExerciseNote entryIdx={entryIdx} close={close} />)
+export const exerciseNoteSheet = opts => ui().openSheet(close => <ExerciseNote {...opts} close={close} />)
 
 /* The session note: how the whole workout went, as opposed to how one exercise went. It lives
    on the active session, so buildCompletedWorkout carries it onto the finished workout and it

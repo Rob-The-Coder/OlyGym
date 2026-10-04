@@ -16,7 +16,7 @@ const activeWith = entry => ({ id: 'w1', d: '2026-08-25', start: 1, routineId: '
 const mounted = []
 
 function renderSheet() {
-  exerciseNoteSheet(0)
+  exerciseNoteSheet({ entryIdx: 0 })
   const sheet = useUI.getState().sheets.at(-1)
   const host = document.createElement('div')
   document.body.appendChild(host)
@@ -26,6 +26,18 @@ function renderSheet() {
   return host
 }
 const sheet_close = sheet => () => useUI.getState().closeSheet(sheet.id)
+
+// The other door: the standing note opened by exercise id, with no session behind it.
+function renderForExercise(exId) {
+  exerciseNoteSheet({ exId })
+  const sheet = useUI.getState().sheets.at(-1)
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  const root = createRoot(host)
+  mounted.push(root)
+  act(() => root.render(sheet.render(sheet_close(sheet))))
+  return host
+}
 
 const type = (el, value) => {
   const setter = Object.getOwnPropertyDescriptor(el.constructor.prototype, 'value').set
@@ -71,6 +83,31 @@ describe('exercise note sheet', () => {
     // The standing note belongs to the exercise, not to today's entry.
     expect(S.exNotes.bench).toBe('seat at 4')
     expect(useUI.getState().sheets).toHaveLength(0)
+  })
+
+  // The standing note belongs to the exercise, not to a session, so it has to be writable when
+  // nothing is running — otherwise a cue can be read in the history and never corrected.
+  it('opens on the exercise alone when there is no session to attach it to', () => {
+    useStore.setState(s => ({ S: { ...s.S, active: null, exNotes: { bench: 'seat at 4' } } }))
+    const host = renderForExercise('bench')
+    // One textarea: the session note has no entry to live on, so only the standing note is here.
+    const areas = host.querySelectorAll('textarea')
+    expect(areas).toHaveLength(1)
+    expect(areas[0].value).toBe('seat at 4')
+    act(() => { type(areas[0], 'seat at 5, pin 7') })
+    const save = [...host.querySelectorAll('button')].find(b => /save/i.test(b.textContent))
+    act(() => { save.click() })
+    expect(useStore.getState().S.exNotes.bench).toBe('seat at 5, pin 7')
+    expect(useUI.getState().sheets).toHaveLength(0)
+  })
+
+  it('emptying the standing note outside a session drops it', () => {
+    useStore.setState(s => ({ S: { ...s.S, active: null, exNotes: { bench: 'seat at 4' } } }))
+    const host = renderForExercise('bench')
+    act(() => { type(host.querySelector('textarea'), '') })
+    const save = [...host.querySelectorAll('button')].find(b => /save/i.test(b.textContent))
+    act(() => { save.click() })
+    expect(useStore.getState().S.exNotes.bench).toBeUndefined()
   })
 
   it('clearing the session note drops the pin with it', () => {

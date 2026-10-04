@@ -23,6 +23,11 @@ function renderTop() {
   return host
 }
 
+const type = (el, value) => {
+  Object.getOwnPropertyDescriptor(el.constructor.prototype, 'value').set.call(el, value)
+  el.dispatchEvent(new Event('input', { bubbles: true }))
+}
+
 const EX = Object.keys(EXIDX).find(id => (EXIDX[id].bp || '') !== 'cardio' && !EXIDX[id].custom)
 const DAY = 86400000
 const T0 = Date.UTC(2026, 2, 2, 9)
@@ -61,6 +66,24 @@ describe('exercise history sheet', () => {
     const host = renderTop()
     expect(host.querySelector('.note-read').textContent).toBe(cue)
     expect(host.textContent).toContain('Every session')
+  })
+
+  // It was read-only: the only editor was keyed to an entry in the running session, so a cue
+  // could be seen in the history and never corrected there.
+  it('opens the note editor from the cue and saves it back', () => {
+    useStore.setState(s => ({ S: { ...s.S, workouts: [session(0, [{ w: 60, r: 5, done: true }])], exNotes: { [EX]: 'seat at 4' } } }))
+    exerciseHistorySheet(EX)
+    const host = renderTop()
+    const block = host.querySelector('.note-edit')
+    expect(block.getAttribute('role')).toBe('button')
+    act(() => { block.click() })
+    expect(useUI.getState().sheets).toHaveLength(2)
+    const editor = renderTop()
+    // No session is running, so the editor is the standing note alone.
+    expect(editor.querySelectorAll('textarea')).toHaveLength(1)
+    act(() => { type(editor.querySelector('textarea'), 'seat at 5') })
+    act(() => { [...editor.querySelectorAll('button')].find(b => /save/i.test(b.textContent)).click() })
+    expect(useStore.getState().S.exNotes[EX]).toBe('seat at 5')
   })
 
   it('shows the standing note even before there is anything logged', () => {

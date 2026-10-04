@@ -167,7 +167,7 @@ function ExerciseBlock({ entryIdx, step, compact, dense, headOnly, onToggle, onF
   const openMore = () => menuSheet({
     title: exerciseNameFor(ex),
     items: [
-      { icon: 'pencil', label: entry.note ? t('Edit note') : t('Add note'), sub: entry.note || undefined, onClick: () => exerciseNoteSheet(entryIdx) },
+      { icon: 'pencil', label: entry.note ? t('Edit note') : t('Add note'), sub: entry.note || undefined, onClick: () => exerciseNoteSheet({ entryIdx }) },
       { icon: 'info', label: t('Details'), onClick: () => exerciseDetailSheet(ex) },
       { icon: 'history', label: t('History'), sub: last ? t('Last time') + ' ' + fmtDate(last.d) : undefined, onClick: () => exerciseHistorySheet(entry.id) },
       onProgressionSettings && { icon: 'chartLine', label: t('Progression settings'), sub: guidance ? t(guidance.policyLabel) : undefined, onClick: onProgressionSettings },
@@ -263,7 +263,7 @@ function ExerciseBlock({ entryIdx, step, compact, dense, headOnly, onToggle, onF
       </div>
       <div className="row ex-head-acts" style={{ gap: 2, flex: 'none' }}>
         {entry.note && <button className="iconbtn" aria-label={t('Note')} title={t('Note')} style={{ color: 'var(--acc)' }}
-          onClick={() => exerciseNoteSheet(entryIdx)}><Icon name="pencil" /></button>}
+          onClick={() => exerciseNoteSheet({ entryIdx })}><Icon name="pencil" /></button>}
         <button className="iconbtn" aria-label={t('More')} title={t('More')} onClick={openMore}><Icon name="more" /></button>
       </div>
     </div>
