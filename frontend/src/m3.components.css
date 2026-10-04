@@ -559,7 +559,10 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
    1.7:1 in light mode it was not there at all (its twin, .wday .dot.plan, is up in Home) */
 .cal-d i.plan{background:var(--m3-outline)}
 
-/* No .setph override here any more. index.css writes it as `color: var(--dim)` and --dim
+/* No .setph override here any more. A labelled version of the help affordance lives at the end of this file: .helpbtn is icon-only
+   in index.css — line-height 0 and negative margins tuned to sit inside a row — so text next to it
+   lands on top of the glyph.
+   index.css writes it as `color: var(--dim)` and --dim
    had no definition, so this rule used to stand in for one; --dim is a role now, in the
    legacy aliases in m3.tokens.css, and the phase heading resolves on its own. */
 
@@ -878,3 +881,16 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
   width:auto;field-sizing:content;-webkit-field-sizing:content;max-width:100%;min-width:64px;
   border-bottom:1.5px dashed color-mix(in srgb,var(--m3-primary) 45%,transparent);border-radius:0;
 }
+
+/* --- a help affordance that can say what it is ------------------------------- */
+/* index.css's .helpbtn is icon-only: line-height 0, negative margins, sized to sit inside a
+   row beside a label. Text after its glyph lands on top of the glyph. This is the same idea for
+   a line that has to name itself — which is how the two fields nobody guesses (warm-up sets and
+   rest) keep their explanation one tap away instead of as a paragraph inside the form. */
+.fieldhelp{
+  display:inline-flex;align-items:center;gap:6px;margin:2px 0 12px;
+  background:none;border:0;padding:0;text-align:left;
+  color:var(--m3-on-surface-variant);font-size:12px;font-weight:500;letter-spacing:.03em;
+}
+.fieldhelp .icn{font-size:15px;flex:none}
+.fieldhelp:active{color:var(--m3-on-surface)}

@@ -774,7 +774,7 @@ function ProgressionFields({ ex, mode, c, setC, routine, unit, fallback }) {
   const invalid = !progressionStepIsValid(inc, active)
   const setRule = v => setC(x => ({ ...x, prog: v || undefined }))
   return <>
-    <h4 className="sec">{t('Progression')}</h4>
+    <div className="sech">{t('Progression')}</div>
     <div className="sect-b" style={{ marginBottom: 8 }}>
       <SelectRow title={t('Rule')} sheetTitle={t('Progression')} value={c.prog || ''} onChange={setRule}
         options={[{ value: '', label: t('Follow the routine ({0})', t(POLICY_NAME[inherited])) },
@@ -827,8 +827,30 @@ function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, init
     if (mode === 'time') onSave({ sets, mode: 'time', sec: Math.max(1, Math.round(c.sec) || 45), weight: Math.max(0, c.weight || 0), ...flags, ...prog, ...withNote, ...withWarmups, ...withRest })
     else onSave({ sets, mode: 'reps', reps: Math.max(1, Math.round(c.reps) || 10), weight: Math.max(0, c.weight || 0), ...flags, ...prog, ...withNote, ...withWarmups, ...withRest })
   }
+  // Two actions that were full-width buttons at the end of the form, under the primary one, where
+  // a thumb reaches them on the way to Save. They are the week editor's and the day card's
+  // pattern now: the destructive and the once-a-plan actions go behind a ⋯ in the title row.
+  const actions = [
+    ex.custom && { key: 'edit', icon: 'pencil', label: t('Edit or delete this exercise'), onClick: () => { close(); customExSheet(ex) } },
+    onDelete && { key: 'remove', icon: 'trash', label: t('Remove from routine'), danger: true, onClick: () => { close(); onDelete() } },
+  ].filter(Boolean)
+  // Warm-ups and rest are the two fields nobody guesses, and they each carried a two-line
+  // paragraph inside the form. The paragraphs live here now, so the form can stay a form.
+  const setHelp = () => ui().openSheet(close2 => <>
+    <h3>{t('Warm-ups and rest')}</h3>
+    <div className="muted small" style={{ lineHeight: 1.5, display: 'grid', gap: 10 }}>
+      <div>{t('Ramp-up sets are added before your work sets and left out of volume, records and progression. Each one closes half the gap to the work weight, and you can still change any of them mid-session.')}</div>
+      <div>{t('Rest runs after each set of this exercise. Leave it at 0 to use your default rest timer.')}</div>
+    </div>
+    <div style={{ height: 8 }} />
+  </>, { })
   return <>
-    <h3 className="capitalize">{exerciseNameFor(ex)}</h3>
+    <div className="row between" style={{ marginBottom: 0 }}>
+      <h3 className="capitalize" style={{ margin: 0 }}>{exerciseNameFor(ex)}</h3>
+      {actions.length > 0 && <button className="iconbtn ab-ico" aria-label={t('Exercise options')}
+        onClick={() => menuSheet({ title: exerciseNameFor(ex), subtitle: t('This routine entry'), items: actions })}>
+        <Icon name="more" /></button>}
+    </div>
     <Media ex={ex} />
     {/* The same tags the exercise detail sheet shows, secondaries included: choosing what goes
         into a plan is exactly when "what else does this hit" matters. */}
@@ -838,11 +860,12 @@ function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, init
         .map((s, i) => <span key={i} className="tag dim">{t(MUSCLE_NAME[s] || s)}</span>)}
     </div>
     {ex.desc && <div className="exnote">{ex.desc}</div>}
-    <div style={{ marginBottom: 14 }}>
+    <div className="sech">{t('The set')}</div>
+    <div style={{ marginBottom: 12 }}>
       <Segmented className="seg-range" value={mode} onChange={setMode}
         options={[{ value: 'reps', label: t('Reps') }, { value: 'time', label: t('Time') }]} />
     </div>
-    <div className="row cfgrow" style={{ marginBottom: mode === 'time' ? 8 : 18 }}>
+    <div className="row cfgrow" style={{ marginBottom: 12 }}>
       {mode === 'time' ? <>
         <Stepper label={t('Sets')} value={c.sets} step={1} decimal={false} onChange={v => setC(x => ({ ...x, sets: v }))} />
         <Stepper label={t('Seconds')} value={c.sec} step={5} decimal={false} onChange={v => setC(x => ({ ...x, sec: v }))} />
@@ -855,29 +878,28 @@ function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, init
         {!bw && <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={2.5} onChange={v => setC(x => ({ ...x, weight: v }))} />}
       </>}
     </div>
-    {/* Planned warm-ups: the session used to start at the work weight and you added every
-        warm-up by hand, every time. */}
-    <div className="row cfgrow" style={{ marginBottom: 6 }}>
+    {/* Planned warm-ups (the session used to start at the work weight and you added every warm-up
+        by hand) and per-exercise rest (issue #10). One row of two, the same control as the three
+        above: they were full width with a two-line paragraph under each. */}
+    <div className="row cfgrow" style={{ marginBottom: 8 }}>
       <Stepper label={t('Warm-up sets')} value={c.warmupSets || 0} step={1} decimal={false}
         onChange={v => setC(x => ({ ...x, warmupSets: Math.max(0, Math.min(MAX_PLANNED_WARMUPS, Math.round(v) || 0)) }))} />
-    </div>
-    <div className="small dim" style={{ marginBottom: 18 }}>
-      {(c.warmupSets || 0) > 0
-        ? t('Added before your work sets and left out of volume, records and progression. Each one closes half the gap to the work weight — you can still change any of them mid-session.')
-        : t('Ramp-up sets added before the work sets, so you do not have to add them by hand each session.')}
-    </div>
-    {mode === 'time' && !bw && <div className="small dim" style={{ marginBottom: 18 }}>
-      {t('A timer runs while you hold the set. Leave the weight at 0 for bodyweight holds.')}
-    </div>}
-    {/* Per-exercise rest (issue #10). */}
-    <div className="row cfgrow" style={{ marginBottom: 6 }}>
       <Stepper label={t('Rest (s)')} value={c.restSec || 0} step={15} decimal={false}
         onChange={v => setC(x => ({ ...x, restSec: v }))} />
     </div>
-    <div className="small dim" style={{ marginBottom: 18 }}>
-      {t('Rest after each set of this exercise. Leave at 0 to use your default rest timer.')}
+    <div className="small dim" style={{ marginBottom: 8 }}>
+      {(c.warmupSets || 0) > 0 ? t('Warm-ups stay out of volume, records and progression.') : t('Ramp-up sets are added before the work sets.')}
+      {' '}
+      {(c.restSec || 0) > 0 ? t('Rest runs after each set here.') : t('Rest at 0 uses your default timer.')}
     </div>
+    {mode === 'time' && !bw && <div className="small dim" style={{ marginBottom: 8 }}>
+      {t('A timer runs while you hold the set. Leave the weight at 0 for bodyweight holds.')}
+    </div>}
+    <button className="fieldhelp" onClick={setHelp}>
+      <Icon name="info" /> {t('What do warm-ups and rest do?')}
+    </button>
     {/* bodyweight (issues #31/#32) */}
+    <div className="sech">{t('Bodyweight')}</div>
     <div className="sect-b" style={{ marginBottom: 8 }}>
       <Row icon="figureStrength" title={t('Bodyweight')}
         subtitle={bw ? t('No weight to enter — just log the reps.') : t('Ask for a weight on every set.')}>
@@ -889,22 +911,21 @@ function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, init
         <Stepper label={t('Added ({0})', st.unit)} value={c.weight || 0} step={2.5}
           onChange={v => setC(x => ({ ...x, weight: v }))} />
       </div>
-      <div className="small dim" style={{ marginBottom: 18 }}>
+      <div className="small dim" style={{ marginBottom: 8 }}>
         {t('For dips or pull-ups with a belt. Progression then follows the weight.')}
       </div>
     </>}
     {/* The bar's own weight, for the plate math — per exercise, not per plan. */}
     {usesBar(ex) && <>
-      <h4 className="sec">{t('Bar weight')}</h4>
+      <div className="sech">{t('Bar')}</div>
       <BarWeightEditor ex={ex} extra={t('Applies to this exercise everywhere, not just this plan.')} />
     </>}
     <ProgressionFields ex={ex} mode={mode} c={c} setC={setC} routine={routine} unit={st.unit} fallback={defaultPolicy(st)} />
+    <div className="sech">{t('Note')}</div>
     <textarea className="input" rows={3} maxLength={500} style={{ marginBottom: 18 }}
-      placeholder={t('Note (optional) — loading cues, "bar only then +1 plate/side each set", anything worth remembering here')}
+      placeholder={t('Loading cues, anything worth remembering here')}
       value={c.note || ''} onChange={e => setC(x => ({ ...x, note: e.target.value }))} />
     <Button variant="primary" disabled={progressionStepInvalid} onClick={save}>{existing ? t('Save') : t('Add to routine')}</Button>
-    {ex.custom && <><div style={{ height: 8 }} /><Button icon="pencil" onClick={() => { close(); customExSheet(ex) }}>{t('Edit or delete this exercise')}</Button></>}
-    {onDelete && <><div style={{ height: 8 }} /><Button variant="danger" onClick={() => { close(); onDelete() }}>{t('Remove from routine')}</Button></>}
   </>
 }
 
