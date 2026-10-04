@@ -80,12 +80,20 @@ describe('muscle names in the rows and tags (QA C9)', () => {
     seed(custom())
     exConfigSheet(EXIDX.cqa1, null, vi.fn())
     const tags = h => [...h.querySelectorAll('.tag')].map(e => e.textContent.trim())
-    expect(tags(renderTop())).toEqual(['Glutes', 'barbell', 'Forearms', 'Hip flexors'])
+    expect(tags(renderTop())).toEqual(['upper legs', 'Glutes', 'barbell', 'Forearms', 'Hip flexors'])
+    // Both sheets now lead with the body part and carry the target muscle, the equipment and the
+    // secondaries, so the same exercise cannot report a different summary in each.
+    //
+    // The leading tag is the only one that is still raw: a catalogue exercise's body part is a
+    // category the locale knows ("Clean", "Snatch"), but a custom exercise's is a muscle-group id
+    // out of lib/muscles.js ("upper legs") that no locale has a name for. Pre-existing on the
+    // detail sheet; the config sheet inherits it now that the two rows are the same row.
+    //
     // #207 The catalogue names muscles by the map's ids (trapezius, quadriceps, gluteal), which only
     // MUSCLE_NAME turns into a translatable label — the config sheet must show the labels the detail
     // sheet shows, secondaries included.
     exConfigSheet(EXIDX[OLY], null, vi.fn())
-    expect(tags(renderTop())).toEqual(['Traps', 'barbell', 'Quads', 'Glutes'])
+    expect(tags(renderTop())).toEqual(['Clean', 'Traps', 'barbell', 'Quads', 'Glutes'])
   })
 
   it('Muscles explorer row names the target the same way', () => {

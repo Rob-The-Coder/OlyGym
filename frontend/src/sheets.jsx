@@ -339,13 +339,31 @@ function ExerciseDetail({ ex, close }) {
     update(s => { on = toggleFav(s, ex.id) })
     toast(on ? t('Added to favourites') : t('Removed from favourites'))
   }
+  // The dataset's first instruction is the exercise's own description, which the card above has
+  // already said. Printing the same sentence twice, 300px apart, was this sheet's worst habit.
+  const steps = instrFor(ex)
+  const how = steps[0] === ex.desc ? steps.slice(1) : steps
+  const lastLine = last ? last.sets.map(s => setLabel(ex.id, s, last.target)).join(', ') : ''
+  // A logged set carries .w and .r, not .weight and .reps — those are the *config*'s names.
+  const lastTop = last ? Math.max(0, ...last.sets.map(s => s.w || 0)) : 0
+  // The two things you can do to your own exercise, out of the foot of a read-only sheet and into
+  // a menu — where the week, the day and the config sheet keep theirs.
+  const actions = [
+    ex.custom && { key: 'edit', icon: 'pencil', label: t('Edit this exercise'), onClick: () => { close(); customExSheet(ex) } },
+    ex.custom && { key: 'delete', icon: 'trash', label: t('Delete this exercise'), danger: true, onClick: () => deleteCustomEx(ex, close) },
+  ].filter(Boolean)
   return <>
     <div className="row between" style={{ gap: 8, alignItems: 'flex-start' }}>
       <h3 className="capitalize">{exerciseNameFor(ex)}</h3>
-      <button className={'iconbtn fav-btn' + (fav ? ' on' : '')} aria-pressed={fav}
-        aria-label={fav ? t('Remove from favourites') : t('Add to favourites')} onClick={flipFav}>
-        <Icon name={fav ? 'starFill' : 'star'} />
-      </button>
+      <div className="row" style={{ gap: 4, flex: 'none' }}>
+        <button className={'iconbtn fav-btn' + (fav ? ' on' : '')} aria-pressed={fav}
+          aria-label={fav ? t('Remove from favourites') : t('Add to favourites')} onClick={flipFav}>
+          <Icon name={fav ? 'starFill' : 'star'} />
+        </button>
+        {actions.length > 0 && <button className="iconbtn ab-ico" aria-label={t('Exercise options')}
+          onClick={() => menuSheet({ title: exerciseNameFor(ex), subtitle: t('Your own exercise'), items: actions })}>
+          <Icon name="more" /></button>}
+      </div>
     </div>
     <Media ex={ex} />
     <div className="row" style={{ gap: 6, flexWrap: 'wrap', margin: '10px 0' }}>
@@ -355,17 +373,25 @@ function ExerciseDetail({ ex, close }) {
       {(ex.secondaries?.length ? ex.secondaries : smOf(ex)).slice(0, 3).map((s, i) => <span key={i} className="tag">{t(MUSCLE_NAME[s] || s)}</span>)}
     </div>
     {ex.desc && <div className="exnote">{ex.desc}</div>}
-    {best > 0 && <div className="small row" style={{ marginBottom: 6, gap: 5 }}><Icon name="trophy" style={{ fontSize: 14, color: 'var(--yellow)' }} />{t('Best:')} <b className="accent" style={{ whiteSpace: 'nowrap' }}>{fmtNum(best)} {st.unit}</b>{last ? ` · ${t('last')} ${fmtDate(last.d)}: ${last.sets.map(s => setLabel(ex.id, s, last.target)).join(', ')}` : ''}</div>}
-    {last && <Button icon="history" style={{ marginTop: 4 }} onClick={() => exerciseHistorySheet(ex.id)}>{t('History')}</Button>}
-    {ex.custom && <div className="row" style={{ gap: 8, marginTop: 8 }}>
-      <Button icon="pencil" style={{ flex: 1 }} onClick={() => { close(); customExSheet(ex) }}>{t('Edit')}</Button>
-      <Button variant="danger" icon="trash" style={{ flex: 1 }} onClick={() => deleteCustomEx(ex, close)}>{t('Delete')}</Button>
+    {/* Your best and your last session are the two things this sheet is opened for, and they were
+        a run-on line of small dim prose. Two labelled tiles, and the way to the full history is a
+        row with a chevron rather than a 40dp button. */}
+    {last && <div className="tiles" style={{ marginBottom: 10 }}>
+      {best > 0 && <div className="tile"><div className="l">{t('Best')}</div><div className="v">{fmtNum(best)} {st.unit}</div></div>}
+      <div className="tile"><div className="l">{t('Last')}</div>
+        <div className="v">{lastTop > 0 ? `${fmtNum(lastTop)} ${st.unit}` : lastLine}</div>
+        {/* The date only. The sets themselves ran to a line and a half in a half-width tile, and
+            they are one tap away in History where a row can hold them. */}
+        <div className="s">{fmtDate(last.d)}</div></div>
+    </div>}
+    {last && <div style={{ marginBottom: 10 }}>
+      <Row icon="history" title={t('History')} accessory="chevron" onClick={() => exerciseHistorySheet(ex.id)} />
     </div>}
     {usesBar(ex) && <>
-      <h4 className="sec">{t('Bar weight')}</h4>
+      <div className="sech">{t('Bar')}</div>
       <BarWeightEditor ex={ex} extra={t('You still log the total weight — the bar only feeds the per-side plate math.')} />
     </>}
-    {instrFor(ex).length > 0 &&<><h4 className="sec">{t('How to')}{!INSTR_LANGS.includes(getLang()) && <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}> · {t('instructions in English')}</span>}</h4><ol className="steps-list">{instrFor(ex).map((s, i) => <li key={i}>{s}</li>)}</ol></>}
+    {how.length > 0 && <><div className="sech">{t('How to')}{!INSTR_LANGS.includes(getLang()) && <span className="dim" style={{ textTransform: 'none', letterSpacing: 0 }}> · {t('instructions in English')}</span>}</div><ol className="steps-list">{how.map((s, i) => <li key={i}>{s}</li>)}</ol></>}
   </>
 }
 export const exerciseDetailSheet = ex => ui().openSheet(close => <ExerciseDetail ex={ex} close={close} />)
@@ -855,9 +881,11 @@ function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, init
     {/* The same tags the exercise detail sheet shows, secondaries included: choosing what goes
         into a plan is exactly when "what else does this hit" matters. */}
     <div className="row" style={{ gap: 6, flexWrap: 'wrap', margin: '10px 0 14px' }}>
-      <span className="tag">{t(MUSCLE_NAME[ex.tg] || ex.tg || ex.bp)}</span><span className="tag">{t(ex.eq)}</span>
+      <span className="tag acc">{t(ex.bp)}</span>
+      {(ex.primaries?.length ? ex.primaries : (ex.tg ? [ex.tg] : [])).map((s, i) => <span key={i} className="tag"><Icon name="target" />{t(MUSCLE_NAME[s] || s)}</span>)}
+      <span className="tag"><Icon name="dumbbell" />{t(ex.eq)}</span>
       {(ex.secondaries?.length ? ex.secondaries : smOf(ex)).slice(0, 3)
-        .map((s, i) => <span key={i} className="tag dim">{t(MUSCLE_NAME[s] || s)}</span>)}
+        .map((s, i) => <span key={i} className="tag">{t(MUSCLE_NAME[s] || s)}</span>)}
     </div>
     {ex.desc && <div className="exnote">{ex.desc}</div>}
     <div className="sech">{t('The set')}</div>
