@@ -191,7 +191,7 @@ export default function WeekEdit() {
         aria-label={fallback} onChange={e => edit(w => { w.name = e.target.value })} />}
       actions={<button className="iconbtn ab-ico" onClick={weekMenu} aria-label={t('Week options')} title={t('Week options')}><Icon name="more" /></button>} />
 
-    <h4 className="sec">{t('Weekdays')}</h4>
+    <div className="sech">{t('Weekdays')}</div>
     <div className="list">
       {dayEntries(week, ws).map(({ day, index }) => <div key={index} className="item day-card" data-day={index}>
         <div className="row between" style={{ marginBottom: 6, gap: 10 }}>

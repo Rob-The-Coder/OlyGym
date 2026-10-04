@@ -47,7 +47,7 @@ function StartChooser() {
       </div>
       <Button variant="primary" icon="play" onClick={() => startFlow(todayDay)}>{t('Start {0}', todayName)}</Button>
     </div>}
-    {others.length > 0 && <><h4 className="sec">{t('This week')}</h4>
+    {others.length > 0 && <><div className="sech">{t('This week')}</div>
       <div className="list">{others.map((d, i) => <div key={i} className="item" onClick={() => startFlow(d)}>
         <span className="lrow-i"><Icon name="dumbbell" /></span>
         <div className="grow"><div className="tt">{d.name}</div><div className="ss">{exCount((d.ex || []).length)}</div></div>

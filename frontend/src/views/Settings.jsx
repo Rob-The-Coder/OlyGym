@@ -445,7 +445,7 @@ function ProgressionHelpSheet() {
         <Row key={title} icon={icon} title={t(title)} subtitle={t(body)} />
       ))}
     </Section>
-    <h4 className="sec">{t('How the step is worked out')}</h4>
+    <div className="sech">{t('How the step is worked out')}</div>
     <div className="dim small" style={{ lineHeight: 1.5, display: 'grid', gap: 8 }}>
       {PROG_NOTES.map(note => <div key={note}>{t(note)}</div>)}
     </div>
