@@ -35,6 +35,56 @@
   --m3-shape-full: 999px;
 }
 
+/* ---- type: the two M3 scales ----------------------------------------------- */
+/* Material ships a baseline scale and an Emphasized counterpart that changes
+   weight and nothing else — "a drop-in replacement that never reflows a layout".
+   It is not a second design; it is the same roles one step heavier, for the one
+   element in a view that has to win. Both weights are here, per role, and an
+   element picks.
+   
+   Sizes and leading are deliberately not here. The component sheet sets those per
+   selector and they are not what has been going wrong. The two properties it has
+   been choosing per rule — to three different answers at the same size — are
+   weight and tracking, so those are the two a role carries.
+   
+   The tracking is the app's own, and it is negative where M3's is positive: this
+   is a denser, more condensed scale than the spec's. That is a house style, not a
+   mistake. Uppercase is the one place it opens up, because that is what caps want. */
+:root {
+  --m3-type-display-l-weight: 400;   --m3-type-display-l-weight-emphasized: 500;
+  --m3-type-display-m-weight: 400;   --m3-type-display-m-weight-emphasized: 500;
+  --m3-type-headline-l-weight: 400;  --m3-type-headline-l-weight-emphasized: 500;
+  --m3-type-headline-s-weight: 400;  --m3-type-headline-s-weight-emphasized: 500;
+  --m3-type-title-l-weight: 400;     --m3-type-title-l-weight-emphasized: 500;
+  --m3-type-title-m-weight: 500;     --m3-type-title-m-weight-emphasized: 700;
+  --m3-type-title-s-weight: 500;     --m3-type-title-s-weight-emphasized: 700;
+  --m3-type-body-l-weight: 400;      --m3-type-body-l-weight-emphasized: 500;
+  --m3-type-body-m-weight: 400;      --m3-type-body-m-weight-emphasized: 500;
+  --m3-type-body-s-weight: 400;      --m3-type-body-s-weight-emphasized: 500;
+  --m3-type-label-l-weight: 500;     --m3-type-label-l-weight-emphasized: 700;
+  --m3-type-label-m-weight: 500;     --m3-type-label-m-weight-emphasized: 700;
+  --m3-type-label-s-weight: 500;     --m3-type-label-s-weight-emphasized: 700;
+
+  --m3-type-display-l-track:  -.012em;
+  --m3-type-display-m-track:  -.012em;
+  --m3-type-headline-l-track: -.012em;
+  --m3-type-headline-s-track: -.020em;
+  --m3-type-title-l-track:    -.008em;
+  --m3-type-title-m-track:    -.006em;
+  --m3-type-title-s-track:    -.006em;
+  --m3-type-body-l-track:     -.002em;
+  --m3-type-body-m-track:     0;
+  --m3-type-body-s-track:     0;
+  --m3-type-label-l-track:     .006em;
+  --m3-type-label-m-track:     .03em;
+  --m3-type-label-s-track:     .006em;
+
+  /* Uppercase is its own treatment: it takes the emphasized weight at both sizes
+     the app uses it at, and opens the tracking at both. */
+  --m3-type-overline-weight: 700;
+  --m3-type-overline-track:  .08em;
+}
+
 /* ---- motion: the curves, and one duration scale --------------------------- */
 /* Five names used to describe three durations and two curves. A private :root
    halfway down m3.components.css held --m3-dur-spatial (350ms), --m3-dur-enter

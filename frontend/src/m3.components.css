@@ -31,7 +31,7 @@
 .btn{
   border-radius: var(--m3-shape-full);
   min-height: 40px; padding: 10px 24px;
-  font-size: 14px; font-weight: 500; letter-spacing: .006em;
+  font-size: 14px; font-weight: var(--m3-type-label-l-weight); letter-spacing: var(--m3-type-label-l-track);
   transition: background var(--fast) var(--ease);
 }
 .btn .icn{font-size:18px}
@@ -276,21 +276,19 @@
      button / chip     label-large      14/500   (already)
      tab label         label-small      11/500   (already)
    ============================================================================ */
-.hdr h1{font-size:32px;font-weight:500;letter-spacing:-.01em}
 /* index.css steps the title down on a narrow phone; that rule is in a media query
    and this file outranks it, so the step has to be restated here or it is lost. */
-@media (max-width:420px){.hdr h1{font-size:30px}}
 
-.hdr .sub{font-size:16px;letter-spacing:-.002em}
-.sheet h3{font-size:22px;font-weight:500;letter-spacing:-.008em}
+.hdr .sub{font-size:16px;letter-spacing:var(--m3-type-body-l-track)}
+.sheet h3{font-size:22px;font-weight:var(--m3-type-title-l-weight-emphasized);letter-spacing:var(--m3-type-title-l-track)}
 
-.lrow-t{font-size:16px;letter-spacing:-.006em}
+.lrow-t{font-size:16px;letter-spacing:var(--m3-type-title-m-track)}
 .lrow-s{font-size:14px}
 .lrow-v{font-size:16px}
 .item .ss{font-size:14px}
 
-.card .big{font-size:34px;font-weight:500;letter-spacing:-.012em}
-.sect-t{font-size:12px;font-weight:500;letter-spacing:.03em}
+.card .big{font-size:34px;font-weight:var(--m3-type-display-l-weight-emphasized);letter-spacing:var(--m3-type-display-l-track)}
+.sect-t{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-spacing:var(--m3-type-label-m-track)}
 
 /* ============================================================================
    Plan and the routine editor
@@ -303,7 +301,7 @@
 /* One role, one look: the section label above a list, a card's own heading and
    the label over a group all become M3's label-medium. index.css had them at
    13/400, .sect-t is already 12/500 from the type pass — this lines them up. */
-h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--label-2)}
+h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-spacing:var(--m3-type-label-m-track);color:var(--label-2)}
 
 /* The Coach banner becomes an M3 tonal card: the accent stays in the mix, but as
    a container tone rather than a gradient with a coloured border, and a press is
@@ -351,8 +349,8 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
    ============================================================================ */
 .tiles{gap:12px}
 .tile{border-radius:20px;padding:18px}
-.tile .l{font-size:12px;font-weight:500;letter-spacing:.03em}
-.tile .v{font-size:30px;font-weight:500;letter-spacing:-.012em}
+.tile .l{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-spacing:var(--m3-type-label-m-track)}
+.tile .v{font-size:30px;font-weight:var(--m3-type-display-m-weight-emphasized);letter-spacing:var(--m3-type-display-m-track)}
 .tile.tappable:active{background:color-mix(in srgb,var(--label) var(--m3-state-press),transparent)}
 
 /* ============================================================================
@@ -680,13 +678,13 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
 
 .ab-big{padding:2px 0 0}
 .ab-title{
-  margin:0;font-size:32px;line-height:40px;font-weight:500;letter-spacing:-.012em;
+  margin:0;font-size:32px;line-height:40px;font-weight:var(--m3-type-headline-l-weight-emphasized);letter-spacing:var(--m3-type-headline-l-track);
   overflow-wrap:break-word;
 }
 /* index.css steps the old heading down on a narrow phone; that rule lives in .hdr, and this is
    a different class, so the step has to be restated here or it is lost. */
 @media (max-width:420px){.ab-title{font-size:30px}}
-.ab-sub{color:var(--m3-on-surface-variant);font-size:16px;letter-spacing:-.002em;margin-top:4px}
+.ab-sub{color:var(--m3-on-surface-variant);font-size:16px;letter-spacing:var(--m3-type-body-l-track);margin-top:4px}
 
 /* ============================================================================
    The Library's search, count and filter chip (WS14)
@@ -727,7 +725,7 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
   background:var(--m3-primary-container);color:var(--m3-on-primary-container);
 }
 .hero-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
-.hero-lbl{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.78;min-width:0;
+.hero-lbl{font-size:11px;font-weight:var(--m3-type-overline-weight);letter-spacing:var(--m3-type-overline-track);text-transform:uppercase;opacity:.78;min-width:0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hero-nav{display:flex;gap:2px;flex:none}
 .hero-btn{
@@ -776,7 +774,7 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
    section-label role: at 12/500 and dim it sat *below* the 16px row titles inside
    it, so a card read as a caption for its own contents.
    ============================================================================ */
-.card h2:not(.sect-t){font-size:16px;font-weight:500;letter-spacing:-.008em;color:var(--m3-on-surface)}
+.card h2:not(.sect-t){font-size:16px;font-weight:var(--m3-type-title-m-weight);letter-spacing:var(--m3-type-title-m-track);color:var(--m3-on-surface)}
 .chead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
 .chead-m{min-width:0}
 .chead h2{margin:0}
@@ -784,7 +782,7 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
 .chead .seg{flex:none;margin-bottom:0}
 
 /* The label above a group of cards: under the screen title, over the card headings. */
-.sech{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+.sech{font-size:12px;font-weight:var(--m3-type-overline-weight);letter-spacing:var(--m3-type-overline-track);text-transform:uppercase;
   color:var(--m3-on-surface-variant);margin:18px 2px 8px}
 
 /* A two-option switch that belongs in a card heading — the card's identity, not its range. */
@@ -803,7 +801,7 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
 .hist-tiles .tile .v{font-size:17px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* A month heading in the history list: the one place a date is a section, not a row. */
-.mlabel{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+.mlabel{font-size:12px;font-weight:var(--m3-type-overline-weight);letter-spacing:var(--m3-type-overline-track);text-transform:uppercase;
   color:var(--m3-on-surface-variant);margin:14px 2px 8px}
 
 /* ============================================================================
@@ -854,7 +852,7 @@ h4.sec,.card h2{font-size:12px;font-weight:500;letter-spacing:.03em;color:var(--
    Plan and the week editor (WS17)
    ============================================================================ */
 /* The weekday on a day row: the one part of a week's line that is a date rather than a name. */
-.ddow{width:30px;flex:none;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+.ddow{width:30px;flex:none;font-size:11px;font-weight:var(--m3-type-label-s-weight-emphasized);letter-spacing:.05em;text-transform:uppercase;
   color:var(--m3-on-surface-variant)}
 .hero-rail .ddow{color:inherit;opacity:.78}
 .hero-rail .day-row .ss{color:inherit;opacity:.78}

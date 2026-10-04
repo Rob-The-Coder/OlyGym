@@ -52,7 +52,7 @@ describe('the token layer', () => {
     // The state, shadow, motion and shape scales are roles; a component sheet that defines
     // one has started a second vocabulary. This is what the private :root in
     // m3.components.css was, and it is why the app had two duration scales.
-    const stray = [...defined(components)].filter(n => /^--m3-(state|shadow|ease|dur|shape)/.test(n))
+    const stray = [...defined(components)].filter(n => /^--m3-(state|shadow|ease|dur|shape|type)/.test(n))
     expect(stray, 'defined outside m3.tokens.css: ' + stray.join(', ')).toEqual([])
   })
 
@@ -98,6 +98,56 @@ describe('the press', () => {
     // which on the light theme moved the accent toward the page.
     expect(body).not.toMatch(/brightness/)
     expect(decls(components, '.btn:active')).not.toMatch(/brightness/)
+  })
+})
+
+describe('the type roles', () => {
+  // Every role carries a weight for both M3 scales and one tracking value. Material's rule for
+  // the emphasized counterpart is mechanical — 400 becomes 500, and 500 becomes 700 — so a role
+  // whose emphasis is not heavier than its baseline is a typo, not a decision.
+  const weights = () => {
+    const out = {}
+    for (const m of bare(tokens).matchAll(/--m3-type-([a-z-]+?)-weight(-emphasized)?:\s*(\d+)/g)) {
+      out[m[1] + (m[2] ? '-emphasized' : '')] = +m[3]
+    }
+    return out
+  }
+
+  it('carries both scales for every role', () => {
+    const w = weights()
+    // 'overline' is not a role with two scales: uppercase text is always the emphatic one, so
+    // it has a single weight rather than a baseline and an emphasized pair.
+    const roles = Object.keys(w).filter(k => !k.endsWith('-emphasized') && k !== 'overline')
+    expect(roles.length).toBeGreaterThanOrEqual(13)
+    const missing = roles.filter(r => w[r + '-emphasized'] === undefined)
+    expect(missing, 'no emphasized weight: ' + missing.join(', ')).toEqual([])
+    const noTrack = roles.filter(r => !bare(tokens).includes('--m3-type-' + r + '-track'))
+    expect(noTrack, 'no tracking: ' + noTrack.join(', ')).toEqual([])
+  })
+
+  it('makes emphasis heavier, never lighter', () => {
+    const w = weights()
+    const wrong = Object.keys(w).filter(k => k.endsWith('-emphasized') && !(w[k] > w[k.replace('-emphasized', '')]))
+    expect(w.overline).toBe(700)
+    expect(wrong, 'emphasis is not heavier: ' + wrong.join(', ')).toEqual([])
+  })
+
+  it('is spent by name, not by number', () => {
+    for (const sel of ['.card .big', '.tile .v', '.sheet h3', '.sect-t', '.tile .l', '.ddow']) {
+      expect(decls(components, sel), sel + ' should name a role').toMatch(/--m3-type-/)
+    }
+    expect(decls(components, '.card h2:not(.sect-t)')).toMatch(/--m3-type-title-m-weight\)/)
+    expect(decls(components, '.btn')).toMatch(/--m3-type-label-l-weight\)/)
+  })
+
+  it('leaves the titles on the baseline weight and the labels on the emphasized one', () => {
+    // The app's split, and the one the spec asks for: emphatic at the extremes, baseline in the
+    // middle where the reading happens. If a title ever picks up -emphasized by accident, this
+    // is the assertion that catches it.
+    expect(decls(components, '.card h2:not(.sect-t)')).not.toMatch(/weight-emphasized/)
+    expect(decls(components, '.btn')).not.toMatch(/weight-emphasized/)
+    expect(decls(components, '.ab-title')).toMatch(/weight-emphasized/)
+    expect(decls(components, '.sect-t')).toMatch(/--m3-type-label-m-weight\)/)
   })
 })
 
