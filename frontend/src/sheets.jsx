@@ -180,12 +180,6 @@ function WeightInput({ value, setValue, unit }) {
       </label>
       <button className="bw-pm" onClick={() => onSlide(value + 0.1)} aria-label="plus 0.1"><Icon name="plus" /></button>
     </div>
-    <div className="chips" style={{ justifyContent: 'center', margin: '8px 0' }}>
-      <button className="chip" onClick={() => onSlide(value - 1)}>−1</button>
-      <button className="chip" onClick={() => onSlide(value - 0.5)}>−0.5</button>
-      <button className="chip" onClick={() => onSlide(value + 0.5)}>+0.5</button>
-      <button className="chip" onClick={() => onSlide(value + 1)}>+1</button>
-    </div>
     <Slider value={sv} min={W_LO} max={W_HI} step={0.5} onChange={onSlide} />
   </>
 }
@@ -209,7 +203,20 @@ function BwSheet({ required, onDone, close }) {
     if (onDone) onDone(n); else toast(t('Weight saved'))
   }
   const recent = [...st.bodyweight].reverse().slice(0, 3)
-  const delEntry = d => update(s => { s.bodyweight = s.bodyweight.filter(b => b.d !== d) })
+  const delEntry = d => { update(s => { s.bodyweight = s.bodyweight.filter(b => b.d !== d) }); toast(t('Weigh-in removed')) }
+  // The two screens already plot this curve; the sheet that feeds it did not, so the number had no
+  // context while it was being set. The point under the thumb sits at the end of the line, and the
+  // goal line is the same one Home and Stats draw.
+  const nv = Number(v) || 0
+  const today = todayISO()
+  const todayRow = st.bodyweight.find(b => b.d === today)
+  const prior = st.bodyweight.filter(b => b.d !== today)
+  const pts = [
+    ...prior.slice(-29).map(b => ({ t: b.t || new Date(b.d).getTime(), y: b.w, d: b.d })),
+    ...(nv > 0 ? [{ t: (todayRow && todayRow.t) || Date.now(), y: nv, d: today }] : []),
+  ]
+  const prevRow = prior.length ? prior[prior.length - 1] : null
+  const since = prevRow ? Math.round((nv - prevRow.w) * 10) / 10 : 0
   return <>
     {/* This sheet opens `locked` — swipe/backdrop/Escape/Android-back all no-op on it (see
         Modals.jsx) so an accidental tap on "Start" can't be walked back by reflex the way
@@ -225,6 +232,20 @@ function BwSheet({ required, onDone, close }) {
       : <h3>{t('Log body weight')}</h3>}
     <div className="muted small">{required ? t('Slide or tap to set your weight — tracked before every workout so your curve stays honest.') : t('Today') + ', ' + fmtDate(todayISO(), true)}</div>
     <WeightInput value={v} setValue={setV} unit={unit} />
+    {!required && pts.length > 1 && <div className="chart" style={{ marginTop: 12 }}>
+      <LineChart points={pts} h={112} unit={unit} goal={st.targetW} />
+    </div>}
+    {!required && prevRow && (Math.abs(since) >= 0.05
+      ? <div className="row" style={{ gap: 5, marginTop: 8, fontWeight: 500, color: bwDeltaColor(since, nv) }}>
+          <Icon name={since > 0 ? 'arrowUp' : 'arrowDown'} style={{ fontSize: 12 }} />
+          <span>{fmtNum(Math.abs(since))} {unit}</span>
+          <span className="dim">{t('since {0}', fmtDate(prevRow.d, true))}</span>
+        </div>
+      : <div className="small dim" style={{ marginTop: 8 }}>{t('Unchanged since {0}', fmtDate(prevRow.d, true))}</div>)}
+    {!required && st.targetW != null && <div className="row small" style={{ gap: 5, marginTop: 4, color: 'var(--yellow)' }}>
+      <Icon name="target" style={{ fontSize: 13 }} />
+      <span>{t('Goal')} {fmtNum(st.targetW)} {unit} · {Math.abs(st.targetW - nv) < 0.05 ? t('reached!') : t(st.targetW > nv ? '{0} to gain' : '{0} to lose', fmtNum(Math.abs(st.targetW - nv)) + ' ' + unit)}</span>
+    </div>}
     <div style={{ height: 14 }} />
     <Button variant="primary" onClick={save}>{required ? t('Save & start workout') : t('Save')}</Button>
     {required && <>
@@ -232,12 +253,13 @@ function BwSheet({ required, onDone, close }) {
       <div style={{ height: 2 }} /><Button variant="ghost" className="dim" icon="reset" onClick={() => { close(); nav('/workout') }}>{t('Choose a different workout')}</Button>
     </>}
     {!required && recent.length > 0 && <>
-      <h4 className="sec">{t('Recent weigh-ins')}</h4>
-      <div className="list" style={{ gap: 0 }}>
-        {recent.map(b => <div key={b.d} className="row between" style={{ padding: '9px 2px', borderBottom: '1px solid var(--sep)' }}>
-          <span className="small muted">{fmtDate(b.d, true)}</span>
-          <span className="row" style={{ gap: 12 }}><b>{fmtNum(b.w)} {unit}</b>
-            <button className="iconbtn" style={{ width: 32, height: 30, borderRadius: 8, fontSize: 15, color: 'var(--red)' }} onClick={() => delEntry(b.d)} aria-label="delete"><Icon name="trash" /></button></span>
+      <div className="sech">{t('Recent weigh-ins')}</div>
+      <div className="list menu-list">
+        {recent.map(b => <div key={b.d} className="lrow">
+          <span className="lrow-i"><Icon name="scale" /></span>
+          <span className="lrow-m"><span className="lrow-t">{fmtDate(b.d, true)}</span></span>
+          <span className="lrow-v">{fmtNum(b.w)} {unit}</span>
+          <button className="iconbtn bw-del" onClick={() => delEntry(b.d)} aria-label={t('Remove weigh-in from {0}', fmtDate(b.d, true))}><Icon name="trash" /></button>
         </div>)}
       </div>
     </>}
@@ -256,13 +278,53 @@ export function bwDeltaColor(delta, currentW) {
   return (delta > 0) === up ? 'var(--acc)' : 'var(--red)'
 }
 function GoalSheet({ close }) {
-  const st = S()
+  const st = useStore(s => s.S)
   const bw = lastBW(st)
   const [v, setV] = useState(st.targetW || (bw ? bw.w : 70))
-  return <>
+  // The sheet asked for a number with nothing to measure it against, then put the destructive
+  // action at the foot as a button the full width of the sheet. The distance is a pair of tiles
+  // now, the curve it draws the line through is underneath, and Remove goal is a ⋯ like it is on
+  // the workout, the week and the config.
+  const nv = Number(v) || 0
+  const cur = bw ? bw.w : null
+  const gap = cur != null ? Math.round((nv - cur) * 10) / 10 : null
+  // With no goal saved the field opens on today's weight, so a gap of 0 means "the same number you
+  // already are" — not "reached", which would congratulate you for not having set anything.
+  const gapText = gap == null ? '' : gap === 0 ? (st.targetW == null ? t('same as today') : t('reached!'))
+    : gap > 0 ? t('{0} to gain', fmtNum(Math.abs(gap)) + ' ' + st.unit) : t('{0} to lose', fmtNum(Math.abs(gap)) + ' ' + st.unit)
+  const pts = st.bodyweight.slice(-30).map(b => ({ t: b.t || new Date(b.d).getTime(), y: b.w, d: b.d }))
+  // What the line through the charts means is read once and was two lines of prose in the form
+  // from then on. It sits behind the ⓘ on the tile it is about, like the warm-up and rest help.
+  const help = () => ui().openSheet(close2 => <>
     <h3>{t('Target weight')}</h3>
-    <div className="muted small">{t('Your goal is drawn as a line through the weight charts, and gains/losses are colored by whether they move toward it.')}</div>
+    <div className="muted small" style={{ lineHeight: 1.5 }}>{t('Your goal is drawn as a line through the weight charts, and gains/losses are colored by whether they move toward it.')}</div>
+    <div style={{ height: 8 }} />
+  </>, { })
+  const remove = () => confirmSheet({
+    title: t('Remove the goal?'),
+    message: t('The weight charts stop drawing the line. Your weigh-ins are not touched.'),
+    confirmText: t('Remove goal'), danger: true,
+    onConfirm: () => { update(s => { s.targetW = null }); close(); toast(t('Goal removed')) },
+  })
+  return <>
+    <div className="row between" style={{ gap: 8, alignItems: 'flex-start' }}>
+      <h3 style={{ margin: 0 }}>{t('Target weight')}</h3>
+      {st.targetW != null && <button className="iconbtn ab-ico" aria-label={t('Goal options')}
+        onClick={() => menuSheet({
+          title: t('Target weight'),
+          items: [{ icon: 'trash', label: t('Remove goal'), danger: true, onClick: remove }],
+        })}><Icon name="more" /></button>}
+    </div>
+    {cur != null && <div className="tiles">
+      <div className="tile"><div className="l"><Icon name="scale" />{t('Today')}</div>
+        <div className="v">{fmtNum(cur)}</div><div className="s">{st.unit}</div></div>
+      <div className="tile"><div className="l"><Icon name="target" />{t('Goal')}
+        <button className="helpbtn" style={{ marginLeft: 'auto' }} aria-label={t('What the goal does')} onClick={help}><Icon name="info" /></button></div>
+        <div className="v" style={{ color: 'var(--yellow)' }}>{fmtNum(nv)}</div>
+        <div className="s">{gapText}</div></div>
+    </div>}
     <WeightInput value={v} setValue={setV} unit={st.unit} />
+    {pts.length > 1 && <div className="chart" style={{ marginTop: 12 }}><LineChart points={pts} h={112} unit={st.unit} goal={nv} /></div>}
     <div style={{ height: 14 }} />
     <Button variant="primary" onClick={() => {
       const n = Math.round((v || 0) * 10) / 10
@@ -270,7 +332,6 @@ function GoalSheet({ close }) {
       update(s => { s.targetW = n }); close()
       const b = lastBW(S()); toast(t('Goal set: {0}', fmtNum(n) + ' ' + st.unit) + (b ? ' (' + t('{0} to go', fmtNum(Math.abs(n - b.w))) + ')' : ''))
     }}>{t('Save goal')}</Button>
-    {st.targetW && <><div style={{ height: 8 }} /><Button variant="danger" onClick={() => { update(s => { s.targetW = null }); close(); toast(t('Goal removed')) }}>{t('Remove goal')}</Button></>}
   </>
 }
 export const goalSheet = () => ui().openSheet(close => <GoalSheet close={close} />)

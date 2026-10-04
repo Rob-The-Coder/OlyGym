@@ -617,6 +617,11 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
 @media (max-width:429px){.effdots{display:none}}
 .lrow.danger .lrow-i{background:var(--m3-error-container);color:var(--m3-on-error-container)}
 
+/* The delete on a weigh-in row in the log sheet. It was a hand-styled 32x30 button with a literal
+   "delete" label; it is the app's 36px .iconbtn now — so it keeps its state layer, its press
+   animation and the 48px hit area — and only the colour belongs to the delete. */
+.bw-del{color:var(--m3-error)}
+
 /* ============================================================================
    The top app bar (WS13)
    ----------------------------------------------------------------------------
