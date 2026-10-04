@@ -894,3 +894,15 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
 }
 .fieldhelp .icn{font-size:15px;flex:none}
 .fieldhelp:active{color:var(--m3-on-surface)}
+
+/* --- the celebration dialogs ------------------------------------------------- */
+/* A check or a trophy is not a warning. .dlg-ico bakes the error roles because the destructive
+   confirm was its only user until the finish summary needed the same circle. */
+.dlg-ico.ok{background:var(--m3-primary-container);color:var(--m3-on-primary-container)}
+/* A tile inside a dialog has a third of the width a tile on a screen gets, so it reads at the
+   title role rather than the display one — and all four read the same. Three of them were forced
+   to 1.1rem inline and the fourth to 20px, which is one row at two sizes. */
+.dlg .tiles{margin:6px 0 0}
+.dlg .tile .l{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--m3-on-surface-variant)}
+.dlg .tile .v{font-size:18px;font-weight:500;letter-spacing:-.006em;margin-top:3px}
+.dlg .tile .s{font-size:11.5px;color:var(--m3-on-surface-variant);margin-top:2px}

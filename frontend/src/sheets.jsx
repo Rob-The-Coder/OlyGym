@@ -1570,35 +1570,48 @@ export const renameWorkoutSheet = () => ui().openSheet(close => <RenameWorkout c
 
 // Shown when the last exercise's last set is checked — finish, or keep going.
 function WorkoutComplete({ close }) {
-  return <div style={{ textAlign: 'center', padding: '8px 0' }}>
-    <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center', color: 'var(--acc)' }}><Icon name="checkCircle" /></div>
-    <h3 style={{ margin: '8px 0' }}>{t("That's the whole workout!")}</h3>
-    <div className="muted small" style={{ marginBottom: 16 }}>{t('Every exercise done — great work. Finish up, or keep going and add another exercise.')}</div>
-    <Button variant="primary" icon="flag" onClick={() => { close(); finishWorkout() }}>{t('Finish workout')}</Button>
-    <div style={{ height: 8 }} />
-    <Button onClick={() => { close(); useUI.getState().toast(t('Keep going — tap “+ Add exercise” below')) }}>{t('Continue workout')}</Button>
+  // The same dialog the confirm uses. It was a centred block with a bare 44px glyph — centred on
+  // one axis only, which is the shape that put the empty state's icon at the top of its circle —
+  // and two full-width buttons, one of which looked as important as the other.
+  return <div className="dlg">
+    <div className="dlg-ico ok"><Icon name="checkCircle" /></div>
+    <h3 className="ctr">{t("That's the whole workout!")}</h3>
+    <div className="dlg-body ctr">{t('Finish up, or keep going and add another exercise.')}</div>
+    <div className="dlg-acts">
+      <button className="dlg-btn" onClick={() => { close(); useUI.getState().toast(t('Keep going — tap “+ Add exercise” below')) }}>{t('Keep going')}</button>
+      <button className="dlg-btn" onClick={() => { close(); finishWorkout() }}>{t('Finish workout')}</button>
+    </div>
   </div>
 }
 export const workoutCompleteSheet = () => ui().openSheet(close => <WorkoutComplete close={close} />, { kind: 'center' })
 
 function FinishSummary({ w, prs, close }) {
   const st = useStore(s => s.S)
-  return <div style={{ textAlign: 'center', padding: '8px 0' }}>
-    <div style={{ fontSize: 44, display: 'flex', justifyContent: 'center', color: 'var(--acc)' }}><Icon name="trophy" /></div>
-    <h3 style={{ margin: '8px 0' }}>{t('Workout complete!')}</h3>
-    <div className="tiles" style={{ textAlign: 'left' }}>
-      <div className="tile"><div className="l">{t('Duration')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{fmtDur(w.end - w.start)}</div></div>
-      <div className="tile"><div className="l">{t('Volume')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{fmtVol(w.vol, st.unit)}</div></div>
-      <div className="tile"><div className="l">{t('Sets')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{t('{0} sets · {1} work', setsDone(w), workSetsDone(w))}</div></div>
-      <div className="tile"><div className="l">{t('PRs')}</div><div className="v" style={{ fontSize: 20 }}>{prs.length || '—'}</div></div>
+  // The one moment every session ends on. Same dialog as the confirm and the "whole workout"
+  // prompt, so the three read as one component; the four tiles share one type size instead of
+  // three at 1.1rem and a fourth at 20px; and the records are chips rather than a stack of
+  // identical small-accent lines.
+  return <div className="dlg">
+    <div className="dlg-ico ok"><Icon name="trophy" /></div>
+    <h3 className="ctr">{t('Workout complete!')}</h3>
+    <div className="tiles">
+      <div className="tile"><div className="l">{t('Duration')}</div><div className="v">{fmtDur(w.end - w.start)}</div></div>
+      <div className="tile"><div className="l">{t('Volume')}</div><div className="v">{fmtVol(w.vol, st.unit)}</div></div>
+      <div className="tile"><div className="l">{t('Sets')}</div><div className="v">{setsDone(w)}</div>
+        <div className="s">{t('{0} work', workSetsDone(w))}</div></div>
+      <div className="tile"><div className="l">{t('PRs')}</div><div className="v">{prs.length || '—'}</div></div>
     </div>
-    {prs.length > 0 && <div style={{ textAlign: 'left', marginBottom: 12 }}>
-      {prs.map(id => <div key={id} className="small accent row" style={{ gap: 5 }}><Icon name="trophy" style={{ fontSize: 13 }} />{t('New PR:')} <span className="capitalize">{EXIDX[id] ? exerciseNameFor(EXIDX[id]) : id}</span></div>)}
-    </div>}
-    <h4 className="sec" style={{ textAlign: 'left' }}>{t('What you just trained')}</h4>
+    {prs.length > 0 && <>
+      <div className="sech">{t('New records')}</div>
+      <div className="chips">
+        {prs.map(id => <span key={id} className="chip on nocap capitalize">{EXIDX[id] ? exerciseNameFor(EXIDX[id]) : id}</span>)}
+      </div>
+    </>}
+    <div className="sech">{t('What you just trained')}</div>
     <BodyMap load={loadOfWorkouts([w])} body={st.body} />
-    <div style={{ height: 14 }} />
-    <Button variant="primary" onClick={() => { close(); nav('/home') }}>{t('Nice!')}</Button>
+    <div className="dlg-acts">
+      <button className="dlg-btn" onClick={() => { close(); nav('/home') }}>{t('Done')}</button>
+    </div>
   </div>
 }
 export function finishWorkout() {
