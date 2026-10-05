@@ -9,7 +9,8 @@ import { bwSheet, goalSheet, calendarSheet, startFlow, starterPlanSheet, bwDelta
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
 import TopAppBar from '../components/TopAppBar.jsx'
-import { Button } from '../components/ui.jsx'
+import { Button, Row } from '../components/ui.jsx'
+import { nextMeet, daysUntil } from '../lib/competition.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 
 // Home = what to do now + a quick glance. Deep charts & history live in Stats.
@@ -59,6 +60,10 @@ export default function Home() {
   // wThisWeek (one w). A date with no week covering it simply has nothing planned.
   const plannedPerWeek = (weekFor(S, todayISO())?.days || []).length
   const bwPoints = S.bodyweight.slice(-30).map(b => ({ t: b.t || new Date(b.d).getTime(), y: b.w, d: b.d }))
+  // A meet ahead is the one dated thing Home can see coming. Only shown when there is one: an
+  // empty competition row would be another card of nothing on the screen about today.
+  const meet = nextMeet(S.competitions, todayISO())
+  const meetDays = meet ? daysUntil(meet, todayISO()) : null
 
   // today's session shown right under the week strip. Nothing to train (a rest day, or a day
   // planned empty) has no session to start, so the row is the door to the plan instead.
@@ -123,6 +128,15 @@ export default function Home() {
         <div className="s">{bw ? S.unit : t('not logged')}</div>
       </div>
     </div>
+
+    {/* A meet ahead is the only dated event the week strip cannot show yet, so it gets a row of
+        its own under the numbers — a glance, and the door to the competitions screen. */}
+    {meet && <div className="list" style={{ marginBottom: 14 }}>
+      <Row icon="trophy" title={meet.name || t('Competition')}
+        subtitle={[fmtDate(meet.d, true, true), meet.place].filter(Boolean).join(' · ')}
+        value={meetDays === 0 ? t('Today') : meetDays === 1 ? t('Tomorrow') : t('in {0} days', meetDays)}
+        accessory="chevron" onClick={() => nav('/competitions')} />
+    </div>}
 
     <div className="card">
       <div className="row between bw-head" style={{ marginBottom: 6 }}>

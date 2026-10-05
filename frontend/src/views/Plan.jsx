@@ -6,6 +6,7 @@ import { t, dateLocale } from '../lib/i18n.js'
 import { planToolsSheet, starterPlanSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import TopAppBar from '../components/TopAppBar.jsx'
+import PlanTabs from '../components/PlanTabs.jsx'
 import { Button } from '../components/ui.jsx'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 
@@ -115,6 +116,8 @@ export default function Plan() {
         <button className="iconbtn ab-ico" onClick={addWeek} aria-label={t('New week')} title={t('New week')}><Icon name="plus" /></button>
         <button className="iconbtn ab-ico" onClick={planToolsSheet} aria-label={t('Share your plan')} title={t('Share your plan')}><Icon name="upload" /></button>
       </>} />
+
+    <PlanTabs current="plan" />
 
     {weeks.length === 0 ? <div className="empty">
       <div className="ico"><Icon name="calendar" /></div>

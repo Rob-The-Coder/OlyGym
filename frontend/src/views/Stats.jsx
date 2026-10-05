@@ -18,7 +18,8 @@ import {
   hasEffort, displayScale, scaleName, toScale, avgRir, effortSummary, effortWeeks,
   effortHistogram, isHardSet, HARD_RIR
 } from '../lib/effort.js'
-import { Button, CardHead, Segmented, SelectRow } from '../components/ui.jsx'
+import { Button, CardHead, Segmented, SelectRow, Row } from '../components/ui.jsx'
+import { competitionBests, sortedMeets, totalOf } from '../lib/competition.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 
 export const FATIGUE_LEVELS = [
@@ -218,6 +219,10 @@ export default function Stats() {
   const workouts = S.workouts
   const monthW = workouts.filter(w => String(w.d || '').slice(0, 7) === todayISO().slice(0, 7)).length
 
+  const meets = S.competitions || []
+  const meetsBests = competitionBests(meets)
+  const totalPts = sortedMeets(meets).filter(m => totalOf(m) != null)
+    .map(m => ({ t: new Date(m.d + 'T12:00:00').getTime(), y: totalOf(m), d: m.d }))
   const entryOf = id => workouts.flatMap(w => w.entries).find(e => e.id === id)
   const listOf = value => Array.isArray(value) ? value : value == null || value === '' ? [] : [value]
   const firstAvailable = (...values) => {
@@ -357,6 +362,27 @@ export default function Stats() {
       <div className="sech">{t('Effort')}</div>
       <EffortCard S={S} />
     </>}
+
+    <div className="sech">{t('Competition')}</div>
+    <div className="card">
+      <CardHead title={t('Competitions')} subtitle={meets.length ? t(meets.length === 1 ? '{0} competition' : '{0} competitions', meets.length) : null} />
+      {meets.length === 0
+        ? <div className="muted small">{t('No competitions yet.')}</div>
+        : <>
+          <div className="row between" style={{ alignItems: 'flex-end', gap: 12 }}>
+            <div>
+              <div className="stat-v">{meetsBests.total == null ? '—' : fmtNum(meetsBests.total) + ' ' + S.unit}</div>
+              <div className="small dim">{t('Best total')}</div>
+            </div>
+          </div>
+          {totalPts.length > 1 && <div className="chart" style={{ marginTop: 8 }}>
+            <LineChart points={totalPts} h={150} unit={S.unit} color="var(--yellow)" />
+          </div>}
+          <div className="list" style={{ marginTop: 10 }}>
+            <Row icon="medal" title={t('All competitions')} value={String(meets.length)} accessory="chevron" onClick={() => nav('/competitions')} />
+          </div>
+        </>}
+    </div>
 
     <div className="sech">{t('Progress')}</div>
     <div className="cols">

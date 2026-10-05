@@ -37,6 +37,7 @@ vi.mock('../lib/mobile.js', () => ({
 }))
 vi.mock('../lib/update.js', () => ({ checkForUpdate: vi.fn(() => Promise.resolve(null)), downloadAndInstall: vi.fn() }))
 vi.mock('../sheets.jsx', () => ({
+  weightClassesSheet: vi.fn(),
   effortHelpSheet: vi.fn(), starterPlanSheet: vi.fn(), confirmSheet: vi.fn(),
   equipmentProfileSheet: vi.fn(), menuSheet: vi.fn(), importCoachPlanFromDrive: vi.fn(),
   REMINDER_TIMES: mocks.presets,

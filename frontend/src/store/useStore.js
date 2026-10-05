@@ -6,12 +6,20 @@ import { MOBILE, initReminderSync, nativeLoad, nativeSave, syncReminder, writeAu
 import { WC_DEFAULT } from '../lib/workout-controls.js'
 import { migrateToWeeks, needsWeekMigration } from '../lib/migrate-weeks.js'
 import { convertStateUnit } from '../lib/units.js'
+import { DEFAULT_CLASSES } from '../lib/competition.js'
 
 const KEY = 'gym_state_v1'
 export const DEF = {
   unit: 'kg', restSec: 90, sound: true, soundOnSilent: false, timerFlash: false, keepAwake: true, lang: 'en',
   theme: 'dark', accent: 'violet', body: 'male', targetW: null,   // M3 baseline purple (lib/format.js)
   bodyweight: [], weeks: [],
+  // Competitions (meets): their own dated records, apart from the training log. Additive — a
+  // profile written before this existed reads an empty list, so nothing needs migrating. See
+  // lib/competition.js.
+  competitions: [],
+  // The federation's bodyweight categories, one list per body (Settings → Competition).
+  // Editable because they change; lib/competition.js holds the shipped default and the reading.
+  classes: { male: [...DEFAULT_CLASSES.male], female: [...DEFAULT_CLASSES.female] },
   exWeights: {}, workouts: [], active: null, customEx: [], gifSize: 'full',
   // Corrections to the reading of a coach's spreadsheet, keyed by the words he wrote (see
   // lib/plan-aliases.js). Every week's sheet repeats the same Italian phrases, so a fix made once

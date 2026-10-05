@@ -26,6 +26,7 @@ import Stats from './views/Stats.jsx'
 import History from './views/History.jsx'
 import Library from './views/Library.jsx'
 import Muscles from './views/Muscles.jsx'
+import Competitions from './views/Competitions.jsx'
 import Settings from './views/Settings.jsx'
 
 // last known scrollY per route, so back-navigation can put the page where it was
@@ -129,6 +130,7 @@ function Shell() {
             <Route path="/history" element={<History />} />
             <Route path="/library" element={<Library />} />
             <Route path="/muscles" element={<Muscles />} />
+            <Route path="/competitions" element={<Competitions />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/home" replace />} />
           </Routes>

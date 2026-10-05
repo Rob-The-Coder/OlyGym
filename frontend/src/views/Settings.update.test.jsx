@@ -51,6 +51,7 @@ vi.mock('../lib/update.js', () => ({
   downloadAndInstall: vi.fn(),
 }))
 vi.mock('../sheets.jsx', () => ({
+  weightClassesSheet: vi.fn(),
   effortHelpSheet: vi.fn(),
   starterPlanSheet: vi.fn(), confirmSheet: (...a) => mocks.confirmSheet(...a),
   equipmentProfileSheet: vi.fn(), menuSheet: vi.fn(), importCoachPlanFromDrive: vi.fn(),

@@ -339,12 +339,12 @@ export function Row({ icon, title, subtitle, value, accessory = 'none', onClick,
 // theme entirely — on dark mode it flashes a white sheet — and can't show more
 // than a bare label per option. This opens our own sheet with a checkmark on the
 // current value, which is also how iOS itself handles a long option list.
-export function SelectRow({ icon, title, value, options, onChange, sheetTitle, stackedValue = false, search, children, help }) {
+export function SelectRow({ icon, title, value, options, onChange, sheetTitle, stackedValue = false, search, children, help, action }) {
   const cur = options.find(o => o.value === value)
   const open = () => {
     const { openSheet } = require_ui()
     const h = openSheet(close => <SelectSheet title={sheetTitle || title} value={value} options={options}
-      onChange={onChange} search={search} close={close} />)
+      onChange={onChange} search={search} action={action} close={close} />)
     return h
   }
   return (
@@ -353,7 +353,7 @@ export function SelectRow({ icon, title, value, options, onChange, sheetTitle, s
   )
 }
 
-function SelectSheet({ title, value, options, onChange, search, close }) {
+function SelectSheet({ title, value, options, onChange, search, action, close }) {
   const [query, setQuery] = useState('')
   const inputRef = useRef(null)
   const firstVisibleRef = useRef(null)
@@ -436,6 +436,15 @@ function SelectSheet({ title, value, options, onChange, search, close }) {
           <div className="ico"><Icon name="magnifier" /></div>{search.emptyLabel}
         </div>}
       </div>
+      {/* An optional row under the choices: the one thing this picker edits lives elsewhere, and
+          this is the moment you notice it needs editing. */}
+      {action && <div className="sect-b" style={{ marginTop: 8 }}>
+        <button className="lrow tap" onClick={() => { close(); action.onClick && action.onClick() }}>
+          <span className="lrow-i"><Icon name={action.icon || 'pencil'} /></span>
+          <span className="lrow-m"><span className="lrow-t">{action.label}</span></span>
+          <Icon name="chevronRight" className="lrow-c" />
+        </button>
+      </div>}
       <div style={{ height: 8 }} />
     </>
   )
