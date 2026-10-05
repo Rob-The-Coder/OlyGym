@@ -744,7 +744,11 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
 }
 @keyframes abtitle{from{opacity:0}to{opacity:1}}
 
-.ab-big{padding:2px 0 0}
+/* The title block sat directly on the content: every screen's first row, card or tab control
+   started at its edge — 0px on Home, History, Muscles, Settings and Workout, 2px on Plan and
+   Competitions. 16dp of air after it, the M3 large app bar's own. It collapses with .sech's 18px
+   margin, so a screen that already had a section label under the bar is unchanged. */
+.ab-big{padding:2px 0 0;margin-bottom:16px}
 .ab-title{
   margin:0;font-size:32px;line-height:40px;font-weight:var(--m3-type-headline-l-weight-emphasized);letter-spacing:var(--m3-type-headline-l-track);
   overflow-wrap:break-word;
