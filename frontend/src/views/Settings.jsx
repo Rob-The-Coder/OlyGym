@@ -12,7 +12,7 @@ import { t, LANGS, INSTR_LANGS } from '../lib/i18n.js'
 import TopAppBar from '../components/TopAppBar.jsx'
 import { MOBILE, isAndroid, shareExport, syncReminder } from '../lib/mobile.js'
 import { checkForUpdate, downloadAndInstall, RELEASES_PAGE } from '../lib/update.js'
-import { starterPlanSheet, confirmSheet, importCoachPlan, importCoachPlanFromDrive, equipmentProfileSheet, effortHelpSheet, timePickerSheet, REMINDER_TIMES } from '../sheets.jsx'
+import { starterPlanSheet, confirmSheet, importCoachPlan, importCoachPlanFromDrive, equipmentProfileSheet, effortHelpSheet, timePickerSheet, REMINDER_TIMES, weightClassesSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Section, Row, SelectRow, Switch, Segmented } from '../components/ui.jsx'
 
@@ -268,6 +268,13 @@ export default function Settings() {
     <EquipmentCard S={S} update={update} />
 
     {/* ---------- appearance ---------- */}
+    {/* ---------- competition: the categories belong to a federation, not the app ---- */}
+    <Section title={t('Competition')}>
+      <Row icon="trophy" title={t('Weight classes')}
+        subtitle={t('The categories your federation runs. Edit them when the rules change.')}
+        accessory="chevron" onClick={weightClassesSheet} />
+    </Section>
+
     <Section title={t('Appearance')}>
       <Row icon="moon" title={t('Theme')}>
         <Segmented

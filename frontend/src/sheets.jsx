@@ -31,6 +31,7 @@ import { exerciseHistory } from './lib/exercise-history.js'
 import { nextPrescription, applyPrescription, policyFor, defaultPolicy, defaultIncrement, POLICIES_FOR, POLICY_NAME, POLICY_DESC, weightIncrement } from './lib/progression.js'
 import { MOBILE, printHtml } from './lib/mobile.js'
 import { buildCompletedWorkout } from './lib/finish-workout.js'
+import { attemptRows, cleanAttempts, bestAttempt, totalOf, attemptMade, upsertMeet, removeMeet, classOptions, daysUntil, classLists, listFor, cleanClasses } from './lib/competition.js'
 import { isWarmupRow, hasCompletedWork } from './lib/workout-model.js'
 import { nextUnfinishedUnit } from './lib/supersetFlow.js'
 import { swapActiveExercise } from './lib/active-exercise-swap.js'
@@ -1929,3 +1930,201 @@ function doFinishWorkout() {
   beep(snd(), 880, 0.15); beep(snd(), 1100, 0.15, 0.18); beep(snd(), 1320, 0.3, 0.36)
   ui().openSheet(close => <FinishSummary w={w} prs={prs} close={close} />, { kind: 'center', locked: true })
 }
+/* ============================ competitions (meets) ============================
+   A competition is its own record, not a training session: a dated event with a bodyweight
+   category and up to three snatch and three clean & jerk attempts, each good or no lift.
+   lib/competition.js owns the reading (what a total is, which meet is next); nothing here
+   touches S.workouts, so a meet can never be mistaken for a training day. The attempts are
+   the one custom control: a set row (weight x reps) is the wrong shape for "was it good".
+   ============================================================================ */
+
+// One attempt: which one, the weight on the bar, and the judgement. The number badge names the
+// row, the stepper takes the kilos, and the segmented control — the app's existing choice for
+// two exclusive short options — carries the decision. A no-lift keeps its weight: it was on the
+// bar, and what a meet teaches includes what did not go up.
+function AttemptRow({ n, a, lift, onChange }) {
+  return <div className="att" role="group" aria-label={t('{0} attempt {1}', t(lift), n)}>
+    <span className="att-n" aria-hidden="true">{n}</span>
+    <Stepper value={a.w} step={1} decimal={false} onChange={w => onChange({ ...a, w })} />
+    <Segmented className="seg-inline att-mk" value={!!a.made}
+      onChange={made => onChange({ ...a, made })}
+      options={[{ value: true, label: t('Good'), ariaLabel: t('Good lift') },
+                { value: false, label: t('No lift'), ariaLabel: t('No lift') }]} />
+  </div>
+}
+
+function AttemptSet({ lift, attempts, setAttempts }) {
+  const change = (i, a) => setAttempts(list => list.map((x, j) => (j === i ? a : x)))
+  return <div className="att-set">
+    {attempts.map((a, i) => <AttemptRow key={i} n={i + 1} a={a} lift={lift} onChange={a2 => change(i, a2)} />)}
+  </div>
+}
+
+function MeetSheet({ meet, close }) {
+  const st = useStore(s => s.S)
+  const unit = st.unit
+  const editing = !!meet
+  const [name, setName] = useState(meet?.name || '')
+  const [date, setDate] = useState(meet?.d || todayISO())
+  const [place, setPlace] = useState(meet?.place || '')
+  const [cls, setCls] = useState(meet?.class ?? null)
+  const [bw, setBw] = useState(meet?.bw ?? null)
+  const [placing, setPlacing] = useState(meet?.placing ?? null)
+  const [snatch, setSnatch] = useState(() => attemptRows(meet, 'snatch'))
+  const [cj, setCj] = useState(() => attemptRows(meet, 'cj'))
+  const [note, setNote] = useState(meet?.note || '')
+  // The total reads off the draft as it is typed, so the sheet answers the meet's only number
+  // while there is still time to change an attempt.
+  const draft = { snatch: cleanAttempts(snatch), cj: cleanAttempts(cj) }
+  const bestS = bestAttempt(draft.snatch)
+  const bestC = bestAttempt(draft.cj)
+  const total = totalOf(draft)
+
+  const save = () => {
+    const record = {
+      id: meet?.id || uid(),
+      d: date,
+      name: name.trim(),
+      place: place.trim(),
+      class: cls,
+      bw: bw || null,
+      snatch: draft.snatch,
+      cj: draft.cj,
+      placing: placing || null,
+      note: note.trim(),
+    }
+    update(s => { s.competitions = upsertMeet(s.competitions, record) })
+    close()
+    toast(editing ? t('Competition saved') : t('Competition added'))
+  }
+
+  return <>
+    <h3>{editing ? t('Edit competition') : t('Add a competition')}</h3>
+    <div className="muted small" style={{ marginBottom: 12 }}>{t('A meet is its own record — nothing here changes your training log.')}</div>
+    <TextField placeholder={t('Competition name')} aria-label={t('Competition name')} value={name}
+      onChange={e => setName(e.target.value)} />
+    <div style={{ height: 10 }} />
+    <div className="list menu-list">
+      <Row icon="calendar" title={t('Date')} value={fmtDate(date, true, true)} accessory="chevron"
+        onClick={() => datePickerSheet({ value: date, onPick: setDate })} />
+      <SelectRow icon="trophy" title={t('Weight class')} sheetTitle={t('Weight class')} value={cls}
+        onChange={setCls} options={[{ value: null, label: t('Not set') }, ...classOptions(listFor(st))]}
+        action={{ icon: 'pencil', label: t('Edit categories'), onClick: weightClassesSheet }} />
+    </div>
+    <div style={{ height: 10 }} />
+    <div className="stp-set">
+      <Stepper label={t('Bodyweight at weigh-in')} unit={unit} value={bw ?? 0} step={0.1} onChange={v => setBw(v || null)} />
+      <Stepper label={t('Placing')} value={placing ?? 0} step={1} decimal={false} onChange={v => setPlacing(v || null)} />
+    </div>
+    <div className="sech">{t('Snatch')}</div>
+    <AttemptSet lift="Snatch" attempts={snatch} setAttempts={setSnatch} />
+    <div className="sech">{t('Clean & jerk')}</div>
+    <AttemptSet lift="Clean & jerk" attempts={cj} setAttempts={setCj} />
+    <div className="tiles meet-tiles" style={{ marginTop: 14 }}>
+      <div className="tile"><div className="l">{t('Snatch')}</div><div className="v">{bestS == null ? '—' : fmtNum(bestS)}</div><div className="s">{unit}</div></div>
+      <div className="tile"><div className="l">{t('Clean & jerk')}</div><div className="v">{bestC == null ? '—' : fmtNum(bestC)}</div><div className="s">{unit}</div></div>
+      <div className="tile"><div className="l">{t('Total')}</div><div className="v">{total == null ? '—' : fmtNum(total)}</div><div className="s">{unit}</div></div>
+    </div>
+    <div className="sech">{t('Note')}</div>
+    <TextField placeholder={t('How the meet went…')} aria-label={t('Note')} value={note} onChange={e => setNote(e.target.value)} />
+    <div style={{ height: 18 }} />
+    <Button variant="primary" onClick={save}>{editing ? t('Save competition') : t('Add a competition')}</Button>
+  </>
+}
+
+function MeetDetail({ meet, close }) {
+  const st = useStore(s => s.S)
+  const unit = st.unit
+  const total = totalOf(meet)
+  const bestS = bestAttempt(meet.snatch)
+  const bestC = bestAttempt(meet.cj)
+  const when = daysUntil(meet, todayISO())
+  const edit = () => { close(); meetSheet(meet) }
+  const del = () => confirmSheet({
+    title: t('Delete this competition?'),
+    message: t('The meet and its attempts are removed. Your training log is untouched.'),
+    confirmText: t('Delete'), danger: true,
+    onConfirm: () => { update(s => { s.competitions = removeMeet(s.competitions, meet.id) }); close(); toast(t('Competition deleted')) },
+  })
+  const lift = (label, key) => <>
+    <div className="sech">{t(label)}</div>
+    <div className="list">
+      {(meet[key] || []).map((a, i) => {
+        const made = attemptMade(a)
+        return <Row key={i} icon={made ? 'check' : 'xmark'} title={t('Attempt {0}', i + 1)}
+          subtitle={fmtNum(a.w) + ' ' + unit} value={made ? t('Good lift') : t('No lift')} danger={!made} />
+      })}
+      {!(meet[key] || []).length && <div className="muted small">{t('No attempts logged.')}</div>}
+    </div>
+  </>
+  return <>
+    <div className="row between" style={{ gap: 8, alignItems: 'flex-start' }}>
+      <h3 style={{ margin: 0 }}>{meet.name || t('Competition')}</h3>
+      <button className="iconbtn ab-ico" aria-label={t('Competition options')}
+        onClick={() => menuSheet({ title: meet.name || t('Competition'), items: [
+          { icon: 'pencil', label: t('Edit'), onClick: edit },
+          { icon: 'trash', label: t('Delete'), danger: true, onClick: del },
+        ] })}><Icon name="more" /></button>
+    </div>
+    <div className="muted small" style={{ marginBottom: 4 }}>
+      {fmtDate(meet.d, true, true)}{meet.place ? ' · ' + meet.place : ''}
+      {when != null && when >= 0 ? ' · ' + (when === 0 ? t('Today') : when === 1 ? t('Tomorrow') : t('in {0} days', when)) : ''}
+    </div>
+    {meet.class && <div className="muted small" style={{ marginBottom: 4 }}>
+      {t('Weight class')} {meet.class} {unit}
+      {meet.bw ? ' · ' + t('Bodyweight') + ' ' + fmtNum(meet.bw) + ' ' + unit : ''}
+      {meet.placing ? ' · ' + t('Placing') + ' ' + meet.placing : ''}
+    </div>}
+    <div className="tiles meet-tiles" style={{ marginTop: 12 }}>
+      <div className="tile"><div className="l">{t('Snatch')}</div><div className="v">{bestS == null ? '—' : fmtNum(bestS)}</div><div className="s">{unit}</div></div>
+      <div className="tile"><div className="l">{t('Clean & jerk')}</div><div className="v">{bestC == null ? '—' : fmtNum(bestC)}</div><div className="s">{unit}</div></div>
+      <div className="tile"><div className="l">{t('Total')}</div><div className="v">{total == null ? '—' : fmtNum(total)}</div><div className="s">{unit}</div></div>
+    </div>
+    {lift('Snatch', 'snatch')}
+    {lift('Clean & jerk', 'cj')}
+    {meet.note && <><div className="sech">{t('Note')}</div><div className="small">{meet.note}</div></>}
+    <div style={{ height: 18 }} />
+    <Button variant="primary" onClick={edit}>{t('Edit')}</Button>
+  </>
+}
+
+export const meetSheet = meet => ui().openSheet(close => <MeetSheet meet={meet} close={close} />)
+/* The federation's categories, editable, one list per body. They change every few years and
+   the app must not need a release to follow; a meet keeps the string it was saved with, so
+   editing this list never rewrites a logged result. Reached from Settings → Competition and
+   from the meet's own class picker (SelectRow's `action`). */
+function WeightClassesSheet({ close }) {
+  const st = useStore(s => s.S)
+  const [both, setBoth] = useState(() => classLists(st.classes))
+  const [who, setWho] = useState(st.body === 'female' ? 'female' : 'male')
+  const list = both[who]
+  const setList = fn => setBoth(b => ({ ...b, [who]: fn(b[who]) }))
+  const save = () => {
+    update(s => { s.classes = { male: cleanClasses(both.male), female: cleanClasses(both.female) } })
+    close()
+    toast(t('Weight classes saved'))
+  }
+  return <>
+    <h3>{t('Weight classes')}</h3>
+    <div className="muted small" style={{ marginBottom: 10 }}>{t('What your federation runs right now. A meet keeps the category it was logged with.')}</div>
+    <Segmented value={who} onChange={setWho}
+      options={[{ value: 'male', label: t('Male') }, { value: 'female', label: t('Female') }]} />
+    <div className="list menu-list" style={{ marginTop: 10 }}>
+      {list.map((c, i) => <div key={who + i} className="row" style={{ gap: 8, marginBottom: 8 }}>
+        <TextField className="grow" value={c} placeholder="73" aria-label={t('Category {0}', i + 1)}
+          onChange={e => setList(l => l.map((x, j) => (j === i ? e.target.value : x)))} />
+        <button className="iconbtn" aria-label={t('Remove category {0}', c || i + 1)}
+          onClick={() => setList(l => l.filter((_, j) => j !== i))}><Icon name="trash" /></button>
+      </div>)}
+      {!list.length && <div className="muted small">{t('No categories yet.')}</div>}
+    </div>
+    <div style={{ height: 10 }} />
+    <Button icon="plus" onClick={() => setList(l => [...l, ''])}>{t('Add a category')}</Button>
+    <div style={{ height: 18 }} />
+    <Button variant="primary" onClick={save}>{t('Save')}</Button>
+  </>
+}
+export const weightClassesSheet = () => ui().openSheet(close => <WeightClassesSheet close={close} />)
+
+export const meetDetailSheet = meet => ui().openSheet(close => <MeetDetail meet={meet} close={close} />)
+
