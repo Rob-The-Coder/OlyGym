@@ -6,8 +6,9 @@ import { DAYS, DAYN, fmtDate, fmtNum, uid, exCount, weekOrder, weekStartOf } fro
 import { t, exerciseNameFor } from '../lib/i18n.js'
 import { exOr } from '../lib/exercises.js'
 import { supersetUnits, moveSupersetUnit, cleanupSg, exLine, defaultConfig } from '../lib/history.js'
-import { exercisePicker, exConfigSheet, complexConfigSheet, confirmSheet } from '../sheets.jsx'
+import { exercisePicker, exConfigSheet, complexConfigSheet, confirmSheet, menuSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
+import TopAppBar from '../components/TopAppBar.jsx'
 import { Button, Segmented, TextField } from '../components/ui.jsx'
 import { Thumb } from '../components/Media.jsx'
 import SwipeToDelete from '../components/SwipeToDelete.jsx'
@@ -21,6 +22,8 @@ import { tappable } from '../lib/use-sheet-keyboard.js'
  *  edit still finds the right day after the order changes. */
 const dayEntries = (week, ws) => weekOrder(ws)
   .flatMap(d => (week.days || []).flatMap((day, index) => (day.dow === d ? [{ day, index }] : [])))
+
+const dayCount = n => t(n === 1 ? '{0} day' : '{0} days', n)
 
 /** The first weekday this week leaves free — where "Add day" lands. */
 const firstFreeDow = (week, ws) => {
@@ -64,10 +67,23 @@ function DayExercises({ weekId, day, index, unit, editEx, toast }) {
     }
   })
 
+  // The three actions stay on the row: this is the screen where order is worked out, so a reorder
+  // is one tap here. They are the app's own 36px .iconbtn rather than the 32x28 / 28x24 the inline
+  // sizes had them at, and one horizontal group rather than a stacked column — the group is flush
+  // right, so the first row, which has no link above it, keeps its up and down in the same place.
+  const acts = (entry, i) => <div className="ex-acts">
+    {i > 0 && <button className={'iconbtn' + (entry.sg && ex[i - 1].sg === entry.sg ? ' on-ss' : '')}
+      aria-label={t('Complex with exercise above')} title={t('Complex with exercise above')}
+      onClick={ev => { ev.stopPropagation(); toggleLink(i) }}><Icon name="link" /></button>}
+    <button className="iconbtn" aria-label={t('Move up')} title={t('Move up')} disabled={unitIndex.get(i) === 0}
+      onClick={ev => { ev.stopPropagation(); move(i, -1) }}><Icon name="chevronUp" /></button>
+    <button className="iconbtn" aria-label={t('Move down')} title={t('Move down')} disabled={unitIndex.get(i) === units.length - 1}
+      onClick={ev => { ev.stopPropagation(); move(i, 1) }}><Icon name="chevronDown" /></button>
+  </div>
+
   const row = (entry, i, inside) => {
     // An unresolvable id is shown rather than skipped, the way the routine editor shows it.
     const exOrId = exOr(entry.id)
-    const linkedPrev = i > 0 && entry.sg && ex[i - 1].sg === entry.sg
     return <SwipeToDelete className={'item' + (inside ? ' cx-item' : '')}
       deleteLabel={t('Remove')}
       onDelete={() => remove(i)}
@@ -76,19 +92,7 @@ function DayExercises({ weekId, day, index, unit, editEx, toast }) {
       <div className="grow"><div className="tt capitalize">{exerciseNameFor(exOrId)}</div>
         <div className="ss">{exLine(entry, unit)}</div>
         {entry.note && <div className="small dim" style={{ marginTop: 2 }}>{entry.note}</div>}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 'none', alignItems: 'center' }}>
-        {i > 0 && <button className={'iconbtn' + (linkedPrev ? ' on-ss' : '')} title={t('Complex with exercise above')}
-          style={{ width: 32, height: 28, borderRadius: 8, fontSize: 15 }}
-          onClick={ev => { ev.stopPropagation(); toggleLink(i) }}><Icon name="link" /></button>}
-        <div style={{ display: 'flex', gap: 2 }}>
-          <button className="iconbtn" aria-label={t('Move up')} title={t('Move up')} disabled={unitIndex.get(i) === 0}
-            style={{ width: 28, height: 24, borderRadius: 7, fontSize: 12 }}
-            onClick={ev => { ev.stopPropagation(); move(i, -1) }}><Icon name="chevronUp" /></button>
-          <button className="iconbtn" aria-label={t('Move down')} title={t('Move down')} disabled={unitIndex.get(i) === units.length - 1}
-            style={{ width: 28, height: 24, borderRadius: 7, fontSize: 12 }}
-            onClick={ev => { ev.stopPropagation(); move(i, 1) }}><Icon name="chevronDown" /></button>
-        </div>
-      </div>
+      {acts(entry, i)}
     </SwipeToDelete>
   }
 
@@ -164,29 +168,50 @@ export default function WeekEdit() {
 
   const dowOptions = weekOrder(ws).map(d => ({ value: d, label: t(DAYS[d]) }))
 
-  return <div className="narrow">
-    <div className="hdr">
-      <button className="iconbtn" onClick={() => nav('/plan')} aria-label={t('Plan')}><Icon name="chevronLeft" /></button>
-      <div style={{ flex: 1, margin: '0 12px' }}>
-        <TextField value={week.name || ''} aria-label={t('Week of {0}', fmtDate(week.startIso, false, true))}
-          style={{ fontWeight: 600, fontSize: 20, letterSpacing: '-.021em' }}
-          onChange={e => edit(w => { w.name = e.target.value })} />
-      </div>
-    </div>
-    <div className="small dim" style={{ margin: '0 2px 16px' }}>{fmtDate(week.startIso, true, true)}</div>
+  const fallback = t('Week of {0}', fmtDate(week.startIso, false, true))
+  const dayMenu = (day, index) => menuSheet({
+    title: day.name || t(DAYN[day.dow]),
+    items: [{ icon: 'trash', label: t('Remove this day'), danger: true, onClick: () => deleteDay(index) }],
+  })
+  const weekMenu = () => menuSheet({
+    title: weekName(), subtitle: fmtDate(week.startIso, true, true),
+    items: [{ icon: 'trash', label: t('Delete this week'), danger: true, onClick: deleteWeek }],
+  })
 
-    <h4 className="sec">{t('Weekdays')}</h4>
+  return <div className="narrow">
+    <TopAppBar
+      leading={<button className="iconbtn ab-ico" onClick={() => nav('/plan')} aria-label={t('Plan')}><Icon name="chevronLeft" /></button>}
+      smallTitle={week.name || fallback}
+      subtitle={[
+        fmtDate(week.startIso, true, true),
+        (week.days || []).length ? dayCount((week.days || []).length) : null,
+        (week.days || []).length ? exCount((week.days || []).reduce((n, d) => n + (d.ex || []).length, 0)) : null,
+      ].filter(Boolean).join(' · ')}
+      title={<TextField className="ab-title" value={week.name || ''} placeholder={fallback}
+        aria-label={fallback} onChange={e => edit(w => { w.name = e.target.value })} />}
+      actions={<button className="iconbtn ab-ico" onClick={weekMenu} aria-label={t('Week options')} title={t('Week options')}><Icon name="more" /></button>} />
+
+    <div className="sech">{t('Weekdays')}</div>
     <div className="list">
       {dayEntries(week, ws).map(({ day, index }) => <div key={index} className="item day-card" data-day={index}>
         <div className="row between" style={{ marginBottom: 6, gap: 10 }}>
-          <Segmented options={dowOptions} value={day.dow} onChange={v => editDay(index, d => { d.dow = v })} />
-          <button className="iconbtn sm" aria-label={t('Remove')} title={t('Remove')}
-            onClick={() => deleteDay(index)}><Icon name="xmark" /></button>
+          <Segmented className="seg7" options={dowOptions} value={day.dow} onChange={v => editDay(index, d => { d.dow = v })} />
+          <button className="iconbtn sm" aria-label={t('Day options')} title={t('Day options')}
+            onClick={() => dayMenu(day, index)}><Icon name="more" /></button>
         </div>
-        <div className="row" style={{ gap: 10 }}>
-          <TextField className="grow" value={day.name || ''} aria-label={t(DAYN[day.dow])}
+        {/* An editable title that does not look like one: the dashed rule under the text is the
+            whole affordance, so the day keeps reading as a name and not as a form. The wrapper is
+            what keeps the exercise count on the next line — a shrink-to-fit field would otherwise
+            let it ride up beside the name. */}
+        <div className="row">
+          <TextField className="day-name" value={day.name || ''} aria-label={t(DAYN[day.dow])}
             onChange={e => editDay(index, d => { d.name = e.target.value })} />
         </div>
+        {/* What the day holds, before it is opened: a collapsed day used to say only how many
+            exercises it had, which is the one thing about a plan you can already guess. */}
+        {open !== index && (day.ex || []).length > 0 && <div className="day-preview small dim capitalize">
+          {(day.ex || []).map(e => exerciseNameFor(exOr(e.id))).join(' · ')}
+        </div>}
         {/* The day's body is this row: it opens the exercise editor for that weekday. */}
         <button className="btn ghost sm day-add" aria-expanded={open === index} onClick={() => setOpen(open === index ? null : index)}>
           {exCount((day.ex || []).length)} <Icon name={open === index ? 'chevronUp' : 'chevronDown'} />
@@ -197,7 +222,5 @@ export default function WeekEdit() {
 
     <div style={{ height: 10 }} />
     <Button icon="plus" onClick={addDay}>{t('Add day')}</Button>
-    <div style={{ height: 10 }} />
-    <Button variant="danger" onClick={deleteWeek}>{t('Delete week')}</Button>
   </div>
 }

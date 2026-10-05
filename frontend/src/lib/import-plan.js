@@ -82,8 +82,13 @@ export function schemesFor(repsText, count) {
   const tokens = String(repsText == null ? '' : repsText).split('+').map(s => s.trim())
   const parsed = tokens.map(schemeOf)
   if (!count) return { schemes: [], note: '' }
-  if (parsed.length === count) return { schemes: parsed, note: '' }
-  if (parsed.length === 1) return { schemes: Array(count).fill(parsed[0]), note: '' }
+  // A rep max or an AMRAP is a scheme the plan has no field for: the count is kept (five reps for
+  // "Trova 5RM", ten for "Amrap"), but the coach's own words go in the note so the review shows
+  // them instead of silently turning "Amrap" into ten reps.
+  const flagged = parsed.some(s => s && (s.amrap || s.rmax))
+  const keep = flagged ? String(repsText == null ? '' : repsText).trim() : ''
+  if (parsed.length === count) return { schemes: parsed, note: keep }
+  if (parsed.length === 1) return { schemes: Array(count).fill(parsed[0]), note: keep }
   if (parsed.length > count) {
     return { schemes: parsed.slice(0, count), note: String(repsText).trim() }
   }

@@ -84,17 +84,20 @@ export default function CoachImport({ sheets, close, pick, menu }) {
       <Icon name="chevronRight" className="dim" />
     </div>}
 
-    <div className="tiles" style={{ textAlign: 'left', margin: '12px 0' }}>
-      <div className="tile"><div className="l">{t('Days')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{review.days.length}</div></div>
-      <div className="tile"><div className="l">{t('Exercises')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{review.stats.exercises}</div></div>
-      <div className="tile"><div className="l">{t('New')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{review.stats.custom}</div></div>
-      <div className="tile"><div className="l">{t('To check')}</div><div className="v" style={{ fontSize: '1.1rem' }}>{review.stats.fuzzy}</div></div>
+    {/* The counts were four equal cards and only "to check" asked for anything. As a line of
+        supporting text they stop outranking the rows this screen exists to show. */}
+    <div className="muted small" style={{ margin: '12px 0' }}>
+      {t('{0} days · {1} exercises · {2} new', review.days.length, review.stats.exercises, review.stats.custom)}
+      {review.stats.fuzzy > 0 && <span style={{ color: 'var(--yellow)', fontWeight: 600 }}> · {t('{0} to check', review.stats.fuzzy)}</span>}
     </div>
 
-    {review.days.length > 1 && <div style={{ marginBottom: 10 }}>
-      <Segmented value={dayIdx} onChange={setDayIdx} options={review.days.map((d, i) => ({ value: i, label: d.name.split(' · ')[0] }))} />
-    </div>}
+    {/* One cell per day the coach wrote, so the labels are numbers: six "Giorno N" cells wrap onto
+        two lines at 360px, and a sheet is not always five days. The day's full name is the overline
+        below — also what says which day you are reading once the strip scrolls off. */}
+    {review.days.length > 1 && <Segmented value={dayIdx} onChange={setDayIdx}
+      options={review.days.map((d, i) => ({ value: i, label: String(i + 1), ariaLabel: d.name.split(' · ')[0] }))} />}
 
+    {day && <div className="sech">{day.name}</div>}
     <div className="list">
       {day?.entries.map(entry => {
         const cfg = { id: entry.id, sets: entry.sets, reps: entry.reps, mode: entry.mode, sec: entry.sec, side: entry.side, weight: shown(entry.weight) }
@@ -107,8 +110,8 @@ export default function CoachImport({ sheets, close, pick, menu }) {
               {entry.tier === 3 && <span className="mchip">{t('New exercise')}</span>}
               {entry.tier === 2 && <span className="mchip">{t('His words in the note')}</span>}
               {entry.tier === 1 && !entry.exact && <span className="mchip">{t('Check')}</span>}
-              {entry.warns.includes('sets') && <span className="mchip">{t('no sets given')}</span>}
-              {entry.warns.includes('reps') && <span className="mchip">{t('no reps given')}</span>}
+              {entry.warns.includes('sets') && <span className="mchip miss">{t('no sets given')}</span>}
+              {entry.warns.includes('reps') && <span className="mchip miss">{t('no reps given')}</span>}
             </div>
           </div>
           <Icon name="shuffle" className="dim" />

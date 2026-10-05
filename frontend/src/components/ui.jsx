@@ -113,6 +113,7 @@ export function Segmented({ options, value, onChange, className = '' }) {
           key={o.value}
           className={o.value === value ? 'on' : ''}
           aria-pressed={o.value === value}
+          aria-label={o.ariaLabel}
           onClick={() => onChange(o.value)}
         >
           {o.icon && <Icon name={o.icon} />}
@@ -283,19 +284,51 @@ export function Section({ title, footer, children, className = '' }) {
   )
 }
 
-export function Row({ icon, iconTint, title, subtitle, value, accessory = 'none', onClick, danger, children, className = '' }) {
+// A card's own heading (WS15): the block title, the line that five cards on Stats were each
+// writing inline as a "· dim" span, and room for the control that belongs to the whole block.
+export function CardHead({ title, subtitle, children }) {
+  return (
+    <div className="chead">
+      <div className="chead-m">
+        <h2>{title}</h2>
+        {subtitle ? <div className="chead-s">{subtitle}</div> : null}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+export function Row({ icon, title, subtitle, value, accessory = 'none', onClick, danger, children, help, className = '' }) {
   const Tag = onClick ? 'button' : 'div'
+  // children and help sit between the title and the value, which is where a control in a row has
+  // always gone: [icon] Title (i) Value ›
+  const body = <>
+    {icon && <span className="lrow-i"><Icon name={icon} /></span>}
+    <span className="lrow-m">
+      <span className="lrow-t">{title}</span>
+      {subtitle && <span className="lrow-s">{subtitle}</span>}
+    </span>
+    {children}
+    {help}
+    {value != null && <span className="lrow-v">{value}</span>}
+    {accessory === 'chevron' && <Icon name="chevronRight" className="lrow-c" />}
+    {accessory === 'check' && <Icon name="check" className="lrow-k" />}
+  </>
+  // A row that carries a help button of its own cannot be a button: a button may not contain one,
+  // and a nested button's click would also fire the row. The row becomes a container instead, the
+  // tap target becomes an overlay covering it, and the help keeps its own pointer events above the
+  // overlay. Same look, valid markup, and two real buttons in the tab order.
+  if (help && onClick) {
+    return (
+      <div className={'lrow has-hit tap' + (danger ? ' danger' : '') + ' ' + className}>
+        <button className="lrow-hit" onClick={onClick} aria-label={typeof title === 'string' ? title : undefined} />
+        {body}
+      </div>
+    )
+  }
   return (
     <Tag className={'lrow' + (onClick ? ' tap' : '') + (danger ? ' danger' : '') + ' ' + className} onClick={onClick}>
-      {icon && <span className="lrow-i" style={iconTint ? { '--tint': iconTint } : null}><Icon name={icon} /></span>}
-      <span className="lrow-m">
-        <span className="lrow-t">{title}</span>
-        {subtitle && <span className="lrow-s">{subtitle}</span>}
-      </span>
-      {children}
-      {value != null && <span className="lrow-v">{value}</span>}
-      {accessory === 'chevron' && <Icon name="chevronRight" className="lrow-c" />}
-      {accessory === 'check' && <Icon name="check" className="lrow-k" />}
+      {body}
     </Tag>
   )
 }
@@ -306,7 +339,7 @@ export function Row({ icon, iconTint, title, subtitle, value, accessory = 'none'
 // theme entirely — on dark mode it flashes a white sheet — and can't show more
 // than a bare label per option. This opens our own sheet with a checkmark on the
 // current value, which is also how iOS itself handles a long option list.
-export function SelectRow({ icon, iconTint, title, value, options, onChange, sheetTitle, stackedValue = false, search }) {
+export function SelectRow({ icon, title, value, options, onChange, sheetTitle, stackedValue = false, search, children, help }) {
   const cur = options.find(o => o.value === value)
   const open = () => {
     const { openSheet } = require_ui()
@@ -315,8 +348,8 @@ export function SelectRow({ icon, iconTint, title, value, options, onChange, she
     return h
   }
   return (
-    <Row icon={icon} iconTint={iconTint} title={title} value={cur ? cur.label : value} accessory="chevron" onClick={open}
-      className={stackedValue ? 'lrow-stack-value' : ''} />
+    <Row icon={icon} title={title} value={cur ? cur.label : value} accessory="chevron" onClick={open}
+      className={stackedValue ? 'lrow-stack-value' : ''} help={help}>{children}</Row>
   )
 }
 
@@ -410,7 +443,7 @@ function SelectSheet({ title, value, options, onChange, search, close }) {
 
 /** Multi-select row for additive exercise metadata. The sheet mirrors selection locally so
  * each tap updates its checkmark immediately while the caller persists the value. */
-export function MultiSelectRow({ icon, iconTint, title, values, options, onToggle, sheetTitle, noneLabel, doneLabel }) {
+export function MultiSelectRow({ icon, title, values, options, onToggle, sheetTitle, noneLabel, doneLabel }) {
   const selected = options.filter(o => values.includes(o.value))
   const summary = selected.length ? selected.map(o => o.label).join(', ') : (noneLabel || '')
   const open = () => {
@@ -419,7 +452,7 @@ export function MultiSelectRow({ icon, iconTint, title, values, options, onToggl
       title={sheetTitle || title} doneLabel={doneLabel} close={close} />)
   }
   return (
-    <Row icon={icon} iconTint={iconTint} title={title} value={summary} accessory="chevron" onClick={open} />
+    <Row icon={icon} title={title} value={summary} accessory="chevron" onClick={open} />
   )
 }
 

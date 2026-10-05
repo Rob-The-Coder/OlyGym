@@ -1,0 +1,982 @@
+/* ============================================================================
+   Material 3 Expressive — components
+   ----------------------------------------------------------------------------
+   Every rule here either restyles a class index.css already defines (.btn, .chip,
+   .seg, .lrow, #tabbar, .chk, .stp, .tag, .tile, .wday …) or introduces a class
+   the JSX composes with (.cx-*, .day-row, .ss-*). All values come from
+   m3.tokens.css — a raw colour, radius, shadow or duration does not belong in
+   this file, and neither does a value that only one screen needs.
+
+   Loaded after m3.tokens.css and index.css, so equal-specificity rules win and a
+   screen never has to out-specify upstream. The app keeps its own sections below
+   (Workout, Home, Lists, Sheets, Type, Plan, Stats, Motion, Complex): put a new
+   rule in the section it belongs to, not at the end of the file.
+
+   Split out of m3.css on 2026-10-03 (WS12/A2); the rules below are the old file
+   lines 86-566, verbatim.
+   ============================================================================ */
+
+
+/* ============================================================================
+   Primitives
+   ----------------------------------------------------------------------------
+   M3's look lives here, not in the tokens above: buttons become pills, chips
+   grow an outline, the segmented control gets a pill that slides, list rows go
+   to 56dp, and the navigation bar gets its indicator. Every rule overrides a
+   class index.css already uses (.btn, .chip, .seg, .lrow, #tabbar), so all of
+   it reaches every screen without touching a line of JSX.
+   ============================================================================ */
+
+/* --- buttons: M3 pill, 40dp, label 14/500, state layer on press ------------ */
+.btn{
+  border-radius: var(--m3-shape-full);
+  min-height: 40px; padding: 10px 24px;
+  font-size: 14px; font-weight: var(--m3-type-label-l-weight); letter-spacing: var(--m3-type-label-l-track);
+  transition: background var(--fast) var(--ease);
+}
+.btn .icn{font-size:18px}
+/* M3 answers a press with a state layer over the same shape; scaling the whole
+   button (which is what index.css did) is the iOS tell. */
+.btn:active{transform:none}
+.btn.primary{box-shadow:var(--m3-shadow-1)}
+/* The pressed fill is the on-colour over the accent, not a second hue: index.css
+   answered this with the iOS --acc-2, which under an M3 scheme is a different
+   colour, not a darker one. */
+.btn.primary:active{background:color-mix(in srgb,var(--m3-on-primary) var(--m3-state-press),var(--acc))}
+.btn.tinted{background:color-mix(in srgb,var(--acc) 20%,transparent);color:var(--label)}
+.btn.danger{background:color-mix(in srgb,var(--red) 20%,transparent);color:var(--label)}
+.btn.ghost,.btn.plain{font-weight:500}
+/* A tonal button layers its own on-colour over its own tint, so a press reads the
+   way it does on the filled one. index.css answered a ghost press with an opaque
+   --surface-2, which is a different colour rather than a state. */
+.btn.tinted:active{background:color-mix(in srgb,var(--label) var(--m3-state-press),color-mix(in srgb,var(--acc) 20%,transparent))}
+.btn.danger:active{background:color-mix(in srgb,var(--label) var(--m3-state-press),color-mix(in srgb,var(--red) 20%,transparent))}
+.btn.ghost:active,.btn.plain:active{background:color-mix(in srgb,var(--label) var(--m3-state-press),transparent)}
+.btn.sm{min-height:36px;padding:6px 16px;font-size:13px;border-radius:var(--m3-shape-full)}
+.btn.xs{min-height:28px;padding:4px 12px;font-size:12px;border-radius:var(--m3-shape-full)}
+
+/* --- icon buttons: M3 gives them a round container and a state layer -------- */
+/* Square-on-press was the tell here too (index.css scaled to .92 over a square
+   fill). Sizes stay wherever a screen overrides them; the shape just rounds. */
+.iconbtn{border-radius:var(--m3-shape-full);transition:background var(--fast) var(--ease),color var(--fast)}
+.iconbtn:active{background:color-mix(in srgb,var(--label) var(--m3-state-press),transparent);transform:none}
+
+/* --- chips: M3 filter chip — outlined, small radius, tonal when selected --- */
+.chip{
+  border-radius: var(--m3-shape-s); border: 1px solid var(--m3-outline);
+  background: transparent; color: var(--label-2); font-weight: 500;
+  padding: 6px 12px;
+}
+.chip:active{background:color-mix(in srgb,var(--label) var(--m3-state-press),transparent)}
+.chip.on{background:color-mix(in srgb,var(--acc) 26%,transparent);border-color:transparent;color:var(--label);font-weight:500}
+.chip.on .dim{color:color-mix(in srgb,var(--label) 62%,transparent)}
+
+/* --- segmented: the pill slides on a full track ---------------------------- */
+.seg{background:var(--m3-surface-container-highest);border-radius:var(--m3-shape-full);padding:4px}
+:root[data-theme="light"] .seg{background:var(--m3-surface-container-highest)}
+.seg-sel{
+  top:4px;bottom:4px;left:4px;
+  width:calc((100% - 8px)/var(--n));
+  background:var(--acc);border-radius:var(--m3-shape-full);box-shadow:none;
+}
+:root[data-theme="light"] .seg-sel{background:var(--acc)}
+.seg button{color:var(--label-2);font-weight:500}
+.seg button.on{color:var(--on-acc)}
+
+/* --- grouped lists: 20dp container, 56dp rows, separators between only ---- */
+.sect-b,.card{border-radius:20px}
+.lrow{min-height:56px;padding:12px 16px}
+.lrow+.lrow::before{background:var(--m3-outline-variant);left:16px}
+.lrow:has(.lrow-i)+.lrow:has(.lrow-i)::before{left:61px}
+.lrow.tap:active{background:color-mix(in srgb,var(--label) var(--m3-state-press),transparent)}
+.item:active{background:color-mix(in srgb,var(--label) var(--m3-state-press),transparent)}
+
+/* --- navigation bar: indicator behind the active icon, Start as an M3 FAB -- */
+/* The indicator is a pseudo element rather than padding on the icon: `.icn` is an
+   SVG sized 1em × 1em with border-box, so padding would shrink the glyph itself. */
+#tabbar{
+  border-top: 0;
+  background: color-mix(in srgb,var(--m3-surface-container-low) 96%, transparent);
+  box-shadow: 0 1px 0 var(--m3-outline-variant) inset;
+}
+/* padding-top is dropped and the indicator extends by the same amount above *and*
+   below: with the old 3px of padding inside the button the pill had 3px of slack over
+   the icon and none under the label, which read as a pill sitting too high. */
+#tabbar button{position:relative;font-size:11px;gap:2px;color:var(--label-2);padding-top:0}
+/* The indicator wraps icon *and* label, not just the icon: a pill around the icon alone
+   left the top of the label poking out of it, which read as a half-covered tab. `inset`
+   rather than a fixed box keeps it correct whatever the label's height ends up being in
+   another language. */
+#tabbar button::before{
+  content:'';position:absolute;z-index:0;inset:-5px 0;border-radius:18px;
+  background:transparent;transition:background var(--fast) var(--ease);
+}
+#tabbar button.on:not(.start)::before{background:color-mix(in srgb,var(--acc) 24%,transparent)}
+
+/* The bar's vertical padding was 7px over the tabs and 9px under them, and on a phone
+   the bottom also carries the safe-area inset — so the indicator could not be
+   symmetric: it clipped the top and floated at the bottom. Same 8px above and below
+   leaves it 3px of air on both sides; the device's safe-area inset stays underneath the
+   bar's visual box, where it belongs. */
+/* The taps stretch to whatever height the bar's content box ends up with and keep their
+   content at the bottom, so the indicator's box *is* the content box: any leftover pixel
+   is shared between the two sides instead of all landing above the icon. */
+#tabbar button:not(.start){ align-self:stretch; justify-content:flex-end }
+
+@media (max-width:999px){ #tabbar{ padding-top:8px; padding-bottom:calc(8px + var(--sab)) } }
+/* On a wide screen the bar floats, so it is a shape the eye can compare with the
+   indicator inside it. Three things make them match:
+
+   - a floating surface in M3 carries elevation, not a hairline border (the 0.5px border
+     was also rounding to a whole pixel on one edge only, which kept the last pixel of
+     asymmetry alive);
+   - the padding is the same on all four sides (10px), so the gap between the bar's
+     outline and the indicator's is uniform — 5px everywhere, not 10 at the sides and 3
+     over the top;
+   - 28px of corner on a 58px-tall bar is a capsule (radius = half the height), which is
+     why the ends read as semicircles. 20px keeps the sides more vertical, and the
+     indicator follows at 15px (20 − the 5px gap) so the two curves stay concentric. */
+@media (min-width:1000px){
+  #tabbar{ border:0; border-radius:20px; padding:10px }
+  #tabbar button::before{ inset:-5px; border-radius:15px }
+}
+#tabbar button.on{color:var(--label)}
+#tabbar button .icn{position:relative;z-index:1;font-size:22px;color:var(--label-2)}
+#tabbar button.on .icn{color:var(--label)}
+/* the FAB: M3 gives it a 16dp corner, not a circle */
+#tabbar button.start{margin-top:-20px}
+#tabbar button.start .cir{border-radius:var(--m3-shape-l)}
+#tabbar button.start.rec .cir::after{border-radius:var(--m3-shape-l)}
+
+/* ============================================================================
+   Workout — M3 at the density it already has
+   ----------------------------------------------------------------------------
+   Decided with the user: shape, ink and state layers change; spacing does not.
+   A set row keeps its 7px of padding on purpose — this is the one screen where
+   a taller row costs a scroll in the middle of a set.
+   ============================================================================ */
+
+/* The done marker becomes an M3 filled icon button. Unchecked was outlined in
+   --label-4 (18% white), which nearly disappeared on the tonal card; the outline
+   token is a real edge without being loud. Checked stays the accent fill, and the
+   press answers with a state layer instead of shrinking the target under a finger. */
+.chk,.ck{box-shadow:inset 0 0 0 1.5px var(--m3-outline)}
+.chk.on,.ck.on{box-shadow:none}
+.chk:active,.ck:active{transform:none;background:color-mix(in srgb,var(--label) var(--m3-state-press),transparent)}
+.chk.on:active,.ck.on:active{background:var(--acc);filter:brightness(1.16)}
+
+/* The kg/reps steppers keep their 40×44 hit areas; M3 just gives the group its
+   pill shape and answers a press with a state layer rather than a fill swap. */
+.stp{border-radius:var(--m3-shape-full)}
+.stp button:active{background:color-mix(in srgb,var(--label) var(--m3-state-press),transparent)}
+
+/* A labelled stepper that has the line to itself reads as a row — label left, control right, the
+   way every .lrow in the sheet does — instead of a centred caption over a pill the width of the
+   sheet (the backfill Duration, the bar weight, the progression step, the added weight). Two or
+   three sharing a .cfgrow are one control group, and the caption centred over its own control is
+   what makes them a group rather than three rows; :has keeps that case on the column layout. */
+.stp-w{flex-direction:row;align-items:center;gap:12px}
+.stp-w>.stp-l{flex:1;min-width:0;text-align:left;font-size:16px;color:var(--label)}
+.stp-w>.stp{flex:none;width:150px}
+.cfgrow:has(.stp-w+.stp-w)>.stp-w{flex-direction:column;gap:6px}
+.cfgrow:has(.stp-w+.stp-w)>.stp-w>.stp-l{flex:none;text-align:center;font-size:13px;color:var(--label-2)}
+.cfgrow:has(.stp-w+.stp-w)>.stp-w>.stp{flex:1;width:auto;min-width:0}
+
+/* Separators between sets, at the M3 outline tone (was --sep, the heavier one). */
+.setrow+.setrow::before{background:var(--m3-outline-variant)}
+
+/* Chosen with the user on 2026-09-29: a little more room here too. A set row goes
+   from 7px to 10px of padding and the kg/reps steppers from 40px to 44px, which is
+   M3's minimum touch target — the controls were cramped enough that the pill shape
+   did not read at all. It costs a few pixels of scroll per set, which is the trade
+   the user picked over "M3 you cannot see". */
+.setrow{padding:10px 0}
+.setrow .stp button{height:44px}
+
+
+/* ============================================================================
+   Home
+   ----------------------------------------------------------------------------
+   Most of this screen is already carried by the primitives (cards, rows, the
+   gear's icon button, the primary button, the chips). What is Home's own is the
+   week strip and the little tag pills.
+   ============================================================================ */
+
+/* M3 gives a day its own container rather than a bare number: same footprint, a
+   softer corner, and a state layer under the finger. Today keeps the filled
+   accent circle it already had — that part was M3 before this pass. */
+.wday{border-radius:20px;transition:background var(--fast) var(--ease)}
+.wday:active{background:color-mix(in srgb,var(--label) var(--m3-state-press),transparent)}
+.wday .dot.plan{background:var(--m3-outline)}
+
+/* Tags become M3 assist chips: outlined instead of filled, so a row of them stops
+   reading as a row of buttons. The accent tag keeps its tonal container. */
+.tag{
+  border-radius:var(--m3-shape-s);
+  background:transparent;
+  box-shadow:inset 0 0 0 1px var(--m3-outline-variant);
+}
+.tag.acc{box-shadow:none;background:color-mix(in srgb,var(--acc) 22%,transparent);color:var(--acc)}
+
+/* ============================================================================
+   Lists — the Library's rows, and every other screen that draws the same one
+   ----------------------------------------------------------------------------
+   Chosen with the user on 2026-09-29 from three densities drawn side by side
+   (oly-media-preview-lib-variants.png): rows 60 → 68px, thumbnails 50 → 56px,
+   search field → M3's search bar (a tonal pill) at 52px. The trade is visible:
+   long names wrap to a second line on a narrow phone, so a screen holds about
+   six rows instead of seven. These are shared classes, so this reaches the Plan,
+   the pickers and the routine editor too — deliberate, one list should not have
+   two densities.
+   ============================================================================ */
+.list .item{min-height:68px;padding:12px 14px;gap:14px}
+/* No radius of its own here. The row is clipped by the swipe-to-delete wrapper at --r-card, and
+   a rounder row than its own clip leaves a sliver of the red delete button showing all the way
+   round the edge — the "strange coloured outlines" (QA WS5). One radius, from one token. */
+.list .thumb{width:56px;height:56px;border-radius:12px}
+
+/* M3 search bar: pill on the tonal surface, leading icon centred in it. */
+.search .input{
+  background:var(--m3-surface-container-high);
+  border-radius:var(--m3-shape-full);
+  min-height:52px; padding-left:44px; font-size:16px;
+}
+:root[data-theme="light"] .search .input{background:var(--m3-surface-container-high)}
+.search>svg{left:16px;width:18px;height:18px}
+
+/* ============================================================================
+   Sheets, dialogs and the picker
+   ----------------------------------------------------------------------------
+   Shape and surface only; type sizes are left exactly where they were.
+   ============================================================================ */
+
+/* The drag handle was 18% white, which on the tonal sheet surface is nearly
+   invisible — M3 puts it on the outline tone. */
+.sheet .grab{background:var(--m3-outline)}
+
+/* A centred dialog is M3's extra-large shape (28dp), not the card's 16, and it
+   sits on a high container so it reads as above the sheet behind it. */
+.center{border-radius:var(--m3-shape-xl);background:var(--m3-surface-container-high)}
+
+/* The picker's search field becomes the same M3 search bar as the Library's —
+   pill, tonal, leading icon centred — so the two searches in the app match. */
+.searchf .field{
+  background:var(--m3-surface-container-high);
+  border-radius:var(--m3-shape-full);
+  min-height:52px;padding-left:44px;font-size:16px;
+}
+:root[data-theme="light"] .searchf .field{background:var(--m3-surface-container-high)}
+.searchf .lead{left:16px;font-size:18px}
+.searchf .clear{right:12px;width:24px;height:24px}
+
+/* ============================================================================
+   Type
+   ----------------------------------------------------------------------------
+   Chosen with the user on 2026-09-29 from three scales drawn side by side
+   (oly-media-preview-type.png): M3's sizes with a little more presence than M3
+   itself — display type at 500 rather than 400, and a slight negative tracking
+   instead of none, because on a dark background 400 at 32px reads thinner than
+   it does on paper.
+
+   Roles, so the next screen has something to follow:
+     screen title      headline-large   32/500   (was 34/700)
+     sheet title       title-large      22/500   (was 20/600)
+     row title         body-large       16/400   (lists said 17)
+     row subtitle      body-medium      14/400   (was 13)
+     big number        display-small    34/500   (was 30/600)
+     section label     label-medium     12/500   (was 13/400)
+     button / chip     label-large      14/500   (already)
+     tab label         label-small      11/500   (already)
+   ============================================================================ */
+/* index.css steps the title down on a narrow phone; that rule is in a media query
+   and this file outranks it, so the step has to be restated here or it is lost. */
+
+.hdr .sub{font-size:16px;letter-spacing:var(--m3-type-body-l-track)}
+.sheet h3{font-size:22px;font-weight:var(--m3-type-title-l-weight-emphasized);letter-spacing:var(--m3-type-title-l-track)}
+
+.lrow-t{font-size:16px;letter-spacing:var(--m3-type-title-m-track)}
+.lrow-s{font-size:14px}
+.lrow-v{font-size:16px}
+.item .ss{font-size:14px}
+
+.card .big{font-size:34px;font-weight:var(--m3-type-display-l-weight-emphasized);letter-spacing:var(--m3-type-display-l-track)}
+.sect-t{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-spacing:var(--m3-type-label-m-track)}
+
+/* ============================================================================
+   Plan and the routine editor
+   ----------------------------------------------------------------------------
+   Shape, surface and type only; the week schedule's inner rows are laid out with
+   inline styles in Plan.jsx, so they are not touched here (they need a decision
+   of their own — see the plan).
+   ============================================================================ */
+
+/* One role, one look: the section label above a list, a card's own heading and
+   the label over a group all become M3's label-medium. index.css had them at
+   13/400, .sect-t is already 12/500 from the type pass — this lines them up. */
+h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-spacing:var(--m3-type-label-m-track);color:var(--label-2)}
+
+/* The Coach banner becomes an M3 tonal card: the accent stays in the mix, but as
+   a container tone rather than a gradient with a coloured border, and a press is
+   a state layer instead of scaling the whole card. */
+.coach-cta{
+  border-radius:20px;border:0;
+  background:color-mix(in srgb,var(--acc) 14%,var(--m3-surface-container));
+  transition:background var(--fast) var(--ease);
+}
+.coach-cta:active{transform:none;background:color-mix(in srgb,var(--acc) 22%,var(--m3-surface-container))}
+.coach-cta-av{border-radius:var(--m3-shape-l)}
+
+/* M3's empty state: the glyph sits in a large tonal circle instead of floating.
+   `align-items` matters: index.css centres the glyph horizontally only, and a fixed-size SVG in a
+   flex row aligns to the top — the icon sat 18px high in its own circle (QA 2026-09-30). */
+.empty .ico{
+  width:64px;height:64px;border-radius:var(--m3-shape-full);margin:0 auto 14px;
+  background:var(--m3-surface-container-high);color:var(--label-2);font-size:28px;
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* Muscle chips in the editor are the same idea as .tag, so they get the same
+   outlined treatment instead of a filled pill. */
+.mchip{border-radius:var(--m3-shape-s);background:transparent;box-shadow:inset 0 0 0 1px var(--m3-outline-variant)}
+
+/* The week schedule's day cards. The sub-rows used to be laid out with inline
+   styles in Plan.jsx, which a stylesheet cannot override — they are classes now,
+   and this is the density the user picked on 2026-09-29 (variant B of three drawn
+   side by side, oly-media-preview-plan-variants.png): 8px between sub-rows, a
+   34px round glyph, 15px routine names. */
+.item.day-card{display:block;min-height:0;padding:14px 16px}
+.day-row{display:flex;align-items:center;gap:12px;padding:8px 0}
+.day-row .lrow-i{width:34px;height:34px;border-radius:var(--m3-shape-full);font-size:18px}
+.day-row .tt{font-size:15px}
+.day-add{margin-top:8px}
+/* What a collapsed day holds, one line and clipped rather than wrapped: the card is a glance. */
+.day-preview{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+/* The week editor's row actions: the app's own 36px icon button, flat, as one group at the end of
+   the row. They were a stacked column of inline-sized 32x28 and 28x24 buttons. */
+.ex-acts{display:flex;align-items:center;gap:0;flex:none}
+
+/* ============================================================================
+   Stats
+   ----------------------------------------------------------------------------
+   The number tiles, at the density the user picked on 2026-09-29 (variant B of
+   three, oly-previews/stats-variants.png): 18px of padding, a 30/500 figure and
+   the label on M3's label-medium. The charts were in that mockup only as a
+   schematic — the real ones are 140 to 160px tall already, chosen per chart, and
+   they stay as they are.
+   ============================================================================ */
+.tiles{gap:12px}
+.tile{border-radius:20px;padding:18px}
+.tile .l{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-spacing:var(--m3-type-label-m-track)}
+.tile .v{font-size:30px;font-weight:var(--m3-type-display-m-weight-emphasized);letter-spacing:var(--m3-type-display-m-track)}
+.tile.tappable:active{background:color-mix(in srgb,var(--label) var(--m3-state-press),transparent)}
+
+/* ============================================================================
+   Motion — Material 3 Expressive
+   ----------------------------------------------------------------------------
+   Expressive is mostly a way of moving: springs with a little overshoot, longer
+   spatial transitions, and a press that compresses and springs back. The visual
+   language was already here (large radii, tonal surfaces, outlined chips,
+   connected button groups, the navigation bar's pill), so this block adds only
+   the movement, and touches nothing at rest.
+
+   `prefers-reduced-motion` still wins: index.css turns every animation and
+   transition off for those readers with !important, and nothing here overrides
+   that.
+   ============================================================================ */
+/* The curves and the durations live in m3.tokens.css with the rest of the scale;
+   this sheet only spends them. */
+
+/* --- press: state layer *and* a compress that springs back ------------------ */
+/* index.css scaled buttons flatly (.975/.92) and had to go; Expressive brings
+   the compression back, but on a spring and shallower, so it reads as weight
+   rather than as a size change. */
+.btn, .chip, .iconbtn {
+  transition: transform var(--m3-dur-long) var(--m3-ease-spring),
+              background var(--fast) var(--ease);
+}
+.btn:active, .chip:active, .iconbtn:active { transform: scale(.96) }
+
+/* --- the other two states of the same layer --------------------------------- */
+/* index.css gives every focusable thing a ring and nothing else, and no control in
+   the app answered a hover at all. The layer is drawn as a background-image so it
+   composites over whatever background the control already has: that is the one way
+   to light up a list row without replacing the surface underneath it. */
+@media (hover:hover) and (pointer:fine){
+  .btn:hover,.iconbtn:hover,.chip:hover,.lrow.tap:hover,.item:hover,.tile.tappable:hover{
+    background-image:linear-gradient(color-mix(in srgb,var(--label) var(--m3-state-hover),transparent),
+                                     color-mix(in srgb,var(--label) var(--m3-state-hover),transparent));
+  }
+  .btn.primary:hover{
+    background-image:linear-gradient(color-mix(in srgb,var(--m3-on-primary) var(--m3-state-hover),transparent),
+                                     color-mix(in srgb,var(--m3-on-primary) var(--m3-state-hover),transparent));
+  }
+}
+.btn:focus-visible,.iconbtn:focus-visible,.chip:focus-visible,
+.lrow.tap:focus-visible,.item:focus-visible,.note-edit:focus-visible{
+  background-image:linear-gradient(color-mix(in srgb,var(--label) var(--m3-state-focus),transparent),
+                                   color-mix(in srgb,var(--label) var(--m3-state-focus),transparent));
+}
+
+/* --- controls that move on their own --------------------------------------- */
+/* The segmented thumb travels further and settles; the switch knob overshoots
+   the way a physical toggle does. */
+.seg-sel { transition: transform var(--m3-dur-long) var(--m3-ease-emphasized-decelerate) }
+.sw .knob {
+  transition: transform var(--m3-dur-long) var(--m3-ease-spring),
+              width var(--fast) var(--ease);
+}
+
+/* --- the navigation bar's indicator grows into place ----------------------- */
+#tabbar button::before {
+  transition: background var(--fast) var(--ease),
+              transform var(--m3-dur-long) var(--m3-ease-spring);
+}
+#tabbar button:not(.on)::before { transform: scale(.72) }
+#tabbar button.on:not(.start)::before { transform: scale(1) }
+
+/* The Start button's disc is 52px against a tab's 22px icon, so the button was 68px
+   tall where a tab is 38: it alone set the bar's height and left 10px of slack above
+   the four tabs, which is exactly why the active pill hung at the bottom with a gap
+   over it. Taking the disc out of the flow makes the tabs the tallest thing in the
+   bar, so the pill fills it (2px of air above, 1px below, measured) while the disc
+   stays pixel-for-pixel where it was. */
+#tabbar button.start { position: relative; margin-top: 0 }
+#tabbar button.start .cir {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: calc(100% + 2px);
+}
+
+/* --- the Start FAB compresses and rounds off ------------------------------- */
+#tabbar button.start .cir {
+  transition: transform var(--m3-dur-long) var(--m3-ease-spring),
+              border-radius var(--m3-dur-long) var(--m3-ease-spring),
+              background var(--fast) var(--ease);
+}
+#tabbar button.start:active .cir { transform: translateX(-50%) scale(.94); border-radius:var(--m3-shape-xl) }
+
+/* --- entrances: sheets and dialogs settle instead of snapping -------------- */
+.sheet { animation: sheetup var(--m3-dur-long) var(--m3-ease-emphasized-decelerate) }
+.center { animation: pop var(--m3-dur-long) var(--m3-ease-emphasized-decelerate) }
+#app.vfade { animation: viewfade var(--m3-dur-long) var(--m3-ease-emphasized-decelerate) }
+
+/* --- the rest timer's bar becomes M3 Expressive's wavy indicator ------------- */
+/* A sine drawn on the fill with a mask, so the accent stays a live variable (a
+   data-URI background could not follow the accent picker). The bar goes from 4 to
+   6px: at 4 there is no room for a wave to read, and this is the one bar in the app
+   that is decorative rather than informational. The fill still advances by width, so
+   the countdown is exactly as accurate as before. */
+#timer .bar{height:6px}
+#timer .bar i{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='6'%3E%3Cpath d='M-5 3 Q 0 0 5 3 T 15 3 T 25 3' fill='none' stroke='%23fff' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='6'%3E%3Cpath d='M-5 3 Q 0 0 5 3 T 15 3 T 25 3' fill='none' stroke='%23fff' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  -webkit-mask-repeat:repeat-x;mask-repeat:repeat-x;
+  -webkit-mask-size:20px 100%;mask-size:20px 100%;
+  animation:m3flow 2.4s linear infinite;
+}
+/* the wave drifts, which is what makes it read as flowing rather than as a squiggle */
+@keyframes m3flow{from{-webkit-mask-position:0 0;mask-position:0 0}to{-webkit-mask-position:20px 0;mask-position:20px 0}}
+
+/* The workout header's progress bar (sets done / total) is the other real progress
+   indicator in the app, so it gets the same wave. `.mrow .bar` in the muscle balance
+   is a *data* bar — it shows how much each muscle got, not how far along something is —
+   and stays a straight line on purpose. */
+.wprog{height:6px}
+.wprog i{
+  -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='6'%3E%3Cpath d='M-5 3 Q 0 0 5 3 T 15 3 T 25 3' fill='none' stroke='%23fff' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='6'%3E%3Cpath d='M-5 3 Q 0 0 5 3 T 15 3 T 25 3' fill='none' stroke='%23fff' stroke-width='3.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  -webkit-mask-repeat:repeat-x;mask-repeat:repeat-x;
+  -webkit-mask-size:20px 100%;mask-size:20px 100%;
+  animation:m3flow 2.4s linear infinite;
+}
+
+/* ============================ the complex, as one card ============================ */
+/* A complex is the unit the coach prescribes ("3+3 @ 30kg"), so it is the unit the routine list
+   shows: one card, a heading carrying the shared sets and load, and its exercises numbered inside
+   with only their own reps. The rows keep the `.item` class and their data attributes, so the
+   swipe-to-delete, the drag-to-reorder and every selector in the tests go on working. */
+.cx-card{background:var(--surface);border-radius:var(--r-card);overflow:hidden}
+.cx-card.is-dragging{box-shadow:var(--m3-shadow-3);background:color-mix(in srgb,var(--label) var(--m3-state-drag),var(--surface))}
+.cx-head{
+  display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--surface-2);
+  color:var(--acc);font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  cursor:pointer;
+}
+.cx-head .cx-ico{font-size:13px}
+.cx-head .cx-title{flex:none}
+.cx-head .cx-load{
+  margin-left:auto;color:var(--label);text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:600;
+}
+/* Number on the left, the exercise beside it on the right, the number centred on the exercise's
+   own height. The row is the flex container, so the badge and the "+" below it share one column. */
+.cx-row{position:relative;display:flex;align-items:center;gap:10px;padding:0 0 0 14px}
+.cx-row>.item,.cx-row>div{flex:1;min-width:0}
+.cx-card .cx-item{padding-left:6px}
+.cx-row .cx-step{
+  width:24px;height:24px;flex:none;border-radius:var(--m3-shape-full);display:grid;place-items:center;
+  background:color-mix(in srgb,var(--acc) 22%,transparent);color:var(--acc);font-size:12px;font-weight:600;
+}
+/* The "+" sits in the number's column: same width, same left edge, so it reads as a list of steps. */
+.cx-plus{width:24px;margin:0 0 0 14px;text-align:center;color:var(--label-2);font-size:13px;line-height:1.1}
+.cx-card .cx-item{background:var(--surface)}
+.cx-card .cx-item .cx-reps{margin-top:2px;font-size:13px;color:var(--label-2)}
+.cx-card .cx-item .cx-reps b{color:var(--label);font-weight:600}
+/* Two columns of unrelated rows used to shuffle a complex across page rows: it is one thing, it
+   gets one line. (index.css turns every #app .list into a grid at this width.) */
+@media (min-width:1000px){ #app .list.routine-list{display:flex;flex-direction:column} }
+
+/* The workout's complex card says the same thing as the routine's: the word, the shared sets and
+   load, and the exercises numbered in a rail with the "+" sitting under the numbers. */
+.ss-hd{justify-content:space-between;text-align:left;margin-bottom:8px}
+.ss-hd .ss-load{color:var(--label);font-size:13.5px;font-weight:600;letter-spacing:0}
+/* The "+" stands in the numbers' column: both are the first thing inside .ss-card's padding, so
+   the separator takes no inset of its own and the two line up at every width. */
+.ss-amp{display:flex;align-items:center;gap:6px;margin:12px 0 6px;text-align:left}
+.ss-amp .ss-plus{font-size:15px;font-weight:600;color:var(--label-2)}
+/* ============================================================================
+   Contrast — the text that used to sit on --label-3
+   ----------------------------------------------------------------------------
+   --label-3 is the disabled/decorative tone (m3.tokens.css): as a text colour it
+   measured 2.66:1 in dark and 1.72:1 in light, so every caption, placeholder,
+   legend and control below was failing WCAG AA. They read --label-2
+   (on-surface-variant: 5.7:1 in dark, 4.7:1 in light) instead.
+   The index.css selectors, with their line numbers at the time of writing:
+     .dim 152, .helpbtn 301, .wday .lbl 399, .field::placeholder 501,
+     .searchf .lead 512, .searchf .clear 519, .search>svg 528, .exmedia-x 706,
+     .sethead 711, .setph 722, .effpick placeholder 832, .sidetag 849,
+     .subrow .subn 952, .efftbl .hd 1111, .hm-months span 1172, .hm-legend 1187,
+     .steps-list::marker 1278, .cal-h 1282, .cal-legend 1295,
+     .today-row .lbl2 1373 — plus #tabbar button 344, already fixed in Primitives.
+   src/lib/contrast.test.js asserts the ratios and that this list stays complete.
+   ============================================================================ */
+
+.dim,
+.helpbtn,
+.wday .lbl,
+.field::placeholder,.input::placeholder,
+.effpick .effpick-free .stp .num::placeholder,
+.exmedia-x,
+.sethead,
+.sidetag,
+.subrow .subn,
+.efftbl .hd .n,.efftbl .hd .f,
+.hm-months span,
+.hm-legend,
+.cal-h,
+.cal-legend,
+.today-row .lbl2,
+.steps-list::marker{color:var(--label-2)}
+
+/* the picker's magnifier is a stroked SVG, so it takes stroke rather than color */
+.search>svg{stroke:var(--label-2)}
+.searchf .lead{color:var(--label-2)}
+/* the clear button is a control, so its fill is what has to clear 3:1 — and its glyph
+   is --bg, which is why the fill can afford to be the text tone */
+.searchf .clear{background:var(--label-2)}
+/* one up on the decorative tone: a day dot is the only mark a planned day has, and at
+   1.7:1 in light mode it was not there at all (its twin, .wday .dot.plan, is up in Home) */
+.cal-d i.plan{background:var(--m3-outline)}
+/* The month grid is the date field as well as the calendar (see MonthGrid): the day under the
+   thumb, and the days a past workout cannot be logged on. Both load after index.css, so the
+   selected day reads as the filled M3 day rather than the calendar's tinted "has sessions" one. */
+.cal-d.sel{background:var(--m3-primary);color:var(--m3-on-primary)}
+.cal-d.sel i.done,.cal-d.sel i.plan{background:var(--m3-on-primary)}
+.cal-d:disabled{opacity:.38}
+
+/* No .setph override here any more. A labelled version of the help affordance lives at the end of this file: .helpbtn is icon-only
+   in index.css — line-height 0 and negative margins tuned to sit inside a row — so text next to it
+   lands on top of the glyph.
+   index.css writes it as `color: var(--dim)` and --dim
+   had no definition, so this rule used to stand in for one; --dim is a role now, in the
+   legacy aliases in m3.tokens.css, and the phase heading resolves on its own. */
+
+/* ============================================================================
+   The leading tile on a row
+   ----------------------------------------------------------------------------
+   Every row's tile sits on the scheme's own container. It used to be a solid saturated fill
+   tinted per row from the iOS palette — nine hues that carried no meaning — which is why the
+   `iconTint` prop is gone from the JSX: the tile is a role now, not a decoration. Colour is
+   left for the one case where it means something: a destructive row keeps the error roles,
+   M3's fixed error hue, so "Reset everything" is red under every accent. */
+.lrow-i{background:var(--m3-primary-container);color:var(--m3-on-primary-container)}
+
+/* A row with a help button of its own (Effort per set, in Settings). The row cannot be a button,
+   so the tap target is an overlay that covers it and the help sits above the overlay: everything
+   else in the row lets clicks through, and the help keeps its own. */
+.lrow.has-hit{position:relative}
+.lrow-hit{position:absolute;inset:0;width:100%;padding:0;background:none;border:0;z-index:0;cursor:pointer}
+.lrow.has-hit>*:not(.lrow-hit){position:relative;z-index:1;pointer-events:none}
+.lrow.has-hit>.helpbtn{pointer-events:auto;z-index:2}
+
+/* ============================================================================
+   The exercise header
+   ----------------------------------------------------------------------------
+   The poster is a thumbnail beside the name, not a 16:9 block above it: on a phone the old block
+   pushed the first set row below the fold on the one screen where you are holding the phone and
+   logging. Tapping the thumbnail mounts the demo and expands the picture to full width — a size
+   and shape change, so it runs on the spatial duration and the emphasized curve, and the poster's
+   own aspect-ratio carries the height (animating the width is enough).
+   ============================================================================ */
+.ex-head{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px;margin-bottom:8px}
+.ex-head-text{flex:1;min-width:0}
+.ex-head-acts{flex:none;align-self:flex-start}
+.ex-head .exmedia{
+  width:88px;flex:none;margin:0;border-radius:var(--m3-shape-m);
+  transition:width var(--m3-dur-long) var(--m3-ease-emphasized-decelerate), border-radius var(--m3-dur-long) var(--m3-ease-emphasized-decelerate);
+}
+.ex-head .exmedia img{border-radius:inherit}
+/* Collapsed, the badge covers the whole chip: on an 88px square the ▶ is the tap target, and the
+   pill that names the video is noise. */
+.ex-head .exmedia .gifhint.fill{inset:0;width:auto;padding:0;justify-content:center;background:transparent;border-radius:inherit}
+.ex-head .exmedia .gifhint.fill .icn{font-size:22px;color:#fff;filter:drop-shadow(0 1px 3px rgba(0,0,0,.55))}
+/* Expanded: the picture takes a line of its own above the name, at 16:9. */
+.ex-head .exmedia.open{order:-1;width:100%;border-radius:var(--m3-shape-l)}
+.ex-head .exmedia.open .gifhint.fill{display:none}
+
+/* The effort band as a shape, not only a colour: four dots beside the value. Below 430px they go —
+   the effort column has no width to spare there and its ± buttons are already gone (index.css:911). */
+.effdots{display:inline-flex;gap:2px;margin-left:4px;vertical-align:middle}
+.effdots i{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.3}
+.effdots i.on{opacity:1}
+@media (max-width:429px){.effdots{display:none}}
+.lrow.danger .lrow-i{background:var(--m3-error-container);color:var(--m3-on-error-container)}
+
+/* The delete on a weigh-in row in the log sheet. It was a hand-styled 32x30 button with a literal
+   "delete" label; it is the app's 36px .iconbtn now — so it keeps its state layer, its press
+   animation and the 48px hit area — and only the colour belongs to the delete. */
+.bw-del{color:var(--m3-error)}
+
+/* ============================================================================
+   The top app bar (WS13)
+   ----------------------------------------------------------------------------
+   Every screen used to draw its own heading — a 32px h1, a .sub line under it and
+   a 36px round button — and all of it scrolled away with the page. A long
+   Library lost the name of the screen and its action; a sub-screen lost the way
+   back. The bar is now one component, with room for a nav icon, a title that
+   changes type role, and actions.
+
+   It is two siblings, not one box. The 64dp action row is the sticky element and
+   the big title scrolls UNDER it. That is what keeps it honest: a bar that
+   shrinks as you scroll changes the height of everything above the content, and
+   the page jumps under your thumb. Here nothing changes height, so the only
+   movement is the title sliding behind the row and the small title fading in.
+   ============================================================================ */
+.ab-row{
+  position:sticky;top:0;z-index:20;
+  display:flex;align-items:center;
+  min-height:calc(64px + var(--sat));
+  /* pull up over #app's own top padding so the row pins flush with the screen edge from the
+     first pixel, and pad the safe area back inside it — the same trick as .whdr.stick */
+  margin:calc(-1 * var(--sat)) calc(-1 * var(--pad)) 0;
+  padding:var(--sat) var(--pad) 0;
+  background:color-mix(in srgb,var(--bg) 92%,transparent);
+  -webkit-backdrop-filter:saturate(180%) blur(14px);backdrop-filter:saturate(180%) blur(14px);
+}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .ab-row{background:var(--bg)}
+}
+/* The hairline belongs to the pinned state only: at the top of a page there is nothing under
+   the bar yet, and a line there would cut the actions off from the title they belong to. */
+.ab-row.pinned::after{
+  content:'';position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--m3-outline-variant);
+}
+
+/* The icon button is the 48dp one M3 asks for, not the app's 36px .iconbtn: in a bar you
+   reach for it without looking. .ab-ico loads after index.css, so it wins on the shared
+   properties while .iconbtn keeps supplying the press animation. */
+.ab-ico{
+  width:48px;height:48px;flex:none;border:0;padding:0;background:transparent;
+  color:var(--m3-on-surface);border-radius:var(--m3-shape-full);
+  display:grid;place-items:center;font-size:24px;
+}
+.ab-ico .icn{--icon-stroke:1.9}
+/* A 48dp target around a 24dp glyph carries 12px of slack: take it off the outer edges so the
+   glyph itself sits on the same line as the big title, at M3's 4dp inset from the screen. */
+/* No nav icon: the title is the first thing on the line, so it belongs on the 16dp content
+   edge rather than the 8dp it would sit at after an icon that is not there. */
+.ab-row.nolead>.ab-t{padding-left:0}
+.ab-row>.ab-ico:first-child{margin-left:-12px}
+.ab-acts>.ab-ico:last-child{margin-right:-12px}
+
+.ab-sp{flex:1;min-width:0}
+.ab-acts{display:flex;align-items:center;gap:2px;flex:none}
+.ab-t{
+  min-width:0;padding:0 8px;
+  font-size:22px;line-height:28px;font-weight:500;letter-spacing:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  animation:abtitle var(--m3-dur-short) var(--m3-ease-standard);
+}
+@keyframes abtitle{from{opacity:0}to{opacity:1}}
+
+.ab-big{padding:2px 0 0}
+.ab-title{
+  margin:0;font-size:32px;line-height:40px;font-weight:var(--m3-type-headline-l-weight-emphasized);letter-spacing:var(--m3-type-headline-l-track);
+  overflow-wrap:break-word;
+}
+/* index.css steps the old heading down on a narrow phone; that rule lives in .hdr, and this is
+   a different class, so the step has to be restated here or it is lost. */
+@media (max-width:420px){.ab-title{font-size:30px}}
+/* WeekEdit puts an input here, so the week's name arrived wearing .field — a 32px filled box, the
+   largest thing on the screen and visibly a form. An editable title has one look in this app (see
+   .day-name): the text, with the dashed rule under it and nothing around it. Scoped to the field so
+   the plain h1 every other screen passes as a string keeps its own rules. */
+.field.ab-title{
+  background:none;border-radius:0;padding:0;
+  border-bottom:1.5px dashed color-mix(in srgb,var(--m3-primary) 45%,transparent);
+  width:auto;field-sizing:content;-webkit-field-sizing:content;max-width:100%;
+}
+.ab-sub{color:var(--m3-on-surface-variant);font-size:16px;letter-spacing:var(--m3-type-body-l-track);margin-top:4px}
+
+/* ============================================================================
+   The Library's search, count and filter chip (WS14)
+   ----------------------------------------------------------------------------
+   The field is the way into 624 exercises, so it travels with the list instead of
+   leaving with the first swipe. It parks directly under the app bar row — 64dp plus
+   the safe area, the height .ab-row settles at once it is pinned — and carries the
+   page's own ground, so rows disappear behind it rather than through it.
+   ============================================================================ */
+.lib-search{
+  position:sticky;top:calc(64px + var(--sat));z-index:19;
+  margin:0 calc(-1 * var(--pad));padding:8px var(--pad) 10px;
+  background:var(--bg);
+}
+/* What is left of the old strips: how many exercises there are, and one chip to the sheet. */
+.lib-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 2px 8px}
+.lib-filters{display:inline-flex;align-items:center;gap:6px}
+.lib-filters .icn{font-size:16px;--icon-stroke:2.2;opacity:.75}
+/* The filters themselves, as chips you can drop without reopening the sheet. */
+.lib-applied{padding-bottom:0}
+.lib-applied .chip{display:inline-flex;align-items:center;gap:6px}
+.lib-applied .chip .icn{font-size:14px;--icon-stroke:2.4}
+/* A sheet's chips wrap. A strip that scrolls sideways inside a sheet hides half the options, and
+   there is no page underneath for the vertical gesture to steal. */
+.chips.wrap{flex-wrap:wrap;overflow-x:visible;touch-action:auto}
+
+/* ============================================================================
+   Home: today is the hero, the numbers are tiles (WS14)
+   ----------------------------------------------------------------------------
+   The screen answers one question — what am I doing today — and it used to answer
+   it inside a card that also held a week navigator, a date strip and a link, with
+   three more cards of three other shapes below it. Today is now the surface the eye
+   lands on: one card, one action, and the week it belongs to inside it.
+   ============================================================================ */
+.hero{
+  position:relative;margin-bottom:12px;padding:16px;
+  border-radius:var(--m3-shape-xl);
+  background:var(--m3-primary-container);color:var(--m3-on-primary-container);
+}
+.hero-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.hero-lbl{font-size:11px;font-weight:var(--m3-type-overline-weight);letter-spacing:var(--m3-type-overline-track);text-transform:uppercase;opacity:.78;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hero-nav{display:flex;gap:2px;flex:none}
+.hero-btn{
+  width:40px;height:40px;flex:none;border:0;padding:0;border-radius:var(--m3-shape-full);
+  background:transparent;color:inherit;display:grid;place-items:center;font-size:20px;
+}
+.hero-btn .icn{--icon-stroke:2}
+.hero-i{
+  width:44px;height:44px;flex:none;border-radius:var(--m3-shape-full);display:grid;place-items:center;
+  background:color-mix(in srgb,var(--m3-on-primary-container) 14%,transparent);font-size:22px;
+}
+.hero-t{font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1.15}
+.hero-s{font-size:14px;opacity:.82;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hero-acts{display:flex;align-items:center;gap:8px;margin-top:14px}
+.hero-acts .btn{flex:1}
+/* the week strip is drawn for the page ground; inside the hero it takes the hero's own ink */
+.hero-rail{margin:14px -6px -4px;padding-top:12px;
+  border-top:1px solid color-mix(in srgb,var(--m3-on-primary-container) 14%,transparent)}
+.hero-rail .wday{color:inherit}
+.hero-rail .wday .lbl{color:inherit;opacity:.72}
+.hero-rail .wday .num{color:inherit}
+.hero-rail .wday .dot.plan{background:currentColor;opacity:.45}
+.hero-rail .wday .dot.done{background:var(--m3-on-primary-container)}
+.hero-rail .wday.today .num{background:var(--m3-primary);color:var(--m3-on-primary)}
+.hero-rail .wday:active{background:color-mix(in srgb,var(--m3-on-primary-container) var(--m3-state-press),transparent)}
+
+/* Three tiles rather than two-by-two: the numbers are short, and a row of three reads as one
+   glance. Below 360px the labels stop fitting and it falls back to the app's own grid. */
+.home-tiles{grid-template-columns:repeat(3,1fr);gap:8px}
+@media (max-width:359px){.home-tiles{grid-template-columns:1fr 1fr}}
+.home-tiles .tile{padding:12px}
+.home-tiles .tile .l{font-size:11.5px;gap:4px;white-space:nowrap;overflow:hidden}
+.home-tiles .tile .l .icn{font-size:14px}
+.home-tiles .tile .v{font-size:22px;margin-top:4px}
+.home-tiles .tile .s{font-size:11.5px;color:var(--m3-on-surface-variant)}
+
+
+
+
+/* ============================================================================
+   A card's own heading (WS15)
+   ----------------------------------------------------------------------------
+   Every card on Stats wrote its subtitle the same way — an inline dim span with the
+   text-transform and letter-spacing reset by hand, five times over. That is one
+   component. While it is being made one component the title also stops being the
+   section-label role: at 12/500 and dim it sat *below* the 16px row titles inside
+   it, so a card read as a caption for its own contents.
+   ============================================================================ */
+.card h2:not(.sect-t){font-size:16px;font-weight:var(--m3-type-title-m-weight);letter-spacing:var(--m3-type-title-m-track);color:var(--m3-on-surface)}
+.chead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.chead-m{min-width:0}
+.chead h2{margin:0}
+.chead-s{font-size:12px;color:var(--m3-on-surface-variant);margin-top:2px}
+.chead .seg{flex:none;margin-bottom:0}
+
+/* The label above a group of cards: under the screen title, over the card headings. */
+.sech{font-size:12px;font-weight:var(--m3-type-overline-weight);letter-spacing:var(--m3-type-overline-track);text-transform:uppercase;
+  color:var(--m3-on-surface-variant);margin:18px 2px 8px}
+
+/* A two-option switch that belongs in a card heading — the card's identity, not its range. */
+.seg-two button{padding:5px 11px;font-size:12px}
+
+/* A range control that shares its line with one other control (the balance map's "Hard" filter). */
+.seg-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.seg-row .seg{margin-bottom:0;flex:1;min-width:0}
+.seg-row .btn{flex:none}
+
+/* History's four totals. Four across, and a step down in type: the numbers are short and the
+   row is a summary, not the content of the screen. */
+.hist-tiles{grid-template-columns:repeat(4,1fr);gap:8px}
+.hist-tiles .tile{padding:10px 8px}
+.hist-tiles .tile .l{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-tiles .tile .v{font-size:17px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* A month heading in the history list: the one place a date is a section, not a row. */
+.mlabel{font-size:12px;font-weight:var(--m3-type-overline-weight);letter-spacing:var(--m3-type-overline-track);text-transform:uppercase;
+  color:var(--m3-on-surface-variant);margin:14px 2px 8px}
+
+/* ============================================================================
+   Dialogs, sheets and the snackbar (WS16)
+   ----------------------------------------------------------------------------
+   The container was already M3-shaped — 28dp on the high surface. What was not
+   M3 was everything inside it: the confirm dialog was the iOS alert, centred with
+   the destructive action as a full-width filled button and Cancel as a ghost under
+   it, which gives the destructive choice the most weight on the screen.
+   ============================================================================ */
+.center{width:min(84vw,320px);padding:24px}
+.dlg-ico{
+  width:44px;height:44px;border-radius:var(--m3-shape-full);display:grid;place-items:center;
+  margin:0 auto 16px;font-size:22px;
+  background:var(--m3-error-container);color:var(--m3-on-error-container);
+}
+.dlg h3{font-size:24px;font-weight:400;line-height:1.25;letter-spacing:0;margin:0 0 12px}
+.dlg h3.ctr{text-align:center;font-size:22px}
+.dlg-body{color:var(--m3-on-surface-variant);font-size:14px;line-height:1.45}
+.dlg-body.ctr{text-align:center}
+.dlg-acts{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
+.dlg-btn{
+  border:0;background:transparent;color:var(--m3-primary);font-family:inherit;
+  font-size:14px;font-weight:500;padding:9px 12px;border-radius:var(--m3-shape-full);
+}
+.dlg-btn.err{color:var(--m3-error)}
+
+/* An open sheet's dialog box must not draw a focus ring: it takes focus on open so a screen
+   reader starts at the top of it, and the ring belongs on the control the reader has reached. */
+.sheet:focus,.center:focus{outline:none}
+
+/* The snackbar: a surface at the bottom, a message on the left and room for one action on the
+   right. It was a blurred pill, which said "tooltip" and changed width with the message. */
+#toast{
+  left:50%;right:auto;bottom:calc(96px + var(--sab));
+  width:min(520px,calc(100vw - 32px));max-width:none;
+  display:flex;align-items:center;gap:12px;
+  background:var(--m3-surface-container-highest);color:var(--m3-on-surface);
+  -webkit-backdrop-filter:none;backdrop-filter:none;
+  border-radius:var(--m3-shape-xs);padding:13px 16px;
+  font-size:14px;font-weight:400;text-align:left;line-height:1.35;
+  transform:translateX(-50%) translateY(6px);
+}
+#toast.show{transform:translateX(-50%)}
+#toast span{flex:1;min-width:0}
+
+/* The four surfaces that were still carrying a hand-written shadow sit on the scale now: the
+   dialog floats over everything at 3, and the rest timer, the snackbar and the wide tab bar float
+   over the page at 2 — which is --m3-shadow-2's first consumer. The values they replace had a blur
+   of 30-60 and a negative spread, so this is visibly flatter on the light theme, where a cast
+   shadow is the only thing separating two surfaces of the same tone. */
+.center{box-shadow:var(--m3-shadow-3)}
+#timer{box-shadow:var(--m3-shadow-2)}
+#toast{box-shadow:var(--m3-shadow-2)}
+@media (min-width:1000px){ #tabbar{box-shadow:var(--m3-shadow-2)} }
+
+/* ============================================================================
+   Plan and the week editor (WS17)
+   ============================================================================ */
+/* The weekday on a day row: the one part of a week's line that is a date rather than a name. */
+.ddow{width:30px;flex:none;font-size:11px;font-weight:var(--m3-type-label-s-weight-emphasized);letter-spacing:.05em;text-transform:uppercase;
+  color:var(--m3-on-surface-variant)}
+.hero-rail .ddow{color:inherit;opacity:.78}
+.hero-rail .day-row .ss{color:inherit;opacity:.78}
+.hero-rail .day-row .tt{color:inherit}
+/* Trained, on the week you are in. */
+.dtick{width:22px;height:22px;flex:none;border-radius:var(--m3-shape-full);display:grid;place-items:center;
+  background:var(--m3-primary);color:var(--m3-on-primary);font-size:13px}
+.dtick .icn{--icon-stroke:2.6}
+.hero-cta{width:100%;margin-top:12px}
+
+/* The weekday segmented: same control, less of the card. Seven full-size targets for one value
+   is what made a day row two lines tall on a narrow phone. */
+.seg7{flex:1;min-width:0}
+.seg7 button{padding:6px 4px;font-size:11.5px}
+
+/* An editable title that does not look like a form field: the dashed rule is the affordance, and
+   it is on the text rather than around it. */
+/* field-sizing keeps the rule under the text rather than across the card, and grows the field as
+   the name is typed. Where it is unsupported the field keeps its full width and the rule becomes a
+   line across the card — a worse look, not a broken one. */
+.day-name{
+  /* .input is width:100%, which would beat field-sizing; the field has to be allowed to shrink */
+  width:auto;field-sizing:content;-webkit-field-sizing:content;max-width:100%;min-width:64px;
+  border-bottom:1.5px dashed color-mix(in srgb,var(--m3-primary) 45%,transparent);border-radius:0;
+}
+
+/* --- a help affordance that can say what it is ------------------------------- */
+/* index.css's .helpbtn is icon-only: line-height 0, negative margins, sized to sit inside a
+   row beside a label. Text after its glyph lands on top of the glyph. This is the same idea for
+   a line that has to name itself — which is how the two fields nobody guesses (warm-up sets and
+   rest) keep their explanation one tap away instead of as a paragraph inside the form. */
+.fieldhelp{
+  display:inline-flex;align-items:center;gap:6px;margin:2px 0 12px;
+  background:none;border:0;padding:0;text-align:left;
+  color:var(--m3-on-surface-variant);font-size:12px;font-weight:500;letter-spacing:.03em;
+}
+.fieldhelp .icn{font-size:15px;flex:none}
+.fieldhelp:active{color:var(--m3-on-surface)}
+
+/* --- the celebration dialogs ------------------------------------------------- */
+/* A check or a trophy is not a warning. .dlg-ico bakes the error roles because the destructive
+   confirm was its only user until the finish summary needed the same circle. */
+.dlg-ico.ok{background:var(--m3-primary-container);color:var(--m3-on-primary-container)}
+/* A tile inside a dialog has a third of the width a tile on a screen gets, so it reads at the
+   title role rather than the display one — and all four read the same. Three of them were forced
+   to 1.1rem inline and the fourth to 20px, which is one row at two sizes. */
+.dlg .tiles,.sheet .tiles{margin:6px 0 0}
+.dlg .tile .l,.sheet .tile .l{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--m3-on-surface-variant)}
+.dlg .tile .v,.sheet .tile .v{font-size:18px;font-weight:500;letter-spacing:-.006em;margin-top:3px}
+.dlg .tile .s,.sheet .tile .s{font-size:11.5px;color:var(--m3-on-surface-variant);margin-top:2px}
+
+/* --- a labelled field -------------------------------------------------------- */
+/* The two note sheets labelled their fields with .small.muted — 13px of muted prose where a
+   label wants the label role — and explained each note's lifetime in its placeholder. A
+   placeholder goes the moment you type, so the sentence saying which note you were writing
+   vanished exactly when you were writing it. */
+.fnote{
+  background:var(--m3-surface-container);border-radius:var(--m3-shape-l);padding:14px;
+}
+.fnote + .fnote{margin-top:14px}
+.flabel{
+  font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-spacing:var(--m3-type-label-m-track);
+  color:var(--m3-on-surface-variant);margin-bottom:3px;
+}
+.fhint{font-size:12px;line-height:16px;color:var(--m3-on-surface-variant);margin-bottom:9px}
+/* The standing note read rather than written — the body it was written in, where the editor has a
+   textarea. Shown in the exercise history, which is where you look before training the movement. */
+.note-read{white-space:pre-wrap;font-size:15px;line-height:1.45;color:var(--m3-on-surface)}
+/* The block is the control: the cue is read and corrected in the same place. A filled surface, so
+   its press layer goes on as a background-image over the tone rather than replacing it. */
+.note-edit{cursor:pointer}
+.note-edit:active{
+  background-image:linear-gradient(color-mix(in srgb,var(--label) var(--m3-state-press),transparent),
+                                   color-mix(in srgb,var(--label) var(--m3-state-press),transparent));
+}
+.note-edit .flabel{display:flex;align-items:center;gap:6px}
+.note-pen{margin-left:auto;font-size:14px;--icon-stroke:1.8}

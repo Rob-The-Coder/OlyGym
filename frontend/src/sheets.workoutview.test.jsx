@@ -11,10 +11,6 @@ import { todayISO } from './lib/format.js'
 // re-lay-out the running session without touching the saved default.
 
 const mounted = []
-function type(el, value) {
-  Object.getOwnPropertyDescriptor(el.constructor.prototype, 'value').set.call(el, value)
-  el.dispatchEvent(new Event('input', { bubbles: true }))
-}
 function mountTopSheet() {
   const sheet = useUI.getState().sheets.at(-1)
   const host = document.createElement('div')
@@ -56,9 +52,10 @@ describe('workout view is snapshot onto the active session', () => {
 
   it('a backfilled session snapshots it too', () => {
     useStore.setState(s => ({ S: { ...s.S, workoutView: 'list' } }))
-    logPastWorkoutSheet()
+    // The date is an argument now: the field opens the app's own month grid rather than a platform
+    // date input, so there is nothing in the sheet to type into.
+    logPastWorkoutSheet('2020-01-02')
     const host = mountTopSheet()
-    act(() => { type(host.querySelector('input[type=date]'), '2020-01-02') })
     act(() => { button(host, 'Continue').click() })
     expect(useStore.getState().S.active.workoutView).toBe('list')
   })

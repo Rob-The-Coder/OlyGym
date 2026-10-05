@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { effectiveDay, nextTrainingDay, streakWeeks, lastBW, setsDoneActive } from '../lib/history.js'
 import { weekFor } from '../lib/weeks.js'
-import { fmtNum, fmtDate, todayISO, isoOf, weekKey, weekStartOf, weekDayOffset, DAYS, DAYN } from '../lib/format.js'
+import { fmtNum, fmtDate, exCount, todayISO, isoOf, weekKey, weekStartOf, weekDayOffset, DAYS, DAYN } from '../lib/format.js'
 import { t, dateLocale } from '../lib/i18n.js'
 import { bwSheet, goalSheet, calendarSheet, startFlow, starterPlanSheet, bwDeltaColor } from '../sheets.jsx'
 import LineChart from '../components/LineChart.jsx'
 import Icon from '../components/Icon.jsx'
+import TopAppBar from '../components/TopAppBar.jsx'
 import { Button } from '../components/ui.jsx'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 
@@ -63,68 +64,65 @@ export default function Home() {
   // planned empty) has no session to start, so the row is the door to the plan instead.
   const onToday = () => { if (S.active) nav('/workout'); else if (todaySession) startFlow(todaySession); else nav('/plan') }
 
+  // What the hero says under the title: the one useful thing about the state we are in, or
+  // nothing at all — a finished workout does not need a caption repeating that it is finished.
+  const heroSub = todaySession ? exCount(todaySession.ex.length)
+    : next ? t('Next session: {0}, {1}', t(DAYN[next.weekday]), next.day.name)
+    : (S.active || doneToday) ? '' : wkLabel
+
   return <div className="narrow">
-    <div className="hdr">
-      <div><h1>OlyGym</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
-      <button className="iconbtn" onClick={() => nav('/settings')} aria-label={t('Settings')}><Icon name="gear" /></button>
+    <TopAppBar title="OlyGym" subtitle={today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}
+      actions={<button className="iconbtn ab-ico" onClick={() => nav('/settings')} aria-label={t('Settings')}><Icon name="gear" /></button>} />
+
+    {/* This screen answers one question — what am I doing today — so that answer is the surface the
+        eye lands on: one card, one action, and the week it belongs to inside it. It used to share a
+        card with a week navigator, a date strip and a link, and the three numbers it also shows
+        were three more cards of three other shapes below. */}
+    <div className="hero">
+      <div className="hero-hd">
+        <div className="hero-lbl">{t('Today')} · {today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+        <div className="hero-nav">
+          <button className="hero-btn" onClick={() => setWeekOffset(w => w - 1)} aria-label="Previous week"><Icon name="chevronLeft" /></button>
+          <button className="hero-btn" onClick={() => setWeekOffset(w => w + 1)} aria-label="Next week"><Icon name="chevronRight" /></button>
+        </div>
+      </div>
+      <div className="row" style={{ gap: 11, alignItems: 'center' }}>
+        <span className="hero-i"><Icon name={S.active ? 'timer' : doneToday ? 'checkCircle' : todaySession ? 'dumbbell' : 'moon'} /></span>
+        <div style={{ minWidth: 0 }}>
+          <div className="hero-t">{S.active ? t('{0} — in progress', S.active.name)
+            : doneToday ? (doneToday.name ? t('{0} — done', doneToday.name) : t('Workout done'))
+            : todayDay ? todayName : t('Rest day')}</div>
+          {heroSub && <div className="hero-s">{heroSub}</div>}
+        </div>
+      </div>
+      <div className="hero-acts">
+        <Button variant="primary" onClick={onToday}>{S.active ? t('Resume') : todaySession ? t('Start workout') : t('Open the plan')}</Button>
+        {/* The hero starts today's plan in one tap, and so does the Start button in the tab bar —
+            which is the whole problem when you want something else. This is the door to the start
+            screen, and it starts nothing on its own. */}
+        {!S.active && <button className="hero-btn" onClick={() => nav('/workout')}
+          aria-label={t('Choose a different workout')} title={t('Choose a different workout')}><Icon name="reset" /></button>}
+      </div>
+      {/* The week the session belongs to, inside the card that is about it. A day that is planned
+          opens the plan; the strip is a glance, not an editor. */}
+      <div className="hero-rail"><div className="week">{strip}</div></div>
     </div>
 
-    <div className="card">
-      <div className="row between" style={{ marginBottom: 8 }}>
-        <button className="iconbtn" style={{ width: 30, height: 30, fontSize: 15 }} onClick={() => setWeekOffset(w => w - 1)} aria-label="Previous week"><Icon name="chevronLeft" /></button>
-        <div className="small muted" style={{ fontWeight: 500 }}>{wkLabel}</div>
-        <button className="iconbtn" style={{ width: 30, height: 30, fontSize: 15 }} onClick={() => setWeekOffset(w => w + 1)} aria-label="Next week"><Icon name="chevronRight" /></button>
+    {/* The three numbers were three cards. They are one row now: short values, one glance. */}
+    <div className="tiles home-tiles">
+      <div className="tile tappable" {...tappable(() => calendarSheet())}>
+        <div className="l"><Icon name="flame" />{t('Streak')}</div><div className="v">{streakWeeks(S)}</div><div className="s">{t('weeks')}</div>
       </div>
-      <div className="week">{strip}</div>
-      {/* Once today's session is logged the row stops asking for it. The week strip already
-          knew (its dot goes 'done'); this row did not, so a finished day kept showing the
-          routine name behind a green Start tag and read as still outstanding (issue #4).
-          An in-progress session still wins — that one is happening right now. Tapping the
-          row keeps working, so a second session in one day is a tap away, just not urged. */}
-      <div className="today-row" {...tappable(onToday)}>
-        <div className="row" style={{ gap: 9, minWidth: 0 }}>
-          <span className="lrow-i" style={{ background: S.active ? 'var(--orange)' : doneToday ? 'var(--surface-3)' : todaySession ? 'var(--acc)' : 'var(--surface-3)' }}>
-            <Icon name={S.active ? 'timer' : doneToday ? 'checkCircle' : todaySession ? 'dumbbell' : 'moon'}
-              style={doneToday && !S.active ? { color: 'var(--green)' } : undefined} />
-          </span>
-          <div style={{ minWidth: 0 }}>
-            <div className="lbl2">{t('Today')}</div>
-            <div className="ttl">{S.active ? t('{0} — in progress', S.active.name)
-              : doneToday ? (doneToday.name ? t('{0} — done', doneToday.name) : t('Workout done'))
-              : todayDay ? todayName : t('Rest day')}</div>
-            {next && !doneToday && <div className="ss">{t('Next session: {0}, {1}', t(DAYN[next.weekday]), next.day.name)}</div>}
-          </div>
-        </div>
-        {S.active ? <span className="tag" style={{ color: 'var(--orange)', background: 'color-mix(in srgb,var(--orange) 16%,transparent)' }}>{t('Resume')}</span>
-          : doneToday ? <span className="tag" style={{ color: 'var(--green)', background: 'color-mix(in srgb,var(--green) 16%,transparent)' }}>{t('Done')}</span>
-          : todaySession ? <span className="tag acc">{t('Start')}</span>
-          : <Icon name="plus" className="chev" />}
+      <div className="tile tappable" {...tappable(() => calendarSheet())}>
+        <div className="l"><Icon name="calendar" />{t('This week')}</div>
+        <div className="v">{wThisWeek}{plannedPerWeek ? '/' + plannedPerWeek : ''}</div><div className="s">{t('sessions')}</div>
       </div>
-      {/* The row above starts today's plan in one tap, and so does the Start button in the tab
-          bar — which is the whole problem when you want something else. Both jump straight into
-          the planned session whenever there is one, so the Start screen (a freestyle session,
-          and your other routines) is only reachable on a day with nothing planned. The one other
-          way in, "Choose a different workout" on the weigh-in sheet, does not exist when the
-          weigh-in is switched off. This is that door, and it starts nothing on its own. */}
-      {!S.active && <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
-        <Button size="sm" variant="ghost" className="dim" icon="reset" onClick={() => nav('/workout')}>
-          {t('Choose a different workout')}
-        </Button>
-      </div>}
+      <div className="tile tappable" {...tappable(() => bwSheet())}>
+        <div className="l"><Icon name="scale" />{t('Weight')}</div>
+        <div className="v" style={bw && delta ? { color: bwDeltaColor(delta, bw.w) } : undefined}>{bw ? fmtNum(bw.w) : '—'}</div>
+        <div className="s">{bw ? S.unit : t('not logged')}</div>
+      </div>
     </div>
-
-    {/* No week planned and nothing running: the offer to build a plan. */}
-    {!(S.weeks || []).length && !S.active && (
-      <div className="card">
-        <div className="row" style={{ gap: 10, marginBottom: 6 }}>
-          <span className="lrow-i"><Icon name="sparkles" /></span>
-          <div className="big" style={{ fontSize: 22 }}>{t('Welcome!')}</div>
-        </div>
-        <div className="muted small" style={{ marginBottom: 12 }}>{t('Set up your weekly routine to get going — or load a ready-made starter plan.')}</div>
-        <Button variant="primary" icon="sparkles" onClick={starterPlanSheet}>{t('Load starter plan')}</Button>
-        <div style={{ height: 8 }} /><Button onClick={() => nav('/plan')}>{t('Build my own plan')}</Button>
-      </div>
-    )}
 
     <div className="card">
       <div className="row between bw-head" style={{ marginBottom: 6 }}>
@@ -158,17 +156,22 @@ export default function Home() {
         : t("No entries yet — log your weight to start the curve. It's also asked before every workout.")}</div>}
     </div>
 
-    <div className="card tappable" style={{ cursor: 'pointer' }} {...tappable(() => calendarSheet())}>
-      <div className="row between">
-        <div>
-          <div className="row" style={{ gap: 7, fontSize: 22, fontWeight: 600, letterSpacing: '-.021em' }}>
-            <Icon name="flame" style={{ color: 'var(--orange)' }} />
-            {t('{0} week streak', streakWeeks(S))}
+    {/* No week planned and nothing running: the offer to build a plan. One action carries it; the
+        second is a text button, because two full-width buttons is not a choice, it is a coin toss. */}
+    {!(S.weeks || []).length && !S.active && (
+      <div className="card">
+        <div className="row" style={{ gap: 10, marginBottom: 4 }}>
+          <span className="lrow-i"><Icon name="sparkles" /></span>
+          <div>
+            <div className="tt" style={{ fontWeight: 600 }}>{t('Welcome!')}</div>
+            <div className="ss">{t('Set up your weekly routine to get going — or load a ready-made starter plan.')}</div>
           </div>
-          <div className="muted small" style={{ marginTop: 2 }}>{wThisWeek}{plannedPerWeek ? ' / ' + plannedPerWeek : ''} {t('this week')} · {t(S.workouts.length === 1 ? '{0} workout total' : '{0} workouts total', S.workouts.length)}</div>
         </div>
-        <Icon name="calendar" className="chev" style={{ fontSize: 20 }} />
+        <Button variant="primary" icon="sparkles" onClick={starterPlanSheet}>{t('Load starter plan')}</Button>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6 }}>
+          <Button variant="ghost" className="dim" onClick={() => nav('/plan')}>{t('Build my own plan')}</Button>
+        </div>
       </div>
-    </div>
+    )}
   </div>
 }

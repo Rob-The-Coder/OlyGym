@@ -15,6 +15,7 @@ import Media from '../components/Media.jsx'
 import { startFlow, exercisePicker, exConfigSheet, exerciseDetailSheet, finishWorkout, workoutCompleteSheet, confirmSheet, exerciseNoteSheet, sessionNoteSheet, renameWorkoutSheet, swapActiveWorkoutExercise, barWeightSheet, menuSheet, effortPickerSheet, exerciseHistorySheet } from '../sheets.jsx'
 import { effortColor } from '../lib/effort.js'
 import Icon from '../components/Icon.jsx'
+import TopAppBar from '../components/TopAppBar.jsx'
 import { Button, Check, NumberField } from '../components/ui.jsx'
 import { nextPrescription, applyPrescription, defaultIncrement, weightIncrement, stepWeight } from '../lib/progression.js'
 import { progressionGuidance } from '../lib/progression-copy.js'
@@ -36,7 +37,8 @@ function StartChooser() {
   // there is no separate pool of routines to merge in any more.
   const others = (weekFor(S, todayISO())?.days || []).filter(d => d !== todayDay && (d.ex || []).length)
   return <div className="narrow">
-    <div className="hdr"><div><h1>{t('Start workout')}</h1><div className="sub">{t(DAYN[new Date().getDay()])} — {todayDay ? t('today is {0}', todayName) : t('rest day, but no one’s stopping you')}</div></div></div>
+    <TopAppBar title={t('Start workout')}
+      subtitle={t(DAYN[new Date().getDay()]) + ' — ' + (todayDay ? t('today is {0}', todayName) : t('rest day, but no one’s stopping you'))} />
     {todayDay && (todayDay.ex || []).length > 0 && <div className="card" style={{ borderColor: 'var(--acc)' }}>
       <h2 className="accent">{t("Today's plan")}</h2>
       <div className="row between" style={{ marginBottom: 12 }}>
@@ -45,7 +47,7 @@ function StartChooser() {
       </div>
       <Button variant="primary" icon="play" onClick={() => startFlow(todayDay)}>{t('Start {0}', todayName)}</Button>
     </div>}
-    {others.length > 0 && <><h4 className="sec">{t('This week')}</h4>
+    {others.length > 0 && <><div className="sech">{t('This week')}</div>
       <div className="list">{others.map((d, i) => <div key={i} className="item" onClick={() => startFlow(d)}>
         <span className="lrow-i"><Icon name="dumbbell" /></span>
         <div className="grow"><div className="tt">{d.name}</div><div className="ss">{exCount((d.ex || []).length)}</div></div>
@@ -165,7 +167,7 @@ function ExerciseBlock({ entryIdx, step, compact, dense, headOnly, onToggle, onF
   const openMore = () => menuSheet({
     title: exerciseNameFor(ex),
     items: [
-      { icon: 'pencil', label: entry.note ? t('Edit note') : t('Add note'), sub: entry.note || undefined, onClick: () => exerciseNoteSheet(entryIdx) },
+      { icon: 'pencil', label: entry.note ? t('Edit note') : t('Add note'), sub: entry.note || undefined, onClick: () => exerciseNoteSheet({ entryIdx }) },
       { icon: 'info', label: t('Details'), onClick: () => exerciseDetailSheet(ex) },
       { icon: 'history', label: t('History'), sub: last ? t('Last time') + ' ' + fmtDate(last.d) : undefined, onClick: () => exerciseHistorySheet(entry.id) },
       onProgressionSettings && { icon: 'chartLine', label: t('Progression settings'), sub: guidance ? t(guidance.policyLabel) : undefined, onClick: onProgressionSettings },
@@ -215,11 +217,19 @@ function ExerciseBlock({ entryIdx, step, compact, dense, headOnly, onToggle, onF
       <button className="effcell is-empty" aria-label={col.hd} onClick={open}>{col.hd}</button>
     )
     const step = dir => onField(i, col.f, stepEffort(col.eff, v, dir))
+    // How close to failure as a shape, not only as a colour: four dots filled from the left, so the
+    // band is readable off the tint and on a cell this small, where colour alone is worst. RIR 0
+    // (a set to failure) fills all four; 3 or more leaves one. Hidden below 430px, where the effort
+    // column has no width to spare — its ± buttons already go there (index.css:911).
+    const band = rir == null ? 0 : Math.max(1, 4 - Math.min(3, Math.max(0, Math.round(rir))))
     return (
       <div className={'stp effcell-stp' + (wc.steppers ? '' : ' plain')}
         style={color ? { color, borderColor: color, background: `color-mix(in srgb, ${color} 20%, var(--surface-2))` } : undefined}>
         {wc.steppers && <button aria-label="Decrease" onClick={() => step(-1)}><Icon name="minus" /></button>}
-        <button className="val" aria-label={col.hd} onClick={open}>{fmtNum(v)}</button>
+        <button className="val" aria-label={col.hd + ' ' + fmtNum(v)} onClick={open}>
+          {fmtNum(v)}
+          <span className="effdots" aria-hidden="true">{[0, 1, 2, 3].map(d => <i key={d} className={d < band ? 'on' : ''} />)}</span>
+        </button>
         {wc.steppers && <button aria-label="Increase" onClick={() => step(1)}><Icon name="plus" /></button>}
       </div>
     )
@@ -231,18 +241,29 @@ function ExerciseBlock({ entryIdx, step, compact, dense, headOnly, onToggle, onF
     ? (entry.target?.reps || entry.sets.find(s => !isWarmupRow(s))?.r || 0)
     : 0
   return <>
-    {!dense && <Media ex={ex} key={entry.id} compact={compact} minimizable />}
-    <div className="row between" style={{ marginBottom: 6 }}>
-      {/* A complex numbers its movements: the number sits beside the exercise, centred on its
-          name line, so the set table below keeps every pixel of its width. */}
-      <div className="row" style={{ gap: 8, minWidth: 0, alignItems: 'center' }}>
-        {step != null && <span className="cx-step">{step}</span>}
-        <div style={{ fontSize: (compact || dense) ? 17 : 20, fontWeight: 600, letterSpacing: '-.02em', textTransform: 'capitalize', lineHeight: 1.2 }}>{exerciseNameFor(ex)}</div>
-        {prescribedReps > 0 && <span className="muted small" style={{ flex: 'none' }}>×{prescribedReps}</span>}
+    {/* The picture sits in the exercise header at thumbnail size: the demo is one tap away and the
+        set table — what a session is actually for — starts a screen higher. Tapping the poster
+        mounts the video and expands the block to 16:9; the collapsed and expanded shapes are both
+        laid out in m3.components.css, under "the exercise header". */}
+    <div className="ex-head">
+      {!dense && <Media ex={ex} key={entry.id} compact={compact} minimizable />}
+      <div className="ex-head-text">
+        {/* A complex numbers its movements: the number sits beside the exercise, centred on its
+            name line, so the set table below keeps every pixel of its width. */}
+        <div className="row" style={{ gap: 8, minWidth: 0, alignItems: 'center' }}>
+          {step != null && <span className="cx-step">{step}</span>}
+          <div style={{ fontSize: (compact || dense) ? 17 : 20, fontWeight: 600, letterSpacing: '-.02em', textTransform: 'capitalize', lineHeight: 1.2 }}>{exerciseNameFor(ex)}</div>
+          {prescribedReps > 0 && <span className="muted small" style={{ flex: 'none' }}>×{prescribedReps}</span>}
+        </div>
+        {!dense && <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginTop: 5 }}>
+          {(ex.tg || ex.bp) && <span className="tag">{t(MUSCLE_NAME[ex.tg] || ex.tg || ex.bp)}</span>}
+          {ex.eq && <span className="tag">{t(ex.eq)}</span>}
+          {best > 0 && <span className="tag nocap">{t('Best:')} {fmtNum(best)} {S.unit}</span>}
+        </div>}
       </div>
-      <div className="row" style={{ gap: 2, flex: 'none' }}>
+      <div className="row ex-head-acts" style={{ gap: 2, flex: 'none' }}>
         {entry.note && <button className="iconbtn" aria-label={t('Note')} title={t('Note')} style={{ color: 'var(--acc)' }}
-          onClick={() => exerciseNoteSheet(entryIdx)}><Icon name="pencil" /></button>}
+          onClick={() => exerciseNoteSheet({ entryIdx })}><Icon name="pencil" /></button>}
         <button className="iconbtn" aria-label={t('More')} title={t('More')} onClick={openMore}><Icon name="more" /></button>
       </div>
     </div>
@@ -253,11 +274,6 @@ function ExerciseBlock({ entryIdx, step, compact, dense, headOnly, onToggle, onF
     {/* compact view drops everything from here to the sets card — it is all still on the ⋯ menu
         (note, details, history, bar weight, progression) or is display-only (tags, "last time"). */}
     {!dense && <>
-    <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-      {(ex.tg || ex.bp) && <span className="tag">{t(MUSCLE_NAME[ex.tg] || ex.tg || ex.bp)}</span>}
-      {ex.eq && <span className="tag">{t(ex.eq)}</span>}
-      {best > 0 && <span className="tag nocap">{t('Best:')} {fmtNum(best)} {S.unit}</span>}
-    </div>
     {/* Three notes can apply to one exercise and they are not interchangeable, so each keeps its
         own line and its own icon: the plan's instruction (cfg.note, from the routine), the
         standing fact about the movement (exNotes), and the message you pinned to yourself last
@@ -446,7 +462,7 @@ function ActiveWorkout() {
   const unitIdx = units.findIndex(u => u === unit)
   const isSuperset = unit.length > 1
   // Cards show one unit at a time with Prev/Next + swipe; list and compact stack every unit so
-  // the whole session is visible and scrollable (Settings → During a workout → Workout view,
+  // the whole session is visible and scrollable (Settings → Workout → Workout view,
   // seeded onto s.active and overridable for this session from the header ⋮). compact is list
   // with the per-exercise media, tag chips, note lines, "last time" and progression line
   // stripped — just names and set rows. Every set handler below is already entry-index
@@ -682,7 +698,7 @@ function ActiveWorkout() {
   // keep operating on it, and completing sets still advances it on its own.
   const focusUnit = firstIdx => update(s => { if (s.active) s.active.cur = firstIdx })
   // The header ⋮ re-lays-out the running session without touching the saved default
-  // (Settings → During a workout → Workout view). It writes s.active.workoutView, which the
+  // (Settings → Workout → Workout view). It writes s.active.workoutView, which the
   // render above prefers over S.workoutView.
   const setWorkoutView = v => update(s => { if (s.active) s.active.workoutView = v })
   const LAYOUT_LABEL = { cards: t('Cards'), list: t('List'), compact: t('Compact') }
@@ -934,11 +950,11 @@ function ActiveWorkout() {
         while you are somewhere in the middle of a long stack. Cards mode never scrolls far. */}
     <div className={'whdr' + (listMode ? ' stick' : '')} ref={hdrRef}>
     <div className="hdr">
-      <button className="iconbtn" aria-label={t('Discard')} onClick={() => confirmSheet({ title: t('Discard workout?'), message: t('The sets you logged in this session will be lost.'), confirmText: t('Discard'), danger: true, onConfirm: () => { update(s => { s.active = null }); stopRest(); stopWork(); nav('/home') } })}><Icon name="xmark" /></button>
+      <button className="iconbtn ab-ico" aria-label={t('Discard')} onClick={() => confirmSheet({ title: t('Discard workout?'), message: t('The sets you logged in this session will be lost.'), confirmText: t('Discard'), danger: true, onConfirm: () => { update(s => { s.active = null }); stopRest(); stopWork(); nav('/home') } })}><Icon name="xmark" /></button>
       <div style={{ textAlign: 'center' }}><div style={{ fontWeight: 600 }}>{A.name}</div><div className="sub">{A.backfill ? fmtDate(A.d, true) : <Elapsed start={A.start} />} · {t('{0} sets', done + '/' + total)}</div></div>
       <div className="row" style={{ gap: 4, flex: 'none' }}>
-        <button className="iconbtn" aria-label={t('Workout view')} title={t('Workout view')} onClick={openViewMenu}><Icon name="more" /></button>
-        <button className="iconbtn" style={{ color: 'var(--acc)' }} aria-label={t('Finish')} onClick={finishWorkout}><Icon name="check" /></button>
+        <button className="iconbtn ab-ico" aria-label={t('Workout view')} title={t('Workout view')} onClick={openViewMenu}><Icon name="more" /></button>
+        <button className="iconbtn ab-ico" style={{ color: 'var(--acc)' }} aria-label={t('Finish')} onClick={finishWorkout}><Icon name="check" /></button>
       </div>
     </div>
     <div className="wprog"><i style={{ width: (total ? done / total * 100 : 0) + '%' }} /></div>

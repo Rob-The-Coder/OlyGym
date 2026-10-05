@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../store/useStore.js'
-import { BODYPARTS, allExercises, equipmentOf, searchExercises } from '../lib/exercises.js'
+import { allExercises } from '../lib/exercises.js'
 import { activeProfile, exAvailable } from '../lib/equipment.js'
 import { bestWeightFor } from '../lib/history.js'
+import { libraryResults } from '../lib/library-filter.js'
 import { fmtNum } from '../lib/format.js'
 import { MUSCLES, MUSCLE_NAME, musclesOf } from '../lib/muscles.js'
 import { t, exerciseNameFor } from '../lib/i18n.js'
@@ -10,6 +11,7 @@ import BodyMap from './BodyMap.jsx'
 import { Thumb } from './Media.jsx'
 import Icon from './Icon.jsx'
 import { Button } from './ui.jsx'
+import { libraryFilterSheet, FilterBar, AppliedFilters } from './LibraryFilters.jsx'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { isFav, sortFavouritesFirst } from '../lib/favourites.js'
 
@@ -35,21 +37,30 @@ export default function MuscleExplorer({ onPick, onDetail }) {
   ])), [catalog])
   const pick = muscle => { setSelected(muscle === selected ? null : muscle); setEq(''); setShown(40) }
   const targeted = selected ? catalog.filter(e => musclesOf(e)[selected]) : []
-  const base = searchExercises(targeted.filter(e => !bp || e.bp === bp), q)
-  const eqOpts = equipmentOf(base)
-  const eqOn = eqOpts.includes(eq) ? eq : ''
+  // The same pipeline the Library runs, out of the same helper: the profile has already narrowed
+  // `catalog`, so there is nothing left for the availability predicate to do on this screen.
+  const { list, eq: eqOn } = libraryResults({ all: targeted, q, bp, eq })
   // Favourites float to the top of whatever the filters left (issue #6), the rest keeps its order.
-  const exercises = sortFavouritesFirst(eqOn ? base.filter(e => e.eq === eqOn) : base, S)
+  const exercises = sortFavouritesFirst(list, S)
+  const describeFor = next => {
+    const r = libraryResults({ all: targeted, q, bp: next.bp, eq: next.eq })
+    return { count: r.list.length, eqOpts: r.eqOpts }
+  }
   const choose = ex => onPick ? onPick(ex) : onDetail(ex)
 
+  // The same chips as the Library, the profile among them. Body part and equipment only mean
+  // something once a muscle has been picked, so they wait until then; the profile is narrowing
+  // the counts above it, so it shows either way.
+  const applied = []
+  if (profile && !showAll) applied.push({ key: 'kit', label: profile.name, clear: () => setShowAll(true) })
+  if (selected && bp) applied.push({ key: 'bp', label: t(bp), clear: () => { setBp(''); setEq(''); setShown(40) } })
+  if (selected && eqOn) applied.push({ key: 'eq', label: t(eqOn), clear: () => { setEq(''); setShown(40) } })
+  const openFilters = () => libraryFilterSheet({
+    bp, eq: eqOn, showAll, profile, describeFor,
+    onApply: next => { setBp(next.bp); setEq(next.eq); setShowAll(next.showAll); setShown(40) },
+  })
+
   return <>
-    {profile && <div className="small dim row" style={{ margin: '-4px 2px 10px', gap: 6, alignItems: 'center' }}>
-      <Icon name="dumbbell" style={{ fontSize: 13 }} />
-      {showAll ? t('Showing all equipment') : t('Showing what you have in "{0}"', profile.name)}
-      <button className="chip nocap" style={{ marginLeft: 'auto', padding: '3px 10px', fontSize: 12 }} onClick={() => { setShowAll(v => !v); setEq(''); setShown(40) }}>
-        {showAll ? t('Filter by "{0}"', profile.name) : t('Show all equipment')}
-      </button>
-    </div>}
     <div className="card">
       <BodyMap className="tappable" body={S.body} selected={selected} onMuscle={pick} />
       <div className="chips" style={{ marginTop: 10 }}>
@@ -60,24 +71,20 @@ export default function MuscleExplorer({ onPick, onDetail }) {
       </div>
     </div>
 
+    <AppliedFilters applied={applied} />
+
     {!selected && onPick && <div className="empty"><div className="ico"><Icon name="target" /></div>{t('Choose a muscle to see exercises that train it.')}</div>}
 
     {selected && <>
       <div className="row between" style={{ margin: '2px 0 10px' }}>
-        <h4 className="sec" style={{ margin: 0 }}>{t('Exercises for {0}', t(MUSCLE_NAME[selected]))}</h4>
+        <div className="sech" style={{ margin: 0 }}>{t('Exercises for {0}', t(MUSCLE_NAME[selected]))}</div>
         <Button size="sm" variant="ghost" onClick={() => pick(selected)}>{t('Clear selection')}</Button>
       </div>
       <div className="search" style={{ marginBottom: 10 }}><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
         <input className="input" placeholder={t('Search…')} value={q} onChange={e => { setQ(e.target.value); setShown(40) }} />
       </div>
-      <div className="chips" style={{ marginBottom: eqOpts.length > 1 ? 8 : 12 }}>
-        <button className={'chip nocap' + (!bp ? ' on' : '')} onClick={() => { setBp(''); setEq(''); setShown(40) }}>{t('All')}</button>
-        {BODYPARTS.map(b => <button key={b} className={'chip' + (bp === b ? ' on' : '')} onClick={() => { setBp(b); setEq(''); setShown(40) }}>{t(b)}</button>)}
-      </div>
-      {eqOpts.length > 1 && <div className="chips" style={{ marginBottom: 12 }}>
-        <button className={'chip nocap' + (!eqOn ? ' on' : '')} onClick={() => { setEq(''); setShown(40) }}>{t('Any equipment')}</button>
-        {eqOpts.map(x => <button key={x} className={'chip' + (eqOn === x ? ' on' : '')} onClick={() => { setEq(x); setShown(40) }}>{t(x)}</button>)}
-      </div>}
+      {/* The two chip strips that used to sit here are the sheet now, exactly as in the Library. */}
+      <FilterBar count={exercises.length} appliedCount={applied.length} onOpen={openFilters} />
       <div className="list">
         {exercises.slice(0, shown).map(e => {
           const best = bestWeightFor(S, e.id)

@@ -53,11 +53,11 @@ vi.mock('../store/useUI.js', () => {
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
 vi.mock('../sheets.jsx', () => ({
+  effortHelpSheet: vi.fn(),
   startFlow: vi.fn(),
   exercisePicker: vi.fn(),
   exConfigSheet: vi.fn(),
   exerciseDetailSheet: vi.fn(),
-  topWeightSheet: vi.fn(),
   finishWorkout: vi.fn(),
   workoutCompleteSheet: vi.fn(),
   confirmSheet: vi.fn(),

@@ -54,14 +54,18 @@ const img = () => host.querySelector('.exmedia img')
 const fail = () => act(() => { img().dispatchEvent(new Event('error')) })
 
 describe('Media gifSize', () => {
-  it('renders the poster frame by default and toggles to mini in the workout', () => {
+  it('starts collapsed in the workout and expands when the demo is opened', () => {
     mount({ minimizable: true })
     expect(img().getAttribute('src')).toBe(MAXRES)
-    expect(host.querySelector('.exmedia.mini')).toBeFalsy()
+    expect(host.querySelector('.exmedia.open')).toBeFalsy()
+    // there is nothing to minimise before it is open
+    expect(host.querySelector('.giftoggle')).toBeFalsy()
+    // the tap mounts the video *and* expands the box: the CSS keyed off .open is what animates it
+    act(() => { host.querySelector('.gifhint').click() })
+    expect(host.querySelector('.exmedia.open')).toBeTruthy()
+    expect(host.querySelector('iframe')).toBeTruthy()
     act(() => { host.querySelector('.giftoggle').click() })
-    expect(mocks.S.gifSize).toBe('mini')
-    mount({ minimizable: true })
-    expect(host.querySelector('.exmedia.mini')).toBeTruthy()
+    expect(host.querySelector('.exmedia.open')).toBeFalsy()
   })
 
   it("renders nothing at all in the workout when gifSize is 'off'", () => {
@@ -78,21 +82,28 @@ describe('Media gifSize', () => {
     expect(img().getAttribute('src')).toBe(MAXRES)
   })
 
-  it('treats a legacy/unknown value as full', () => {
-    mocks.S = { gifSize: 'huge' }
-    mount({ minimizable: true })
-    expect(img()).toBeTruthy()
-    expect(host.querySelector('.exmedia.mini')).toBeFalsy()
+  it("treats a legacy/unknown value — and 'mini' — as the collapsed header", () => {
+    // 'mini' meant "always small"; the collapsed header is that, done better, so the old value has
+    // nothing left to say. Both spellings show the poster, collapsed.
+    for (const gifSize of ['huge', 'mini']) {
+      mocks.S = { gifSize }
+      mount({ minimizable: true })
+      expect(img()).toBeTruthy()
+      expect(host.querySelector('.exmedia.open')).toBeFalsy()
+      expect(host.querySelector('.gifhint')).toBeTruthy()
+    }
   })
 })
 
 describe('Media fallbacks', () => {
-  it('says what the picture is, and keeps the minimize control', () => {
-    mount({ minimizable: true })
-    expect(host.querySelector('.gifhint').textContent).toContain('video')
-    expect(host.querySelector('.giftoggle')).toBeTruthy()
+  it('names the video where there is room, and is just a ▶ chip in the workout header', () => {
     mount({})
+    expect(host.querySelector('.gifhint').textContent).toContain('video')
     expect(host.querySelector('.giftoggle')).toBeFalsy()
+    // in the workout the badge covers an 88px chip, so it carries the icon and nothing else
+    mount({ minimizable: true })
+    expect(host.querySelector('.gifhint').textContent).toBe('')
+    expect(host.querySelector('.gifhint .icn')).toBeTruthy()
   })
 
   it('steps down to hqdefault when the maxres frame is missing (older uploads)', () => {
@@ -156,9 +167,9 @@ describe('Media video', () => {
     expect(host.querySelector('iframe').getAttribute('src')).toBe(EMBED)
   })
 
-  it('shows no badge in the minimised strip, and no badge without a video', () => {
-    mocks.S = { gifSize: 'mini' }
+  it('shows no badge once the player is mounted, and none at all without a video', () => {
     mount({ minimizable: true })
+    act(() => { badge().click() })
     expect(badge()).toBeFalsy()
     act(() => root.render(<Media ex={{ id: 'wl999', n: 'custom', yt: '' }} />))
     expect(badge()).toBeFalsy()

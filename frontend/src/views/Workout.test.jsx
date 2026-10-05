@@ -20,8 +20,7 @@ const mocks = vi.hoisted(() => {
     stopRest: null,
     stopWork: null,
     confirmSheet: vi.fn(),
-    topWeightSheet: vi.fn(),
-    workoutCompleteSheet: vi.fn(),
+      workoutCompleteSheet: vi.fn(),
     exercisePicker: vi.fn(),
     exConfigSheet: vi.fn(),
     toast: vi.fn(),
@@ -69,11 +68,11 @@ vi.mock('../store/useUI.js', () => {
 })
 vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }))
 vi.mock('../sheets.jsx', () => ({
+  effortHelpSheet: vi.fn(),
   startFlow: vi.fn(),
   exercisePicker: mocks.exercisePicker,
   exConfigSheet: mocks.exConfigSheet,
   exerciseDetailSheet: vi.fn(),
-  topWeightSheet: mocks.topWeightSheet,
   finishWorkout: vi.fn(),
   workoutCompleteSheet: mocks.workoutCompleteSheet,
   confirmSheet: mocks.confirmSheet,
@@ -273,7 +272,6 @@ describe('Workout set completion flow', () => {
 
     expect(mocks.S.active.entries[0].topW).toBe(60)
     expect(mocks.S.exWeights['plain-bench']).toBeUndefined()   // written at the finish, not while ticking
-    expect(mocks.topWeightSheet).not.toHaveBeenCalled()
     expect(mocks.S.active.cur).toBe(0)
     expect(mocks.startRest).toHaveBeenCalledWith(90, expect.any(Number))
 
@@ -294,7 +292,6 @@ describe('Workout set completion flow', () => {
     // movements at once.
     await toggleSet(0)
 
-    expect(mocks.topWeightSheet).not.toHaveBeenCalled()
     expect(mocks.S.active.entries[0].topW).toBe(60)
     expect(mocks.S.active.entries[1].topW).toBe(60)
     // The whole unit is done, so the marker stays on it and the rest is the unit's own; Next is
@@ -363,7 +360,6 @@ describe('Workout set completion flow', () => {
 
     await toggleSet(0)
 
-    expect(mocks.topWeightSheet).not.toHaveBeenCalled()
     expect(mocks.S.active.cur).toBe(0)
     expect(mocks.startRest).not.toHaveBeenCalled()
   })
@@ -398,7 +394,6 @@ describe('Workout set completion flow', () => {
     // The last round of the complex: one check closes both movements and the unit.
     await toggleSet(2)
 
-    expect(mocks.topWeightSheet).not.toHaveBeenCalled()
     expect(mocks.S.active.cur).toBe(1)
     expect(mocks.startRest).toHaveBeenCalledWith(90, expect.any(Number))
   })
@@ -440,7 +435,6 @@ describe('Workout set completion flow', () => {
 
     await toggleSet(0)
 
-    expect(mocks.topWeightSheet).not.toHaveBeenCalled()
     expect(mocks.workoutCompleteSheet).not.toHaveBeenCalled()
     expect(mocks.S.active.cur).toBe(0)
     expect(mocks.startRest).toHaveBeenCalledWith(90, expect.any(Number))

@@ -3,7 +3,7 @@ import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation, useNavig
 import { useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { bindUI } from './components/ui.jsx'
-import { ACCENTS, setWeightDecimals } from './lib/format.js'
+import { ACCENTS, DEFAULT_ACCENT, setWeightDecimals } from './lib/format.js'
 import { setLang, useLang } from './lib/i18n.js'
 import { setPlayOnSilent } from './lib/sound.js'
 import { setNav } from './lib/nav.js'
@@ -41,9 +41,15 @@ const resolveTheme = theme => theme === 'light' || theme === 'dark'
 function applyPrefs(theme, accent) {
   const de = document.documentElement
   de.dataset.theme = resolveTheme(theme)
-  de.dataset.accent = ACCENTS[accent] ? accent : 'lime'
+  de.dataset.accent = ACCENTS[accent] ? accent : DEFAULT_ACCENT
   const meta = document.querySelector('meta[name="theme-color"]')
-  if (meta) meta.content = de.dataset.theme === 'light' ? '#f2f2f7' : '#000000'
+  // The system bar follows the scheme instead of a hardcoded pair: read the token back after the
+  // dataset flips (getComputedStyle forces the recalc), so a new accent or tint cannot leave the
+  // wrong colour up there. Nothing else in the shell reads a colour from the DOM.
+  if (meta) {
+    const surface = getComputedStyle(de).getPropertyValue('--m3-surface').trim()
+    if (surface) meta.content = surface
+  }
 }
 
 function Shell() {

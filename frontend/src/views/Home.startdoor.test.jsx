@@ -15,6 +15,7 @@ import Home from './Home.jsx'
 const nav = vi.fn()
 vi.mock('react-router-dom', () => ({ useNavigate: () => nav }))
 vi.mock('../sheets.jsx', () => ({
+  effortHelpSheet: vi.fn(),
   starterPlanSheet: vi.fn(), bwSheet: vi.fn(), goalSheet: vi.fn(),
   calendarSheet: vi.fn(), startFlow: vi.fn(), bwDeltaColor: () => '',
 }))
@@ -41,7 +42,8 @@ const setS = (over = {}) => useStore.setState(s => ({
   user: null,
 }))
 const mount = () => act(() => root.render(<Home />))
-const door = () => [...host.querySelectorAll('button')].find(b => b.textContent.includes('Choose a different workout'))
+// the door is an icon button in the hero now, so it is found by what it announces
+const door = () => host.querySelector('.hero-acts .hero-btn')
 
 describe('Home — the way to the Start screen when a plan already owns today', () => {
   it('offers the door on a planned day, where the Start button would start the plan', () => {
@@ -72,8 +74,8 @@ describe('Home — the way to the Start screen when a plan already owns today', 
 // treats a day with nothing on it exactly like a rest day — no empty session from a stray tap.
 describe('Home — the today row', () => {
   const TODAY_DOW = new Date(todayISO() + 'T12:00:00').getDay()
-  const todayRow = () => host.querySelector('.today-row')
-  const clickRow = () => act(() => { todayRow().dispatchEvent(new MouseEvent('click', { bubbles: true })) })
+  const hero = () => host.querySelector('.hero')
+  const clickRow = () => act(() => { host.querySelector('.hero-acts .btn').dispatchEvent(new MouseEvent('click', { bubbles: true })) })
 
   it('starts the day planned for today', () => {
     setS({
@@ -104,7 +106,7 @@ describe('Home — the today row', () => {
       }],
     })
     mount()
-    expect(todayRow().textContent).toContain('New day')
+    expect(hero().textContent).toContain('New day')
     clickRow()
     expect(startFlow).not.toHaveBeenCalled()
     expect(nav).toHaveBeenCalledWith('/plan')

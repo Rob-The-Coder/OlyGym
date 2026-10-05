@@ -4,14 +4,15 @@ import { useStore, DEF } from '../store/useStore.js'
 import { workoutControls } from '../lib/workout-controls.js'
 import { videoMode } from '../lib/video.js'
 import { useUI } from '../store/useUI.js'
-import { ACCENTS, todayISO, localTZ, weekStartOf, MONDAY, SUNDAY } from '../lib/format.js'
+import { ACCENTS, DEFAULT_ACCENT, todayISO, localTZ, weekStartOf, MONDAY, SUNDAY } from '../lib/format.js'
 import { effortOf } from '../lib/history.js'
 import { unlock, playOnSilentSupported } from '../lib/sound.js'
 import { wakeLockSupported } from '../lib/wakelock.js'
 import { t, LANGS, INSTR_LANGS } from '../lib/i18n.js'
+import TopAppBar from '../components/TopAppBar.jsx'
 import { MOBILE, isAndroid, shareExport, syncReminder } from '../lib/mobile.js'
 import { checkForUpdate, downloadAndInstall, RELEASES_PAGE } from '../lib/update.js'
-import { starterPlanSheet, confirmSheet, importCoachPlan, importCoachPlanFromDrive, equipmentProfileSheet } from '../sheets.jsx'
+import { starterPlanSheet, confirmSheet, importCoachPlan, importCoachPlanFromDrive, equipmentProfileSheet, effortHelpSheet, timePickerSheet, REMINDER_TIMES } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Section, Row, SelectRow, Switch, Segmented } from '../components/ui.jsx'
 
@@ -140,15 +141,13 @@ export default function Settings() {
   })
 
   return <div className="narrow">
-    <div className="hdr">
-      <button className="iconbtn" onClick={() => nav('/home')} aria-label={t('Home')}><Icon name="chevronLeft" /></button>
-      <div style={{ flex: 1, marginLeft: 10 }}><h1>{t('Settings')}</h1></div>
-    </div>
+    <TopAppBar title={t('Settings')}
+      leading={<button className="iconbtn ab-ico" onClick={() => nav('/home')} aria-label={t('Home')}><Icon name="chevronLeft" /></button>} />
 
     {/* ---------- general ---------- */}
     <Section title={t('General')}>
       <SelectRow
-        icon="globe" iconTint="var(--blue)" title={t('Language')}
+        icon="globe" title={t('Language')}
         value={S.lang || 'en'} onChange={v => update(s => { s.lang = v })}
         options={Object.entries(LANGS).map(([k, name]) => ({
           value: k, label: name,
@@ -158,14 +157,14 @@ export default function Settings() {
       {/* Display only: one decimal reads fine for plate-loadable numbers, two for anyone whose
           per-side figure lands on .25 or .75, or who loads microplates (issue #139). Nothing is
           stored or rounded differently — lib/format.js fmtNum just prints what is already there. */}
-      <Row icon="plate" iconTint="var(--teal)" title={t('Weight decimals')} subtitle={t('How precisely weights are shown.')}>
+      <Row icon="plate" title={t('Weight decimals')} subtitle={t('How precisely weights are shown.')}>
         <Segmented className="seg-inline"
           options={[{ value: 1, label: t('0.5') }, { value: 2, label: t('0.25') }]}
           value={S.wdec === 2 ? 2 : 1} onChange={v => update(s => { s.wdec = v })} />
       </Row>
       {/* Monday or Sunday — the Plan list, the Home strip, the calendar grid and every
           "this week" total follow it. Stored as a getDay() index (see lib/format.js). */}
-      <Row icon="calendar" iconTint="var(--orange)" title={t('Week starts on')}>
+      <Row icon="calendar" title={t('Week starts on')}>
         <Segmented className="seg-inline"
           options={[{ value: MONDAY, label: t('Monday') }, { value: SUNDAY, label: t('Sunday') }]}
           value={weekStartOf(S)} onChange={v => update(s => { s.weekStart = v })} />
@@ -174,21 +173,21 @@ export default function Settings() {
     </Section>
 
     {/* ---------- during a workout ---------- */}
-    <Section title={t('During a workout')} footer={wakeOK ? t('The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.') : null}>
+    <Section title={t('Workout')} footer={wakeOK ? t('The screen stays on while a workout is running, so you don’t have to unlock your phone between sets.') : null}>
       {/* The quick weigh-in that opens on Start (sheets.jsx startFlow, issue #137); off skips straight
           to the session. Home and Stats still log weight by hand. */}
-      <Row icon="scale" iconTint="var(--green)" title={t('Weigh in before workouts')}
+      <Row icon="scale" title={t('Weigh in before workouts')}
         subtitle={t('Asks for your body weight when a workout starts. Off starts the session straight away.')}>
         <Switch checked={S.weighIn !== false} onChange={v => update(s => { s.weighIn = v })} />
       </Row>
       {/* Automatic progression (lib/progression.js policyFor / defaultPolicy). Off is the
           default: the weight on the plan is the weight on the bar, and hitting every rep means
           nothing changes until you edit the plan. On restores the linear rule for every exercise
-          whose own rule is still "follow the routine". Built like Effort per set below: the two
-          states are a button group and the (i) carries the reasoning, so the row stays one line.
+          whose own rule is still "follow the routine". The two states stay a button group with
+          the (i) beside them rather than a value row: two options are not worth a tap.
           The arrowUp + accent treatment is the one the workout's .progline already uses for
           "the load went up". */}
-      <Row icon="arrowUp" iconTint="var(--acc)" title={t('Automatic progression')}>
+      <Row icon="arrowUp" title={t('Automatic progression')}>
         <button className="helpbtn" aria-label={t('How does automatic progression work?')} onClick={progressionHelpSheet}><Icon name="info" /></button>
         <Segmented className="seg-inline"
           options={[{ value: 'off', label: t('Off') }, { value: 'on', label: t('On') }]}
@@ -199,47 +198,44 @@ export default function Settings() {
           scrollable list, or that list stripped to just names and set rows (compact).
           Legacy/unknown values read as cards. The running session can override this from
           the workout header's ⋮ menu without changing this default. */}
-      <Row icon="list" iconTint="var(--blue)" title={t('Workout view')}>
-        <Segmented className="seg-inline"
-          options={[{ value: 'cards', label: t('Cards') }, { value: 'list', label: t('List') }, { value: 'compact', label: t('Compact') }]}
-          value={['list', 'compact'].includes(S.workoutView) ? S.workoutView : 'cards'}
-          onChange={v => update(s => { s.workoutView = v })} />
-      </Row>
+      <SelectRow icon="list" title={t('Workout view')}
+        value={['list', 'compact'].includes(S.workoutView) ? S.workoutView : 'cards'}
+        onChange={v => update(s => { s.workoutView = v })}
+        options={[{ value: 'cards', label: t('Cards') }, { value: 'list', label: t('List') }, { value: 'compact', label: t('Compact') }]} />
       {/* The lean workout screen keeps the sets and one "more" button per exercise; each switch
           brings one of the old always-visible button groups back for people who liked them. */}
-      <Row icon="wrench" iconTint="var(--purple)" title={t('Workout controls')} accessory="chevron"
+      <Row icon="wrench" title={t('Workout controls')} accessory="chevron"
         subtitle={t('Everything hidden here stays one tap away: the ⋯ button of an exercise and the number of a set.')}
         onClick={() => workoutControlsSheet()} />
-      <SelectRow icon="timer" iconTint="var(--orange)" title={t('Rest timer')}
+      <SelectRow icon="timer" title={t('Rest timer')}
         value={S.restSec} onChange={v => update(s => { s.restSec = v })}
         options={[{ value: 0, label: t('Off') }, ...[60, 90, 120, 150, 180].map(v => ({ value: v, label: v + 's' }))]} />
       {(wakeOK || !MOBILE) && (
-        <Row icon="sun" iconTint="var(--yellow)" title={t('Keep screen awake')}
+        <Row icon="sun" title={t('Keep screen awake')}
           subtitle={wakeOK ? null : t('Not supported in this browser.')}>
           <Switch checked={wakeOK && S.keepAwake !== false} disabled={!wakeOK}
             onChange={v => update(s => { s.keepAwake = v })} />
         </Row>
       )}
-      {/* 'full'/'mini' is also what the minimise toggle in the workout writes; 'off' hides the
-          picture in the workout entirely (library, detail sheet and picker thumbs are unaffected).
-          Legacy/unknown values read as 'full'. The key is still called gifSize: renaming it would
-          be a state migration for no behaviour. */}
-      <Row icon="figureRun" iconTint="var(--green)" title={t('Exercise pictures')}>
+      {/* The picture is a thumbnail in the exercise header now and opens to full size on tap, so
+          the old three-way size ('full'/'mini'/'off') has one option left that means anything:
+          hidden. Legacy 'mini' reads as 'full' — it meant "always small", which is what the
+          collapsed header does anyway. The key is still called gifSize: renaming it would be a
+          state migration for no behaviour. */}
+      <Row icon="figureRun" title={t('Exercise pictures')}>
         <Segmented className="seg-inline"
-          options={[{ value: 'full', label: t('Full') }, { value: 'mini', label: t('Small') }, { value: 'off', label: t('Hidden') }]}
-          value={S.gifSize === 'mini' || S.gifSize === 'off' ? S.gifSize : 'full'}
+          options={[{ value: 'full', label: t('On tap') }, { value: 'off', label: t('Hidden') }]}
+          value={S.gifSize === 'off' ? 'off' : 'full'}
           onChange={v => update(s => { s.gifSize = v })} />
       </Row>
       {/* A layer of its own, deliberately not the same setting as the picture above: the frame
           comes from img.youtube.com, the video is an embed. 'On tap' is the default and the
           reason the poster exists at all — nothing is requested from YouTube until you ask. */}
-      <Row icon="play" iconTint="var(--red)" title={t('Demo videos')}>
-        <Segmented className="seg-inline"
-          options={[{ value: 'off', label: t('Hidden') }, { value: 'button', label: t('On tap') }, { value: 'inline', label: t('Always') }]}
-          value={videoMode(S.video)}
-          onChange={v => update(s => { s.video = v })} />
-      </Row>
-      <Row icon="bell" iconTint="var(--pink)" title={t('Sounds')}>
+      <SelectRow icon="play" title={t('Demo videos')}
+        value={videoMode(S.video)}
+        onChange={v => update(s => { s.video = v })}
+        options={[{ value: 'off', label: t('Hidden') }, { value: 'button', label: t('On tap') }, { value: 'inline', label: t('Always') }]} />
+      <Row icon="bell" title={t('Sounds')}>
         {/* Turning Sounds on is a tap: unlock the audio context now so a timer that ends before
             the next set check can already sound (iOS, #152). */}
         <Switch checked={!!S.sound} onChange={v => { if (v) unlock(true); update(s => { s.sound = v }) }} />
@@ -248,22 +244,22 @@ export default function Settings() {
           the timer. On, the phone treats the timer like a music player — exclusive, and the
           music app is not told it may resume — so it is a choice, off by default (lib/sound.js). */}
       {S.sound && playOnSilentSupported() && (
-        <Row icon="bell" iconTint="var(--orange)" title={t('Play sounds when the phone is on silent')}
+        <Row icon="bell" title={t('Play sounds when the phone is on silent')}
           subtitle={t('Music playing on this phone stops during a workout and does not resume by itself.')}>
           <Switch checked={!!S.soundOnSilent} onChange={v => update(s => { s.soundOnSilent = v })} />
         </Row>
       )}
-      <Row icon="sun" iconTint="var(--yellow)" title={t('Flash screen when timer ends')}>
+      <Row icon="sun" title={t('Flash screen when timer ends')}>
         <Switch checked={!!S.timerFlash} onChange={v => update(s => { s.timerFlash = v })} />
       </Row>
-      {/* Two names for the same judgement, so the column asks in the scale you already think in.
-          The (i) sits before the control — you read it on the way to the choice, not after it. */}
-      <Row icon="target" iconTint="var(--purple)" title={t('Effort per set')}>
-        <button className="helpbtn" aria-label={t('What are RIR and RPE?')} onClick={effortHelpSheet}><Icon name="info" /></button>
-        <Segmented className="seg-inline"
-          options={[{ value: 'none', label: t('Off') }, { value: 'rir', label: t('RIR') }, { value: 'rpe', label: t('RPE') }]}
-          value={effortOf(S)} onChange={v => update(s => { s.effort = v; delete s.showRir })} />
-      </Row>
+      {/* Two names for the same judgement, so the picker asks in the scale you already think in.
+          The (i) sits before the value, the way it always did: Row renders a row that carries its
+          own help as a container with an overlay tap target, because a button may not contain a
+          button. The same table is also one tap away inside the picker. */}
+      <SelectRow icon="target" title={t('Effort per set')}
+        value={effortOf(S)} onChange={v => update(s => { s.effort = v; delete s.showRir })}
+        options={[{ value: 'none', label: t('Off') }, { value: 'rir', label: t('RIR') }, { value: 'rpe', label: t('RPE') }]}
+        help={<button className="helpbtn" aria-label={t('What are RIR and RPE?')} onClick={effortHelpSheet}><Icon name="info" /></button>} />
     </Section>
 
     {MOBILE && <MobileReminderCard S={S} update={update} toast={toast} />}
@@ -273,7 +269,7 @@ export default function Settings() {
 
     {/* ---------- appearance ---------- */}
     <Section title={t('Appearance')}>
-      <Row icon="moon" iconTint="var(--indigo)" title={t('Theme')}>
+      <Row icon="moon" title={t('Theme')}>
         <Segmented
           className="seg-inline"
           options={[
@@ -286,7 +282,7 @@ export default function Settings() {
         />
       </Row>
       {/* Purely how the muscle map is drawn — nothing else in the app reads this. */}
-      <Row icon="figureStrength" iconTint="var(--teal)" title={t('Body diagram')}>
+      <Row icon="figureStrength" title={t('Body diagram')}>
         <Segmented
           className="seg-inline"
           options={[{ value: 'male', label: t('Male') }, { value: 'female', label: t('Female') }]}
@@ -297,9 +293,13 @@ export default function Settings() {
       <div className="lrow" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12, paddingTop: 13, paddingBottom: 14 }}>
         <span className="lrow-t">{t('Accent color')}</span>
         <div className="swatches">
-          {Object.entries(ACCENTS).map(([k, c]) => (
-            <button key={k} className={'swatch' + ((S.accent || 'lime') === k ? ' on' : '')}
-              style={{ background: c }} onClick={() => update(s => { s.accent = k })} aria-label={k} />
+          {Object.entries(ACCENTS).map(([k, seed]) => (
+            // The dot is that accent's own primary for the theme that is on — the colour a filled
+            // button will actually be — not the seed hex, which is a tone-40 value that reads muddy
+            // in dark. --m3-accent-* is generated with the schemes; the seed is the fallback.
+            <button key={k} className={'swatch' + ((S.accent || DEFAULT_ACCENT) === k ? ' on' : '')}
+              style={{ background: 'var(--m3-accent-' + k + ', ' + seed + ')' }}
+              onClick={() => update(s => { s.accent = k })} aria-label={k} />
           ))}
         </div>
       </div>
@@ -307,20 +307,20 @@ export default function Settings() {
 
     {/* ---------- data: fill it, bring things over, back it up, wipe it ---------- */}
     <Section title={t('Data')}>
-      <Row icon="sparkles" iconTint="var(--acc)" title={t('Load starter plan')} accessory="chevron" onClick={starterPlanSheet} />
-      <Row icon="upload" iconTint="var(--teal)" title={t('Import a coach’s plan')}
+      <Row icon="sparkles" title={t('Load starter plan')} accessory="chevron" onClick={starterPlanSheet} />
+      <Row icon="upload" title={t('Import a coach’s plan')}
         subtitle={t('An Excel, CSV or Google Sheets week: his exercises, sets, reps and loads, read and reviewed before they land in your plan')}
         accessory="chevron" onClick={() => coachRef.current.click()} />
-      <Row icon="folder" iconTint="var(--teal)" title={t('Import from Google Drive')}
+      <Row icon="folder" title={t('Import from Google Drive')}
         subtitle={t('Pick a Google Sheets plan shared with you, straight from Drive')}
         accessory="chevron" onClick={importCoachPlanFromDrive} />
-      <Row icon="upload" iconTint="var(--blue)" title={t('Import backup')} accessory="chevron" onClick={() => fileRef.current.click()} />
-      <Row icon="download" iconTint="var(--blue)" title={t('Export backup (JSON)')} accessory="chevron" onClick={doExport} />
-      {MOBILE && <Row icon="history" iconTint="var(--blue)" title={t('Auto-backup on changes')}
+      <Row icon="upload" title={t('Import backup')} accessory="chevron" onClick={() => fileRef.current.click()} />
+      <Row icon="download" title={t('Export backup (JSON)')} accessory="chevron" onClick={doExport} />
+      {MOBILE && <Row icon="history" title={t('Auto-backup on changes')}
         subtitle={t('Saves a dated copy to the Documents folder after finishing a workout or editing a routine — point a sync app at it, or copy it out by hand.')}>
         <Switch checked={!!S.autoBackup} onChange={v => update(s => { s.autoBackup = v })} />
       </Row>}
-      <Row icon="trash" iconTint="var(--red)" title={t('Reset everything')} danger onClick={resetEverything} />
+      <Row icon="trash" title={t('Reset everything')} danger onClick={resetEverything} />
     </Section>
     <input ref={fileRef} type="file" accept=".json,application/json" style={{ display: 'none' }} onChange={doImport} />
     <input ref={coachRef} type="file" accept=".xlsx,.csv" style={{ display: 'none' }}
@@ -328,7 +328,7 @@ export default function Settings() {
 
     {/* "Add to Home screen" makes no sense inside the native app */}
     {!MOBILE && <Section title={t('Tip')}>
-      <Row icon="lightbulb" iconTint="var(--yellow)"
+      <Row icon="lightbulb"
         title={IS_ANDROID ? t('In Chrome: ⋮ menu → Add to Home screen') : t('In Safari: Share → Add to Home Screen')}
         subtitle={t('to install OlyGym as a full-screen app.') + ' ' + t('Guest data stays on this device — export a backup now and then!')} />
     </Section>}
@@ -340,12 +340,12 @@ export default function Settings() {
     {(!MOBILE || android) && <Section title={t('Updates')}
       footer={MOBILE ? t('Releases are checked on gitlab.com. The download is verified against its checksum before the installer opens.') : t('The web app updates together with your server. The Android app installs its own updates from here.')}>
       {MOBILE
-        ? <Row icon="download" iconTint="var(--acc)"
+        ? <Row icon="download"
             title={updateInfo?.hasUpdate ? t('Update to OlyGym v{0}', updateInfo.latestVersion) : t('Check for updates')}
             subtitle={checking ? t('Checking…') : t('You have v{0}', __APP_VERSION__)}
             accessory="chevron"
             onClick={() => (updateInfo?.hasUpdate ? onUpdateRowClick() : checkNow())} />
-        : <Row icon="download" iconTint="var(--acc)" title={t('Get the Android app')}
+        : <Row icon="download" title={t('Get the Android app')}
             subtitle={t('Download the APK from opengym.duarte-santos.ch')} accessory="chevron"
             onClick={() => window.open('https://opengym.duarte-santos.ch/#download', '_blank', 'noopener')} />}
     </Section>}
@@ -362,20 +362,6 @@ export default function Settings() {
   </div>
 }
 
-// The whole point is that the two scales are one judgement counted from opposite ends, and a
-// paragraph is a bad way to say that — the conversion table shows it in one look. Reading down
-// a column is the answer to "what do I put here", so the numbers get their own aligned columns.
-const EFFORT_ROWS = [
-  ['0', '10', 'Nothing left — went to failure'],
-  ['1', '9', 'One more rep in the tank'],
-  ['2', '8', 'Two more reps'],
-  ['3', '7', 'Three more reps'],
-  ['4+', '≤6', 'Easy — warm-up territory'],
-]
-// RIR 2 / RPE 8: the row a working set usually lands on — the anchor the others are read
-// against. Not where the stepper starts; + walks up from the bottom of the scale.
-const EFFORT_TYPICAL = 2
-
 // Settings → During a workout → Workout controls. S.wc overlays DEF.wc, so a profile from
 // before this setting existed reads as the lean default.
 function WorkoutControlsSheet() {
@@ -387,13 +373,13 @@ function WorkoutControlsSheet() {
     <h3>{t('Workout controls')}</h3>
     <div className="muted small" style={{ marginBottom: 12 }}>{t('Everything hidden here stays one tap away: the ⋯ button of an exercise and the number of a set.')}</div>
     <Section>
-      <Row icon="plus" iconTint="var(--acc)" title={t('Weight and reps buttons')} subtitle={t('Off: tap the number and type it')}>
+      <Row icon="plus" title={t('Weight and reps buttons')} subtitle={t('Off: tap the number and type it')}>
         <Switch checked={wc.steppers} onChange={v => set('steppers', v)} />
       </Row>
-      <Row icon="link" iconTint="var(--blue)" title={t('Complex buttons in the exercise header')}>
+      <Row icon="link" title={t('Complex buttons in the exercise header')}>
         <Switch checked={wc.pairButtons} onChange={v => set('pairButtons', v)} />
       </Row>
-      <Row icon="shuffle" iconTint="var(--teal)" title={t('Move, swap and remove buttons below the exercise')}>
+      <Row icon="shuffle" title={t('Move, swap and remove buttons below the exercise')}>
         <Switch checked={wc.exerciseButtons} onChange={v => set('exerciseButtons', v)} />
       </Row>
     </Section>
@@ -429,37 +415,15 @@ const DownloadProgress = forwardRef(function DownloadProgress(_, ref) {
   )
 })
 
-function effortHelpSheet() {
-  useUI.getState().openSheet(close => <>
-    <h3>{t('Effort per set')}</h3>
-    <div className="muted small" style={{ lineHeight: 1.5 }}>
-      {t('How hard a set was, logged next to weight and reps. Two scales for the same judgement, counted from opposite ends.')}
-    </div>
-    <div className="efftbl">
-      <div className="r hd"><span className="n">{t('RIR')}</span><span className="n">{t('RPE')}</span><span className="f">{t('How it felt')}</span></div>
-      {EFFORT_ROWS.map(([rir, rpe, feel], i) => (
-        <div key={rir} className={'r' + (i === EFFORT_TYPICAL ? ' on' : '')}>
-          <span className="n">{rir}</span><span className="n">{rpe}</span><span className="f">{t(feel)}</span>
-        </div>
-      ))}
-    </div>
-    <div className="dim small" style={{ lineHeight: 1.5, display: 'grid', gap: 8 }}>
-      <div>{t('RIR counts the reps you left; RPE reads the same effort off a 10-point scale — so RPE ≈ 10 − RIR. Pick the one you already think in.')}</div>
-      <div>{t('The highlighted row is where most working sets land. Sets you have already logged keep their own scale, and nothing else reads the value — progression is unaffected.')}</div>
-    </div>
-    <div style={{ height: 8 }} />
-  </>)
-}
-
-// Settings → During a workout → Automatic progression, the (i) beside the button group. The row
-// can only say off or on, so the reasoning lives here, the way effortHelpSheet carries the RIR/RPE
-// table for the row next to it. Everything below has to stay true to lib/progression.js: the step
+// Settings → Workout → Automatic progression, the (i) beside the button group. The row can only
+// say off or on, so the reasoning lives here, the way the effort picker carries the RIR/RPE table.
+// Everything below has to stay true to lib/progression.js: the step
 // (defaultIncrement), the deload (DELOAD_FACTOR / DELOAD_AFTER) and the per-exercise override
 // (policyFor), which is what makes the switch a default rather than a setting that overrules you.
 const PROG_STATES = [
-  ['xmark', 'var(--label-3)', 'With the switch off',
+  ['xmark', 'With the switch off',
     'Every planned weight stays exactly as written. A session starts there and the next one starts there again, so the only way the weight changes is you editing the plan.'],
-  ['check', 'var(--acc)', 'With the switch on',
+  ['check', 'With the switch on',
     'Hit every rep in every set and the next session starts one step heavier. Fall short and the weight holds where it is until you hit it.'],
 ]
 const PROG_NOTES = [
@@ -477,11 +441,11 @@ function ProgressionHelpSheet() {
       {t('Whether OlyGym moves the weight for you. It decides what a session starts at and what the next one is prescribed; it never rewrites a workout you have already logged.')}
     </div>
     <Section>
-      {PROG_STATES.map(([icon, tint, title, body]) => (
-        <Row key={title} icon={icon} iconTint={tint} title={t(title)} subtitle={t(body)} />
+      {PROG_STATES.map(([icon, title, body]) => (
+        <Row key={title} icon={icon} title={t(title)} subtitle={t(body)} />
       ))}
     </Section>
-    <h4 className="sec">{t('How the step is worked out')}</h4>
+    <div className="sech">{t('How the step is worked out')}</div>
     <div className="dim small" style={{ lineHeight: 1.5, display: 'grid', gap: 8 }}>
       {PROG_NOTES.map(note => <div key={note}>{t(note)}</div>)}
     </div>
@@ -508,14 +472,17 @@ function MobileReminderCard({ S, update, toast }) {
   return (
     <Section title={t('Notifications')}
       footer={S.reminder?.on ? t('Reminds you at this time on days that have a routine planned.') : null}>
-      <Row icon="calendar" iconTint="var(--orange)" title={t('Workout day reminder')}>
+      <Row icon="calendar" title={t('Workout day reminder')}>
         <Switch checked={!!S.reminder?.on} onChange={toggle} />
       </Row>
       {S.reminder?.on && (
-        <Row icon="clock" iconTint="var(--purple)" title={t('Reminder time')}>
-          <input type="time" className="timef" value={S.reminder?.time || DEF.reminder.time}
-            onChange={e => setReminder({ time: e.target.value })} />
-        </Row>
+        <Row icon="clock" title={t('Reminder time')} value={S.reminder?.time || DEF.reminder.time}
+          accessory="chevron"
+          onClick={() => timePickerSheet({
+            value: S.reminder?.time || DEF.reminder.time,
+            title: t('Reminder time'), presets: REMINDER_TIMES,
+            onPick: v => setReminder({ time: v })
+          })} />
       )}
     </Section>
   )
@@ -535,20 +502,20 @@ function EquipmentCard({ S, update }) {
     }),
   })
   return <Section title={t('Equipment')} footer={t('Filters the exercise library and picker, and flags routine exercises that need something you don’t have in the active profile.')}>
-    {profiles.length > 0 && <Row icon="dumbbell" iconTint="var(--acc)" title={t('Filter by equipment')}>
+    {profiles.length > 0 && <Row icon="dumbbell" title={t('Filter by equipment')}>
       <Switch checked={!!S.equipFilterOn} onChange={v => update(s => { s.equipFilterOn = v })} />
     </Row>}
-    {profiles.length > 0 && <SelectRow icon="list" iconTint="var(--blue)" title={t('Active profile')}
+    {profiles.length > 0 && <SelectRow icon="list" title={t('Active profile')}
       value={S.activeEquipId || ''} onChange={v => update(s => { s.activeEquipId = v })}
       options={profiles.map(p => ({ value: p.id, label: p.name }))} />}
     {profiles.map(p => (
-      <Row key={p.id} icon="dumbbell" iconTint="var(--teal)" title={p.name}
+      <Row key={p.id} icon="dumbbell" title={p.name}
         subtitle={t('{0} equipment types', p.equipment.length)} accessory="chevron"
         onClick={() => equipmentProfileSheet(p)}>
         <button className="iconbtn" aria-label={t('Delete')} onClick={ev => { ev.stopPropagation(); remove(p) }}><Icon name="trash" /></button>
       </Row>
     ))}
-    <Row icon="plus" iconTint="var(--acc)" title={t('Add equipment profile')} accessory="chevron" onClick={() => equipmentProfileSheet(null)} />
+    <Row icon="plus" title={t('Add equipment profile')} accessory="chevron" onClick={() => equipmentProfileSheet(null)} />
   </Section>
 }
 
