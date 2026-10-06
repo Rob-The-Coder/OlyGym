@@ -94,6 +94,8 @@ fun exCount(n: Int): String = I18nCore.t(if (n == 1) "{0} exercise" else "{0} ex
 
 fun routineCount(n: Int): String = I18nCore.t(if (n == 1) "{0} routine" else "{0} routines", n)
 
+fun dayCount(n: Int): String = I18nCore.t(if (n == 1) "{0} day" else "{0} days", n)
+
 /* ---------------------------------------------------------------- week start --
    Where a week begins is a local convention: most of Europe starts on Monday, the
    Americas on Sunday. The app used to assume Monday everywhere. It is now S.weekStart — a

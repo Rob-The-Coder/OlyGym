@@ -1,5 +1,6 @@
 package olygym.app.lib
 
+import kotlinx.serialization.json.JsonObject
 import olygym.app.data.Day
 import olygym.app.data.Week
 import org.junit.Assert.assertEquals
@@ -80,5 +81,61 @@ class WeeksTest {
             listOf("2026-03-23" to 1, "2026-03-29" to 0),
             weekDates(w, MONDAY).map { it.second to it.first.dow },
         )
+    }
+
+    /* -------------------------------------------------------- the plan list -- */
+
+    @Test
+    fun `nextWeekStart with no weeks is this week's first day, in the profile's order`() {
+        assertEquals("2026-10-05", nextWeekStart(emptyList(), "2026-10-08", MONDAY))
+        assertEquals("2026-10-04", nextWeekStart(emptyList(), "2026-10-08", SUNDAY))
+    }
+
+    @Test
+    fun `nextWeekStart follows the last week by seven days, whatever order it arrives in`() {
+        val weeks = listOf(week("b", "2026-10-12"), week("a", "2026-10-05"))
+        assertEquals("2026-10-19", nextWeekStart(weeks, "2026-10-08", MONDAY))
+    }
+
+    @Test
+    fun `daysInOrder is the profile's weekday order and keeps each day's live index`() {
+        // list index 0 is Monday, 1 is Sunday: the two weeks order them differently.
+        val w = Week(
+            id = "a",
+            startIso = "2026-03-23",
+            days = listOf(Day(dow = 1, name = "Mon"), Day(dow = 0, name = "Sun")),
+        )
+        assertEquals(listOf("Mon", "Sun"), daysInOrder(w, MONDAY).map { it.name })
+        assertEquals(listOf(0 to "Mon", 1 to "Sun"), dayEntries(w, MONDAY).map { it.second to it.first.name })
+        assertEquals(listOf("Sun", "Mon"), daysInOrder(w, SUNDAY).map { it.name })
+        assertEquals(listOf(1 to "Sun", 0 to "Mon"), dayEntries(w, SUNDAY).map { it.second to it.first.name })
+    }
+
+    @Test
+    fun `firstFreeDow is the first weekday the week leaves out, and Sunday when it is full`() {
+        val two = Week(id = "a", startIso = "2026-03-23", days = listOf(Day(dow = 1), Day(dow = 5)))
+        // Monday-first, the day after Monday; Sunday-first, Sunday itself is still free.
+        assertEquals(2, firstFreeDow(two, MONDAY))
+        assertEquals(0, firstFreeDow(two, SUNDAY))
+        val full = Week(id = "b", startIso = "2026-03-23", days = weekOrder(MONDAY).map { Day(dow = it) })
+        assertEquals(0, firstFreeDow(full, MONDAY))
+    }
+
+    @Test
+    fun `weekStats counts the exercises and the days already trained`() {
+        val monday = Day(dow = 1, name = "A", ex = listOf(JsonObject(emptyMap()), JsonObject(emptyMap())))
+        val wednesday = Day(dow = 3, name = "B", ex = listOf(JsonObject(emptyMap())))
+        val w = Week(id = "a", startIso = "2026-03-23", days = listOf(monday, wednesday))
+        val stats = weekStats(w, MONDAY, setOf("2026-03-25"))
+        assertEquals(listOf(1, 3), stats.days.map { it.dow })
+        assertEquals(3, stats.ex)
+        assertEquals(1, stats.done)
+    }
+
+    @Test
+    fun `rangeLabel spans the week's seven days`() {
+        val label = rangeLabel("2026-10-05")
+        assertEquals(true, label.contains(fmtDate("2026-10-05", long = false)))
+        assertEquals(true, label.contains(fmtDate("2026-10-11", long = false)))
     }
 }
