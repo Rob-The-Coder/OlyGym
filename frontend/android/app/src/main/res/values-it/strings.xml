@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="rest_channel_name">Timer di riposo</string>
+    <string name="rest_channel_desc">Mostra il conto alla rovescia del riposo tra le serie.</string>
+    <string name="rest_plus15">+15s</string>
+    <string name="rest_minus15">-15s</string>
+    <string name="rest_skip">Salta</string>
+</resources>

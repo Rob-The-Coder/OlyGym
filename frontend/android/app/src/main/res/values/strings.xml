@@ -4,4 +4,12 @@
     <string name="title_activity_main">OlyGym</string>
     <string name="package_name">olygym.app</string>
     <string name="custom_url_scheme">olygym.app</string>
+
+    <!-- Lock-screen rest timer: the channel is the only native copy; the notification itself is
+         titled and labelled from JS, so it follows the app's language either way. -->
+    <string name="rest_channel_name">Rest timer</string>
+    <string name="rest_channel_desc">Shows the rest countdown between sets.</string>
+    <string name="rest_plus15">+15s</string>
+    <string name="rest_minus15">-15s</string>
+    <string name="rest_skip">Skip</string>
 </resources>

@@ -8,6 +8,8 @@ import { setLang, useLang } from './lib/i18n.js'
 import { setPlayOnSilent } from './lib/sound.js'
 import { setNav } from './lib/nav.js'
 import { initBackButton } from './lib/back.js'
+import { MOBILE } from './lib/mobile.js'
+import { listenRestActions, onAppResume, readRestNotification, adoptNativeState } from './lib/rest-notification.js'
 import { useWakeLock } from './lib/wakelock.js'
 import { installViewportGuard } from './lib/viewport-guard.js'
 import { installChipDrag } from './lib/hchips.js'
@@ -114,6 +116,29 @@ function Shell() {
   }, [loc.pathname, navType])
   // bound to the workout, not to the route — checking Stats mid-session keeps the screen on
   useWakeLock(!!S.active && S.keepAwake !== false)
+
+  // Android lock-screen rest timer: adopt whatever the notification did while the app was away,
+  // and let its +15s/Skip drive the same store the in-app bar drives. A no-op off the native
+  // Android build (lib/rest-notification.js gates on MOBILE).
+  useEffect(() => {
+    if (!MOBILE) return
+    const reconcile = async () => {
+      const native = await readRestNotification()
+      if (!native) return
+      const ui = useUI.getState()
+      const next = adoptNativeState(native, ui.timer)
+      if (next) ui.adoptRest(next)
+      else if (ui.timer) ui.stopRest()
+    }
+    listenRestActions(({ type }) => {
+      const ui = useUI.getState()
+      if (type === 'skip' || type === 'expire') ui.stopRest()
+      else if (type === 'plus15') ui.addRest(15)
+      else if (type === 'minus15') ui.addRest(-15)
+    })
+    onAppResume(reconcile)
+    reconcile()
+  }, [])
 
   return (
     <>
