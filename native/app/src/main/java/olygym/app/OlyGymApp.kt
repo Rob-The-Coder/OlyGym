@@ -13,7 +13,10 @@ import olygym.app.data.StateStore
 class OlyGymApp : Application() {
     override fun onCreate() {
         super.onCreate()
-        store = StateStore(File(filesDir, StateStore.FILE)) { lang -> Assets.locale(this, lang) }
+        store = StateStore(
+            file = File(filesDir, StateStore.FILE),
+            localePack = { lang -> Assets.locale(this, lang) },
+        )
         // ponytail: 300 KB of catalogue JSON parsed on the main thread at startup. It is the work
         // the web app does at module load and it is one frame; move it off the main thread when a
         // trace says so.
