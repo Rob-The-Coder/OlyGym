@@ -52,6 +52,8 @@ data class Profile(
     val active: JsonObject?,
     val workouts: List<JsonObject>,
     val bodyweight: List<JsonObject>,
+    /** The user's own exercises — the ones merged into the catalogue index. */
+    val customEx: List<Exercise>,
 ) {
     /** The exercise of the running session the workout screen is on. */
     val cur: Int get() = active?.int("cur") ?: 0
@@ -174,6 +176,9 @@ class StateStore(
         } else {
             p.weeks
         }
+        // The user's own exercises go into the catalogue index here, so a day that references one
+        // shows its name instead of its id. Only on a change: this runs on every write.
+        if (Catalogue.installedCustomIds() != p.customEx.map { it.id }) Catalogue.registerCustom(p.customEx)
         val settings = Settings(
             unit = p.unit,
             weekStart = p.weekStart,
@@ -201,6 +206,7 @@ class StateStore(
                 active = raw.obj("active"),
                 workouts = raw.arr("workouts").mapNotNull { it.asObj() },
                 bodyweight = raw.arr("bodyweight").mapNotNull { it.asObj() },
+                customEx = p.customEx,
             )
         )
     } catch (e: Exception) {

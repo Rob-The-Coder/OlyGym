@@ -30,6 +30,8 @@ data class Persisted(
     /** Whether ticking a set and the end of a rest make a sound. On unless it was turned off. */
     val sound: Boolean = true,
     val weeks: List<Week> = emptyList(),
+    /** The user's own exercises. They are merged into the catalogue index on every read. */
+    val customEx: List<Exercise> = emptyList(),
     /** The repeating plan that predates S.weeks; migrate-weeks.js reads it, and so does this. */
     val routines: List<Routine> = emptyList(),
     /** weekday -> routine ids, in the old shape. Read by the migration only. */

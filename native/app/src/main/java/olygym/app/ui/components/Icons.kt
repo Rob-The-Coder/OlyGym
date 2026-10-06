@@ -35,11 +35,11 @@ enum class Glyph {
     // training
     DUMBBELL, BARBELL, SCALE, FLAME, TIMER, CLOCK,
     // status
-    TROPHY, TARGET, SPARKLES, LIGHTBULB,
+    TROPHY, TARGET, SPARKLES, LIGHTBULB, STAR, STAR_FILLED,
     // actions
     PLUS, MINUS, CHECK, CHECK_CIRCLE, XMARK, PENCIL, TRASH, LINK, PLAY, RESET,
     CHEVRON_RIGHT, CHEVRON_LEFT, CHEVRON_DOWN, CHEVRON_UP, ARROW_UP, ARROW_DOWN,
-    MINIMIZE, LIST, CLIPBOARD, FLAG, SHUFFLE, INFO, MORE, HISTORY, WARNING,
+    MINIMIZE, LIST, CLIPBOARD, FLAG, SHUFFLE, INFO, MORE, HISTORY, WARNING, CHART_LINE,
     // objects
     MOON, DOT,
 }
@@ -147,6 +147,10 @@ val GLYPHS: Map<Glyph, List<IconPart>> = mapOf(
         stroke("m16.2 12.4.8 2.1 2.1.8-2.1.8-.8 2.1-.8-2.1-2.1-.8 2.1-.8Z"),
     ),
     Glyph.LIGHTBULB to listOf(stroke("M9.2 16.4a5.6 5.6 0 1 1 5.6 0v1.8H9.2Z"), stroke("M10 20.6h4")),
+    Glyph.STAR to listOf(stroke("m12 3.9 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8Z")),
+    Glyph.STAR_FILLED to listOf(
+        IconPart.SolidPath("m12 3.9 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8Z")
+    ),
 
     Glyph.PLUS to listOf(stroke("M12 5.2v13.6M5.2 12h13.6")),
     Glyph.MINUS to listOf(stroke("M5.2 12h13.6")),
@@ -199,6 +203,7 @@ val GLYPHS: Map<Glyph, List<IconPart>> = mapOf(
     ),
     Glyph.WARNING to listOf(stroke("M12 3.4 21.2 19.4H2.8Z"), stroke("M12 9.6v4.4"), dot(12.0, 16.6, 0.9)),
 
+    Glyph.CHART_LINE to listOf(stroke("M3.6 20.2V4.4M3.6 20.2h16.8M6.4 16.4l3.9-4.8 3.1 2.7 5.2-6.6")),
     Glyph.MOON to listOf(stroke("M19.4 14.2A7.8 7.8 0 0 1 9.8 4.6a8.2 8.2 0 1 0 9.6 9.6Z")),
     Glyph.DOT to listOf(dot(12.0, 12.0, 4.2)),
 )

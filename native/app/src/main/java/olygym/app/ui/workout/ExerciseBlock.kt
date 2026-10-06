@@ -118,6 +118,9 @@ private fun CellStepper(
             onChange = onChange,
             decimal = decimal,
             nullable = nullable,
+            // A two-digit value has to fit between two step buttons on a 360dp phone: the smaller
+            // role is what the web's media queries achieve by shrinking the cell at this width.
+            textStyle = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f),
         )
         if (buttons) {
@@ -136,10 +139,10 @@ internal fun stepValue(current: Double?, dir: Double, step: Double = 1.0): Doubl
 @Composable
 private fun StepButton(glyph: Glyph, description: String, onClick: () -> Unit) {
     Box(
-        modifier = Modifier.size(32.dp, 40.dp).clickable(onClick = onClick),
+        modifier = Modifier.size(26.dp, 40.dp).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        GlyphIcon(glyph, Modifier.size(18.dp))
+        GlyphIcon(glyph, Modifier.size(16.dp))
     }
 }
 
@@ -229,6 +232,9 @@ fun ExerciseBlock(
     onBarWeight: () -> Unit,
     onNote: () -> Unit,
     onRemoveExercise: () -> Unit,
+    onDetails: () -> Unit,
+    onProgression: () -> Unit,
+    onSwap: () -> Unit,
     modifier: Modifier = Modifier,
     onPairPrev: (() -> Unit)? = null,
     onPairNext: (() -> Unit)? = null,
@@ -330,12 +336,25 @@ fun ExerciseBlock(
                     sub = entry.str("note"),
                     onClick = onNote,
                 ),
+                MenuItem(label = t("Details"), icon = Glyph.INFO, onClick = onDetails),
+                MenuItem(
+                    label = t("Progression settings"),
+                    icon = Glyph.CHART_LINE,
+                    sub = guidance?.let { t(it.policyLabel) },
+                    onClick = onProgression,
+                ),
                 barInfo?.let {
                     MenuItem(label = t("Bar weight"), icon = Glyph.BARBELL, sub = it, onClick = onBarWeight)
                 },
                 MenuItem(label = t("Add warm-up set"), icon = Glyph.FLAME, onClick = onAddWarmup),
                 onPairPrev?.let { MenuItem(label = t("Make complex with previous"), icon = Glyph.LINK, onClick = it) },
                 onPairNext?.let { MenuItem(label = t("Make complex with next"), icon = Glyph.LINK, onClick = it) },
+                MenuItem(
+                    label = t("Swap exercise"),
+                    icon = Glyph.SHUFFLE,
+                    disabled = busy,
+                    onClick = onSwap,
+                ),
                 onMoveUp?.let {
                     MenuItem(label = t("Move up"), icon = Glyph.CHEVRON_UP, disabled = busy || !canMoveUp, onClick = it)
                 },

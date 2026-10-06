@@ -83,13 +83,19 @@ that is expected.
   row, or the merged complex's single rounds table (a complex draws its members' own tables). The
   data written is identical; what is missing is three pieces of presentation, and the JS for each is
   in `Workout.jsx` (`onSwipePointerDown`, the two scroll effects, `RoundsTable`).
-- The tab bar's Stats and Exercises tabs are placeholders, and the exercise picker — `Add exercise`,
-  `Swap exercise`, freestyle — is the next phase. Their absence is stated on screen rather than
-  silently doing nothing.
+- The tab bar's Stats and Exercises tabs are placeholders, and Settings has no door yet. Their
+  absence is stated on screen rather than silently doing nothing.
+- The exercise picker is ported without its demo thumbnails (media is its own phase), without the
+  "By muscle" explorer and the Library's shared filter sheet, and the exercise history sheet is not
+  ported at all — it needs the charts. See the Phase 1c list in docs/PORT-TO-KOTLIN.md.
+- `Catalogue` is module-level, so a test that reads through it — `defaultIncrement`, a name lookup —
+  must not assume whether another test class has installed a catalogue yet: assert against the same
+  function rather than against a value that depends on it.
 
 ## What is already ported
 
 `Format`, `I18nCore`, `Weeks`, `MigrateWeeks` (Phase 0), the rest of the day-one closure plus
-`WorkoutControls`, `ProgressionCopy` and `NumInput` (Phase 1a/1b). Read `WorkoutModel.kt` and
+`WorkoutControls`, `ProgressionCopy`, `NumInput`, `Favourites`, `Equipment`, `LibraryFilter` and
+`Usage` (Phase 1a/1b/1c). Read `WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.

@@ -62,6 +62,25 @@ private fun setNoBar(id: String, on: Boolean) {
 
 @Composable
 private fun BarWeightSheet(exId: String, close: () -> Unit) {
+    Column(Modifier.fillMaxWidth()) {
+        SheetTitle(t("Bar weight"))
+        SheetNote(Catalogue.nameOf(exId))
+        BarWeightEditor(exId, t("Applies to this exercise everywhere, not just this plan."))
+        Button(
+            text = t("Done"),
+            onClick = close,
+            variant = ButtonVariant.PRIMARY,
+        )
+    }
+}
+
+/**
+ * The editor itself, shared with the exercise config sheet: a stepper over the effective value, the
+ * "No bar" switch, and the line that says what the current state means. Everything below reads the
+ * profile afresh, because the config sheet holds it open while the value changes.
+ */
+@Composable
+fun BarWeightEditor(exId: String, extra: String? = null) {
     val profile = currentProfile() ?: return
     val unit = profile.settings.unit
     val ex = Catalogue[exId]
@@ -72,9 +91,6 @@ private fun BarWeightSheet(exId: String, close: () -> Unit) {
     val current = barWeightFor(raw, js("id" to exId)) ?: 0.0
 
     Column(Modifier.fillMaxWidth()) {
-        SheetTitle(t("Bar weight"))
-        SheetNote(Catalogue.nameOf(exId))
-
         if (!noBar) {
             Stepper(
                 value = current,
@@ -101,16 +117,10 @@ private fun BarWeightSheet(exId: String, close: () -> Unit) {
                 noBar -> t("Plates are counted from 0 — turn this off for the default ({0}).", defaultText)
                 explicit -> t("Set to 0 to go back to the default ({0}).", defaultText)
                 else -> t("Default for this bar type.")
-            },
+            } + (extra?.let { " " + it } ?: ""),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 14.dp),
-        )
-
-        Button(
-            text = t("Done"),
-            onClick = close,
-            variant = ButtonVariant.PRIMARY,
         )
     }
 }
