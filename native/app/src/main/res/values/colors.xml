@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The pre-first-frame window background only. Screens read roles from the Compose theme,
+         never from here. Value is the surface role of the default (violet) dark scheme in
+         frontend/src/m3.tokens.css. -->
+    <color name="surface">#151219</color>
+</resources>

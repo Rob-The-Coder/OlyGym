@@ -2,8 +2,9 @@
 # but an instance that ran an older version still has the folder sitting there.
 media/
 
-# Runtime data — users, passkeys, per-user state, session secret
-data/
+# Runtime data — users, passkeys, per-user state, session secret. Anchored to the repository root:
+# unanchored, this also hides any nested directory called data, source packages included.
+/data/
 
 # Local config
 .env

@@ -1,0 +1,21 @@
+// Top-level build file. The buildscript classpath rather than the plugins {} DSL: the Gradle
+// plugin markers are not in this machine's offline dependency cache and Google Maven is
+// unreachable, while the plugin jars themselves are. frontend/android has the same shape for the
+// same reason.
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.13.2'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.0'
+        classpath 'org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.4.0'
+        classpath 'org.jetbrains.kotlin:kotlin-serialization:2.4.0'
+    }
+}
+
+tasks.register('clean', Delete) {
+    delete rootProject.layout.buildDirectory
+}

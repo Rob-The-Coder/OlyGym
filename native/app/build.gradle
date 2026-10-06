@@ -1,0 +1,71 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
+apply plugin: 'org.jetbrains.kotlin.plugin.serialization'
+
+android {
+    namespace = 'olygym.app'
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = 'olygym.app'
+        minSdk = 24
+        targetSdk = 35
+        versionCode = 1
+        versionName = '0.1.0'
+    }
+
+    buildTypes {
+        debug {
+            // The native app must install beside the shipping Capacitor app and get its own
+            // sandbox, or the two would fight over /data/data/<pkg>/files/opengym-state.json.
+            // Cutover is deleting this one line: the release build then is olygym.app.
+            applicationIdSuffix '.dev'
+        }
+        release {
+            minifyEnabled false
+        }
+    }
+
+    buildFeatures {
+        compose true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+        // java.time on minSdk 24. The date helpers are the ones that need it.
+        coreLibraryDesugaringEnabled true
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
+dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
+
+    implementation platform('androidx.compose:compose-bom:2026.06.01')
+    implementation 'androidx.core:core-ktx:1.18.0'
+    implementation 'androidx.activity:activity-compose:1.13.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.10.0'
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.compose.foundation:foundation'
+    implementation 'androidx.compose.material3:material3'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+
+    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0'
+
+    // Navigation, the library Komikku uses (cafe.adriel.voyager). It replaces the
+    // navigation-compose named in docs/PORT-TO-KOTLIN.md, which is not in the offline cache.
+    implementation 'cafe.adriel.voyager:voyager-navigator:1.1.0-beta03'
+    implementation 'cafe.adriel.voyager:voyager-tab-navigator:1.1.0-beta03'
+    implementation 'cafe.adriel.voyager:voyager-transitions:1.1.0-beta03'
+    implementation 'cafe.adriel.voyager:voyager-screenmodel:1.1.0-beta03'
+
+    testImplementation 'junit:junit:4.13.2'
+}

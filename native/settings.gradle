@@ -1,0 +1,10 @@
+// OlyGym native. One module. See native/README.md for the offline build recipe.
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'OlyGym'
+include ':app'
