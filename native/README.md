@@ -1,17 +1,19 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 2a**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 2e**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
 sheet, swap and freestyle are here too — writes the plan itself (Plan and the week editor, with the
-starter plans, the complexes and a pure write for every edit), and reads it back: Stats, with the
+starter plans, the complexes and a pure write for every edit), reads it back (Stats, with the
 activity heatmap, the muscle balance and its fatigue view, the effort card, the body-weight and
-per-exercise curves, and the workout detail sheet behind the recent sessions), and the log itself is
-readable and writable: History, with its search and month headings, and log-a-past-workout), and
-Settings is here — the preferences, the appearance and the data, with backup export/import through
-the platform's own file picker. **Phase 2 is complete**; the Library is the remaining screen.
+per-exercise curves, and the workout detail sheet behind the recent sessions), keeps the log
+readable and writable (History, with its search, its month headings and log-a-past-workout), browses
+the catalogue (the Library, its shared filter sheet and the By-muscle explorer), and is configured
+(Settings — the preferences, the appearance and the data, with backup export/import through the
+platform's own file picker). **Phase 2 is complete**; phase 3 is what is left, plus the media and
+the exercise history sheet.
 
 ## Pinned toolchain
 
@@ -46,7 +48,7 @@ cached under the plugin portal while their transitive dependencies were cached u
 ```bash
 cd native
 
-# unit tests — 574 of them, no emulator, about twenty seconds
+# unit tests — 575 of them, no emulator, about twenty seconds
 GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
   ./gradlew :app:testDebugUnitTest --offline
 
@@ -97,6 +99,14 @@ the plan and the log, a row's "+" adds with the default config (a toast names th
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
 
+Phase 2e's check is the catalogue. The Exercises tab opens on the whole 624 with the filters that
+are on: the list reads 505 once the "Casa" profile is applied, the three favourites are starred at
+the top with their best weights, and the Filters chip carries the one filter. The sheet re-counts its
+commit button as a body part is picked ("Show 52 exercises"), the equipment strip disappears when that
+filter leaves it one option, and committing closes the sheet on two applied chips and a 52-row list;
+dropping one chip puts the 505 back. "Per muscolo" pushes the explorer: eighteen muscles with their
+counts, a picked one highlighted with its "Esercizi per trapezio" list at the same 140, and the search
+field narrowing that to 69. The pictures in `oly-previews/native-phase2e/` are each of those steps.
 Phase 2d's check is Settings: Home's gear opens it, the language row swaps the whole UI to Italian
 and back, changing the accent re-themes the app as you tap the swatch (the file shows the new key),
 and Esposta backup (JSON) opens the system's "save to" picker with a dated file name. "Azzera tutto"
@@ -151,14 +161,15 @@ app/src/main/java/olygym/app/
   lib/                  the ported domain helpers, one file per React helper: all nineteen of the
                         day-one closure, plus Format, I18nCore, Weeks, MigrateWeeks, PlanEdit,
                         Starter, Recovery, ChartMath, Activity, Progress, HistoryView and Settings
-  rest/                 RestTimer, its foreground service, its receiver and its notification
-  rest/                 the rest mirror: the notification, its service, its receiver, its state
+  rest/                 RestTimer, its foreground service, its receiver, its notification and
+                        the rest mirror the app ticks from
   platform/             Sound (tones and haptics)
   ui/                   the shell (AppNavigator, tabs, rest bar, toast, sheet host), Home, Plan
-                        and the week editor, the session screen, the sheets, the shared controls
-                        and the theme
+                        and the week editor, the session screen, Stats, History, the Library and
+                        its By-muscle explorer, Settings, the sheets, the shared controls and the
+                        theme
 app/src/main/assets/    the two generated assets
-app/src/test/java/      574 JVM tests, one per ported behaviour
+app/src/test/java/      575 JVM tests, one per ported behaviour
 ```
 
 The helpers keep the React filenames and are one-to-one ports, so a diff against `frontend/src/lib`

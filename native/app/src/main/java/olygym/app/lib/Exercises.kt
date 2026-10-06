@@ -3,8 +3,10 @@ package olygym.app.lib
 import java.text.Normalizer
 import java.util.WeakHashMap
 import kotlin.math.abs
+import kotlinx.serialization.json.JsonObject
 import olygym.app.data.Catalogue
 import olygym.app.data.Exercise
+import olygym.app.data.js
 
 /*
  * The catalogue's pure helpers — a port of frontend/src/lib/exercises.js.
@@ -34,6 +36,15 @@ fun smOf(ex: Exercise?): List<String> {
     val additions = ex?.id?.let { SECONDARY_ADDITIONS[it] } ?: emptyList()
     return (base + additions).distinct()
 }
+
+/**
+ * The catalogue entry as the plain JSON muscles.js reads — its own view of the exercise, which is
+ * not the same as the data class: [smOf] normalized, and eq kept because the recovery load path
+ * reads it (`ex.eq === 'body weight'`). One materialisation, shared by the progression step, the
+ * recovery map and the muscle explorer; it used to be a private copy in two of them.
+ */
+fun exerciseJson(ex: Exercise): JsonObject =
+    js("id" to ex.id, "n" to ex.n, "bp" to ex.bp, "eq" to ex.eq, "tg" to ex.tg, "sm" to smOf(ex))
 
 // Equipment options present in a given list of exercises, most common first (issue #6).
 fun equipmentOf(list: List<Exercise>): List<String> {

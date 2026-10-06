@@ -83,11 +83,16 @@ that is expected.
   row, or the merged complex's single rounds table (a complex draws its members' own tables). The
   data written is identical; what is missing is three pieces of presentation, and the JS for each is
   in `Workout.jsx` (`onSwipePointerDown`, the two scroll effects, `RoundsTable`).
-- The tab bar's Stats and Exercises tabs are placeholders, and Settings has no door yet. Their
-  absence is stated on screen rather than silently doing nothing.
-- The exercise picker is ported without its demo thumbnails (media is its own phase), without the
-  "By muscle" explorer and the Library's shared filter sheet, and the exercise history sheet is not
-  ported at all — it needs the charts. See the Phase 1c list in docs/PORT-TO-KOTLIN.md.
+- All four tabs are live (Home, Plan, Stats, Library) and Settings has its door on Home. What is
+  still stated rather than shown is the media, the exercise history sheet and the body map.
+- Media is not ported anywhere: the Library's rows, the picker's rows and the detail sheet all draw
+  the app's own glyph where the web shows the YouTube poster frame, and the detail sheet has no
+  gallery. It is its own phase — it needs an image loader and the network permission, which nothing
+  else in this app has asked for. The exercise history sheet behind the detail sheet's row is in the
+  same position: it needs the charts. See the Phase 1c and 2e lists in docs/PORT-TO-KOTLIN.md.
+- The Library's list is all of it — no 40-row page and no "Show more" — because a LazyColumn builds
+  only what is on screen; its search field scrolls away with the list instead of sticking under the
+  bar, and the By-muscle explorer is a screen of its own rather than a mode inside the picker.
 - The plan editor draws a row's three actions (link, up, down) at 34dp, through a private `RowIcon` in
   `ui/plan/WeekEditScreen.kt`. The app's `IconButton` is 44dp, and four of those on a 360dp phone
   would leave the exercise's own name nothing — the same compromise the set rows' step buttons make.
@@ -129,7 +134,9 @@ that is expected.
 `Format`, `I18nCore`, `Weeks`, `MigrateWeeks` (Phase 0), the rest of the day-one closure plus
 `WorkoutControls`, `ProgressionCopy`, `NumInput`, `Favourites`, `Equipment`, `LibraryFilter` and
 `Usage` (Phase 1a/1b/1c), `PlanEdit` and `Starter` (Phase 2a), `Recovery`, `ChartMath`, `Activity`
-and `Progress` (Phase 2b), `HistoryView` (Phase 2c), and `Settings` (Phase 2d — the option lists the
-screen offers, and what a reset leaves behind). Read `WorkoutModel.kt` and
+and `Progress` (Phase 2b), `HistoryView` (Phase 2c) and `Settings` (Phase 2d — the option lists the
+screen offers, and what a reset leaves behind), plus the By-muscle reads in `LibraryFilter` (Phase
+2e — `muscleWeightOf` and `muscleCounts`, over the one `exerciseJson` that the progression, recovery
+and explorer reads now share). Read `WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.

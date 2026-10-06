@@ -10,7 +10,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.doubleOrNull
 import olygym.app.data.Catalogue
-import olygym.app.data.Exercise
 import olygym.app.data.arr
 import olygym.app.data.asNum
 import olygym.app.data.asObj
@@ -82,12 +81,8 @@ private fun n0(value: JsonElement?): Double {
     return if (d == null || d.isNaN()) 0.0 else d
 }
 
-// The catalogue's exercise objects are materialised into the JSON muscles.js reads (its own
-// catalogueJson is private to Muscles.kt). The JS caches isHeavy in a WeakMap for render cost; the
-// port computes it per call rather than keep a second cache of a lookup that is already cheap.
-private fun exerciseJson(ex: Exercise): JsonObject =
-    js("id" to ex.id, "n" to ex.n, "bp" to ex.bp, "tg" to ex.tg, "sm" to ex.sm)
-
+// The JS caches isHeavy in a WeakMap for render cost; the port computes it per call rather than
+// keep a second cache of a lookup that is already cheap.
 private fun isHeavy(exId: String?): Boolean {
     val ex = exId?.let { Catalogue[it] } ?: return false
     val weights = musclesOf(exerciseJson(ex))

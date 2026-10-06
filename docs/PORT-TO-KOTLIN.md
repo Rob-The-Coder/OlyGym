@@ -595,3 +595,55 @@ actually reads — the general ones, the ones the workout screen obeys, the appe
   effort help's `(i)` are in the same position — the rows work, the help buttons are absent.
 - A few rows carry **no glyph**: the app's own icon set has no globe, bell, sun, upload or download
   yet, and adding one means transcribing its path from `Icon.jsx`. The rows read fine without them.
+
+---
+
+## Phase 2e — the catalogue and the By-muscle explorer
+
+The fourth tab is the catalogue now: search 624 lifts, narrow them with one filter sheet, see the best
+weight each has already moved, and start from a muscle instead of a search box.
+
+**575 JVM tests.** The device checks are in `native/README.md`; screenshots in
+`oly-previews/native-phase2e/`.
+
+### What it adds
+
+- **The Library** (`ui/library/LibraryScreen.kt`, replacing the tab placeholder): the search field,
+  the Filters chip that carries how many filters are on, the chips that drop one without reopening
+  the sheet, the create-your-own row, the list with a best-weight pill, and the no-match state that
+  offers the one tap which undoes all of it. The title button opens the By-muscle explorer.
+- **The filter sheet** (`ui/sheet/LibraryFilterSheet.kt`): body part, equipment, "Only my equipment",
+  and a commit button whose count is the count you get. The screen passes its own filter function in
+  (`describeFor`), so the sheet cannot drift from the list it is filtering, and the sheet keeps its
+  own state until "Show N exercises" — trying a body part and backing out changes nothing. A body
+  part with no dumbbell work cannot leave "Dumbbell" chosen, because the effective value comes back
+  from the same call that counts.
+- **The By-muscle explorer** (`ui/library/MuscleExplorerScreen.kt`): the eighteen muscles and how many
+  exercises train each, then — once one is picked — the same search, the same sheet and the same rows
+  the Library uses, with "Primary target"/"Also trains" and the counts narrowed by the active
+  equipment profile.
+- **One row, one chip**: the picker's private row, thumb and chip are now `ExerciseRow`, `Thumb`,
+  `BestWeightTag` and `Chip` in `ui/components/`, and all three screens draw them. The name is
+  capitalised in that one row, which is what the web CSS did and the picker never did.
+- **Three readings fold together**: `exerciseJson` was a private copy in both `Progression.kt` and
+  `Recovery.kt` (plus another in `MusclesTest`); it is one function in `lib/Exercises.kt` now. The
+  explorer's own reads — `muscleWeightOf` and `muscleCounts` — are in `lib/LibraryFilter.kt` with a
+  test, and materialise each exercise once rather than once per muscle.
+
+### Deliberately not in 2e
+
+- **The demo media** — the row thumbnails, the config's poster, the detail sheet's gallery: the
+  `Thumb` is still the app's own glyph. Media is its own phase, and it is the same omission the
+  picker and the detail sheet have carried since Phase 1c.
+- **The exercise history sheet** behind the detail sheet's row: it needs the chart work in its own
+  phase.
+- **The body silhouette** above the muscle chips. It is ~90 KB of SVG paths plus a path renderer, the
+  same deliberate omission the Stats balance and fatigue views carry; the chips under it already say
+  which muscle is which and how many exercises train it.
+- **Show more.** The web paginates at 40 rows because six hundred DOM nodes are expensive; a
+  LazyColumn builds only what is on screen, so the list is simply all there and the button is gone.
+- **A sticky search field.** It heads the list and scrolls away with it; on the web it sticks under
+  the bar. A sticky header is a later polish, not a missing read.
+- **The By-muscle mode inside the picker.** The explorer is its own screen; the picker still offers
+  search and its two shortcuts. Wiring a pick back out of a sheet is its own piece of work.
+
