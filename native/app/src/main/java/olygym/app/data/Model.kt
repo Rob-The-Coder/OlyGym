@@ -2,9 +2,6 @@ package olygym.app.data
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.booleanOrNull
-import kotlinx.serialization.json.contentOrNull
 
 /**
  * The persisted profile, as far as this phase reads it. The whole point is that the file is the
@@ -22,6 +19,10 @@ data class Persisted(
     val theme: String = "dark",
     val accent: String = "violet",
     val wdec: Int = 1,
+    /** The weight goal, or null when there is none. Shown on Home's body-weight card. */
+    val targetW: Double? = null,
+    /** Whether Start opens the quick weigh-in first. Defaults on for a profile written before it. */
+    val weighIn: Boolean? = null,
     val weeks: List<Week> = emptyList(),
     /** The repeating plan that predates S.weeks; migrate-weeks.js reads it, and so does this. */
     val routines: List<Routine> = emptyList(),
@@ -73,15 +74,6 @@ data class Settings(
     val theme: String,
     val accent: String,
     val wdec: Int,
+    val targetW: Double?,
+    val weighIn: Boolean,
 )
-
-/**
- * Read a JSON field without committing to a type. The plan file stores sets, reps and weights as
- * numbers, but it also carries hand-edited and imported data, so a wrong type must read as absent
- * rather than throw away the whole profile.
- */
-fun JsonObject.str(key: String): String? = (this[key] as? JsonPrimitive)?.contentOrNull
-
-fun JsonObject.int(key: String): Int? = (this[key] as? JsonPrimitive)?.contentOrNull?.trim()?.toIntOrNull()
-
-fun JsonObject.bool(key: String): Boolean? = (this[key] as? JsonPrimitive)?.booleanOrNull
