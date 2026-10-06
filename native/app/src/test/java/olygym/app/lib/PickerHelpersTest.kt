@@ -150,13 +150,15 @@ class PickerHelpersTest {
     @Test
     fun `the step is what the config asks for, or the dataset's own default`() {
         assertEquals(1.25, progressionStepOf(js("inc" to 1.25), "reps", "wl77"), 1e-9)
-        // With no catalogue installed no id is heavy, so the dataset default is the small step —
-        // the heavy-lift rule itself is ProgressionTest's business.
-        assertEquals(2.5, progressionStepOf(js(), "reps", "wl39"), 1e-9)
-        assertEquals(5.0, progressionStepOf(js(), "time", "wl39"), 1e-9)
+        // The dataset's own default is read through defaultIncrement rather than spelled out: the
+        // catalogue is module-level, and whether a test JVM has installed one is another test's
+        // business (the heavy-lift rule itself is ProgressionTest's).
+        assertEquals(defaultIncrement("wl39"), progressionStepOf(js(), "reps", "wl39"), 1e-9)
+        assertEquals(defaultIncrement("wl101"), progressionStepOf(js("inc" to null), "reps", "wl101"), 1e-9)
         assertEquals(0.0, progressionStepOf(js("inc" to 0.0), "reps", "wl39"), 1e-9)
-        // An absent step is the dataset's, not zero.
-        assertEquals(2.5, progressionStepOf(js("inc" to null), "reps", "wl101"), 1e-9)
+        // Time is the mode's own step, not the dataset's.
+        assertEquals(5.0, progressionStepOf(js(), "time", "wl39"), 1e-9)
+        assertEquals(5.0, progressionStepOf(js("inc" to null), "time", "wl39"), 1e-9)
     }
 
     @Test

@@ -97,6 +97,7 @@ import olygym.app.ui.sheet.MenuItem
 import olygym.app.ui.sheet.barWeightSheet
 import olygym.app.ui.sheet.chooseSheet
 import olygym.app.ui.sheet.confirmSheet
+import olygym.app.ui.sheet.exerciseDetailSheet
 import olygym.app.ui.sheet.exerciseNoteSheet
 import olygym.app.ui.sheet.menuSheet
 import olygym.app.ui.sheet.renameWorkoutSheet
@@ -116,6 +117,9 @@ private class BlockActions(
     val onBarWeight: (Int) -> Unit,
     val onNote: (Int) -> Unit,
     val onRemoveExercise: (Int) -> Unit,
+    val onDetails: (Int) -> Unit,
+    val onProgression: (Int) -> Unit,
+    val onSwap: (Int) -> Unit,
     val onPair: (Int, Int) -> Unit,
     val onUnpair: (Int) -> Unit,
     val onMove: (Int, Int) -> Unit,
@@ -205,7 +209,7 @@ private fun StartChooser() {
             // so this says so rather than opening an empty session with no way to add anything.
             Button(
                 text = t("Freestyle workout (pick as you go)"),
-                onClick = { ui.toast(t("The exercise picker arrives with the next phase.")) },
+                onClick = { startFlow(null) },
                 icon = Glyph.SHUFFLE,
                 modifier = Modifier.padding(top = 14.dp),
             )
@@ -258,6 +262,9 @@ private fun ActiveWorkout(profile: Profile) {
         onBarWeight = { index -> barWeightSheet(entries[index].str("id").orEmpty()) },
         onNote = { index -> exerciseNoteSheet(index) },
         onRemoveExercise = { index -> removeExerciseSheet(index) },
+        onDetails = { index -> Catalogue[entries[index].str("id").orEmpty()]?.let { exerciseDetailSheet(it) } },
+        onProgression = { index -> openProgressionSettings(index) },
+        onSwap = { index -> swapActiveWorkoutExercise(index) },
         onPair = { first, second -> pairAt(first, second) },
         onUnpair = { index -> unpairAt(index) },
         onMove = { index, direction -> moveUnit(index, direction) },
@@ -323,12 +330,6 @@ private fun ActiveWorkout(profile: Profile) {
                         text = t("Freestyle workout — add your first exercise."),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = t("The exercise picker arrives with the next phase."),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 6.dp),
                     )
                 }
 
@@ -401,9 +402,16 @@ private fun ActiveWorkout(profile: Profile) {
 
             Button(
                 text = t("Add exercise"),
-                onClick = { ui.toast(t("The exercise picker arrives with the next phase.")) },
+                onClick = { addExerciseFlow() },
                 icon = Glyph.PLUS,
                 modifier = Modifier.padding(top = 14.dp),
+            )
+            Button(
+                text = t("Swap exercise"),
+                onClick = { swapActiveWorkoutExercise(cur) },
+                size = ButtonSize.SM,
+                icon = Glyph.SHUFFLE,
+                modifier = Modifier.padding(top = 8.dp),
             )
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -492,6 +500,9 @@ private fun UnitBlocks(
             onBarWeight = { actions.onBarWeight(index) },
             onNote = { actions.onNote(index) },
             onRemoveExercise = { actions.onRemoveExercise(index) },
+            onDetails = { actions.onDetails(index) },
+            onProgression = { actions.onProgression(index) },
+            onSwap = { actions.onSwap(index) },
             onPairPrev = if (unit.size == 1 && index > 0) ({ actions.onPair(index - 1, index) }) else null,
             onPairNext = if (unit.size == 1 && index < entries.size - 1) ({ actions.onPair(index, index + 1) }) else null,
             onMoveUp = if (unit.size == 1) ({ actions.onMove(index, -1) }) else null,

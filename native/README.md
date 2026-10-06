@@ -1,10 +1,12 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 1b**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 1c**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
-weigh-in, logs it set by set with the rest timer running on the lock screen, and files it into the
-training log. The Library, Plan, History, Stats and Settings screens are later phases.
+weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
+training log — and builds a session as well as following one, since the exercise picker, the config
+sheet, swap and freestyle are here too. The Library, Plan, History, Stats and Settings screens are
+later phases.
 
 ## Pinned toolchain
 
@@ -39,7 +41,7 @@ cached under the plugin portal while their transitive dependencies were cached u
 ```bash
 cd native
 
-# unit tests — 479 of them, no emulator, about twenty seconds
+# unit tests — 490 of them, no emulator, about twenty seconds
 GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
   ./gradlew :app:testDebugUnitTest --offline
 
@@ -84,6 +86,11 @@ reopening it resumes the session with the countdown adopted from the notificatio
 the workout record and the summary. `adb shell dumpsys notification | grep olygym.app.dev` shows the
 rest notification, and `run-as olygym.app.dev cat files/opengym-state.json` shows the record.
 
+Phase 1c's check is the picker: its search field reads the catalogue's size, the Chosen chip counts
+the plan and the log, a row's "+" adds with the default config (a toast names the day), and the new
+exercise joins at the current unit. The set rows are where to look when a number goes missing — the
+cells are the tightest control in the app, and a two-digit value is what finds their width.
+
 ## Generated files — do not edit by hand
 
 ```bash
@@ -111,7 +118,7 @@ app/src/main/java/olygym/app/
   ui/                   the shell (AppNavigator, tabs, rest bar, toast, sheet host), Home, the
                         session screen, the sheets, the shared controls and the theme
 app/src/main/assets/    the two generated assets
-app/src/test/java/      479 JVM tests, one per ported behaviour
+app/src/test/java/      490 JVM tests, one per ported behaviour
 ```
 
 The helpers keep the React filenames and are one-to-one ports, so a diff against `frontend/src/lib`

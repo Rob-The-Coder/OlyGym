@@ -350,5 +350,57 @@ And the smaller omissions, each also recorded in `native/PORTING.md`:
 - Two strings Home uses are missing from `it.js` ("Open the plan", "Streak") and show English, as
   they already do in the shipping app. No key was added to `frontend/`.
 
+---
+
+## Phase 1c — the exercise picker
+
+A session can now be built rather than only followed: add an exercise, configure it, swap one out,
+and start a freestyle session with nothing behind it. The phase-0 promise that a custom exercise
+shows its name instead of its id is kept here too — the profile's own exercises are merged into the
+catalogue index on every read.
+
+**490 JVM tests**, and the picker was checked on the emulator: the search field reads "Cerca tra 624
+esercizi…", the Chosen chip counts the plan and the log, a row's "+" adds with the default config,
+and the new exercise joins the session at the current unit.
+
+### What it adds
+
+- **The picker** (`ui/sheet/ExercisePickerSheet.kt`): search, the Favourites and Chosen shortcuts, the
+  "Create your own exercise" row, the catalogue with a Chosen marker, the quick-add "+", and Show
+  more. It applies an existing equipment profile when the profile has filtering on.
+- **The exercise config** (`ui/sheet/ExConfigSheet.kt`): sets, reps or a hold, weight, planned
+  warm-ups, per-exercise rest, bodyweight and the belt weight, the bar, the progression rule and its
+  step, and the note. Wired to both flows: "Add exercise" and the ⋯ menu's progression settings.
+- **Swap** (`swapActiveWorkoutExercise`): pick a replacement, configure it, and answer the
+  logged-sets question before anything is relabelled — over the port of `swapActiveExercise` that was
+  already here.
+- **Freestyle**: the chooser's button starts an empty session, and its empty state now adds to it.
+- **Your own exercises** (`ui/sheet/CustomExSheet.kt`): name, body part, equipment, the muscle groups
+  and a description, plus deleting one without losing the sets already logged. The write goes into
+  the raw `customEx` objects, so the muscle metadata this form does not own survives an edit.
+- **The exercise detail sheet** (`ui/sheet/ExerciseDetailSheet.kt`): what it hits, your best and your
+  last, the bar and how to do it — and the one place the favourite star is set, which is what makes
+  the picker's Favourites shortcut usable.
+- Five new readings with tests: `Favourites`, `Equipment`, `LibraryFilter`, `Usage`, and the two
+  progression-step helpers that live in `sheets.jsx` rather than in `lib/`.
+
+### Deliberately not in 1c
+
+- **The demo media**: the picker's thumbnail, the config's poster and the detail sheet's gallery. A
+  row shows the app's own glyph where a poster frame will go.
+- **"By muscle"** (the muscle explorer) and the **body-part and equipment filter sheet** the Library
+  shares. The picker therefore offers search and the two shortcuts, not the four filters.
+- **The exercise history sheet**: the chart, and `lib/exercise-history.js` behind it. The detail
+  sheet's row through to it is absent rather than dead.
+- **Editing the equipment profiles** (Settings), and the plan editor's use of the config sheet with a
+  routine behind it. `exConfigSheet` already takes that argument; nothing calls it with one yet.
+
+### The one bug this phase found on device
+
+The set row's number cells were too narrow between their step buttons for a two-digit value: "10"
+rendered as a clipped mark. The buttons went from 32 to 26dp and the cell's number down to the
+smaller type role — which is what the web's own media queries achieve by shrinking the cell at this
+width.
+
 
 

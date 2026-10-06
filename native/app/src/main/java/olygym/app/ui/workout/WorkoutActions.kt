@@ -3,12 +3,17 @@ package olygym.app.ui.workout
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import olygym.app.data.Catalogue
+import olygym.app.data.Exercise
 import olygym.app.data.arr
 import olygym.app.data.bool
 import olygym.app.data.editArray
 import olygym.app.data.editObject
 import olygym.app.data.asObj
+import olygym.app.data.editAt
+import olygym.app.data.insertAt
 import olygym.app.data.int
+import olygym.app.data.objectAt
 import olygym.app.data.js
 import olygym.app.data.num
 import olygym.app.data.toJsonObject
@@ -18,9 +23,24 @@ import olygym.app.data.str
 import olygym.app.data.with
 import olygym.app.data.without
 import olygym.app.data.Day
+import olygym.app.lib.SwapEvent
+import olygym.app.lib.applyPrescription
 import olygym.app.lib.backfillEnd
 import olygym.app.lib.bestWeightFor
 import olygym.app.lib.bestWeightForEntry
+import olygym.app.lib.buildSets
+import olygym.app.lib.capWords
+import olygym.app.lib.freestyleConfig
+import olygym.app.lib.insertionIndexAfterCurrentUnit
+import olygym.app.lib.isWarmupRow
+import olygym.app.lib.modeOf
+import olygym.app.lib.nextPrescription
+import olygym.app.lib.swapActiveExercise
+import olygym.app.lib.weightIncrement
+import olygym.app.lib.defaultConfig
+import olygym.app.lib.defaultIncrement
+import olygym.app.lib.effectiveDay
+import olygym.app.lib.supersetUnits
 import olygym.app.lib.buildCompletedWorkout
 import olygym.app.lib.buildDayEntries
 import olygym.app.lib.cleanupSg
@@ -35,8 +55,12 @@ import olygym.app.lib.workoutVolume
 import olygym.app.ui.Nav
 import olygym.app.ui.editProfile
 import olygym.app.ui.profileNow
+import olygym.app.ui.sheet.MenuItem
 import olygym.app.ui.sheet.confirmSheet
+import olygym.app.ui.sheet.exConfigSheet
+import olygym.app.ui.sheet.exercisePicker
 import olygym.app.ui.sheet.finishSummarySheet
+import olygym.app.ui.sheet.menuSheet
 import olygym.app.ui.sheet.weighInSheet
 import olygym.app.ui.t
 import olygym.app.ui.ui
@@ -193,3 +217,208 @@ fun removeActiveExercise(idx: Int) {
         }
     }
 }
+
+/* ------------------------------------------------------------- adding one -- */
+
+/**
+ * Add an exercise to the running session: the picker, then either the config sheet (tapping a row)
+ * or the default config (the row's plus). A planned session takes the day's prescription, a
+ * freestyle one seeds from the last time the lift was done.
+ */
+fun addExerciseFlow() {
+    val profile = profileNow() ?: return
+    val active = profile.active ?: return
+    val day = if (active.str("weekId") != null) effectiveDay(profile.raw, active.str("d").orEmpty()) else null
+    val dayJson = day?.toJsonObject()
+    exercisePicker { ex, quick ->
+        val freestyle = dayJson == null
+        val seed = if (freestyle) freestyleConfig(profile.raw, defaultConfig(ex.id).with("id", ex.id)) else null
+        val commit = commit@ { cfg: JsonObject ->
+            val before = profileNow() ?: return@commit
+            val current = before.active ?: return@commit
+            val insertAt = insertionIndexAfterCurrentUnit(
+                supersetUnits(current.arr("entries")),
+                current.int("cur") ?: 0,
+                current.arr("entries").size,
+            )
+            val full = cfg.with("id", ex.id)
+            val step = if (modeOf(full) == "reps") weightIncrement(full) else defaultIncrement(ex.id)
+            editProfile { raw ->
+                val a = raw.obj("active") ?: return@editProfile raw
+                val plan = if (freestyle) null else nextPrescription(raw, full, dayJson)
+                val sets = buildSets(
+                    raw,
+                    full,
+                    js(
+                        "step" to step,
+                        "preferLast" to if (freestyle) true else null,
+                        "useTarget" to if (plan?.str("kind") == "off") true else null,
+                    ),
+                )
+                val built = if (freestyle) sets else applyPrescription(sets, plan, step)
+                val entries = a.arr("entries").insertAt(
+                    insertAt,
+                    js("id" to ex.id, "target" to cfg, "plan" to plan, "sets" to built),
+                )
+                raw.with("active", a.with("entries", entries).with("cur", insertAt))
+            }
+            ui.shiftRestOwner(insertAt, 1)
+        }
+        if (quick) {
+            commit(seed ?: defaultConfig(ex.id))
+            ui.toast(t("“{0}” added to {1}", capWords(Catalogue.nameOf(ex.id)), day?.name ?: t("Freestyle")))
+        } else {
+            exConfigSheet(ex, initial = seed, routine = dayJson, onSave = { cfg -> commit(cfg) })
+        }
+    }
+}
+
+/**
+ * The progression settings of one entry of the running session: the same config sheet, and the rows
+ * are rebuilt from the new config the way the session was, keeping only what was already logged.
+ */
+fun openProgressionSettings(index: Int) {
+    val profile = profileNow() ?: return
+    val active = profile.active ?: return
+    val entry = active.arr("entries").objectAt(index) ?: return
+    val activeId = active.str("id")
+    val entryId = entry.str("id").orEmpty()
+    val entryCount = active.arr("entries").size
+    val day = if (active.str("weekId") != null) effectiveDay(profile.raw, active.str("d").orEmpty()) else null
+    val dayJson = day?.toJsonObject()
+    exConfigSheet(
+        ex = Catalogue[entryId],
+        existing = entry.obj("target"),
+        routine = dayJson,
+        onSave = { cfg ->
+            // The sheet may outlive its workout or its entry. Never apply its result to whatever
+            // later happens to occupy the same index.
+            val current = profileNow() ?: return@exConfigSheet
+            val nowActive = current.active
+            val sameEntry = nowActive?.str("id") == activeId &&
+                nowActive.arr("entries").size == entryCount &&
+                nowActive.arr("entries").objectAt(index)?.str("id") == entryId
+            if (!sameEntry) return@exConfigSheet
+            editProfile { raw ->
+                val a = raw.obj("active") ?: return@editProfile raw
+                val target = a.arr("entries").objectAt(index) ?: return@editProfile raw
+                if (target.str("id") != entryId) return@editProfile raw
+                val full = cfg.with("id", entryId)
+                val step = if (modeOf(full) == "reps") weightIncrement(full) else defaultIncrement(entryId)
+                // A config without a set count keeps the rows the session already has.
+                val config = if ((full.num("sets") ?: 0.0) > 0) {
+                    full
+                } else {
+                    full.with("sets", target.arr("sets").count { !isWarmupRow(it) }.coerceAtLeast(1))
+                }
+                val plan = nextPrescription(raw, config, dayJson)
+                val fresh = applyPrescription(
+                    buildSets(raw, config, js("step" to step, "useTarget" to (plan.str("kind") == "off"))),
+                    plan,
+                    step,
+                )
+                val doneWarm = target.arr("sets").filter { isWarmupRow(it) && it.asObj()?.bool("done") == true }
+                val doneWork = target.arr("sets").filter { !isWarmupRow(it) && it.asObj()?.bool("done") == true }
+                val freshWarm = fresh.filter { isWarmupRow(it) }
+                val freshWork = fresh.filter { !isWarmupRow(it) }
+                val rows = JsonArray(doneWarm + freshWarm.drop(doneWarm.size) + doneWork + freshWork.drop(doneWork.size))
+                raw.with(
+                    "active",
+                    a.with(
+                        "entries",
+                        a.arr("entries").editAt(index) {
+                            it.with("target", cfg).with("plan", plan).with("sets", rows)
+                        },
+                    ),
+                )
+            }
+        },
+    )
+}
+
+/**
+ * Start a safe swap for one exact active-workout occurrence: pick the replacement, configure it, and
+ * let swapActiveExercise decide whether the logged sets need asking about.
+ */
+fun swapActiveWorkoutExercise(index: Int) {
+    val profile = profileNow() ?: return
+    val active = profile.active ?: return
+    if (active.arr("entries").objectAt(index) == null) return
+    val dayJson = if (active.str("weekId") != null) {
+        effectiveDay(profile.raw, active.str("d").orEmpty())?.toJsonObject()
+    } else {
+        null
+    }
+    var sheetId = 0L
+
+    fun apply(replacement: JsonObject, loggedConfirmed: Boolean, disposition: String?) {
+        ui.stopWork()
+        ui.stopRest()
+        editProfile { raw ->
+            val event = swapActiveExercise(raw.obj("active"), index, replacement, loggedConfirmed, disposition)
+            when (event) {
+                is SwapEvent.Replaced -> raw.with("active", event.active)
+                is SwapEvent.Inserted -> raw.with("active", event.active)
+                else -> raw
+            }
+        }
+    }
+
+    fun swapTo(ex: Exercise, cfg: JsonObject) {
+        // The picker is a chooser here, not a stack you keep adding from: one swap, then back to the
+        // workout.
+        ui.closeSheet(sheetId)
+        val state = profileNow() ?: return
+        val target = state.active?.arr("entries")?.objectAt(index) ?: return
+        val freestyle = dayJson == null
+        val full = cfg.with("id", ex.id)
+        val step = if (modeOf(full) == "reps") weightIncrement(full) else defaultIncrement(ex.id)
+        val plan = if (freestyle) null else nextPrescription(state.raw, full, dayJson)
+        val built = buildSets(
+            state.raw,
+            full,
+            js(
+                "step" to step,
+                "preferLast" to if (freestyle) true else null,
+                "useTarget" to if (plan?.str("kind") == "off") true else null,
+            ),
+        )
+        val replacement = js(
+            "id" to ex.id,
+            "target" to cfg,
+            "plan" to plan,
+            "sets" to if (freestyle) built else applyPrescription(built, plan, step),
+        )
+        val logged = target.arr("sets").any { it.asObj()?.bool("done") == true }
+        if (!logged) {
+            apply(replacement, false, null)
+            return
+        }
+        if (target.obj("sg") != null) {
+            menuSheet(
+                title = t("Swap exercise?"),
+                subtitle = t("Logged sets stay with the original exercise. Choose where the replacement belongs."),
+                items = listOf(
+                    MenuItem(label = t("Keep replacement in this group"), onClick = { apply(replacement, true, "keep") }),
+                    MenuItem(label = t("Insert after this group"), onClick = { apply(replacement, true, "detach") }),
+                ),
+            )
+            return
+        }
+        confirmSheet(
+            title = t("Swap exercise?"),
+            message = t("Logged sets stay with the original exercise. The replacement will be inserted afterward."),
+            confirmText = t("Continue"),
+            onConfirm = { apply(replacement, true, null) },
+        )
+    }
+
+    sheetId = exercisePicker { ex, quick ->
+        if (quick) {
+            swapTo(ex, defaultConfig(ex.id))
+        } else {
+            exConfigSheet(ex, routine = dayJson, onSave = { cfg -> swapTo(ex, cfg) })
+        }
+    }
+}
+
