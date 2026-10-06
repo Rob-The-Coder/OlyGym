@@ -20,6 +20,7 @@ import olygym.app.data.js
 import olygym.app.data.num
 import olygym.app.data.present
 import olygym.app.data.str
+import olygym.app.data.truthy
 import olygym.app.data.with
 
 /*
@@ -66,21 +67,6 @@ val DELOAD_AFTER: Map<String, Int> = mapOf("linear" to 3)
 // 2.5 kg step the sport actually uses.
 private val HEAVY_MUSCLES = listOf("quadriceps", "gluteal", "hamstring", "lower-back", "adductors", "calves", "tibialis")
 
-/** JS truthiness, !value — see History.kt. Kept private to this file on purpose. */
-private fun truthy(value: JsonElement?): Boolean = when (value) {
-    null, is JsonNull -> false
-    is JsonArray, is JsonObject -> true
-    is JsonPrimitive -> when {
-        value.isString -> value.content.isNotEmpty()
-        else -> {
-            val b = value.booleanOrNull
-            if (b != null) b else {
-                val d = value.doubleOrNull
-                d != null && d != 0.0 && !d.isNaN()
-            }
-        }
-    }
-}
 
 /** JS a || b || c: the first value that is not falsy, or null. */
 private fun orTruthy(vararg values: JsonElement?): JsonElement? = values.firstOrNull { truthy(it) }

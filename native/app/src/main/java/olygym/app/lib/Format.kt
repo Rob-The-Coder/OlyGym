@@ -40,6 +40,12 @@ fun fmtDate(iso: String, long: Boolean, withYear: Boolean = false): String {
     return LocalDate.parse(iso).format(DateTimeFormatter.ofPattern(pattern, I18nCore.dateLocale()))
 }
 
+/**
+ * The full date a screen can afford: weekday, day, month. Home's title and the weigh-in sheet.
+ */
+fun fmtLongDate(iso: String): String =
+    LocalDate.parse(iso).format(DateTimeFormatter.ofPattern("EEEE d MMMM", I18nCore.dateLocale()))
+
 fun fmtDur(ms: Long): String {
     val m = ms / 60000
     return if (m >= 60) "${m / 60}h ${m % 60}m" else "$m min"

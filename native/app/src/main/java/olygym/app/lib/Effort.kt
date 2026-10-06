@@ -20,6 +20,7 @@ import olygym.app.data.asObj
 import olygym.app.data.int
 import olygym.app.data.present
 import olygym.app.data.str
+import olygym.app.data.truthy
 
 /*
  * Effort as a statistic: one internal scale, both display scales — a port of
@@ -41,21 +42,6 @@ const val HARD_RIR = 3.0
 // finding when it is one tap, so the callers show a dash instead.
 const val MIN_RATED = 5
 
-/** JS truthiness, `!!value`. Private to this file, like the other ports' copies. */
-private fun truthy(value: JsonElement?): Boolean = when (value) {
-    null, is JsonNull -> false
-    is JsonArray, is JsonObject -> true
-    is JsonPrimitive -> when {
-        value.isString -> value.content.isNotEmpty()
-        else -> {
-            val b = value.booleanOrNull
-            if (b != null) b else {
-                val d = value.doubleOrNull
-                d != null && d != 0.0 && !d.isNaN()
-            }
-        }
-    }
-}
 
 /** A set's effort in RIR, or null when it was never rated. 0 is a rating, not "empty". */
 fun rirOf(s: JsonElement?): Double? {
