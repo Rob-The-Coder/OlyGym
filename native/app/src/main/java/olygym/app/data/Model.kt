@@ -1,7 +1,9 @@
 package olygym.app.data
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.encodeToJsonElement
 
 /**
  * The persisted profile, as far as this phase reads it. The whole point is that the file is the
@@ -60,6 +62,9 @@ data class Day(
     /** Written only when true, so a day that is not excluded carries no key at all. */
     val excludeFromProgression: Boolean? = null,
 )
+
+/** The day as the JSON the session builders read — the same shape the file holds. */
+fun Day.toJsonObject(): JsonObject = Json.encodeToJsonElement(Day.serializer(), this) as JsonObject
 
 /** A routine in the old repeating plan. Only the migration reads this shape. */
 @Serializable

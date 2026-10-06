@@ -182,6 +182,8 @@ fun Tile(
     icon: Glyph? = null,
     valueColor: Color? = null,
     onClick: (() -> Unit)? = null,
+    /** A control that belongs to the label line — the goal tile's own help button. */
+    labelTrailing: (@Composable () -> Unit)? = null,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -202,7 +204,9 @@ fun Tile(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
+                labelTrailing?.invoke()
             }
             Text(
                 text = value,

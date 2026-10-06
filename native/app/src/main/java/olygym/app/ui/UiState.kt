@@ -220,6 +220,15 @@ class UiState(
         _state.update { it.copy(work = null) }
     }
 
+    /* ------------------------------------------------------------- the tick -- */
+
+    /** Ticking a set: a short high tone and the same buzz, when the profile wants sound. */
+    fun setTick() {
+        val on = soundEnabled()
+        sound.beep(on, 1040, 0.12)
+        sound.vibrate(30)
+    }
+
     /* ----------------------------------------------------------------- flash -- */
 
     fun flashTimer() {
