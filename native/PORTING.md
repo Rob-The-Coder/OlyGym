@@ -104,11 +104,22 @@ that is expected.
 - `Catalogue` is module-level, so a test that reads through it — `defaultIncrement`, a name lookup —
   must not assume whether another test class has installed a catalogue yet: assert against the same
   function rather than against a value that depends on it.
+- The charts' maths is lifted out of the components into lib/ (`ChartMath`, `Activity`, `Progress`),
+  which is not where the web keeps it — LineChart.jsx, Heatmap.jsx and Stats.jsx hold it inline. It
+  lives in lib/ here because it is what the curves *mean*, and the porting contract puts those
+  decisions where a test can reach them. The drawing is Compose and is not tested.
+- The body map (`components/BodyMap.jsx` and its ~90 KB `lib/body-paths.js`) is not ported. The
+  balance and fatigue readings it draws are shown as ranked bars with the same ramp and the same
+  state words; the silhouette needs the path blob shipped as an asset and an SVG-path renderer.
+- The line chart has no hover tooltip (no pointer, on a phone), and the heatmap's day tap falls
+  through when several workouts share a date, because the sheet it would open (the calendar) is not
+  ported yet.
 
 ## What is already ported
 
 `Format`, `I18nCore`, `Weeks`, `MigrateWeeks` (Phase 0), the rest of the day-one closure plus
 `WorkoutControls`, `ProgressionCopy`, `NumInput`, `Favourites`, `Equipment`, `LibraryFilter` and
-`Usage` (Phase 1a/1b/1c), and `PlanEdit` and `Starter` (Phase 2a). Read `WorkoutModel.kt` and
+`Usage` (Phase 1a/1b/1c), `PlanEdit` and `Starter` (Phase 2a), and `Recovery`, `ChartMath`,
+`Activity` and `Progress` (Phase 2b). Read `WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.

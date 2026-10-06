@@ -46,6 +46,7 @@ import olygym.app.ui.components.Glyph
 import olygym.app.ui.components.GlyphIcon
 import olygym.app.ui.home.HomeScreen
 import olygym.app.ui.plan.PlanScreen
+import olygym.app.ui.stats.StatsScreen
 import olygym.app.ui.sheet.SheetHost
 import olygym.app.ui.theme.FullShape
 import olygym.app.ui.workout.WorkoutScreen
@@ -126,7 +127,7 @@ private fun TabContent(tab: Int) {
     when (tab) {
         0 -> HomeScreen()
         1 -> PlanScreen.Content()
-        2 -> Placeholder(t("Stats"))
+        2 -> StatsScreen.Content()
         else -> Placeholder(t("Exercises"))
     }
 }
