@@ -916,11 +916,17 @@ function ActiveWorkout() {
     // A warm-up ramp set may rest shorter than a work set (the exercise's warmupRestSec); the
     // last ramp set, into the first work set, still gets the working rest.
     const restAfter = warmupRestSecFor(fresh.entries[round ? group[0] : idx], i, restSec)
+    // The rest card names the set just finished, not the exercise: inside a complex the exercise
+    // under the cursor is only the movement that happened to be tapped, which tells you nothing.
+    const restEntry = fresh.entries[idx]
+    const restLabel = restEntry?.sets?.length
+      ? t('Set {0} of {1}', restEntry.sets.filter(set => set.done).length, restEntry.sets.length)
+      : ''
 
     // A re-check of finished work must not navigate or reopen a sheet, but it may still owe
     // you a rest — see restOnRecheck, and the other half of issue #3.
     if (!isNew) {
-      if (!restBeforeWarmup && restOnRecheck({ timerRunning: !!useUI.getState().timer, unitDone: freshUnitDone, lastUnit: freshWorkoutDone })) startRest(restAfter, idx)
+      if (!restBeforeWarmup && restOnRecheck({ timerRunning: !!useUI.getState().timer, unitDone: freshUnitDone, lastUnit: freshWorkoutDone })) startRest(restAfter, idx, restLabel)
       return
     }
 
@@ -930,17 +936,17 @@ function ActiveWorkout() {
     if (freshUnitDone) stopRest()
     // A merged complex rests after the round and stays where it is: there is no member to step to.
     if (round || !freshUnit || freshUnit.length <= 1) {
-      if (!restBeforeWarmup && restAfterSet({ unitDone: freshUnitDone, lastUnit: freshWorkoutDone })) startRest(restAfter, idx)
+      if (!restBeforeWarmup && restAfterSet({ unitDone: freshUnitDone, lastUnit: freshWorkoutDone })) startRest(restAfter, idx, restLabel)
       return
     }
 
     const step = supersetFlowStep(fresh.entries, freshUnit, idx)
     if (!step) return
     if (step.unitDone) {
-      if (nextUnit?.length && !restBeforeWarmup) startRest(restAfter, idx)
+      if (nextUnit?.length && !restBeforeWarmup) startRest(restAfter, idx, restLabel)
     } else {
       if (step.nextIdx != null) update(s => { if (s.active) s.active.cur = step.nextIdx })
-      if (step.roundDone) startRest(restAfter, idx)
+      if (step.roundDone) startRest(restAfter, idx, restLabel)
     }
   }
 

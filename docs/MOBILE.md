@@ -28,6 +28,18 @@ the app's private data directory and restores it on launch — that file is the 
   the notification permission (requested only when the reminder is switched on) and, on Android,
   declares `SCHEDULE_EXACT_ALARM` so it fires to the minute where the user allows it. Nothing is
   sent to a server — there is no push service.
+- **Rest timer on the lock screen:** while a rest between sets runs, the Android build posts an
+  ongoing notification with a native countdown — SystemUI ticks it from the end time, so it keeps
+  ticking with the app killed — and `-15s / +15s / Skip` buttons. Tapping it opens the app. The
+  notification is posted natively (`android/app/src/main/java/olygym/app/RestNotification*.java`)
+  and mirrors the in-app timer through `src/lib/rest-notification.js`; it uses the same notification
+  permission as the reminder, requested the first time a rest wants to post. On Android 16+ it also
+  asks to be promoted to a Live Update, and `RestTimerService` — a `shortService` foreground
+  service, bounded like the rest itself — rewrites it once a second so the progress bar really fills
+  and the status-bar chip really counts down. That ticker is the one thing the chronometer cannot do
+  for itself: SystemUI renders the countdown from a timestamp, but a progress value is just a number
+  nobody can update once the WebView is paused and the process is cached. Older Androids get the same
+  card without the bar and without the extra service.
 - **In-app updater:** the app can check for and offer a newer signed APK without going through a
   store. Updates must be signed with the same key as the installed build or Android refuses them.
 

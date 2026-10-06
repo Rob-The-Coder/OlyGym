@@ -9,6 +9,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(InstallPlugin.class);
         registerPlugin(PrintPlugin.class);
         registerPlugin(DrivePlugin.class);
+        registerPlugin(RestNotificationPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }
