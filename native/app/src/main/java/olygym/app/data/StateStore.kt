@@ -184,6 +184,8 @@ class StateStore(
             targetW = p.targetW,
             // Absent reads as on: a profile written before this setting existed opened the weigh-in.
             weighIn = p.weighIn != false,
+            restSec = p.restSec,
+            sound = p.sound,
         )
         // Only on a change: setLangState reloads the pack and bumps the version, and this runs on
         // every write.

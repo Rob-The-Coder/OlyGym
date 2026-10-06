@@ -15,3 +15,9 @@ internal val OlyGymShapes = Shapes(
 
 /** --m3-shape-full: pills — chips, the segmented control, the stepper. */
 internal val FullShape = RoundedCornerShape(percent = 50)
+
+/** --r-card: what a card, a tile and a grouped section are drawn in. */
+internal val CardShape = RoundedCornerShape(14.dp)
+
+/** --r-xl, top corners only: the bottom sheet. */
+internal val SheetShape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)

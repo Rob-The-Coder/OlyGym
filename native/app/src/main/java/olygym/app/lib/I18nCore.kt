@@ -1,6 +1,9 @@
 package olygym.app.lib
 
 import java.util.Locale
+import kotlinx.serialization.json.JsonArray
+import olygym.app.data.asStr
+import olygym.app.data.jsText
 
 /**
  * Runtime half of the i18n module: the language, the pack and the readers. A port of
@@ -45,6 +48,15 @@ object I18nCore {
         var v = dict[s]?.takeIf { it.isNotEmpty() } ?: s
         args.forEachIndexed { i, a -> v = v.replace("{$i}", a?.toString() ?: "") }
         return v
+    }
+
+    /**
+     * A stored message, as the helpers write them into a plan's why: [key, arg, ...]. The args go
+     * through jsText, so an integral number keeps its "30" rather than becoming "30.0".
+     */
+    fun tMessage(message: JsonArray): String {
+        val key = message.firstOrNull().asStr() ?: return ""
+        return t(key, *message.drop(1).map { it.jsText() }.toTypedArray())
     }
 
     /** Instructions for an exercise in the current language (the catalogue's steps are English). */

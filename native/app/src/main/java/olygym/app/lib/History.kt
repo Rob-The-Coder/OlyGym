@@ -28,6 +28,7 @@ import olygym.app.data.obj
 import olygym.app.data.present
 import olygym.app.data.str
 import olygym.app.data.toJson
+import olygym.app.data.truthy
 import olygym.app.data.with
 import olygym.app.data.without
 
@@ -40,25 +41,6 @@ import olygym.app.data.without
 /** JS `value && typeof value === 'object' && !Array.isArray(value) ? value : {}`. */
 private fun objectOf(value: JsonElement?): JsonObject = value.asObj() ?: JsonObject(emptyMap())
 
-/**
- * JS truthiness, `!!value`: false for null/undefined, false, 0, NaN and the empty string, true for
- * everything else (an empty array or object included). The file is loosely typed, so a few fields
- * are read with `if (s.done)` rather than `s.done === true`.
- */
-private fun truthy(value: JsonElement?): Boolean = when (value) {
-    null, is JsonNull -> false
-    is JsonArray, is JsonObject -> true
-    is JsonPrimitive -> when {
-        value.isString -> value.content.isNotEmpty()
-        else -> {
-            val b = value.booleanOrNull
-            if (b != null) b else {
-                val d = value.doubleOrNull
-                d != null && d != 0.0 && !d.isNaN()
-            }
-        }
-    }
-}
 
 /** JS `a || b || c`: the first value that is not falsy, or null. */
 private fun orTruthy(vararg values: JsonElement?): JsonElement? = values.firstOrNull { truthy(it) }

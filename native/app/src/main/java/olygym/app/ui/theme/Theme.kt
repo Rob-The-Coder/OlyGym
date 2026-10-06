@@ -42,6 +42,7 @@ fun OlyGymTheme(
     val extra = ExtraColors(
         hairline = Color(roles.hairline),
         onSurfaceDisabled = Color(roles.onSurfaceDisabled),
+        yellow = Color(if (dark) YELLOW_DARK else YELLOW_LIGHT),
     )
 
     CompositionLocalProvider(LocalExtraColors provides extra) {

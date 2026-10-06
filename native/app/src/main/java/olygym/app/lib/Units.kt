@@ -19,6 +19,7 @@ import olygym.app.data.obj
 import olygym.app.data.present
 import olygym.app.data.str
 import olygym.app.data.toJson
+import olygym.app.data.truthy
 import olygym.app.data.with
 
 /*
@@ -33,21 +34,6 @@ import olygym.app.data.with
 
 private const val LB_PER_KG = 2.2046226218
 
-/** JS truthiness, private to this file (PORTING.md notes the duplication). */
-private fun truthy(value: JsonElement?): Boolean = when (value) {
-    null, is JsonNull -> false
-    is JsonArray, is JsonObject -> true
-    is JsonPrimitive -> when {
-        value.isString -> value.content.isNotEmpty()
-        else -> {
-            val b = value.booleanOrNull
-            if (b != null) b else {
-                val d = value.doubleOrNull
-                d != null && d != 0.0 && !d.isNaN()
-            }
-        }
-    }
-}
 
 /** JS `Math.round`, ties toward +infinity. */
 private fun jsRound(value: Double): Double = floor(value + 0.5)

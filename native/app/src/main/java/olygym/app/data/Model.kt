@@ -1,7 +1,9 @@
 package olygym.app.data
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.encodeToJsonElement
 
 /**
  * The persisted profile, as far as this phase reads it. The whole point is that the file is the
@@ -23,6 +25,10 @@ data class Persisted(
     val targetW: Double? = null,
     /** Whether Start opens the quick weigh-in first. Defaults on for a profile written before it. */
     val weighIn: Boolean? = null,
+    /** The default rest between sets, in seconds. Zero means the profile turned the rest off. */
+    val restSec: Int = 90,
+    /** Whether ticking a set and the end of a rest make a sound. On unless it was turned off. */
+    val sound: Boolean = true,
     val weeks: List<Week> = emptyList(),
     /** The repeating plan that predates S.weeks; migrate-weeks.js reads it, and so does this. */
     val routines: List<Routine> = emptyList(),
@@ -57,6 +63,9 @@ data class Day(
     val excludeFromProgression: Boolean? = null,
 )
 
+/** The day as the JSON the session builders read — the same shape the file holds. */
+fun Day.toJsonObject(): JsonObject = Json.encodeToJsonElement(Day.serializer(), this) as JsonObject
+
 /** A routine in the old repeating plan. Only the migration reads this shape. */
 @Serializable
 data class Routine(
@@ -76,4 +85,6 @@ data class Settings(
     val wdec: Int,
     val targetW: Double?,
     val weighIn: Boolean,
+    val restSec: Int,
+    val sound: Boolean,
 )

@@ -80,10 +80,9 @@ object RestNotification {
         text: String,
         sub: String,
         big: String,
+        forIdx: Int? = null,
     ) {
-        // The Java also mirrors forIdx; the native entry point (RestTimer) has no workout index to
-        // pass, so the key is not written.
-        prefs(ctx).edit()
+        val edit = prefs(ctx).edit()
             .putBoolean("active", true)
             .putLong("endsAtMs", endsAtMs)
             .putInt("totalSec", totalSec)
@@ -91,7 +90,25 @@ object RestNotification {
             .putString("text", text)
             .putString("sub", sub)
             .putString("big", big)
-            .apply()
+        // Which exercise of the session the rest belongs to, so removing an exercise can keep the
+        // rest it does not own. No index means no index: the key is dropped rather than stored as 0,
+        // or the app would re-point a rest at the first exercise on the next resume.
+        if (forIdx != null) edit.putInt("forIdx", forIdx) else edit.remove("forIdx")
+        edit.apply()
+    }
+
+    /** The mirror as a screen reads it back. Never null: an app that was never running has one too. */
+    fun read(ctx: Context): MirrorState {
+        val p = prefs(ctx)
+        return MirrorState(
+            active = p.getBoolean("active", false),
+            endsAtMs = p.getLong("endsAtMs", 0L),
+            totalSec = p.getInt("totalSec", 0),
+            forIdx = if (p.contains("forIdx")) p.getInt("forIdx", 0) else null,
+            text = p.getString("text", "").orEmpty(),
+            sub = p.getString("sub", "").orEmpty(),
+            big = p.getString("big", "").orEmpty(),
+        )
     }
 
     /**

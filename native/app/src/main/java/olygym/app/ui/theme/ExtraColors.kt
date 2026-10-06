@@ -9,8 +9,12 @@ import androidx.compose.ui.graphics.Color
 
 /**
  * The roles Compose's ColorScheme has no slot for, from frontend/src/m3.tokens.css: a divider
- * hairline and the disabled text tone. Screens read these instead of a raw colour, the same way
- * they read MaterialTheme.colorScheme for everything M3 covers.
+ * hairline, the disabled text tone, and the yellow the goal marker and the weight delta are drawn
+ * in.
+ *
+ * Yellow is not in the generated scheme because it is not an accent: index.css defines it once per
+ * theme (--yellow) and it stays the same under every accent, so it is two constants rather than a
+ * column of the accent matrix.
  */
 @Immutable
 data class ExtraColors(
@@ -18,16 +22,22 @@ data class ExtraColors(
     val hairline: Color,
     /** --m3-on-surface-disabled: decorative and disabled text only, never a label. */
     val onSurfaceDisabled: Color,
+    /** --yellow: the goal line and the delta that moves toward it. */
+    val yellow: Color,
 )
 
 internal val LocalExtraColors = staticCompositionLocalOf {
-    ExtraColors(Color.Unspecified, Color.Unspecified)
+    ExtraColors(Color.Unspecified, Color.Unspecified, Color.Unspecified)
 }
 
 val MaterialTheme.extraColors: ExtraColors
     @Composable
     @ReadOnlyComposable
     get() = LocalExtraColors.current
+
+/** index.css's two --yellow values, dark then light. */
+internal const val YELLOW_DARK = 0xFFFFD60A
+internal const val YELLOW_LIGHT = 0xFFFFCC00
 
 /**
  * The interaction state layers, one percentage per state. M3's own components apply theirs; these

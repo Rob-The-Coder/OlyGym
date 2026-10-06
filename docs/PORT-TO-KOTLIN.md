@@ -287,4 +287,68 @@ The decisions this phase rests on:
 - Several ports carry their own private JS-truthiness helpers. `native/PORTING.md` records the debt
   and says to fold them into `Js.kt` the next time a port needs one.
 
+---
+
+## Phase 1b — Home and the session screen
+
+The app now opens on Home, starts the day's session through the weigh-in, logs it set by set with the
+rest timer running on the lock screen, and files it into the same training log. That is the Phase 1
+milestone: the native app is usable for real training, while the Library, Plan, History, Stats and
+Settings screens are still to come.
+
+**479 JVM tests** run offline in about twenty seconds, and the APK builds as `olygym.app.dev`.
+
+### The decisions this phase rests on
+
+1. **A screen writes through edit combinators, not a mutable tree.** The web hands its update
+   callback a mutable clone and the screen assigns straight into it; here the same write is composed
+   from `editObject`, `editArray`, `editAt`, `append`, `insertAt`, `removeObjectAt`, `mapObjects`
+   and the `with`/`without` leaves in `data/Js.kt`. An index that is gone changes nothing, which is
+   what a tap racing a removal needs.
+2. **The four private JS-truthiness copies are folded in** as `truthy(value)` — the debt
+   `PORTING.md` recorded. `jsText` came with them, because a stored message's arguments are
+   numbers: `JsonPrimitive(30.0).toString()` is "30.0" where the web's template says "30".
+3. **The UI holder is the third module-level object**, beside the store and the catalogue: the sheet
+   stack, the toast and the two countdowns, with the clock, the sound and the rest mirror injected so
+   that all of it is a JVM test (`UiStateTest`, `RestMirrorTest`).
+4. **The lock-screen mirror is the authority for the end time.** The in-app tick re-reads it every
+   second, so the notification's own ±15s and Skip need no event bridge — and the same rule adopts a
+   rest on resume, as the web's `adoptNativeState` does.
+5. **Copy on the lock screen is the app's**, translated through the locale pack, so the card names
+   the set that earned the rest and the workout it belongs to.
+6. **Glyphs are transcribed** from `Icon.jsx` through `PathParser` rather than redrawn: one table
+   of the web's own path data, at the same 1.7 stroke. Adding a glyph is a copy and paste.
+7. **The tab bar lives in the shell, not in a nested navigator**, so the session screen can be pushed
+   over the tabs and the bar stays — which is where the centre button's "Resume" lives.
+8. **`POST_NOTIFICATIONS` is asked for at launch** rather than at the first rest: one call instead of
+   a callback threaded through the timer, and the same answer one screen earlier than the web's.
+9. **The timer's completion blinks the app's own theme**, as the web's TimerFlash does, by flipping
+   the scheme for two and a half seconds in `MainActivity`.
+
+### Deliberately not in 1b
+
+Three things are stated on screen rather than silently missing, because each opens a screen that does
+not exist yet:
+
+- **The exercise picker** — `Add exercise`, `Swap exercise` and freestyle. A session built from a
+  planned day is complete without it; a freestyle session cannot be filled in yet, so the buttons say
+  so rather than opening an empty session. That is the next piece (1c), with the exercise config
+  sheet behind them.
+- **The Stats and Exercises tabs** show "Not ported yet."; the Plan tab keeps Phase 0's read-only
+  list.
+- **Settings** has no door: the gear is absent rather than opening nothing.
+
+And the smaller omissions, each also recorded in `native/PORTING.md`:
+
+- The merged complex draws its members' own set tables instead of one shared rounds table. The data
+  written is identical; what is missing is three pieces of presentation — `RoundsTable`, the swipe
+  between units and the scroll-to-the-actionable-row. The JS for each is in `Workout.jsx`.
+- No exercise media (the demo video is its own phase) and no charts: the body-weight curve, the
+  exercise history sheet and the calendar sheet are phase 2.
+- The Home tiles are not tappable, the competition row is absent, and there is no starter-plan card:
+  each opens a screen the port has not reached.
+- Two strings Home uses are missing from `it.js` ("Open the plan", "Streak") and show English, as
+  they already do in the shipping app. No key was added to `frontend/`.
+
+
 
