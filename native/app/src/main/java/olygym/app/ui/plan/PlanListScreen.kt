@@ -32,8 +32,9 @@ import androidx.compose.ui.unit.em
 import kotlinx.serialization.json.JsonObject
 import olygym.app.OlyGymApp
 import olygym.app.data.Catalogue
+import olygym.app.data.AppState
 import olygym.app.data.Day
-import olygym.app.data.PlanState
+import olygym.app.data.Profile
 import olygym.app.data.Week
 import olygym.app.data.int
 import olygym.app.data.str
@@ -72,7 +73,7 @@ private sealed interface PlanRow {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Plan(state: PlanState) {
+private fun Plan(state: AppState) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
         topBar = {
@@ -88,34 +89,39 @@ private fun Plan(state: PlanState) {
                 .padding(padding),
         ) {
             when (state) {
-                PlanState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+                AppState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
 
-                is PlanState.Empty -> Notice(
-                    // Phase 0 has no i18n key for these two and adding one would mean editing
-                    // frontend/src/locales/it.js, which this phase must not touch. The real empty
-                    // states arrive with the screens they belong to.
-                    title = if (state.fileExists) {
-                        "No weeks in this profile yet."
+                is AppState.Failed -> Notice(title = state.reason, detail = state.path)
+
+                is AppState.Ready -> {
+                    val profile = state.profile
+                    if (profile.weeks.isEmpty()) {
+                        // Phase 0 has no i18n key for these two and adding one would mean editing
+                        // frontend/src/locales/it.js. The real empty states arrive with the screens
+                        // they belong to.
+                        Notice(
+                            title = if (profile.fileExists) {
+                                "No weeks in this profile yet."
+                            } else {
+                                "No profile on this device yet."
+                            },
+                            detail = profile.path,
+                        )
                     } else {
-                        "No profile on this device yet."
-                    },
-                    detail = state.path,
-                )
-
-                is PlanState.Failed -> Notice(title = state.reason, detail = state.path)
-
-                is PlanState.Loaded -> WeekList(state)
+                        WeekList(profile)
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun WeekList(state: PlanState.Loaded) {
-    val weekStart = weekStartOf(state.settings.weekStart)
-    val rows = remember(state.weeks, weekStart) {
+private fun WeekList(profile: Profile) {
+    val weekStart = weekStartOf(profile.settings.weekStart)
+    val rows = remember(profile.weeks, weekStart) {
         buildList {
-            state.weeks.forEach { week ->
+            profile.weeks.forEach { week ->
                 add(PlanRow.Header(weekLabel(week)))
                 week.days.forEach { day ->
                     val date = addDays(week.startIso, weekDayOffset(day.dow, weekStart).toLong())

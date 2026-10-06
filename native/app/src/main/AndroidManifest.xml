@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- The rest timer's lock-screen notification. shortService carries no type-specific
+         permission of its own, so FOREGROUND_SERVICE is the whole requirement here. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
     <application
         android:name=".OlyGymApp"
         android:allowBackup="false"
@@ -18,6 +23,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- The rest timer's notification buttons. Explicit intents only (the PendingIntents name
+             this class), so nothing else can reach it and no intent-filter is needed. -->
+        <receiver
+            android:name=".rest.RestActionReceiver"
+            android:exported="false" />
+
+        <!-- Keeps the Live Update card's progress bar filling on Android 16+ (RestTimerService).
+             A shortService because a rest is a bounded, user-started timer, and that type caps it
+             at a few minutes. It is only ever started on API 36+. -->
+        <service
+            android:name=".rest.RestTimerService"
+            android:exported="false"
+            android:foregroundServiceType="shortService" />
     </application>
 
 </manifest>

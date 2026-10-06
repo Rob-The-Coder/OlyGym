@@ -241,4 +241,50 @@ recipe, the pinned versions and the generated files are in `native/README.md`.
 - The Emphasized scale and the expressive motion, deferred by decision 2.
 - Custom exercises (`S.customEx`) are not merged into the catalogue index, so a day that
   references one shows its id. It arrives with the picker.
+---
+
+## Phase 1a — the day-one closure, and the first write
+
+Phase 1 turned out to be two pieces of very different sizes: the nineteen helpers plus a store that
+can write, and then Home and the workout screen with the sheets they open. 1a is the first piece.
+1b is the second, and until it lands the app still shows Phase 0's read-only plan list — on the new
+store.
+
+**Every day-one helper is ported now** (Phase 0 had four of the nineteen), each with its vitest file
+translated to JUnit 4: 19 helpers, 3,502 lines of Kotlin, 4,987 lines of tests, **425 JVM tests**
+that run offline in about two seconds — including the nine `migrate-weeks` cases and 102 for
+`history` alone.
+
+The decisions this phase rests on:
+
+1. **The session shapes are JSON, not data classes.** `data/Js.kt` carries the JS semantics the
+   helpers were written against: `asNum` is `Number(x)`, `asBool` is `=== true` (the string
+   "true" is not true), `asObj`/`asArr` are `objectOf`/`Array.isArray`. A data class would have to
+   pick a type for every field, change behaviour wherever the real file disagrees with the choice, and
+   re-serialize the keys it does not carry — and this file is hand-edited, imported and
+   older-than-this-build all at once. `native/PORTING.md` is the contract for the next port.
+2. **The mutating JS helpers return the new list.** `cleanupSg`, `pairAdjacent`, `cascadeWeight`,
+   the warmup inserters and removers: JSON is immutable, so the caller stores the result and the test
+   asserts on the return value where the vitest case asserted on the mutated input.
+3. **The first write is atomic, coalesced and additive.** A `.writing` temp file, `fsync`, then a
+   rename over the profile; the new state reaches the screens before the disk does; writes coalesce on
+   `Dispatchers.IO`, because the workout screen will write on every set that gets ticked; and the
+   write is a *merge over the object that was read*, so keys this app does not model survive the round
+   trip. `_ts` is stamped the way the web app stamps it, and `MainActivity.onStop()` flushes.
+4. **A corrupt profile is never overwritten.** The web app boots on its defaults and replaces the file
+   on the next save. Here the store refuses to write and the screen says why — a training log is not
+   something to reset to make an error message go away.
+5. **The rest timer came over as Kotlin**: the foreground service, the action receiver, the
+   notification including the Android 16 Live Update bar, with `POST_NOTIFICATIONS` and
+   `FOREGROUND_SERVICE` declared and the shipping status-bar icon. Its copy goes through the same
+   locale pack as the app, so "Skip" is "Salta" when the profile is Italian.
+6. **Verified on an API 37 emulator**: the app boots and renders the Italian profile's week, and a
+   device with no file shows the empty state and the path it looked in. No crashes in either.
+
+### Not in 1a
+
+- Home and the workout screen, the sheets they open, and the timer's screen wiring. That is 1b.
+- Several ports carry their own private JS-truthiness helpers. `native/PORTING.md` records the debt
+  and says to fold them into `Js.kt` the next time a port needs one.
+
 

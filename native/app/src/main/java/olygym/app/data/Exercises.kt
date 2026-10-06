@@ -30,15 +30,37 @@ data class Exercise(
  * id. That read arrives with the picker.
  */
 object Catalogue {
+    private var builtIn: List<Exercise> = emptyList()
     private var byId: Map<String, Exercise> = emptyMap()
+    private var customIds: List<String> = emptyList()
 
     val size: Int get() = byId.size
 
+    /** The built-in catalogue in file order — exercises.js's CATALOGUE, without the customs. */
+    val list: List<Exercise> get() = builtIn
+
     fun install(list: List<Exercise>) {
+        builtIn = list
         byId = list.associateBy { it.id }
+        customIds = emptyList()
     }
 
     operator fun get(id: String): Exercise? = byId[id]
+
+    /**
+     * Merge S.customEx into the index, dropping the previous customs first (exercises.js's
+     * registerCustom). A custom that shadowed a built-in id is removed and the built-in restored.
+     */
+    fun registerCustom(list: List<Exercise>) {
+        val next = byId.toMutableMap()
+        customIds.forEach { id ->
+            next.remove(id)
+            builtIn.find { it.id == id }?.let { next[id] = it }
+        }
+        customIds = list.map { it.id }
+        list.forEach { next[it.id] = it }
+        byId = next
+    }
 
     /** The display name, translated when a name pack ships, and the id when it is not in the book. */
     fun nameOf(id: String): String {
