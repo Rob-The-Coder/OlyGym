@@ -199,3 +199,46 @@ weeks rather than a four-phase march with nothing to show.
    build (26 at the time of writing).
 3. Confirm opengym-state.json is read and rewritten without loss.
 4. Keep the last Capacitor APK and a state export until the new app has survived a week.
+---
+
+## Phase 0 decisions — what actually shipped
+
+Recorded here so the next session does not re-derive them. The code is in `native/`; the build
+recipe, the pinned versions and the generated files are in `native/README.md`.
+
+1. **Navigation is Voyager 1.1.0-beta03**, not `navigation-compose` as the table above says. That
+   artifact is not in this machine's offline Gradle cache and Google Maven is unreachable. Voyager
+   is the library Komikku uses, at the version its own catalogue pins, and all four artifacts are
+   cached; `androidx.navigation` still is not.
+2. **M3 Expressive is deferred, not built in.** Phase 0 is plain `MaterialTheme`. The tokens — the
+   Emphasized weights, the four curves, the state layers — are ported as data in
+   `ui/theme/Type.kt` and `ui/theme/Motion.kt`. `material3 1.4.0` does contain
+   `MaterialExpressiveTheme` and `MotionScheme`, for the phase that wires them.
+3. **Pinned toolchain**: Gradle 9.3.1, AGP 8.13.2, Kotlin 2.4.0, Compose BOM 2026.06.01
+   (material3 1.4.0), Voyager 1.1.0-beta03, kotlinx-serialization-json 1.11.0, JUnit 4.13.2, and
+   `desugar_jdk_libs` for `java.time` at minSdk 24. The Gradle plugin markers are not cached, so
+   the build uses a `buildscript` classpath; the buildscript repository order is `google()`,
+   `mavenCentral()`, `gradlePluginPortal()`, and that order is load-bearing offline.
+4. **The theme is generated too**, like the CSS: `scripts/design/m3-scheme-kotlin.mjs` imports
+   `scheme()` and `SEEDS` from `m3-scheme.mjs` and writes `ui/theme/Scheme.kt` — eight accents,
+   dark and light, nineteen roles each. The two asset files are generated from the frontend sources
+   by `native/tools/assets.mjs`.
+5. **`PlanState.Loaded` keeps the raw file text** next to the parsed model, so Phase 1 can write
+   the file back without dropping whatever this model does not cover. Phase 0 never writes.
+6. **The ported helpers take plain arguments** — `migrateToWeeks(routines, week, weekStart, now)`
+   and the weeks readers take the list — instead of the whole state object. Same behaviour, and the
+   whole read path is a JVM test: `StateStoreTest` drives a real file through parse, migrate and
+   decide, including the two shapes of the old `week` field (array and bare string).
+7. **The dev package is `olygym.app.dev`**, from `applicationIdSuffix ".dev"` on the debug build
+   type, so cutover item 2 in the checklist is deleting one line for the release build.
+8. **61 JVM tests** in `native/app/src/test`: the nine `migrate-weeks` cases one-to-one, the
+   format and i18n behaviours measured against the browser, the store's four outcomes, and the two
+   generated assets' shape and contrast. They run in about a second, offline.
+
+### Still open after Phase 0
+
+- Anything that writes the state file. Phase 1 owns that, and item 3 of the cutover checklist.
+- The Emphasized scale and the expressive motion, deferred by decision 2.
+- Custom exercises (`S.customEx`) are not merged into the catalogue index, so a day that
+  references one shows its id. It arrives with the picker.
+

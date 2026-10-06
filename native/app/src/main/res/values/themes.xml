@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark is the app's default theme (DESIGN.md), and the window background is what shows
+         before the first frame, so it is the dark surface rather than the platform white. -->
+    <style name="Theme.OlyGym" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/surface</item>
+    </style>
+</resources>

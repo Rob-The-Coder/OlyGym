@@ -1,0 +1,11 @@
+# Gradle + Android build output
+.gradle/
+.gradle-home/
+build/
+local.properties
+
+# IDE
+*.iml
+.idea/
+
+# The wrapper jar is committed on purpose (frontend/android does the same), so it is not ignored.
