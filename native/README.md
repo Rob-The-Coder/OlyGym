@@ -9,8 +9,9 @@ sheet, swap and freestyle are here too — writes the plan itself (Plan and the 
 starter plans, the complexes and a pure write for every edit), and reads it back: Stats, with the
 activity heatmap, the muscle balance and its fatigue view, the effort card, the body-weight and
 per-exercise curves, and the workout detail sheet behind the recent sessions), and the log itself is
-readable and writable: History, with its search and month headings, and log-a-past-workout. The
-Library and Settings screens are later phases.
+readable and writable: History, with its search and month headings, and log-a-past-workout), and
+Settings is here — the preferences, the appearance and the data, with backup export/import through
+the platform's own file picker. **Phase 2 is complete**; the Library is the remaining screen.
 
 ## Pinned toolchain
 
@@ -45,7 +46,7 @@ cached under the plugin portal while their transitive dependencies were cached u
 ```bash
 cd native
 
-# unit tests — 571 of them, no emulator, about twenty seconds
+# unit tests — 574 of them, no emulator, about twenty seconds
 GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
   ./gradlew :app:testDebugUnitTest --offline
 
@@ -96,6 +97,13 @@ the plan and the log, a row's "+" adds with the default config (a toast names th
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
 
+Phase 2d's check is Settings: Home's gear opens it, the language row swaps the whole UI to Italian
+and back, changing the accent re-themes the app as you tap the swatch (the file shows the new key),
+and Esposta backup (JSON) opens the system's "save to" picker with a dated file name. "Azzera tutto"
+asks first and then leaves an empty state — the file holds only its timestamp, Home reads 0 workouts
+and no weight, and the app is back on Home. **That is the check to be careful with: it deletes the
+fixture you seeded.**
+
 Phase 2c's check is the log: Stats' Recent workouts ends with "All N", which opens History on the
 totals, the search field and the month headings; typing an exercise name filters the list, and a row
 opens its detail sheet. The app bar's "+" opens Log a past workout: the date opens the month grid
@@ -142,7 +150,7 @@ app/src/main/java/olygym/app/
   data/                 Model, StateStore, Js (the JS-shaped JSON reads), Exercises/Catalogue/Assets
   lib/                  the ported domain helpers, one file per React helper: all nineteen of the
                         day-one closure, plus Format, I18nCore, Weeks, MigrateWeeks, PlanEdit,
-                        Starter, Recovery, ChartMath, Activity, Progress and HistoryView
+                        Starter, Recovery, ChartMath, Activity, Progress, HistoryView and Settings
   rest/                 RestTimer, its foreground service, its receiver and its notification
   rest/                 the rest mirror: the notification, its service, its receiver, its state
   platform/             Sound (tones and haptics)
@@ -150,7 +158,7 @@ app/src/main/java/olygym/app/
                         and the week editor, the session screen, the sheets, the shared controls
                         and the theme
 app/src/main/assets/    the two generated assets
-app/src/test/java/      571 JVM tests, one per ported behaviour
+app/src/test/java/      574 JVM tests, one per ported behaviour
 ```
 
 The helpers keep the React filenames and are one-to-one ports, so a diff against `frontend/src/lib`

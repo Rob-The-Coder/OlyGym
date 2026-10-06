@@ -557,3 +557,41 @@ logged too, from the app bar or the empty state.
   one with several still does nothing.
 - **The exercise history sheet** behind the exercise detail's row: it needs its own chart work.
 - **Settings** — the last of the phase-2 screens.
+## Phase 2d — Settings
+
+Settings is reachable: Home's app bar carries the gear, and behind it are the preferences the app
+actually reads — the general ones, the ones the workout screen obeys, the appearance, and the data.
+
+**574 JVM tests.** The device checks are in `native/README.md`; screenshots in
+`oly-previews/native-phase2d/`.
+
+### What it adds
+
+- **The screen** (`ui/settings/SettingsScreen.kt`): language (English/Italiano, with the note that the
+  instructions stay English), weight decimals (0.5/0.25), week start (Monday/Sunday), weigh-in before
+  workouts, automatic progression, workout view (cards/list/compact), the rest timer, sounds, the
+  flash at the end of a timer, effort per set, theme (dark/light/system), the eight accent swatches,
+  and then Data: load starter plan, import backup, export backup, reset everything.
+- **Backup, through the platform**: export writes the whole state object, pretty-printed, to a file
+  the user picks (`ActivityResultContracts.CreateDocument`); import reads one back
+  (`OpenDocument`), checks it looks like a backup at all, and asks before replacing everything. This
+  is the app's first file I/O outside the store, and it is the platform's own picker rather than a
+  path field.
+- **Reset** (`lib/Settings.kt`): an empty state object. The web copies its `DEF` because that object
+  is where its defaults live; here every default is in code — `Persisted`'s own and the settings
+  derivation — so an empty object reads back as a fresh profile, and the React app merges its own
+  DEF over whatever it finds, which is what its reset does too.
+
+### Deliberately not in 2d
+
+- **Weight classes**, **import a coach's plan**, **import from Google Drive**, **auto-backup** and the
+  **update check**: phase 3 (competitions, the spreadsheet, the background jobs, the updater).
+- **Keep the screen awake**, **exercise pictures**, **demo videos**, **the reminder card** and
+  **play sounds when the phone is on silent**: the Capacitor build's job — a wake lock, the media
+  packs, a local notification, an iOS audio session — each of which the native app would do with its
+  own platform piece in its own phase.
+- **Workout controls** and **the body diagram**: their sheets and their screen are not ported, and a
+  switch that wrote a key nothing reads would be a lie. The automatic-progression help and the
+  effort help's `(i)` are in the same position — the rows work, the help buttons are absent.
+- A few rows carry **no glyph**: the app's own icon set has no globe, bell, sun, upload or download
+  yet, and adding one means transcribing its path from `Icon.jsx`. The rows read fine without them.
