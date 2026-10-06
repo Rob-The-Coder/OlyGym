@@ -88,6 +88,19 @@ that is expected.
 - The exercise picker is ported without its demo thumbnails (media is its own phase), without the
   "By muscle" explorer and the Library's shared filter sheet, and the exercise history sheet is not
   ported at all — it needs the charts. See the Phase 1c list in docs/PORT-TO-KOTLIN.md.
+- The plan editor draws a row's three actions (link, up, down) at 34dp, through a private `RowIcon` in
+  `ui/plan/WeekEditScreen.kt`. The app's `IconButton` is 44dp, and four of those on a 360dp phone
+  would leave the exercise's own name nothing — the same compromise the set rows' step buttons make.
+- An integral number is written with its decimal: `js("sets" to 3.0)` and `with("weight", 60.0)`
+  serialize as `3.0` and `60.0`, where the web writes `3` and `60`. JSON has one number type and both
+  apps read it as the same value, so this is a spelling difference, not a compatibility one. Making
+  them match means one numeric writer used by `toJson` *and* by the helpers that build
+  `JsonPrimitive(double)` directly (`Muscles.kt`, `Units.kt`, `History.kt`).
+- The plan editor has no swipe-to-delete on a row (that is the web's); a row is removed through the
+  config sheet's own "Remove from routine".
+- `PlanScreen` no longer gates on `Profile.fileExists`. Phase 0 showed a notice there because it had
+  nothing that could write a file; an empty plan is now a plan you can fill, which is also the first
+  run on a phone that has never had this app's file.
 - `Catalogue` is module-level, so a test that reads through it — `defaultIncrement`, a name lookup —
   must not assume whether another test class has installed a catalogue yet: assert against the same
   function rather than against a value that depends on it.
@@ -96,6 +109,6 @@ that is expected.
 
 `Format`, `I18nCore`, `Weeks`, `MigrateWeeks` (Phase 0), the rest of the day-one closure plus
 `WorkoutControls`, `ProgressionCopy`, `NumInput`, `Favourites`, `Equipment`, `LibraryFilter` and
-`Usage` (Phase 1a/1b/1c). Read `WorkoutModel.kt` and
+`Usage` (Phase 1a/1b/1c), and `PlanEdit` and `Starter` (Phase 2a). Read `WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.

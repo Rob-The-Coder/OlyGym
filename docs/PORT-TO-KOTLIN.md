@@ -404,3 +404,60 @@ width.
 
 
 
+## Phase 2a — the plan and the week editor
+
+A week can be written in the app now, not only read: created (a starter plan, or New week), filled
+with days and exercises, grouped into complexes, reordered, renamed and deleted — every write
+landing in the existing `weeks` shape, with the keys this app does not model left exactly as they
+were.
+
+**517 JVM tests.** The device checks are in `native/README.md`; the screenshots are in
+`oly-previews/native-phase2a/`.
+
+### What it adds
+
+- **The plan list** (`ui/plan/PlanScreen.kt`, replacing phase 0's read-only `PlanListScreen`): the
+  week that covers today as a hero with its days on it — the short weekday, the day's name, its
+  exercise count, a tick on the dates already trained — then Upcoming and Earlier as one line each,
+  newest outward from today. `New week` mints the week after the last one (or this week's first day
+  when there are none) and opens it.
+- **The week editor** (`ui/plan/WeekEditScreen.kt`): an editable week title, one card per day with a
+  seven-way weekday picker and an editable day name, the day's exercises drawn in their complexes
+  with the link / move-up / move-down actions on the row, and the config sheet one tap away. The day
+  and week menus carry the two deletes, each behind the app's own confirm.
+- **The complex sheet** (`ui/sheet/ComplexSheet.kt`): the two numbers a complex shares — its sets
+  and its load — written to every member at once. Each row keeps its own reps.
+- **The starter plan** (`lib/Starter.kt` + `ui/sheet/StarterPlanSheet.kt`): the four ready-made
+  plans the web offers, the same schedules and the same lifts, added as a fresh dated week. It is the
+  way into an empty profile; the confirmation appears only when one of the plan's weekdays is already
+  taken and has exercises, as on the web.
+- **The plan's writes** (`lib/PlanEdit.kt`): one pure function per edit, over the raw state object —
+  the web's `update(s => ...)` bodies, each with its own JVM test. They are why an unknown key on a
+  week, a day or an exercise survives every one of these edits.
+- **`lib/Weeks.kt`** grew the plan's own readings: next week's date, the first free weekday, the days
+  in the profile's order with their live index, a week's three counts, and the date range.
+  **`components/Ui.kt`** gained `LineField`, the editable line of text — with the dashed rule under
+  it — that the week title and the day names are drawn with.
+
+### The one behaviour phase 0 changed
+
+A profile with **no file** used to show a notice and nothing else, because phase 0 had nothing that
+could write one. It now shows the empty plan and its `Load starter plan` button: no weeks is exactly
+what that state is for, and the first write creates the file. `Profile.fileExists` stays in the
+model, but the plan list no longer gates on it.
+
+### Deliberately not in 2a
+
+- **"Share your plan"** — the print sheet and the coach's spreadsheet import are phase 3, and the
+  upload glyph is not in this app's icon set. The button is absent rather than dead.
+- **Competitions**: the web's Plan/Competitions switch. Phase 3 with them.
+- **Swipe to delete** on a row: removal is the config sheet's own `Remove from routine`.
+- **The demo thumbnail** on a row: media is its own phase, so a row gets the app's glyph.
+- **Home's starter-plan door**: three lines once the sheet exists, and not part of this phase.
+
+### The one bug this phase found on device
+
+The bar-weight stepper wrapped its unit: the number field was a fixed 56dp inside a 150dp pill, which
+left "kg" about four dp and printed it as "k" over "g", in the config sheet's BAR section. The field
+now takes whatever the unit does not need. It shipped in 1c, so this fixes the config sheet it was
+already visible in.

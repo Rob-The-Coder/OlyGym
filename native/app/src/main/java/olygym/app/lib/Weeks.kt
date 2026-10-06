@@ -44,3 +44,64 @@ fun dayFor(weeks: List<Week>, iso: String): Day? {
 fun weekDates(week: Week, weekStart: Int): List<Pair<Day, String>> = week.days.map { day ->
     day to addDays(week.startIso, weekDayOffset(day.dow, weekStart).toLong())
 }
+
+/* ------------------------------------------------------------------ the plan list --
+ * The reads Plan and WeekEdit do on top of the model above, a port of the same inline helpers in
+ * frontend/src/views/Plan.jsx and WeekEdit.jsx.
+ */
+
+/**
+ * Where the next week begins: seven days after the last one we have, or this week's first day when
+ * there are none. A week is one concrete calendar week, so a new one follows the plan instead of
+ * repeating it.
+ */
+fun nextWeekStart(weeks: List<Week>, todayIso: String, weekStart: Int): String {
+    val latest = weeksInOrder(weeks).lastOrNull()
+    return if (latest != null) addDays(latest.startIso, 7)
+    else isoOf(startOfWeek(todayIso, weekStartOf(weekStart)))
+}
+
+/**
+ * The week's days in the profile's weekday order — [1..6, 0] for a Monday start. Several days may
+ * share a weekday (the migration emits one per scheduled routine) and they keep their own order.
+ */
+fun daysInOrder(week: Week, weekStart: Int): List<Day> =
+    weekOrder(weekStart).flatMap { d -> week.days.filter { it.dow == d } }
+
+/**
+ * The same list paired with each day's index in `week.days`, so an edit still finds the right day
+ * after the display order changes.
+ */
+fun dayEntries(week: Week, weekStart: Int): List<Pair<Day, Int>> =
+    weekOrder(weekStart).flatMap { d ->
+        week.days.mapIndexedNotNull { index, day -> if (day.dow == d) day to index else null }
+    }
+
+/** The first weekday this week leaves free — where "Add day" lands. */
+fun firstFreeDow(week: Week, weekStart: Int): Int {
+    val taken = week.days.map { it.dow }.toSet()
+    return weekOrder(weekStart).firstOrNull { it !in taken } ?: 0
+}
+
+/** What the Plan list says about one week, before it is opened. */
+data class WeekStats(val days: List<Day>, val ex: Int, val done: Int)
+
+/**
+ * A week's days and their counts. A week's days are dates, so "done" is per date rather than per
+ * weekday: the same Wednesday in two weeks is two different sessions.
+ */
+fun weekStats(week: Week, weekStart: Int, doneDates: Set<String>): WeekStats {
+    val days = daysInOrder(week, weekStart)
+    return WeekStats(
+        days = days,
+        ex = days.sumOf { it.ex.size },
+        done = days.count { doneDates.contains(addDays(week.startIso, weekDayOffset(it.dow, weekStart).toLong())) },
+    )
+}
+
+/**
+ * "5 Oct – 11 Oct". Two weeks can both be unnamed, so the dates are what tells them apart. The
+ * web builds it from two Date objects and a short month name, which is two fmtDate calls here.
+ */
+fun rangeLabel(startIso: String): String =
+    fmtDate(startIso, long = false) + " – " + fmtDate(addDays(startIso, 6), long = false)
