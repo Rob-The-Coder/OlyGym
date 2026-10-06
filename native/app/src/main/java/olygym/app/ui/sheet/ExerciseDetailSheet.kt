@@ -22,6 +22,7 @@ import olygym.app.data.str
 import olygym.app.data.with
 import olygym.app.lib.MUSCLE_NAME
 import olygym.app.lib.bestWeightFor
+import olygym.app.lib.capWords
 import olygym.app.lib.fmtDate
 import olygym.app.lib.fmtNum
 import olygym.app.lib.isFav
@@ -30,9 +31,12 @@ import olygym.app.lib.setLabel
 import olygym.app.lib.smOf
 import olygym.app.lib.toggledFavs
 import olygym.app.lib.usesBar
+import olygym.app.ui.components.Accessory
 import olygym.app.ui.components.Glyph
 import olygym.app.ui.components.IconButton
+import olygym.app.ui.components.ListRow
 import olygym.app.ui.components.Overline
+import olygym.app.ui.components.Section
 import olygym.app.ui.components.Tag
 import olygym.app.ui.components.Tile
 import olygym.app.ui.currentProfile
@@ -94,7 +98,7 @@ private fun ExerciseDetailSheet(ex: Exercise, close: () -> Unit) {
     Column(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
             Text(
-                text = Catalogue.nameOf(ex.id),
+                text = capWords(Catalogue.nameOf(ex.id)),
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.W600),
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
@@ -155,6 +159,19 @@ private fun ExerciseDetailSheet(ex: Exercise, close: () -> Unit) {
                     value = if (lastTop > 0) fmtNum(lastTop) + " " + unit else lastLine,
                     suffix = fmtDate(last.str("d").orEmpty(), long = false),
                     modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        // The way to the full history: a row with a chevron rather than a button, and only once
+        // there is one, which is also when "your last" above has something to say.
+        if (last != null) {
+            Section(modifier = Modifier.padding(bottom = 10.dp)) {
+                ListRow(
+                    title = t("History"),
+                    icon = Glyph.HISTORY,
+                    accessory = Accessory.CHEVRON,
+                    onClick = { exerciseHistorySheet(ex.id) },
                 )
             }
         }

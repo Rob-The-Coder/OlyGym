@@ -42,47 +42,58 @@ import olygym.app.ui.ui
 
 /** The note that belongs to one exercise of the running session, plus the cue that outlives it. */
 fun exerciseNoteSheet(entryIdx: Int) {
-    ui.openSheet { close -> ExerciseNoteSheet(entryIdx, close) }
+    ui.openSheet { close -> ExerciseNoteSheet(entryIdx, null, close) }
+}
+
+/**
+ * The exercise's own standing note, with nothing running and nothing logged: the whole sheet when it
+ * is opened from the exercise history, where the cue belongs to the movement rather than a session.
+ */
+fun standingNoteSheet(exId: String) {
+    ui.openSheet { close -> ExerciseNoteSheet(null, exId, close) }
 }
 
 @Composable
-private fun ExerciseNoteSheet(entryIdx: Int, close: () -> Unit) {
+private fun ExerciseNoteSheet(entryIdx: Int?, exId: String?, close: () -> Unit) {
     val profile = currentProfile() ?: return
-    val entry = profile.entries.getOrNull(entryIdx) ?: return
-    val id = entry.str("id").orEmpty()
-    val ex = olygym.app.data.Catalogue[id]
+    val entry = entryIdx?.let { profile.entries.getOrNull(it) }
+    // Two ways in: from the workout one entry carries both notes, from the history there is only the
+    // exercise id. An entry that went away takes the session half with it; the id has no such state.
+    val id = entry?.str("id") ?: exId ?: return
 
-    var note by remember { mutableStateOf(entry.str("note").orEmpty()) }
-    var pin by remember { mutableStateOf(entry.bool("notePin") == true) }
+    var note by remember { mutableStateOf(entry?.str("note").orEmpty()) }
+    var pin by remember { mutableStateOf(entry?.bool("notePin") == true) }
     var standing by remember { mutableStateOf(profile.raw.obj("exNotes")?.str(id).orEmpty()) }
 
     Column(Modifier.fillMaxWidth()) {
         SheetTitle(Catalogue.nameOf(id), capitalize = true)
 
-        FieldLabel(
-            t("This session"),
-            t("Kept with today’s workout — what happened, how it felt."),
-        )
-        NoteField(
-            value = note,
-            onChange = { note = it },
-            placeholder = t("How it went, what to change."),
-            minLines = 3,
-            max = NOTE_MAX,
-        )
-        Section(modifier = Modifier.padding(top = 10.dp)) {
-            ListRow(
-                title = t("Show this next time"),
-                icon = Glyph.FLAG,
-                subtitle = t("Brings it up again the next time you train this exercise."),
-                trailing = {
-                    Switch(
-                        checked = pin,
-                        onCheckedChange = { pin = it },
-                        enabled = note.isNotBlank(),
-                    )
-                },
+        if (entry != null) {
+            FieldLabel(
+                t("This session"),
+                t("Kept with today’s workout — what happened, how it felt."),
             )
+            NoteField(
+                value = note,
+                onChange = { note = it },
+                placeholder = t("How it went, what to change."),
+                minLines = 3,
+                max = NOTE_MAX,
+            )
+            Section(modifier = Modifier.padding(top = 10.dp)) {
+                ListRow(
+                    title = t("Show this next time"),
+                    icon = Glyph.FLAG,
+                    subtitle = t("Brings it up again the next time you train this exercise."),
+                    trailing = {
+                        Switch(
+                            checked = pin,
+                            onCheckedChange = { pin = it },
+                            enabled = note.isNotBlank(),
+                        )
+                    },
+                )
+            }
         }
 
         FieldLabel(
@@ -114,18 +125,24 @@ private fun ExerciseNoteSheet(entryIdx: Int, close: () -> Unit) {
  * moved under the sheet still lands on the entry it was opened for, and the standing note belongs
  * to the exercise id.
  */
-private fun saveNotes(entryIdx: Int, id: String, note: String, pin: Boolean, standing: String) {
+private fun saveNotes(entryIdx: Int?, id: String, note: String, pin: Boolean, standing: String) {
     val today = note.trim().take(NOTE_MAX)
     val always = standing.trim().take(NOTE_MAX)
     editProfile { raw ->
-        val withEntry = raw.editObject("active") { active ->
-            active.editArray("entries") { entries ->
-                entries.editAt(entryIdx) { entry ->
-                    if (today.isNotEmpty()) {
-                        val withPin = if (pin) entry.with("notePin", true) else entry.without("notePin")
-                        withPin.with("note", today)
-                    } else {
-                        entry.without("note").without("notePin")
+        // Nothing running: only the standing note is written, so reading a note from the history
+        // cannot create an empty session for it to live in.
+        val withEntry = if (entryIdx == null) {
+            raw
+        } else {
+            raw.editObject("active") { active ->
+                active.editArray("entries") { entries ->
+                    entries.editAt(entryIdx) { entry ->
+                        if (today.isNotEmpty()) {
+                            val withPin = if (pin) entry.with("notePin", true) else entry.without("notePin")
+                            withPin.with("note", today)
+                        } else {
+                            entry.without("note").without("notePin")
+                        }
                     }
                 }
             }

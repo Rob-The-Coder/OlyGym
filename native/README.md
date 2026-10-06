@@ -1,7 +1,7 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 2e**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 2f**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
@@ -10,10 +10,11 @@ starter plans, the complexes and a pure write for every edit), reads it back (St
 activity heatmap, the muscle balance and its fatigue view, the effort card, the body-weight and
 per-exercise curves, and the workout detail sheet behind the recent sessions), keeps the log
 readable and writable (History, with its search, its month headings and log-a-past-workout), browses
-the catalogue (the Library, its shared filter sheet and the By-muscle explorer), and is configured
-(Settings — the preferences, the appearance and the data, with backup export/import through the
-platform's own file picker). **Phase 2 is complete**; phase 3 is what is left, plus the media and
-the exercise history sheet.
+the catalogue (the Library, its shared filter sheet and the By-muscle explorer), reads one exercise
+back (the Exercise history sheet — its curve, its PR, and the cue that outlives a session), and is
+configured (Settings — the preferences, the appearance and the data, with backup export/import
+through the platform's own file picker). **Phase 2 is complete**; phase 3 and the media are what is
+left.
 
 ## Pinned toolchain
 
@@ -48,7 +49,7 @@ cached under the plugin portal while their transitive dependencies were cached u
 ```bash
 cd native
 
-# unit tests — 575 of them, no emulator, about twenty seconds
+# unit tests — 584 of them, no emulator, about twenty seconds
 GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
   ./gradlew :app:testDebugUnitTest --offline
 
@@ -99,6 +100,13 @@ the plan and the log, a row's "+" adds with the default config (a toast names th
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
 
+Phase 2f's check is one exercise's past. The Library opens Back Squat's detail sheet, whose History
+row opens the history sheet: 7 sessions, Best 130 kg with the date it was set, Last 125 kg, the blue
+curve, and the rows newest first with their sets, RIR, volume and chevrons — the PR mark landing on
+"ven 11 set", the first session that reached 130. The standing-note block opens the note editor with
+no session running, keeps "Gomiti alti" and writes it to `exNotes.wl77` without creating an `active`
+one. Mid-workout the same sheet is in the session's exercise menu, reading "Cronologia · L'ultima
+volta 2 ott". The pictures in `oly-previews/native-phase2f/` are each of those steps.
 Phase 2e's check is the catalogue. The Exercises tab opens on the whole 624 with the filters that
 are on: the list reads 505 once the "Casa" profile is applied, the three favourites are starred at
 the top with their best weights, and the Filters chip carries the one filter. The sheet re-counts its
@@ -169,7 +177,7 @@ app/src/main/java/olygym/app/
                         its By-muscle explorer, Settings, the sheets, the shared controls and the
                         theme
 app/src/main/assets/    the two generated assets
-app/src/test/java/      575 JVM tests, one per ported behaviour
+app/src/test/java/      584 JVM tests, one per ported behaviour
 ```
 
 The helpers keep the React filenames and are one-to-one ports, so a diff against `frontend/src/lib`

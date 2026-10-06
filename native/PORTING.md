@@ -88,8 +88,9 @@ that is expected.
 - Media is not ported anywhere: the Library's rows, the picker's rows and the detail sheet all draw
   the app's own glyph where the web shows the YouTube poster frame, and the detail sheet has no
   gallery. It is its own phase — it needs an image loader and the network permission, which nothing
-  else in this app has asked for. The exercise history sheet behind the detail sheet's row is in the
-  same position: it needs the charts. See the Phase 1c and 2e lists in docs/PORT-TO-KOTLIN.md.
+  else in this app has asked for. See the Phase 1c and 2e lists in docs/PORT-TO-KOTLIN.md.
+- The exercise history sheet recomputes its reading on each pass instead of memoising it as the web's
+  `useMemo` does: comparing two state objects to decide whether to scan costs more than the scan.
 - The Library's list is all of it — no 40-row page and no "Show more" — because a LazyColumn builds
   only what is on screen; its search field scrolls away with the list instead of sticking under the
   bar, and the By-muscle explorer is a screen of its own rather than a mode inside the picker.
@@ -135,8 +136,8 @@ that is expected.
 `WorkoutControls`, `ProgressionCopy`, `NumInput`, `Favourites`, `Equipment`, `LibraryFilter` and
 `Usage` (Phase 1a/1b/1c), `PlanEdit` and `Starter` (Phase 2a), `Recovery`, `ChartMath`, `Activity`
 and `Progress` (Phase 2b), `HistoryView` (Phase 2c) and `Settings` (Phase 2d — the option lists the
-screen offers, and what a reset leaves behind), plus the By-muscle reads in `LibraryFilter` (Phase
-2e — `muscleWeightOf` and `muscleCounts`, over the one `exerciseJson` that the progression, recovery
-and explorer reads now share). Read `WorkoutModel.kt` and
+screen offers, and what a reset leaves behind), the By-muscle reads in `LibraryFilter` (Phase 2e —
+`muscleWeightOf` and `muscleCounts`, over the one `exerciseJson` that the progression, recovery and
+explorer reads now share) and `ExerciseHistory` (Phase 2f). Read `WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.

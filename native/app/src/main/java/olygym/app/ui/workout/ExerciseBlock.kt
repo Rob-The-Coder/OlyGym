@@ -78,6 +78,7 @@ import olygym.app.ui.t
 import olygym.app.ui.tMessage
 import olygym.app.ui.sheet.MenuItem
 import olygym.app.ui.sheet.colorOf
+import olygym.app.ui.sheet.exerciseHistorySheet
 import olygym.app.ui.sheet.menuSheet
 import olygym.app.ui.theme.FullShape
 import olygym.app.ui.theme.extraColors
@@ -337,6 +338,12 @@ fun ExerciseBlock(
                     onClick = onNote,
                 ),
                 MenuItem(label = t("Details"), icon = Glyph.INFO, onClick = onDetails),
+                MenuItem(
+                    label = t("History"),
+                    icon = Glyph.HISTORY,
+                    sub = last?.let { t("Last time") + " " + fmtDate(it.str("d").orEmpty(), long = false) },
+                    onClick = { exerciseHistorySheet(id) },
+                ),
                 MenuItem(
                     label = t("Progression settings"),
                     icon = Glyph.CHART_LINE,
