@@ -23,6 +23,10 @@ data class Persisted(
     val targetW: Double? = null,
     /** Whether Start opens the quick weigh-in first. Defaults on for a profile written before it. */
     val weighIn: Boolean? = null,
+    /** The default rest between sets, in seconds. Zero means the profile turned the rest off. */
+    val restSec: Int = 90,
+    /** Whether ticking a set and the end of a rest make a sound. On unless it was turned off. */
+    val sound: Boolean = true,
     val weeks: List<Week> = emptyList(),
     /** The repeating plan that predates S.weeks; migrate-weeks.js reads it, and so does this. */
     val routines: List<Routine> = emptyList(),
@@ -76,4 +80,6 @@ data class Settings(
     val wdec: Int,
     val targetW: Double?,
     val weighIn: Boolean,
+    val restSec: Int,
+    val sound: Boolean,
 )

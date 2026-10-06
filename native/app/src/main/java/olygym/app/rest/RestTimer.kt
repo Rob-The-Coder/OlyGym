@@ -13,23 +13,40 @@ import android.content.Context
 object RestTimer {
 
     /** Start (or replace) a rest. */
-    fun start(context: Context, endsAtMillis: Long, totalMillis: Long) {
+    fun start(
+        context: Context,
+        endsAtMillis: Long,
+        totalMillis: Long,
+        forIdx: Int? = null,
+        text: String = "",
+        sub: String = "",
+        big: String = "",
+    ) {
         RestNotification.save(
             context,
             endsAtMs = endsAtMillis,
             totalSec = totalSeconds(totalMillis),
             title = RestNotification.CHANNEL_NAME,
-            text = "",
-            sub = "",
-            big = "",
+            text = text,
+            sub = sub,
+            big = big,
+            forIdx = forIdx,
         )
         RestNotification.post(context)
         RestTimerService.start(context)
     }
 
     /** The running rest moved its end time (or its length); same mirror, same ticker. */
-    fun update(context: Context, endsAtMillis: Long, totalMillis: Long) {
-        start(context, endsAtMillis, totalMillis)
+    fun update(
+        context: Context,
+        endsAtMillis: Long,
+        totalMillis: Long,
+        forIdx: Int? = null,
+        text: String = "",
+        sub: String = "",
+        big: String = "",
+    ) {
+        start(context, endsAtMillis, totalMillis, forIdx, text, sub, big)
     }
 
     /** Drop the mirror and the notification, and stop the ticker. */
