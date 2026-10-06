@@ -1,6 +1,5 @@
 package olygym.app.ui.sheet
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,13 +18,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import olygym.app.data.Catalogue
 import olygym.app.data.Exercise
 import olygym.app.lib.LibraryResult
-import olygym.app.lib.MUSCLE_NAME
 import olygym.app.lib.activeProfile
 import olygym.app.lib.allExercises
 import olygym.app.lib.exAvailable
@@ -36,10 +31,14 @@ import olygym.app.lib.libraryResults
 import olygym.app.lib.sortFavouritesFirst
 import olygym.app.lib.usageMap
 import olygym.app.ui.components.Button
+import olygym.app.ui.components.Chip
+import olygym.app.ui.components.ExerciseRow
 import olygym.app.ui.components.Glyph
 import olygym.app.ui.components.GlyphIcon
 import olygym.app.ui.components.SearchField
 import olygym.app.ui.components.Tag
+import olygym.app.ui.components.Thumb
+import olygym.app.ui.components.exerciseSubtitle
 import olygym.app.ui.currentProfile
 import olygym.app.ui.t
 import olygym.app.ui.theme.FullShape
@@ -169,11 +168,30 @@ private fun ExercisePicker(onPick: (Exercise, Boolean) -> Unit, close: () -> Uni
             listed.take(shown).forEach { ex ->
                 ExerciseRow(
                     ex = ex,
+                    subtitle = exerciseSubtitle(ex),
                     favourite = isFav(raw, ex.id),
-                    chosen = usage.containsKey(ex.id),
-                    onPick = { quick ->
+                    onClick = {
                         close()
-                        onPick(ex, quick)
+                        onPick(ex, false)
+                    },
+                    trailing = {
+                        if (usage.containsKey(ex.id)) Tag(t("Chosen"), accent = true)
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(FullShape)
+                                .clickable {
+                                    close()
+                                    onPick(ex, true)
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            GlyphIcon(
+                                Glyph.PLUS,
+                                Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
                     },
                 )
             }
@@ -193,111 +211,6 @@ private fun ExercisePicker(onPick: (Exercise, Boolean) -> Unit, close: () -> Uni
                 modifier = Modifier.padding(top = 10.dp),
             )
         }
-    }
-}
-
-@Composable
-private fun ExerciseRow(
-    ex: Exercise,
-    favourite: Boolean,
-    chosen: Boolean,
-    onPick: (Boolean) -> Unit,
-) {
-    val muscle = ex.tg?.let { MUSCLE_NAME[it] ?: it } ?: ex.bp
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.medium)
-            .clickable { onPick(false) }
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Thumb(ex)
-        Column(Modifier.weight(1f)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                if (favourite) {
-                    GlyphIcon(Glyph.STAR_FILLED, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
-                }
-                Text(
-                    text = Catalogue.nameOf(ex.id),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Text(
-                text = listOfNotNull(muscle?.let { t(it) }, ex.eq?.let { t(it) }).joinToString(" · "),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        if (chosen) Tag(t("Chosen"), accent = true)
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(FullShape)
-                .clickable { onPick(true) },
-            contentAlignment = Alignment.Center,
-        ) {
-            GlyphIcon(Glyph.PLUS, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
-        }
-    }
-}
-
-/**
- * The demo thumbnail's place. Media is its own phase, so a row shows the app's own glyph until the
- * poster frame is ported.
- */
-@Composable
-private fun Thumb(ex: Exercise?) {
-    val tint = if (ex == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(
-                if (ex != null) {
-                    MaterialTheme.colorScheme.surfaceContainerHigh
-                } else {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                }
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        GlyphIcon(if (ex == null) Glyph.SPARKLES else Glyph.DUMBBELL, Modifier.size(20.dp), tint = tint)
-    }
-}
-
-@Composable
-private fun Chip(label: String, on: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(FullShape)
-            .background(
-                if (on) {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainerHigh
-                }
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = if (on) FontWeight.W600 else FontWeight.W400,
-            ),
-            color = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-        )
     }
 }
 

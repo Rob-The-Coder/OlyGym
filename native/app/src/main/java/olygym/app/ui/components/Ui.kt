@@ -708,6 +708,54 @@ fun Tag(text: String, modifier: Modifier = Modifier, accent: Boolean = false) {
     }
 }
 
+
+/**
+ * A pill you can pick. Same shape as [Tag], but it is a control: on reads as a tint of the accent,
+ * off as a container surface — the web .chip. It lives here rather than in each screen because the
+ * picker, the Library, its filter sheet and the muscle explorer all draw the same one.
+ */
+@Composable
+fun Chip(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    on: Boolean = false,
+    trailing: Glyph? = null,
+) {
+    LayoutRow(
+        modifier = modifier
+            .clip(FullShape)
+            .background(
+                if (on) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerHigh
+                },
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = if (on) FontWeight.W600 else FontWeight.W400,
+            ),
+            color = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+        )
+        if (trailing != null) {
+            GlyphIcon(
+                trailing,
+                Modifier.size(14.dp),
+                tint = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                stroke = 2.4f,
+            )
+        }
+    }
+}
+
 /** A search field: the magnifier, the text, and a way to clear it. */
 @Composable
 fun SearchField(

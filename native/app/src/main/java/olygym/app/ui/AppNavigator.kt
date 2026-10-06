@@ -32,7 +32,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.NavigatorDisposeBehavior
@@ -45,6 +44,7 @@ import olygym.app.ui.components.ButtonVariant
 import olygym.app.ui.components.Glyph
 import olygym.app.ui.components.GlyphIcon
 import olygym.app.ui.home.HomeScreen
+import olygym.app.ui.library.LibraryScreen
 import olygym.app.ui.plan.PlanScreen
 import olygym.app.ui.stats.StatsScreen
 import olygym.app.ui.sheet.SheetHost
@@ -128,31 +128,7 @@ private fun TabContent(tab: Int) {
         0 -> HomeScreen()
         1 -> PlanScreen.Content()
         2 -> StatsScreen.Content()
-        else -> Placeholder(t("Exercises"))
-    }
-}
-
-@Composable
-private fun Placeholder(title: String) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        // Deliberately plain: this screen is a later phase of the port, and saying so beats an empty
-        // surface that looks broken.
-        Text(
-            text = t("Not ported yet."),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 8.dp),
-        )
+        else -> LibraryScreen.Content()
     }
 }
 

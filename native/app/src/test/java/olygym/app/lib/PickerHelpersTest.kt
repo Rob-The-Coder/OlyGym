@@ -119,6 +119,28 @@ class PickerHelpersTest {
         assertEquals(listOf("barbell", "body weight"), allEquipment(catalogue))
     }
 
+    /* ----------------------------------------------------------- by muscle -- */
+
+    private val byMuscle = listOf(
+        Exercise(id = "a", n = "bench press", bp = "upper body", tg = "chest", sm = listOf("triceps")),
+        // A secondary that repeats the primary still counts once for that exercise.
+        Exercise(id = "b", n = "dip", bp = "upper body", tg = "chest", sm = listOf("chest", "triceps")),
+        Exercise(id = "c", n = "back squat", bp = "upper legs", eq = "barbell"),
+        // Nothing recognized and no body part: trains no muscle at all.
+        Exercise(id = "d", n = "burpee", eq = "body weight"),
+    )
+
+    @Test
+    fun `the by-muscle counts are how many exercises train each muscle`() {
+        val counts = muscleCounts(byMuscle)
+        assertEquals(MUSCLES.size, counts.size)          // every chip has a number, zero included
+        assertEquals(2, counts["chest"])
+        assertEquals(2, counts["triceps"])
+        assertEquals(1, counts["quadriceps"])            // through the body part's own distribution
+        assertEquals(0, counts["calves"])
+        assertTrue(muscleCounts(emptyList()).values.all { it == 0 })
+    }
+
     /* ----------------------------------------------------------------- usage -- */
 
     private val profile = js(
