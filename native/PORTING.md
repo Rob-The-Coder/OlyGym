@@ -117,6 +117,9 @@ that is expected.
 - The backfill writes its `backfill` block through `js()`, which drops null keys: the web writes
   `replaceId: null` explicitly and this writes no key at all. `completeBackfill` reads both the same
   way, so only the file's spelling differs.
+- `resetState()` is an empty JSON object, not a copy of the web's `DEF`. The defaults live in code
+  here (`Persisted`'s own and `StateStore.derive`), and the React app merges its DEF over whatever it
+  finds — so both apps see the same fresh profile, from a different mechanism.
 - The date picker is the web's month grid rather than the platform's `<input type="date">`, and the
   time picker is the app's steppers and presets rather than `<input type="time">` — which is what the
   web itself does, having replaced both for the same reason.
@@ -126,6 +129,7 @@ that is expected.
 `Format`, `I18nCore`, `Weeks`, `MigrateWeeks` (Phase 0), the rest of the day-one closure plus
 `WorkoutControls`, `ProgressionCopy`, `NumInput`, `Favourites`, `Equipment`, `LibraryFilter` and
 `Usage` (Phase 1a/1b/1c), `PlanEdit` and `Starter` (Phase 2a), `Recovery`, `ChartMath`, `Activity`
-and `Progress` (Phase 2b), and `HistoryView` (Phase 2c). Read `WorkoutModel.kt` and
+and `Progress` (Phase 2b), `HistoryView` (Phase 2c), and `Settings` (Phase 2d — the option lists the
+screen offers, and what a reset leaves behind). Read `WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.

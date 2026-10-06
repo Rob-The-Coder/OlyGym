@@ -72,6 +72,7 @@ import olygym.app.ui.sheet.weighInSheet
 import olygym.app.ui.t
 import olygym.app.ui.theme.CardShape
 import olygym.app.ui.theme.extraColors
+import olygym.app.ui.settings.SettingsScreen
 import olygym.app.ui.workout.WorkoutScreen
 import olygym.app.ui.workout.startFlow
 import java.time.LocalDate
@@ -150,6 +151,7 @@ fun HomeScreen() {
                 title = "OlyGym",
                 scrollBehavior = scroll,
                 subtitle = fmtLongDate(iso),
+                actions = { IconButton(Glyph.GEAR, onClick = { Nav.to(SettingsScreen) }) },
             )
         },
     ) { padding ->
