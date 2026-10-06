@@ -519,3 +519,41 @@ last few sessions opening into their own detail sheet.
   column the way the web's do.
 - The fatigue view was drawing its bars in the accent ramp; it now uses the red-orange-yellow one
   (`.hm-fatigue`) the web keeps for "this needs rest".
+## Phase 2c — the log, and logging into the past
+
+History is reachable now: Stats' Recent workouts ends with its own door, and the screen behind it is
+the whole log — the four totals, a search over session and exercise names, a heading per month, and
+every session opening into its detail sheet. A workout that happened before the app was opened can be
+logged too, from the app bar or the empty state.
+
+**571 JVM tests.** The device checks are in `native/README.md`; screenshots in
+`oly-previews/native-phase2c/`.
+
+### What it adds
+
+- **The History screen** (`ui/history/HistoryScreen.kt`): two by two totals (workouts, sets, volume,
+  PRs), the search field, one heading per consecutive month ("settembre 2026"), the rows, and the two
+  empty states — never trained, and no match. Its readings are `lib/HistoryView.kt`.
+- **Log a past workout** (`ui/sheet/LogPastWorkoutSheet.kt`): the date, the start time, the duration,
+  what that date's plan holds, and what is already logged on it. Continue on a day that is spoken for
+  asks what to do about it — add a second session, or replace one, by name — and a day that is free
+  opens the session straight away.
+- **The date and time pickers** (`ui/sheet/DateAndTimeSheets.kt`): the month grid the calendar uses
+  (with a dot on the days already trained and on the days planned), and the hour/minute steppers with
+  the handful of times a session actually starts at. On the web these were the last two platform
+  widgets inside a sheet — `<input type="date">` and `<input type="time">` — drawn in the system's
+  colours and the system's format.
+- **`beginBackfill`** (`ui/workout/WorkoutActions.kt`): the session for a past date, built by the
+  same walk a live start uses, with the date it is filed under and the `backfill` block the finish
+  path reads. That path was already ported in 1a — a backfilled session is filed on its own day and
+  claims no PRs, because a workout logged into the past cannot beat the history that came after it.
+
+### Deliberately not in 2c
+
+- **The calendar sheet** (the month at a glance, six months back with its own "back to this month"),
+  and with it the `MonthGrid` reuse: the grid itself is here, as the backfill's date picker, and the
+  calendar is the screen that would put a month's totals above it.
+- **A day with several sessions** (the day-sessions sheet): a heatmap cell with one session opens it,
+  one with several still does nothing.
+- **The exercise history sheet** behind the exercise detail's row: it needs its own chart work.
+- **Settings** — the last of the phase-2 screens.

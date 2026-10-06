@@ -8,8 +8,9 @@ training log — builds a session as well as following one, since the exercise p
 sheet, swap and freestyle are here too — writes the plan itself (Plan and the week editor, with the
 starter plans, the complexes and a pure write for every edit), and reads it back: Stats, with the
 activity heatmap, the muscle balance and its fatigue view, the effort card, the body-weight and
-per-exercise curves, and the workout detail sheet behind the recent sessions. The Library, History
-and Settings screens are later phases.
+per-exercise curves, and the workout detail sheet behind the recent sessions), and the log itself is
+readable and writable: History, with its search and month headings, and log-a-past-workout. The
+Library and Settings screens are later phases.
 
 ## Pinned toolchain
 
@@ -44,7 +45,7 @@ cached under the plugin portal while their transitive dependencies were cached u
 ```bash
 cd native
 
-# unit tests — 564 of them, no emulator, about twenty seconds
+# unit tests — 571 of them, no emulator, about twenty seconds
 GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
   ./gradlew :app:testDebugUnitTest --offline
 
@@ -95,6 +96,15 @@ the plan and the log, a row's "+" adds with the default config (a toast names th
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
 
+Phase 2c's check is the log: Stats' Recent workouts ends with "All N", which opens History on the
+totals, the search field and the month headings; typing an exercise name filters the list, and a row
+opens its detail sheet. The app bar's "+" opens Log a past workout: the date opens the month grid
+(a dot on the days trained, tomorrow disabled), the start time opens the steppers and the presets,
+and Continue on a free day starts the session — which is the check that matters, because it is where
+a past session is built rather than followed. Logging a set and finishing files it on its own date:
+`run-as olygym.app.dev cat files/opengym-state.json` shows it in date order with no PRs claimed, and
+a day that already has a session asks whether to add a second one or replace the one that is there.
+
 Phase 2b's check is Stats: the Overview tiles are two by two and read in full, the activity heatmap
 shades the days trained and rings today, the balance card's range strip shows "Settimana" whole, its
 Fatigue view colours the muscles red-orange-yellow, the effort card's curve and histogram agree with
@@ -132,7 +142,7 @@ app/src/main/java/olygym/app/
   data/                 Model, StateStore, Js (the JS-shaped JSON reads), Exercises/Catalogue/Assets
   lib/                  the ported domain helpers, one file per React helper: all nineteen of the
                         day-one closure, plus Format, I18nCore, Weeks, MigrateWeeks, PlanEdit,
-                        Starter, Recovery, ChartMath, Activity and Progress
+                        Starter, Recovery, ChartMath, Activity, Progress and HistoryView
   rest/                 RestTimer, its foreground service, its receiver and its notification
   rest/                 the rest mirror: the notification, its service, its receiver, its state
   platform/             Sound (tones and haptics)
@@ -140,7 +150,7 @@ app/src/main/java/olygym/app/
                         and the week editor, the session screen, the sheets, the shared controls
                         and the theme
 app/src/main/assets/    the two generated assets
-app/src/test/java/      564 JVM tests, one per ported behaviour
+app/src/test/java/      571 JVM tests, one per ported behaviour
 ```
 
 The helpers keep the React filenames and are one-to-one ports, so a diff against `frontend/src/lib`

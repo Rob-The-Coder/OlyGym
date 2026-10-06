@@ -26,6 +26,7 @@ import olygym.app.data.Day
 import olygym.app.lib.SwapEvent
 import olygym.app.lib.applyPrescription
 import olygym.app.lib.backfillEnd
+import olygym.app.lib.backfillStart
 import olygym.app.lib.bestWeightFor
 import olygym.app.lib.bestWeightForEntry
 import olygym.app.lib.buildSets
@@ -104,6 +105,40 @@ fun beginWorkout(day: Day?, bw: Double?) {
         "bw" to (bw ?: JsonNull),
         "cur" to 0,
         "entries" to built.entries,
+        "workoutView" to (raw.str("workoutView") ?: "cards"),
+    )
+    editProfile { it.with("active", active) }
+    ui.stopRest()
+    Nav.to(WorkoutScreen)
+}
+
+/**
+ * Create a session for a date that has already happened — a port of beginBackfill. The same builder
+ * walks up to the same entries a live start would, so a backfilled session is the day that date was
+ * planned to have; a date with no day planned opens empty. The two fields that differ from a live
+ * session are the date and start it is filed under, and the `backfill` block the finish path reads
+ * to keep it out of the records and to know which workout it replaces.
+ *
+ * Not ported: the JS writes `replaceId` as an explicit null. js() drops nulls, so the key is absent
+ * instead, and completeBackfill reads both the same way.
+ */
+fun beginBackfill(iso: String, time: String, durationMin: Int, replaceId: String?) {
+    val profile = profileNow() ?: return
+    val raw = profile.raw
+    val day = effectiveDay(raw, iso)
+    val built = buildDayEntries(raw, day?.toJsonObject())
+    val weekId = if (day != null) weekFor(profile.weeks, iso)?.id else null
+    val active = js(
+        "id" to uid(),
+        "d" to iso,
+        "start" to backfillStart(iso, time),
+        "weekId" to (weekId ?: JsonNull),
+        "dow" to (day?.dow ?: JsonNull),
+        "name" to built.name,
+        "bw" to JsonNull,
+        "cur" to 0,
+        "entries" to built.entries,
+        "backfill" to js("durationMin" to durationMin, "replaceId" to replaceId),
         "workoutView" to (raw.str("workoutView") ?: "cards"),
     )
     editProfile { it.with("active", active) }
