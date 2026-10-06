@@ -174,6 +174,9 @@ class StateStore(
         } else {
             p.weeks
         }
+        // The user's own exercises go into the catalogue index here, so a day that references one
+        // shows its name instead of its id. Only on a change: this runs on every write.
+        if (Catalogue.installedCustomIds() != p.customEx.map { it.id }) Catalogue.registerCustom(p.customEx)
         val settings = Settings(
             unit = p.unit,
             weekStart = p.weekStart,

@@ -20,6 +20,15 @@ data class Exercise(
     val st: List<String> = emptyList(),
     val yt: String? = null,
     val src: String? = null,
+    /** True for an exercise the user made. The catalogue's own entries never carry it. */
+    val custom: Boolean = false,
+    /**
+     * A custom exercise's own muscle metadata. The catalogue's entries leave these empty and the
+     * muscle map reads their dataset instead (see lib/Muscles.kt).
+     */
+    val muscleGroups: List<String> = emptyList(),
+    val primaries: List<String> = emptyList(),
+    val secondaries: List<String> = emptyList(),
 )
 
 /**
@@ -46,6 +55,9 @@ object Catalogue {
     }
 
     operator fun get(id: String): Exercise? = byId[id]
+
+    /** The custom ids currently merged in, so a caller can skip a redundant re-index. */
+    fun installedCustomIds(): List<String> = customIds
 
     /**
      * Merge S.customEx into the index, dropping the previous customs first (exercises.js's
