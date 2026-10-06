@@ -45,7 +45,7 @@ import olygym.app.ui.components.ButtonVariant
 import olygym.app.ui.components.Glyph
 import olygym.app.ui.components.GlyphIcon
 import olygym.app.ui.home.HomeScreen
-import olygym.app.ui.plan.PlanListScreen
+import olygym.app.ui.plan.PlanScreen
 import olygym.app.ui.sheet.SheetHost
 import olygym.app.ui.theme.FullShape
 import olygym.app.ui.workout.WorkoutScreen
@@ -125,7 +125,7 @@ internal object ShellScreen : AppScreen() {
 private fun TabContent(tab: Int) {
     when (tab) {
         0 -> HomeScreen()
-        1 -> PlanListScreen.Content()
+        1 -> PlanScreen.Content()
         2 -> Placeholder(t("Stats"))
         else -> Placeholder(t("Exercises"))
     }

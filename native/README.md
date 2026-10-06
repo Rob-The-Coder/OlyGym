@@ -1,12 +1,13 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 1c**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 2a**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
-training log — and builds a session as well as following one, since the exercise picker, the config
-sheet, swap and freestyle are here too. The Library, Plan, History, Stats and Settings screens are
-later phases.
+training log — builds a session as well as following one, since the exercise picker, the config
+sheet, swap and freestyle are here too — and writes the plan itself: Plan and the week editor, with
+the starter plans, the complexes and a pure write for every edit. The Library, History, Stats and
+Settings screens are later phases.
 
 ## Pinned toolchain
 
@@ -41,7 +42,7 @@ cached under the plugin portal while their transitive dependencies were cached u
 ```bash
 cd native
 
-# unit tests — 490 of them, no emulator, about twenty seconds
+# unit tests — 517 of them, no emulator, about twenty seconds
 GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
   ./gradlew :app:testDebugUnitTest --offline
 
@@ -76,8 +77,9 @@ adb shell run-as olygym.app.dev cp /data/local/tmp/state.json files/opengym-stat
 adb shell am start -n olygym.app.dev/olygym.app.MainActivity
 ```
 
-With no file the app shows the empty state and the path it looked in, which is the check that the
-store's four outcomes are all reachable.
+With no file the app shows an empty plan and its "Load starter plan" button, and the first write
+creates the file — the store's three outcomes (loading, ready, one that will not parse) are still all
+reachable.
 
 Phase 1b's check is a whole session: Home renders the profile's week, the tiles and the weigh-in
 card; the centre button starts the day, the weigh-in sheet is locked until it is answered; ticking a
@@ -90,6 +92,15 @@ Phase 1c's check is the picker: its search field reads the catalogue's size, the
 the plan and the log, a row's "+" adds with the default config (a toast names the day), and the new
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
+
+Phase 2a's check is the plan: the week that covers today leads the Plan tab with its days and a tick
+on the dates already trained, and opening it gives one card per day. A day opens into its exercises
+with the link / move-up / move-down actions on the row; linking two rows makes a complex card, and the
+complex sheet's sets and load reach every member at once. The picker's "+" adds a lift (a toast names
+the day), the row's own sheet edits it and removes it, and New week starts the week after the last
+one. Then `adb shell pm clear olygym.app.dev`: an empty plan offers "Load starter plan", and the plan
+lands as a fresh week with its own days. `run-as olygym.app.dev cat files/opengym-state.json` is what
+confirms the writes, including that a deleted week leaves `"weeks": []`.
 
 ## Generated files — do not edit by hand
 
@@ -111,14 +122,16 @@ app/src/main/java/olygym/app/
   MainActivity.kt       edge-to-edge, theme from the profile, one Navigator
   data/                 Model, StateStore, Js (the JS-shaped JSON reads), Exercises/Catalogue/Assets
   lib/                  the ported domain helpers, one file per React helper: all nineteen of the
-                        day-one closure, plus Format, I18nCore, Weeks and MigrateWeeks
+                        day-one closure, plus Format, I18nCore, Weeks, MigrateWeeks, PlanEdit and
+                        Starter
   rest/                 RestTimer, its foreground service, its receiver and its notification
   rest/                 the rest mirror: the notification, its service, its receiver, its state
   platform/             Sound (tones and haptics)
-  ui/                   the shell (AppNavigator, tabs, rest bar, toast, sheet host), Home, the
-                        session screen, the sheets, the shared controls and the theme
+  ui/                   the shell (AppNavigator, tabs, rest bar, toast, sheet host), Home, Plan
+                        and the week editor, the session screen, the sheets, the shared controls
+                        and the theme
 app/src/main/assets/    the two generated assets
-app/src/test/java/      490 JVM tests, one per ported behaviour
+app/src/test/java/      517 JVM tests, one per ported behaviour
 ```
 
 The helpers keep the React filenames and are one-to-one ports, so a diff against `frontend/src/lib`

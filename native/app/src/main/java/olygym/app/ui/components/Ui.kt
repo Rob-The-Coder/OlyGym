@@ -1,5 +1,6 @@
 package olygym.app.ui.components
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,7 +36,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -543,13 +546,16 @@ fun Stepper(
                             value = value,
                             onChange = { set(it ?: 0.0) },
                             decimal = decimal,
-                            modifier = Modifier.width(56.dp),
+                            // The field takes whatever the unit does not need. A fixed 56dp left
+                            // the unit four dp here, and "kg" wrapped onto two lines.
+                            modifier = Modifier.weight(1f, fill = false),
                         )
                         if (unit != null) {
                             Text(
                                 text = unit,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
                                 modifier = Modifier.padding(start = 2.dp),
                             )
                         }
@@ -744,6 +750,61 @@ fun SearchField(
                     Glyph.XMARK,
                     Modifier.size(18.dp).clickable { onChange("") },
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/* ============================ one line of text ============================ */
+
+/**
+ * A single line of editable text with no field chrome. An editable title has one look in this app:
+ * the text, with the placeholder standing in when it is empty, and — where the screen passes
+ * dashed — a dashed rule under it, which is the whole affordance (the web's .day-name and its
+ * .field.ab-title both do exactly this).
+ *
+ * BasicTextField rather than Material3's TextField, which brings a filled box, a label and its own
+ * height, and the week editor's title is a title.
+ */
+@Composable
+fun LineField(
+    value: String,
+    onChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+    textStyle: TextStyle? = null,
+    dashed: Boolean = false,
+) {
+    val style = textStyle ?: MaterialTheme.typography.bodyLarge
+    val rule = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+    Column(modifier.fillMaxWidth()) {
+        Box(Modifier.fillMaxWidth()) {
+            if (value.isEmpty()) {
+                Text(
+                    text = placeholder,
+                    style = style.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            BasicTextField(
+                value = value,
+                onValueChange = onChange,
+                singleLine = true,
+                textStyle = style.copy(color = MaterialTheme.colorScheme.onSurface),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        if (dashed) {
+            Canvas(Modifier.fillMaxWidth().height(1.5.dp)) {
+                drawLine(
+                    color = rule,
+                    start = Offset(0f, size.height / 2f),
+                    end = Offset(size.width, size.height / 2f),
+                    strokeWidth = size.height,
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(9f, 7f), 0f),
                 )
             }
         }
