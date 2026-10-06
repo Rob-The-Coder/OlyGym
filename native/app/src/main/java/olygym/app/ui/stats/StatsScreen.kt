@@ -86,10 +86,12 @@ import olygym.app.ui.components.Tile
 import olygym.app.ui.components.WorkoutRow
 import olygym.app.ui.components.olyAppBarScrollBehavior
 import olygym.app.ui.currentProfile
+import olygym.app.ui.Nav
 import olygym.app.ui.chart.ChartPoint
 import olygym.app.ui.chart.Heatmap
 import olygym.app.ui.chart.LineChart
 import olygym.app.ui.components.Glyph
+import olygym.app.ui.history.HistoryScreen
 import olygym.app.ui.sheet.SelectOption
 import olygym.app.ui.sheet.SelectRow
 import olygym.app.ui.sheet.bwDeltaColor
@@ -757,12 +759,25 @@ private fun ExerciseProgressCard(profile: Profile) {
     }
 }
 
-/** The last few sessions, each one opening its own detail sheet. */
+/** The last few sessions, each one opening its own detail sheet, and the door into all of them. */
 @Composable
 private fun RecentWorkouts(profile: Profile) {
-    val workouts = profile.raw.arr("workouts").mapNotNull { it.asObj() }.reversed().take(6)
+    val all = profile.raw.arr("workouts").mapNotNull { it.asObj() }
+    val workouts = all.reversed().take(6)
     Column(Modifier.fillMaxWidth().padding(top = 18.dp)) {
-        Overline(t("Recent workouts"), Modifier.padding(bottom = 4.dp))
+        Row(
+            Modifier.fillMaxWidth().padding(bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Overline(t("Recent workouts"), Modifier.weight(1f))
+            Button(
+                text = t("All") + " " + all.size.toString(),
+                onClick = { Nav.to(HistoryScreen) },
+                variant = ButtonVariant.GHOST,
+                size = ButtonSize.SM,
+                trailingIcon = Glyph.CHEVRON_RIGHT,
+            )
+        }
         workouts.forEach { w ->
             WorkoutRow(w, profile.settings.unit) { workoutDetailSheet(w) }
         }

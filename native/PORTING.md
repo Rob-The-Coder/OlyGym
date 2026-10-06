@@ -114,12 +114,18 @@ that is expected.
 - The line chart has no hover tooltip (no pointer, on a phone), and the heatmap's day tap falls
   through when several workouts share a date, because the sheet it would open (the calendar) is not
   ported yet.
+- The backfill writes its `backfill` block through `js()`, which drops null keys: the web writes
+  `replaceId: null` explicitly and this writes no key at all. `completeBackfill` reads both the same
+  way, so only the file's spelling differs.
+- The date picker is the web's month grid rather than the platform's `<input type="date">`, and the
+  time picker is the app's steppers and presets rather than `<input type="time">` — which is what the
+  web itself does, having replaced both for the same reason.
 
 ## What is already ported
 
 `Format`, `I18nCore`, `Weeks`, `MigrateWeeks` (Phase 0), the rest of the day-one closure plus
 `WorkoutControls`, `ProgressionCopy`, `NumInput`, `Favourites`, `Equipment`, `LibraryFilter` and
-`Usage` (Phase 1a/1b/1c), `PlanEdit` and `Starter` (Phase 2a), and `Recovery`, `ChartMath`,
-`Activity` and `Progress` (Phase 2b). Read `WorkoutModel.kt` and
+`Usage` (Phase 1a/1b/1c), `PlanEdit` and `Starter` (Phase 2a), `Recovery`, `ChartMath`, `Activity`
+and `Progress` (Phase 2b), and `HistoryView` (Phase 2c). Read `WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.
