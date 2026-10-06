@@ -647,3 +647,44 @@ weight each has already moved, and start from a muscle instead of a search box.
 - **The By-muscle mode inside the picker.** The explorer is its own screen; the picker still offers
   search and its two shortcuts. Wiring a pick back out of a sheet is its own piece of work.
 
+---
+
+## Phase 2f — the exercise history sheet
+
+One exercise's past is a sheet now: the curve, the two numbers it is opened for, and the last ten
+sessions set by set — reachable from the exercise detail sheet and from the session's own menu, which
+is where issue #43 wanted it.
+
+**584 JVM tests.** The device checks are in `native/README.md`; screenshots in
+`oly-previews/native-phase2f/`.
+
+### What it adds
+
+- **The reading** (`lib/ExerciseHistory.kt`): the port of `exercise-history.js`, its nine vitest cases
+  as nine JUnit tests. One pass over the log yields the series and the last `HISTORY_SESSIONS`
+  sessions, with the metric chosen the way Stats chooses it — the heaviest completed work set, the
+  best rep count for an exercise that was never loaded, the longest hold for timed work — the PR on
+  the session that first reached the best, and a session logged in another mode kept in the list with
+  no point, so the curve never mixes seconds with kilos.
+- **The sheet** (`ui/sheet/ExerciseHistorySheet.kt`): the name and how many sessions, the standing
+  note, the Best and Last tiles, the line chart in the app's blue, and a row per session with its PR
+  mark, its sets labelled by their own target, its volume, and a tap through to the workout detail
+  sheet.
+- **The standing note, editable with nothing running**: the note editor used to exist only inside a
+  running session, keyed to an entry. `standingNoteSheet` is the id-only form — it reads and writes
+  `exNotes[id]` and creates no session, which is what lets the note block on the history sheet be a
+  control rather than a read-only line.
+- **Two doors**: the exercise detail sheet gets the History row (only when there is a history, as on
+  the web), and the session's exercise menu gets a History item with "Last time <date>" under it —
+  which is the mid-workout read the issue was about.
+
+### Deliberately not in 2f
+
+- **The chart's hover tooltip**: the same omission the Stats curves carry. There is no pointer to
+  hover with on a phone, and tapping a point for its reading is its own piece of work.
+- **Media**, still: this sheet is text, a curve and tiles.
+- The reading is recomputed on each pass rather than memoised the way the web's `useMemo` does. A
+  sheet this short-lived makes one scan of the log cheaper than comparing two state objects to decide
+  whether to scan.
+
+
