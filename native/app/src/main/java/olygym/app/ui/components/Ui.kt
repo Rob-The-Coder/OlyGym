@@ -190,6 +190,11 @@ fun Tile(
     onClick: (() -> Unit)? = null,
     /** A control that belongs to the label line — the goal tile's own help button. */
     labelTrailing: (@Composable () -> Unit)? = null,
+    /**
+     * Let the label take a second line instead of an ellipsis. The web's four-up Stats tiles wrap
+     * ("Serie settimanale" over two lines); Home's three-up ones ellipsise.
+     */
+    labelWrap: Boolean = false,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -208,7 +213,7 @@ fun Tile(
                     text = label,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    maxLines = if (labelWrap) 2 else 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )

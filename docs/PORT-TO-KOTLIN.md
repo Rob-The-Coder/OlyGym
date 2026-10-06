@@ -461,3 +461,61 @@ The bar-weight stepper wrapped its unit: the number field was a fixed 56dp insid
 left "kg" about four dp and printed it as "k" over "g", in the config sheet's BAR section. The field
 now takes whatever the unit does not need. It shipped in 1c, so this fixes the config sheet it was
 already visible in.
+## Phase 2b — Stats, and the charts behind it
+
+The analysis half of the app: four totals, a year of activity, the muscle balance and its fatigue
+view, how hard the training has been, the body-weight curve, one exercise's own progress, and the
+last few sessions opening into their own detail sheet.
+
+**564 JVM tests.** The device checks are in `native/README.md`; the screenshots are in
+`oly-previews/native-phase2b/`.
+
+### What it adds
+
+- **The Stats tab** (`ui/stats/StatsScreen.kt`): the Overview tiles (workouts, this month, week
+  streak, the 30-day weight delta in its own colour), the 12-month activity heatmap, the muscle
+  balance card with its Balance/Fatigue switch and its range, the effort card, then Progress — the
+  body-weight curve with the goal line, and one exercise's curve with its five most recent sessions.
+  It ends with the six latest workouts.
+- **`ui/chart/LineChart.kt`**: the line chart, drawn on a Canvas. Gridlines, month ticks, the
+  gradient under the curve, the marked dots that carry a second reading (effort on the weight curve)
+  and the goal line. Its maths lives in `lib/ChartMath.kt`, where it is a test.
+- **`ui/chart/Heatmap.kt`**: the GitHub-style activity grid, 53 whole weeks, shaded by the time
+  trained, with the months labelled where a column starts one. Its readings are `lib/Activity.kt`.
+- **`lib/Recovery.kt`**: the fatigue and retained-strength model — the causal downward-only EWMA
+  reference, the 36-hour half-life, the intensity-weighted tonnage with its Epley cap, and the four
+  state queries the UI asks for. A port of `recovery.js` and `recovery-view.js`, with its 545-line
+  vitest suite translated.
+- **`lib/Progress.kt`**: which exercises have a history, what each one's latest session reads as,
+  and one exercise's curve — including the rule that an exercise which was never loaded reads as its
+  rep count rather than as an empty card (issue #5).
+- **The workout detail sheet** (`ui/sheet/WorkoutDetailSheet.kt`) and **WorkoutRow**
+  (`ui/components/WorkoutRow.kt`): a logged session read back — its four numbers, every entry with
+  the sets it actually did and their labels, its note, and the delete behind the ⋯ menu.
+
+### Deliberately not in 2b
+
+- **The body silhouette** on the balance and fatigue views. The web draws them on a ~90 KB SVG path
+  blob (`lib/body-paths.js`) that it lazy-loads; here the same numbers are ranked bars with the same
+  ramp and the same state words. The map is its own piece of work, not a line in a chart task.
+- **The hover tooltip** on a line chart: there is no pointer to hover with. The reading it gave is
+  the dated value under the finger, which the card's own rows and captions already carry.
+- **Competitions** (phase 3), the calendar sheet a heatmap cell with several sessions would open, and
+  the exercise-history sheet. The exercise picker's search is not in the ported `SelectRow` yet, so
+  the progress card's picker lists every exercise with a history instead of filtering it.
+- **The History screen itself** and **log a past workout**: they are phase 2c, and the door to them
+  ("All N") is absent from Stats until they exist.
+
+### What the device found
+
+- The four Overview tiles and the detail sheet's four tiles were one row of four, and every value or
+  label was cut ("1h 22m" as "1h ...", "Serie settimanale" as "Serie setti…"). The web's `.tiles`
+  grid is two by two on a phone — four across is its desktop rule — so both are a 2×2 grid now.
+- M3's segmented control gives each option an equal share of the width and then clips the label: the
+  range picker's "Settimana" rendered as "Setti". The range picker is now the web's own control — the
+  compact strip whose buttons shrink, with the type role one step down.
+- The heatmap's weekday labels are three characters ("Mag", "Giu") in a cell 11dp tall, so they
+  wrapped onto three lines. They are one unclipped line now, and the month labels overflow their
+  column the way the web's do.
+- The fatigue view was drawing its bars in the accent ramp; it now uses the red-orange-yellow one
+  (`.hm-fatigue`) the web keeps for "this needs rest".

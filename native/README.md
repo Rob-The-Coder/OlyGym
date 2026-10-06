@@ -5,9 +5,11 @@ The React app in `frontend/` is still the shipping app. This is the port describ
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
-sheet, swap and freestyle are here too — and writes the plan itself: Plan and the week editor, with
-the starter plans, the complexes and a pure write for every edit. The Library, History, Stats and
-Settings screens are later phases.
+sheet, swap and freestyle are here too — writes the plan itself (Plan and the week editor, with the
+starter plans, the complexes and a pure write for every edit), and reads it back: Stats, with the
+activity heatmap, the muscle balance and its fatigue view, the effort card, the body-weight and
+per-exercise curves, and the workout detail sheet behind the recent sessions. The Library, History
+and Settings screens are later phases.
 
 ## Pinned toolchain
 
@@ -42,7 +44,7 @@ cached under the plugin portal while their transitive dependencies were cached u
 ```bash
 cd native
 
-# unit tests — 517 of them, no emulator, about twenty seconds
+# unit tests — 564 of them, no emulator, about twenty seconds
 GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
   ./gradlew :app:testDebugUnitTest --offline
 
@@ -93,6 +95,13 @@ the plan and the log, a row's "+" adds with the default config (a toast names th
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
 
+Phase 2b's check is Stats: the Overview tiles are two by two and read in full, the activity heatmap
+shades the days trained and rings today, the balance card's range strip shows "Settimana" whole, its
+Fatigue view colours the muscles red-orange-yellow, the effort card's curve and histogram agree with
+"28 of 158 sets rated", and the body-weight curve draws the goal line. A row in Recent workouts opens
+its detail sheet — four tiles, every set's label, the note. The four pictures in
+`oly-previews/native-phase2b/` are what each of those looked like when they were checked.
+
 Phase 2a's check is the plan: the week that covers today leads the Plan tab with its days and a tick
 on the dates already trained, and opening it gives one card per day. A day opens into its exercises
 with the link / move-up / move-down actions on the row; linking two rows makes a complex card, and the
@@ -122,8 +131,8 @@ app/src/main/java/olygym/app/
   MainActivity.kt       edge-to-edge, theme from the profile, one Navigator
   data/                 Model, StateStore, Js (the JS-shaped JSON reads), Exercises/Catalogue/Assets
   lib/                  the ported domain helpers, one file per React helper: all nineteen of the
-                        day-one closure, plus Format, I18nCore, Weeks, MigrateWeeks, PlanEdit and
-                        Starter
+                        day-one closure, plus Format, I18nCore, Weeks, MigrateWeeks, PlanEdit,
+                        Starter, Recovery, ChartMath, Activity and Progress
   rest/                 RestTimer, its foreground service, its receiver and its notification
   rest/                 the rest mirror: the notification, its service, its receiver, its state
   platform/             Sound (tones and haptics)
@@ -131,7 +140,7 @@ app/src/main/java/olygym/app/
                         and the week editor, the session screen, the sheets, the shared controls
                         and the theme
 app/src/main/assets/    the two generated assets
-app/src/test/java/      517 JVM tests, one per ported behaviour
+app/src/test/java/      564 JVM tests, one per ported behaviour
 ```
 
 The helpers keep the React filenames and are one-to-one ports, so a diff against `frontend/src/lib`
