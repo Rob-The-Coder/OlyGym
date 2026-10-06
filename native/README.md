@@ -93,12 +93,39 @@ drift from `m3.tokens.css`. Both outputs are committed, and both are checked by 
 app/src/main/java/olygym/app/
   OlyGymApp.kt          the only wiring: catalogue, then profile
   MainActivity.kt       edge-to-edge, theme from the profile, one Navigator
-  data/                 Model, StateStore, Exercises/Catalogue/Assets
-  lib/                  Format, I18nCore, Weeks, MigrateWeeks — the ported domain helpers
-  ui/                   AppScreen, AppNavigator, plan/PlanListScreen, theme/
+  data/                 Model, StateStore, Js (the JS-shaped JSON reads), Exercises/Catalogue/Assets
+  lib/                  the ported domain helpers, one file per React helper: all nineteen of the
+                        day-one closure, plus Format, I18nCore, Weeks and MigrateWeeks
+  rest/                 RestTimer, its foreground service, its receiver and its notification
+  ui/                   AppScreen, AppNavigator, components/, plan/PlanListScreen, theme/
 app/src/main/assets/    the two generated assets
-app/src/test/java/      61 JVM tests, one per ported behaviour
+app/src/test/java/      425 JVM tests, one per ported behaviour
 ```
 
 The helpers keep the React filenames and are one-to-one ports, so a diff against `frontend/src/lib`
 is a straight read.
+
+## Writing the profile
+
+Phase 1a adds the first write. `StateStore.update { it }` takes the state object, returns the next
+one, and saves it:
+
+- a `.writing` temp file, `fsync`, then a rename over the profile — a phone that dies mid-write
+  leaves the old file or the new one, never half of either;
+- the new state reaches the screens *before* the file is written, and the writes coalesce on
+  `Dispatchers.IO`, because the workout screen writes on every set that gets ticked;
+- the write is a merge over the state object that was read, so keys this app does not model survive
+  the round trip. That is the whole reason two apps can take turns owning one file;
+- `_ts` is stamped on every write, which is the field the React app compares when it decides whether
+  its browser storage or this file is newer;
+- a profile that failed to parse is **never** overwritten. The React app boots on its defaults and
+  replaces it on the next save; here the file is left alone and the screen says why, because a
+  training log is not something to reset to make an error message go away;
+- `MainActivity.onStop()` flushes, the way the web app flushes on `visibilitychange`.
+
+## Porting rules
+
+[native/PORTING.md](PORTING.md) is the contract for a helper port: one-to-one, the spec's cases
+translated to JUnit 4, the session shapes left as `JsonObject` with the JS-shaped reads in
+`data/Js.kt`, and the mutating JS helpers returning the new list. Read it before porting anything
+else out of `frontend/src/lib`.
