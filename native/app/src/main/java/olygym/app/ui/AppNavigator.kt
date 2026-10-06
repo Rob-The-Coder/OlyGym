@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -94,7 +95,9 @@ fun AppNavigator() {
             modifier = Modifier.fillMaxSize(),
             containerColor = MaterialTheme.colorScheme.surface,
             bottomBar = {
-                Column(Modifier.fillMaxWidth()) {
+                // The bar is the app's own, so it carries the gesture inset itself: M3's own
+                // navigation bar does this internally and a Surface does not.
+                Column(Modifier.fillMaxWidth().navigationBarsPadding()) {
                     RestTimerBar(snapshot)
                     AppTabBar(selected = tab, onTab = { tab = it })
                 }

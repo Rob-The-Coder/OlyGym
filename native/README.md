@@ -1,8 +1,10 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 0**: the app boots,
-reads the real `opengym-state.json`, and lists the plan it finds. It writes nothing.
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 1b**: the app opens on
+Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
+weigh-in, logs it set by set with the rest timer running on the lock screen, and files it into the
+training log. The Library, Plan, History, Stats and Settings screens are later phases.
 
 ## Pinned toolchain
 
@@ -37,7 +39,7 @@ cached under the plugin portal while their transitive dependencies were cached u
 ```bash
 cd native
 
-# unit tests — 61 of them, no emulator, a couple of seconds
+# unit tests — 479 of them, no emulator, about twenty seconds
 GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
   ./gradlew :app:testDebugUnitTest --offline
 
@@ -75,6 +77,13 @@ adb shell am start -n olygym.app.dev/olygym.app.MainActivity
 With no file the app shows the empty state and the path it looked in, which is the check that the
 store's four outcomes are all reachable.
 
+Phase 1b's check is a whole session: Home renders the profile's week, the tiles and the weigh-in
+card; the centre button starts the day, the weigh-in sheet is locked until it is answered; ticking a
+set writes it, starts the rest, and posts the lock-screen notification; force-stopping the app and
+reopening it resumes the session with the countdown adopted from the notification; finishing writes
+the workout record and the summary. `adb shell dumpsys notification | grep olygym.app.dev` shows the
+rest notification, and `run-as olygym.app.dev cat files/opengym-state.json` shows the record.
+
 ## Generated files — do not edit by hand
 
 ```bash
@@ -97,9 +106,12 @@ app/src/main/java/olygym/app/
   lib/                  the ported domain helpers, one file per React helper: all nineteen of the
                         day-one closure, plus Format, I18nCore, Weeks and MigrateWeeks
   rest/                 RestTimer, its foreground service, its receiver and its notification
-  ui/                   AppScreen, AppNavigator, components/, plan/PlanListScreen, theme/
+  rest/                 the rest mirror: the notification, its service, its receiver, its state
+  platform/             Sound (tones and haptics)
+  ui/                   the shell (AppNavigator, tabs, rest bar, toast, sheet host), Home, the
+                        session screen, the sheets, the shared controls and the theme
 app/src/main/assets/    the two generated assets
-app/src/test/java/      425 JVM tests, one per ported behaviour
+app/src/test/java/      479 JVM tests, one per ported behaviour
 ```
 
 The helpers keep the React filenames and are one-to-one ports, so a diff against `frontend/src/lib`
@@ -107,8 +119,7 @@ is a straight read.
 
 ## Writing the profile
 
-Phase 1a adds the first write. `StateStore.update { it }` takes the state object, returns the next
-one, and saves it:
+`StateStore.update { it }` takes the state object, returns the next one, and saves it:
 
 - a `.writing` temp file, `fsync`, then a rename over the profile — a phone that dies mid-write
   leaves the old file or the new one, never half of either;
@@ -122,6 +133,11 @@ one, and saves it:
   replaces it on the next save; here the file is left alone and the screen says why, because a
   training log is not something to reset to make an error message go away;
 - `MainActivity.onStop()` flushes, the way the web app flushes on `visibilitychange`.
+
+A screen does not mutate: it composes an edit from the combinators at the bottom of `data/Js.kt`
+(`editObject`, `editArray`, `editAt`, `append`, `removeObjectAt`, `with`), so an index that has
+gone since the screen was drawn changes nothing. `ui/UiState.kt` is the ephemeral half — the sheet
+stack, the toast and the two countdowns — and it is what the session screen talks to.
 
 ## Porting rules
 
