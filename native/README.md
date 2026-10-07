@@ -1,7 +1,7 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 2g**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 3a**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
@@ -13,7 +13,8 @@ readable and writable (History, with its search, its month headings and log-a-pa
 the catalogue (the Library, its shared filter sheet and the By-muscle explorer), reads one exercise
 back (the Exercise history sheet — its curve, its PR, and the cue that outlives a session), shows
 the catalogue's demo posters (hotlinked from YouTube, with the platform's player behind the badge),
-and is configured (Settings — the preferences, the appearance and the data, with backup export/import
+reads the coach's Excel week and reviews every row of it before any of it lands in the plan, and is
+configured (Settings — the preferences, the appearance and the data, with backup export/import
 through the platform's own file picker). **Phase 2 is complete**; phase 3 is what is left.
 
 ## Pinned toolchain
@@ -49,7 +50,7 @@ cached under the plugin portal while their transitive dependencies were cached u
 ```bash
 cd native
 
-# unit tests — 595 of them, no emulator, about twenty seconds
+# unit tests — 654 of them, no emulator, about twenty seconds
 GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
   ./gradlew :app:testDebugUnitTest --offline
 
@@ -100,6 +101,15 @@ the plan and the log, a row's "+" adds with the default config (a toast names th
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
 
+Phase 3a's check is the coach's week. Settings' Data row "Importa la scheda del coach" opens the
+platform's picker; choosing a real two-sheet .xlsx shows the review — "3 giorni · 8 esercizi · 1
+nuovi · 1 da controllare", the day cells 1/2/3, and a row per exercise with what it was read as: the
+complex's two parts sharing one superset, "Piegamenti alle parallele" as dip, the load sentence kept
+in the note, plank as 3 × 1:00, "Amrap" kept as a note over ten reps. A row opens its own menu, and
+picking Back Squat for "Strappo" rewrites the row and stores `planAliases: {"strappo":"wl77"}`.
+"Add the week to my plan" lands it on Mo/We/Fr with Pogo jump created once as your own exercise
+(`customEx: ["Pogo jump"]`, 4 × 3 at 40 kg, note "esplosivo"), and the file shows the week's three
+days with the shared `sg`. The pictures in `oly-previews/native-phase3a/` are each of those steps.
 Phase 2g's check is the pictures. The Library draws a real poster frame on every built-in row — Snatch,
 Back Squat, Pull-Up, the position snatches — while "Create your own exercise" keeps the sparkle tile,
 which is what a custom exercise gets. Tapping Back Squat opens the detail sheet with the 16:9 poster
@@ -183,7 +193,7 @@ app/src/main/java/olygym/app/
                         its By-muscle explorer, Settings, the sheets, the shared controls and the
                         theme
 app/src/main/assets/    the two generated assets
-app/src/test/java/      595 JVM tests, one per ported behaviour
+app/src/test/java/      654 JVM tests, one per ported behaviour
 ```
 
 The helpers keep the React filenames and are one-to-one ports, so a diff against `frontend/src/lib`

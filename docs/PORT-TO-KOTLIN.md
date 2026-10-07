@@ -731,5 +731,64 @@ the same picture. `embedUrl` is therefore not ported; `watchUrl` is what the bad
 - **The Settings rows for it** (exercise pictures, demo videos): they are still in the same deferred
   group as the wake lock and the reminders, so the profile's own keys are what is honoured.
 
+---
+
+## Phase 3a — the coach's spreadsheet
+
+A week of the coach's Excel can be read, reviewed and added to the plan now: the file is opened through
+the platform's picker, every row is shown with the exercise it was read as, and nothing lands in the
+plan until "Add the week to my plan".
+
+**JVM tests.** The device checks are in `native/README.md`; the pictures are in
+`oly-previews/native-phase3a/`.
+
+### What it adds
+
+- **The workbook reader** (`lib/Xlsx.kt`): sheet names in workbook order, each a rectangle of the
+  strings the file holds. The web walks the zip directory by hand, inflates with `DecompressionStream`
+  and parses with `DOMParser`; here `ZipInputStream` does the first two and the JVM's own DOM parser
+  the third — the same read with less of it written down, and the same handling of the parts that
+  matter (the workbook, its rels, the shared strings, one part per sheet), of rich-text runs, of
+  whitespace and non-breaking spaces, and of sparse rows padded to the widest one.
+- **The sheet reader** (`lib/CoachSheet.kt`): column A is the day marker or a legend label, B the
+  exercise, G the reps, H the sets, I the load, J the cue and P the coach's comment — with the two
+  traps the real workbook sets (a marker row also carries the day's first exercise; the sets column
+  can hold a stray date serial) handled here rather than by the caller.
+- **The matcher** (`lib/PlanAliases.kt`): the coach's gym Italian against the catalogue, in the three
+  tiers agreed for this work — the catalogue has it, the base lift exists and his words go in the
+  note, or it becomes one of your own exercises under his name. A "fragment" (`"+ sosp bassa"`,
+  `"touch n go"`) describes the exercise before it rather than inventing a second one.
+- **The importer** (`lib/ImportPlan.kt`): `reviewWeek` proposes an exercise, a scheme, a load and a
+  note per row and writes nothing; `bundleFromWeek` turns the reviewed week into one week of
+  `S.weeks`, on Monday/Wednesday/Friday, with the coach's custom exercises created once and the
+  kilos converted to the account's unit. A load only counts when the text opens with it: "poi togli
+  10kg" is an instruction, not a 10 kg bar.
+- **`lib/PlanShare.kt`** (the merging half): the week lands through `mergeWeek` — a fresh id, a
+  custom exercise reused by name and body part rather than duplicated, every exercise remapped
+  through it.
+- **The review sheet** (`ui/sheet/CoachImportSheet.kt`): the week picker, the counts, one cell per day,
+  and a row per exercise with what it was read as, the scheme, the coach's note and the marks worth
+  checking. Tapping a row offers a different exercise, and the correction is remembered in
+  `S.planAliases` under the coach's own words — so next week's sheet arrives already corrected.
+- **The door**: Settings' Data section. The file is chosen with the platform's own picker
+  (`OpenDocument`) and read off the main thread.
+
+### The one deliberate difference
+
+The web throws `unitError` when a plan is merged into an account that is not in kilos. A screen here
+cannot catch a throw from inside the store's update, so `mergeWeek` returns null for the same case and
+the screen says so. Everything else about the merge is the port.
+
+### Deliberately not in 3a
+
+- **CSV and Google Sheets.** The web's row for this says "An Excel, CSV or Google Sheets week"; the
+  reader behind it is the .xlsx one, and the Drive door is its own piece of work. The native subtitle
+  says Excel because that is what it reads.
+- **The share/print half of `plan-share.js`** (`mergeWeek` and `convertedExercise` are ported; the
+  printable page is not).
+- **The `(check)` counts** are on screen as the "N to check" line and the per-row marks, but the
+  row's own `ignored` fragments (a `+` component with nothing before it) are not listed anywhere.
+
+
 
 

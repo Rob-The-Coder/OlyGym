@@ -130,6 +130,14 @@ that is expected.
 - The date picker is the web's month grid rather than the platform's `<input type="date">`, and the
   time picker is the app's steppers and presets rather than `<input type="time">` — which is what the
   web itself does, having replaced both for the same reason.
+- `mergeWeek` returns null when the account is not in kilos instead of throwing the web's
+  `unitError`: a screen cannot catch a throw from inside the store's update, so the same signal comes
+  back as a value and the import sheet toasts it. Everything else about the merge is the port.
+- The coach import reads .xlsx only. The web's Settings row promises "An Excel, CSV or Google Sheets
+  week" and the code behind it is the same xlsx reader, so the native subtitle says Excel; the Drive
+  door is its own piece of work.
+- The review screen shows the "N to check" line and the per-row marks, but the `ignored` fragments
+  `matchName` reports (a `+` component with nothing before it) are not listed anywhere.
 
 ## What is already ported
 
@@ -139,8 +147,9 @@ that is expected.
 and `Progress` (Phase 2b), `HistoryView` (Phase 2c) and `Settings` (Phase 2d — the option lists the
 screen offers, and what a reset leaves behind), the By-muscle reads in `LibraryFilter` (Phase 2e —
 `muscleWeightOf` and `muscleCounts`, over the one `exerciseJson` that the progression, recovery and
-explorer reads now share), `ExerciseHistory` (Phase 2f) and `Media` (Phase 2g — the video id, the
-poster URL and the chain, without `embedUrl`, which the platform player replaces). Read
-`WorkoutModel.kt` and
+explorer reads now share), `ExerciseHistory` (Phase 2f), `Media` (Phase 2g — the video id, the
+poster URL and the chain, without `embedUrl`, which the platform player replaces) and `Xlsx`,
+`CoachSheet`, `PlanAliases`, `ImportPlan` and the merging half of `PlanShare` (Phase 3a — the
+coach's workbook read, matched and reviewed). Read `WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.

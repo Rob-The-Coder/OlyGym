@@ -23,6 +23,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -71,6 +72,11 @@ import olygym.app.ui.editProfile
 import olygym.app.ui.sheet.SelectOption
 import olygym.app.ui.sheet.SelectRow
 import olygym.app.ui.sheet.confirmSheet
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import olygym.app.lib.readXlsx
+import olygym.app.ui.sheet.coachImportSheet
 import olygym.app.ui.sheet.starterPlanSheet
 import olygym.app.ui.t
 import olygym.app.ui.ui
@@ -80,7 +86,7 @@ import olygym.app.ui.ui
  * workout screen obeys, the appearance, and the data.
  *
  * Not ported, and each for a reason of its own:
- * - **Weight classes**, **import a coach's plan**, **import from Google Drive**, **auto-backup** and
+ * - **Weight classes**, **import from Google Drive**, **auto-backup** and
  *   **the update check**: phase 3 (competitions, the spreadsheet, the background jobs).
  * - **Keep the screen awake**, **exercise pictures**, **demo videos** and **the reminder card**: they
  *   are the Capacitor build's job (a wake lock, the media packs, a local notification), which the
@@ -119,6 +125,26 @@ private fun Settings(profile: Profile) {
             }
         }.onSuccess { ui.toast(t("Backup exported")) }
             .onFailure { ui.toast(t("Export failed: {0}", it.message ?: "")) }
+    }
+    // The coach's workbook is read off the main thread: the zip and its XML are the one piece of
+    // real work this screen does, and the review it opens is derived state from then on.
+    val coachScope = rememberCoroutineScope()
+    val coachLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        coachScope.launch {
+            val workbook = withContext(Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { readXlsx(it.readBytes()) }
+                }.getOrNull()
+            }
+            if (workbook == null || workbook.sheets.isEmpty()) {
+                ui.toast(t("Import failed: {0}", "not an Excel workbook"))
+            } else {
+                coachImportSheet(workbook.sheets)
+            }
+        }
     }
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
@@ -308,6 +334,12 @@ private fun Settings(profile: Profile) {
                     icon = Glyph.SPARKLES,
                     accessory = Accessory.CHEVRON,
                     onClick = { starterPlanSheet() },
+                )
+                ListRow(
+                    title = t("Import a coach’s plan"),
+                    subtitle = t("An Excel week: his exercises, sets, reps and loads, read and reviewed before they land in your plan"),
+                    accessory = Accessory.CHEVRON,
+                    onClick = { coachLauncher.launch(arrayOf("*/*")) },
                 )
                 ListRow(
                     title = t("Import backup"),
