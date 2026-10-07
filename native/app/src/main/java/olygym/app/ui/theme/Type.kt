@@ -36,10 +36,21 @@ internal const val OVERLINE_TRACK = 0.08f
 /**
  * The Emphasized scale changes weight only, never a size — it is a drop-in that cannot reflow a
  * layout. In the token table that comes out as exactly 400 -> 500 and 500 -> 700, so the rule is
- * the whole table. Nothing wires it yet; it lands with the expressive phase.
+ * the whole table.
+ *
+ * It is picked per call site, exactly as the web picks it — a sheet's title, a card's big value, a
+ * tile's value, the app bar's headline, the weekday on a day row — and passed the role's own
+ * baseline weight, so the pair stays the token table's. It is deliberately not a blanket step: the
+ * web's own token test asserts which selectors carry it, and widening it would be a heavier app
+ * than the one being ported.
  */
-internal fun emphasizedWeight(base: FontWeight): FontWeight = when (base) {
-    FontWeight.W400 -> FontWeight.W500
-    FontWeight.W500 -> FontWeight.W700
-    else -> base
+internal fun emphasizedWeight(base: FontWeight?): FontWeight {
+    // A TextStyle's weight is nullable, and null means the default weight — FontWeight.Normal, which
+    // is the 400 the rule starts from.
+    val w = base ?: FontWeight.Normal
+    return when (w) {
+        FontWeight.W400 -> FontWeight.W500
+        FontWeight.W500 -> FontWeight.W700
+        else -> w
+    }
 }

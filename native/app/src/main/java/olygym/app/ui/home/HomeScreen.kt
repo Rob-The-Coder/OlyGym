@@ -77,6 +77,7 @@ import olygym.app.ui.sheet.goalSheet
 import olygym.app.ui.sheet.weighInSheet
 import olygym.app.ui.t
 import olygym.app.ui.theme.CardShape
+import olygym.app.ui.theme.emphasizedWeight
 import olygym.app.ui.theme.extraColors
 import olygym.app.ui.settings.SettingsScreen
 import olygym.app.ui.workout.WorkoutScreen
@@ -394,8 +395,9 @@ fun HomeScreen() {
                     ) {
                         Text(
                             text = fmtNum(weight.num("w") ?: 0.0),
+                            // The web's .card .big: the body weight at the display role's Emphasized weight.
                             style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.W600,
+                                fontWeight = emphasizedWeight(MaterialTheme.typography.headlineMedium.fontWeight),
                                 letterSpacing = (-0.026).em,
                             ),
                             color = MaterialTheme.colorScheme.onSurface,

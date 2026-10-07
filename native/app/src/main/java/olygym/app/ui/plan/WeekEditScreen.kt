@@ -23,7 +23,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.json.JsonArray
@@ -90,6 +89,7 @@ import olygym.app.ui.sheet.exercisePicker
 import olygym.app.ui.sheet.menuSheet
 import olygym.app.ui.t
 import olygym.app.ui.theme.CardShape
+import olygym.app.ui.theme.emphasizedWeight
 import olygym.app.ui.ui
 
 /**
@@ -158,7 +158,10 @@ private fun WeekEdit(profile: Profile, week: Week) {
                 value = week.name,
                 onChange = { value -> editProfile { raw -> setWeekName(raw, id, value) } },
                 placeholder = t("Week of {0}", fmtDate(week.startIso, long = false, withYear = true)),
-                textStyle = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.W600),
+                // The web's input carries .ab-title too, so it takes the same Emphasized weight.
+                textStyle = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = emphasizedWeight(MaterialTheme.typography.headlineSmall.fontWeight),
+                ),
                 dashed = true,
                 modifier = Modifier.weight(1f),
             )

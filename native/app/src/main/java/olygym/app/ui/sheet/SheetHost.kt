@@ -32,6 +32,7 @@ import olygym.app.ui.SheetKind
 import olygym.app.ui.UiState
 import olygym.app.lib.capWords
 import olygym.app.ui.theme.SheetShape
+import olygym.app.ui.theme.emphasizedWeight
 
 /**
  * Everything the UI holder has stacked, newest on top.
@@ -94,8 +95,9 @@ fun SheetHost(state: UiState) {
 fun SheetTitle(text: String, modifier: Modifier = Modifier, capitalize: Boolean = false) {
     Text(
         text = if (capitalize) capWords(text) else text,
+        // The web's .sheet h3: the title role at its Emphasized weight.
         style = MaterialTheme.typography.titleLarge.copy(
-            fontWeight = FontWeight.W600,
+            fontWeight = emphasizedWeight(MaterialTheme.typography.titleLarge.fontWeight),
             letterSpacing = (-0.02).em,
         ),
         color = MaterialTheme.colorScheme.onSurface,

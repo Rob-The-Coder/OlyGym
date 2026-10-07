@@ -1,7 +1,7 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 4a**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 4b**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
@@ -18,9 +18,10 @@ included — and reviews every row of it before any of it lands in the plan, rem
 that have a routine, keeps a dated copy of it all in the Documents folder, keeps the meets apart
 from the training log with their attempts, totals and weight categories, and is
 configured (Settings — the preferences, the appearance and the data, with backup export/import
-through the platform's own file picker), and updates itself from its own releases. **Phase 2 is
-complete, and phase 3 is written**; the cutover, and the pieces each phase deliberately left out,
-are what remain.
+through the platform's own file picker), updates itself from its own releases, and moves the way the
+design system says it should — the Emphasized weights at the web's own call sites, the wavy progress
+bars, the route fade and the Start button's press. **Phase 2 is complete, and phases 3 and 4 are
+written**; the cutover, and the pieces each phase deliberately left out, are what remain.
 
 ## Pinned toolchain
 
@@ -111,6 +112,17 @@ screen at once: the workout header read "0:44 · 1/8 serie" over a wavy fill cov
 and the rest bar read "1:29 · Serie 1 di 5" over a wave covering nearly all of it. Two frames 0.7s
 apart show the humps in different places — the drift is real, not a still sine — with the countdown
 between them moving 1:29 to 1:28. The pictures in `oly-previews/native-phase4a/` are those frames.
+Phase 4b's check is the weight and the fade, against the phase-4a build. The five call sites the web
+gives the Emphasized weight settle on the token's value for their role — 500 where the app bar's title
+was 700 and a sheet's title, a tile's value and Home's body weight were 600, and 700 where the weekday
+on a Plan day row was 500. Measured as the share of lit pixels in the same rectangle, that is "OlyGym"
+32.0% to 27.5%, "Piano" 30.5% to 26.6%, the body weight 23.2% to 21.7%, "Registra peso corporeo" 24.1%
+to 22.8% — and the weekday the other way, 7.8% to 9.1%. The places whose weight deliberately does not
+move (Home's hero title at 600, a card's heading at 600) are the control. The route fade is 400ms on
+emphasized-decelerate: a frame grabbed as a tab is tapped has the arriving screen part-transparent —
+its title's brightest pixel 191 against 226 settled, and 183 against 210 half-way through a pass
+slowed to 3x with `animator_duration_scale`. The pictures in `oly-previews/native-phase4b/` are the
+before/after pairs and the fade frames.
 Phase 3g's check is the updater, and it has not been run: the repository has no `native-v…` release
 for it to find, so there is nothing to download and nothing to install. It needs one release with the
 APK attached — GitHub publishes the SHA-256 for every asset by itself — before the walkthrough can be

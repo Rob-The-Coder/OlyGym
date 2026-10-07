@@ -146,6 +146,11 @@ that is expected.
   door is its own piece of work.
 - The review screen shows the "N to check" line and the per-row marks, but the `ignored` fragments
   `matchName` reports (a `+` component with nothing before it) are not listed anywhere.
+- The Emphasized weights are wired at the web's five call sites (Phase 4b), but the tracking at those
+  sites is still the native port's own: `-0.02em` on a sheet title where the web uses the role's
+  `-0.008em`, `-0.026em` on a tile value where the role says `-0.020em`, `-0.028em` on the app
+  bar title where the role says `-0.012em`. `OlyGymTypography` already carries the token table's
+  tracking, so an override here is the "three answers at the same size" the token file exists to stop.
 
 ## What is already ported
 
@@ -161,8 +166,9 @@ poster URL and the chain, without `embedUrl`, which the platform player replaces
 coach's workbook read, matched and reviewed), `Competition` (Phase 3b), `CoachFile` (Phase 3d —
 the CSV reader and the .csv/.xlsx dispatch), `Reminder` (Phase 3e — the date walk behind the
 workout-day notification), `Backup` (Phase 3f — the snapshot's own name) and `Update` (Phase 3g —
-the version comparison and the release walk). `WaveProgress` (Phase 4a) is drawing, not a port: the
-M3 Expressive wavy bar, which the web implements with an SVG mask and `material3` 1.4.0 keeps
-`internal`. Read `WorkoutModel.kt` and
+the version comparison and the release walk). `WaveProgress` (Phase 4a) and
+`emphasizedWeight` (Phase 4b) are drawing, not ports: the M3 Expressive wavy bar — which the web
+implements with an SVG mask and `material3` 1.4.0 keeps `internal` — and the Emphasized type scale
+the token table pairs with each role's baseline, picked per call site. Read `WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.

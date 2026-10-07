@@ -1,8 +1,14 @@
 package olygym.app.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.Navigator
@@ -50,6 +57,7 @@ import olygym.app.ui.plan.PlanScreen
 import olygym.app.ui.stats.StatsScreen
 import olygym.app.ui.sheet.SheetHost
 import olygym.app.ui.theme.FullShape
+import olygym.app.ui.theme.Motion
 import olygym.app.ui.workout.WorkoutScreen
 import olygym.app.ui.workout.startFlow
 
@@ -86,6 +94,16 @@ fun AppNavigator() {
             Nav.tabHost = { tab = it }
         }
 
+        // The web's #app.vfade, replayed on every route change: the screen that arrives rises 4dp and
+        // fades in over the long duration on the emphasized-decelerate curve. The one leaving is not
+        // drawn — the web keys #app on the path, so React unmounts it rather than fading it out.
+        val route = navigator.lastItem to tab
+        val appear = remember { Animatable(0f) }
+        LaunchedEffect(route) {
+            appear.snapTo(0f)
+            appear.animateTo(1f, tween(Motion.LONG, easing = Motion.emphasizedDecelerate))
+        }
+
         val snapshot by ui.state.collectAsState()
         // Back closes the top sheet, then pops a screen, then belongs to the system — which is what
         // the web's back button does in three steps as well.
@@ -106,7 +124,16 @@ fun AppNavigator() {
             },
         ) { padding ->
             Box(Modifier.fillMaxSize().padding(padding)) {
-                if (navigator.lastItem is ShellScreen) TabContent(tab) else navigator.lastItem.Content()
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            alpha = appear.value
+                            translationY = (1f - appear.value) * 4.dp.toPx()
+                        },
+                ) {
+                    if (navigator.lastItem is ShellScreen) TabContent(tab) else navigator.lastItem.Content()
+                }
                 val toast = snapshot.toast
                 if (toast != null) {
                     Toast(toast, Modifier.align(Alignment.BottomCenter).padding(16.dp))
@@ -199,10 +226,18 @@ private fun RowScope.TabItem(glyph: Glyph, label: String, selected: Boolean, onC
 private fun RowScope.StartButton() {
     val profile = currentProfile()
     val hasSession = profile?.active != null
+    val press = remember { MutableInteractionSource() }
+    val held by press.collectIsPressedAsState()
+    // The web's .start .cir:active: the disc compresses to .94 and springs back, on the long duration.
+    val disc by animateFloatAsState(
+        targetValue = if (held) 0.94f else 1f,
+        animationSpec = tween(Motion.LONG, easing = Motion.spring),
+        label = "start-press",
+    )
     Column(
         modifier = Modifier
             .weight(1.3f)
-            .clickable {
+            .clickable(interactionSource = press, indication = LocalIndication.current) {
                 if (hasSession) {
                     Nav.to(WorkoutScreen)
                 } else {
@@ -216,6 +251,10 @@ private fun RowScope.StartButton() {
         Box(
             modifier = Modifier
                 .size(46.dp)
+                .graphicsLayer {
+                    scaleX = disc
+                    scaleY = disc
+                }
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.primary),
             contentAlignment = Alignment.Center,

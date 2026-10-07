@@ -222,7 +222,7 @@ fun Tile(
             Text(
                 text = value,
                 style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = emphasizedWeight(FontWeight.W600),
+                    fontWeight = emphasizedWeight(MaterialTheme.typography.headlineSmall.fontWeight),
                     letterSpacing = (-0.026).em,
                 ),
                 color = valueColor ?: MaterialTheme.colorScheme.onSurface,
