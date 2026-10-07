@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import kotlinx.coroutines.delay
 import olygym.app.data.AppState
 import olygym.app.lib.DEFAULT_ACCENT
+import olygym.app.platform.ReminderAlarm
 import olygym.app.ui.AppNavigator
 import olygym.app.ui.theme.OlyGymTheme
 import olygym.app.ui.theme.THEME_DARK
@@ -83,6 +84,10 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         OlyGymApp.ui.reconcileRest()
+        // The plan may have moved since the alarm was set -- a week edited, a day trained -- so the
+        // reminder is worked out again every time the app comes back to the front.
+        (OlyGymApp.store.state.value as? AppState.Ready)?.profile?.raw
+            ?.let { ReminderAlarm.schedule(this, it) }
     }
 
     /**

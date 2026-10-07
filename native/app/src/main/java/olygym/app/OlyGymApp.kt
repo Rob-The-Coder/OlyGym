@@ -8,6 +8,7 @@ import olygym.app.data.Catalogue
 import olygym.app.data.StateStore
 import olygym.app.data.bool
 import olygym.app.data.str
+import olygym.app.platform.ReminderAlarm
 import olygym.app.platform.ToneSound
 import olygym.app.rest.SystemRestMirror
 import olygym.app.ui.UiState
@@ -28,6 +29,11 @@ class OlyGymApp : Application() {
         // trace says so.
         Catalogue.install(Assets.catalogue(this))
         store.load()
+
+        // The reminder follows every write, the way the web build's store re-syncs it: training a
+        // day drops that day's reminder instead of announcing a session already done. The writes
+        // are already coalesced, so this is the web's debounce with nothing extra.
+        store.onChange = { S -> ReminderAlarm.schedule(this, S) }
 
         // The two settings the timers read live on the profile, so they are read through it rather
         // than copied: a change takes effect on the next beep.

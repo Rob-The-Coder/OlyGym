@@ -159,11 +159,22 @@ class StateStore(
         if (backgroundWrites) pending.value = next else write(next)
     }
 
+    /**
+     * Called with the new state after every write, on whatever thread wrote it. The reminder hangs
+     * off this: a day that has just been trained should not still be announced, and the writes are
+     * already coalesced, so this is the web's debounced re-sync with nothing added.
+     */
+    var onChange: ((JsonObject) -> Unit)? = null
+
     /** Write whatever is still pending, synchronously. Called when the app goes to the background. */
     fun flush() = writeLatest()
 
     private fun writeLatest() = synchronized(writeLock) {
         pending.value?.let { write(it) }
+    }
+
+    private fun announce(state: JsonObject) {
+        onChange?.invoke(state)
     }
 
     /** The read model, from the state object. Never throws: a shape that will not parse is Failed. */
@@ -232,6 +243,9 @@ class StateStore(
                 tmp.delete()
             }
             _writeError.value = null
+            // Only on a write that landed: the reader on the other side of the callback is what a
+            // receiver will read off disk.
+            announce(obj)
         } catch (e: Exception) {
             _writeError.value = e.message ?: e::class.java.simpleName
         }
@@ -253,5 +267,17 @@ class StateStore(
     companion object {
         /** The same name and directory the Capacitor build uses. See docs/PORT-TO-KOTLIN.md. */
         const val FILE = "opengym-state.json"
+
+        /**
+         * The profile straight off disk, or null when it is missing or unreadable. For the
+         * reminder's receivers, which the system can run with no loaded store at all.
+         */
+        fun readFile(file: File): JsonObject? = runCatching {
+            Json {
+                ignoreUnknownKeys = true
+                coerceInputValues = true
+                explicitNulls = false
+            }.parseToJsonElement(file.readText()) as? JsonObject
+        }.getOrNull()
     }
 }

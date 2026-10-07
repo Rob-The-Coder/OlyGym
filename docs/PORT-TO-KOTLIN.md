@@ -835,6 +835,43 @@ across them, a meet written down attempt by attempt, and the federation's weight
 
 ---
 
+## Phase 3e — the workout-day reminder
+
+A planned day announces itself now. One switch in Settings turns it on, the time comes from the same
+picker every other time in the app uses, and the phone posts a notification on the days that have a
+routine.
+
+**699 JVM tests.** The device checks are in `native/README.md`; the pictures are in
+`oly-previews/native-phase3e/`.
+
+### What it adds
+
+- **The date walk** (`lib/Reminder.kt`): the port of `buildReminderNotifications` — the next planned
+  date inside a sixty-day window, skipping a day already trained and today once its time has passed,
+  naming the day in the body and falling back to "Workout" when the day has no name of its own. The
+  web queues one notification per date because Capacitor's plugin has no recurrence; here the walk
+  stops at the first date that counts.
+- **The alarm** (`platform/ReminderAlarm.kt`): one `setAndAllowWhileIdle` alarm, inexact on purpose —
+  a reminder does not need the minute, and an exact alarm needs a permission of its own. The receiver
+  posts the copy it was carrying and asks for the following date, reading the profile off disk
+  because the system can run it in a process that never loaded a store.
+- **The re-arm**: `BOOT_COMPLETED`, a clock or timezone change, every return to the foreground, and
+  every write (`StateStore.onChange`) — so training a day drops that day's reminder instead of
+  announcing a session already done. The web does the same on every persist, and this is its debounce
+  with nothing added, because the writes are already coalesced.
+- **The card** in Settings: the switch, the time row it reveals, the footer sentence, and the
+  permission check — with notifications off, the switch refuses and says so rather than promising
+  something the phone will throw away.
+
+### Deliberately not in 3e
+
+- **The web's sixty-notification queue and its `tz` stamp**: Android has a real alarm, and the phone's
+  own clock is what that alarm is in. `tz` is still written by the web build and left alone here.
+- **A sound or vibration of its own**: the channel takes the system default, so the phone's own
+  notification settings decide what a reminder looks and sounds like.
+
+---
+
 ## Phase 3d — the coach's file, wherever it is
 
 A week that arrives as a .csv now lands on the same review sheet as one that arrives as an .xlsx, and

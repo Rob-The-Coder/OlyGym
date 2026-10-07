@@ -1,7 +1,7 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 3d**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 3e**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
@@ -14,7 +14,8 @@ the catalogue (the Library, its shared filter sheet and the By-muscle explorer),
 back (the Exercise history sheet — its curve, its PR, and the cue that outlives a session), shows
 the catalogue's demo posters (hotlinked from YouTube, with the platform's player behind the badge),
 reads the coach's Excel or CSV week — whatever file the platform's picker can reach, Drive
-included — and reviews every row of it before any of it lands in the plan, keeps the meets apart from the training log with their attempts, totals and weight categories, and is
+included — and reviews every row of it before any of it lands in the plan, reminds you on the days
+that have a routine, keeps the meets apart from the training log with their attempts, totals and weight categories, and is
 configured (Settings — the preferences, the appearance and the data, with backup export/import
 through the platform's own file picker). **Phase 2 is complete**; phase 3 is what is left.
 
@@ -51,7 +52,7 @@ cached under the plugin portal while their transitive dependencies were cached u
 ```bash
 cd native
 
-# unit tests — 689 of them, no emulator, about twenty seconds
+# unit tests — 699 of them, no emulator, about twenty seconds
 GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
   ./gradlew :app:testDebugUnitTest --offline
 
@@ -102,6 +103,14 @@ the plan and the log, a row's "+" adds with the default config (a toast names th
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
 
+Phase 3e's check is the reminder. Settings' Notifiche section has "Promemoria giorno di
+allenamento"; turning it on writes `reminder: {on: "true", time: "08:00"}` in the file and arms one
+alarm, and because today's 08:00 had gone the alarm named the next planned day — `origWhen=2026-10-09
+08:00` (Friday; Thursday is a rest day). Setting the time to 16:10 re-armed it for the same day, and
+at 16:11 the shade carried "Giorno di allenamento · Oggi è in programma Clean & Jerk Day — forza!",
+with the alarm already re-armed for Friday. The channel is `workout_reminder`, "Promemoria giorno di
+allenamento", on the system's own notification sound. The pictures in `oly-previews/native-phase3e/`
+are those steps.
 Phase 3d's check is the coach's file. Settings' Data row "Importa la scheda del coach" opens the
 platform's picker; a CSV pushed into Downloads — a BOM, CRLF, a blank line and an exercise called
 "Bench Press, Close Grip" in it — reads as 2 giorni · 4 esercizi · 1 da controllare: the comma survived
@@ -207,13 +216,14 @@ app/src/main/java/olygym/app/
                         Starter, Recovery, ChartMath, Activity, Progress, HistoryView and Settings
   rest/                 RestTimer, its foreground service, its receiver, its notification and
                         the rest mirror the app ticks from
-  platform/             Sound (tones and haptics)
+  platform/             Sound (tones and haptics) and ReminderAlarm (the
+                        workout-day reminder's alarm and receiver)
   ui/                   the shell (AppNavigator, tabs, rest bar, toast, sheet host), Home, Plan
                         and the week editor, the session screen, Stats, History, the Library and
                         its By-muscle explorer, Settings, the sheets, the shared controls and the
                         theme
 app/src/main/assets/    the two generated assets
-app/src/test/java/      689 JVM tests, one per ported behaviour
+app/src/test/java/      699 JVM tests, one per ported behaviour
 ```
 
 The helpers keep the React filenames and are one-to-one ports, so a diff against `frontend/src/lib`
