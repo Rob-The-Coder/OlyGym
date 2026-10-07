@@ -87,6 +87,7 @@ import olygym.app.ui.components.ListRow
 import olygym.app.ui.components.OlyAppBar
 import olygym.app.ui.components.Overline
 import olygym.app.ui.components.RowDivider
+import olygym.app.ui.components.WaveProgress
 import olygym.app.ui.components.Section
 import olygym.app.ui.components.SectionCard
 import olygym.app.ui.components.olyAppBarScrollBehavior
@@ -309,12 +310,11 @@ private fun ActiveWorkout(profile: Profile) {
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp),
         ) {
-            LinearProgressIndicator(
-                progress = { if (total > 0) done.toFloat() / total else 0f },
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                drawStopIndicator = {},
+            // The sets-done bar, wavy: the web's .wprog, and the one other real progress
+            // indicator in the app. The muscle-balance bars are data, and stay straight.
+            WaveProgress(
+                fraction = if (total > 0) done.toFloat() / total else 0f,
+                track = MaterialTheme.colorScheme.surfaceContainerHigh,
             )
             if (backfill) {
                 Text(
