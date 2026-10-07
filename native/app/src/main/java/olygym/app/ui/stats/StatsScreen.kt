@@ -48,6 +48,7 @@ import olygym.app.lib.HARD_RIR
 import olygym.app.lib.MUSCLE_NAME
 import olygym.app.lib.MUSCLES
 import olygym.app.lib.avgRir
+import olygym.app.lib.competitionBests
 import olygym.app.lib.displayScale
 import olygym.app.lib.effortHistogram
 import olygym.app.lib.effortOf
@@ -74,12 +75,15 @@ import olygym.app.lib.todayISO
 import olygym.app.lib.weekStartOf
 import olygym.app.lib.workoutsOnDate
 import olygym.app.ui.AppScreen
+import olygym.app.ui.components.Accessory
 import olygym.app.ui.components.Button
 import olygym.app.ui.components.ButtonSize
 import olygym.app.ui.components.ButtonVariant
 import olygym.app.ui.components.CardHead
+import olygym.app.ui.components.ListRow
 import olygym.app.ui.components.OlyAppBar
 import olygym.app.ui.components.Overline
+import olygym.app.ui.components.Section
 import olygym.app.ui.components.SectionCard
 import olygym.app.ui.components.Segmented
 import olygym.app.ui.components.Tile
@@ -90,6 +94,7 @@ import olygym.app.ui.Nav
 import olygym.app.ui.chart.ChartPoint
 import olygym.app.ui.chart.Heatmap
 import olygym.app.ui.chart.LineChart
+import olygym.app.ui.competitions.CompetitionsScreen
 import olygym.app.ui.components.Glyph
 import olygym.app.ui.history.HistoryScreen
 import olygym.app.ui.sheet.SelectOption
@@ -227,6 +232,8 @@ private fun Stats(profile: Profile) {
                 Overline(t("Effort"), Modifier.padding(top = 18.dp, bottom = 7.dp))
                 EffortCard(profile)
             }
+
+            CompetitionsCard(profile)
 
             Overline(t("Progress"), Modifier.padding(top = 18.dp, bottom = 7.dp))
             BodyWeightCard(profile, range) { range = it }
@@ -755,6 +762,49 @@ private fun ExerciseProgressCard(profile: Profile) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp),
             )
+        }
+    }
+}
+
+/** The meets are not training, so they get one card of their own and a door to their screen. */
+@Composable
+private fun CompetitionsCard(profile: Profile) {
+    val meets = profile.raw.arr("competitions")
+    val bests = competitionBests(meets)
+    val unit = profile.settings.unit
+    Column(Modifier.fillMaxWidth().padding(top = 18.dp)) {
+        CardHead(
+            title = t("Competitions"),
+            subtitle = if (meets.isEmpty()) null else t(if (meets.size == 1) "{0} competition" else "{0} competitions", meets.size),
+        )
+        if (meets.isEmpty()) {
+            Text(
+                text = t("No competitions yet."),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+        } else {
+            Row(
+                Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Tile(
+                    label = t("Best total"),
+                    value = if (bests.total == null) "—" else fmtNum(bests.total),
+                    suffix = if (bests.total == null) t("not done") else unit,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Section(modifier = Modifier.padding(top = 8.dp)) {
+                ListRow(
+                    title = t("All competitions"),
+                    icon = Glyph.MEDAL,
+                    value = meets.size.toString(),
+                    accessory = Accessory.CHEVRON,
+                    onClick = { Nav.to(CompetitionsScreen) },
+                )
+            }
         }
     }
 }

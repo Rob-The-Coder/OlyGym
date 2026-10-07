@@ -35,7 +35,7 @@ enum class Glyph {
     // training
     DUMBBELL, BARBELL, SCALE, FLAME, TIMER, CLOCK,
     // status
-    TROPHY, TARGET, SPARKLES, LIGHTBULB, STAR, STAR_FILLED,
+    TROPHY, MEDAL, TARGET, SPARKLES, LIGHTBULB, STAR, STAR_FILLED,
     // actions
     PLUS, MINUS, CHECK, CHECK_CIRCLE, XMARK, PENCIL, TRASH, LINK, PLAY, RESET,
     CHEVRON_RIGHT, CHEVRON_LEFT, CHEVRON_DOWN, CHEVRON_UP, ARROW_UP, ARROW_DOWN,
@@ -140,6 +140,11 @@ val GLYPHS: Map<Glyph, List<IconPart>> = mapOf(
     Glyph.TROPHY to listOf(
         stroke("M7.6 4h8.8v4.6a4.4 4.4 0 0 1-8.8 0Z"),
         stroke("M7.6 5.6H4.9v1.5a3 3 0 0 0 2.9 3M16.4 5.6h2.7v1.5a3 3 0 0 1-2.9 3M12 13v3.4M8.6 20.4h6.8l-.7-4H9.3Z"),
+    ),
+    Glyph.MEDAL to listOf(
+        circle(12.0, 14.8, 5.2),
+        circle(12.0, 14.8, 1.9),
+        stroke("M9.1 9.9 6.4 3.6M14.9 9.9l2.7-6.3"),
     ),
     Glyph.TARGET to listOf(circle(12.0, 12.0, 8.2), circle(12.0, 12.0, 4.6), circle(12.0, 12.0, 1.1)),
     Glyph.SPARKLES to listOf(

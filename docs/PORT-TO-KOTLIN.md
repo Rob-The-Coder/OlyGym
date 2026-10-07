@@ -789,6 +789,51 @@ the screen says so. Everything else about the merge is the port.
 - **The `(check)` counts** are on screen as the "N to check" line and the per-row marks, but the
   row's own `ignored` fragments (a `+` component with nothing before it) are not listed anywhere.
 
+---
+
+## Phase 3b — competitions
+
+The meets have a screen: what is coming and what is past, the best snatch, clean & jerk and total
+across them, a meet written down attempt by attempt, and the federation's weight categories editable.
+
+**674 JVM tests.** The device checks are in `native/README.md`; the pictures are in
+`oly-previews/native-phase3b/`.
+
+### What it adds
+
+- **The reading** (`lib/Competition.kt`): the port of `competition.js` with its twenty vitest cases —
+  what counts as an attempt (made *and* weighted, so a missed opener heavier than the made one never
+  leaks into a best), a total that only exists once something was made in both lifts, the two
+  sortings, "days until", and `blankMeet`/`upsertMeet`/`removeMeet`.
+- **The screen** (`ui/competitions/CompetitionsScreen.kt`): the three best tiles, Upcoming and Past
+  groups, and a row per meet — a medal once it has a total, the days to go while it has not, and the
+  total where there is one.
+- **The meet sheet** (`ui/sheet/MeetSheets.kt`): name, date, place, weight class, bodyweight at
+  weigh-in, placing, three snatch and three clean & jerk attempts (a weight and Good/No lift each),
+  the total read off the draft as it is typed, and a note.
+- **The detail sheet**: the meta line with the days to go, the class/bodyweight/placing line, the
+  three tiles, each lift's attempts as rows with their verdict, the note, and a ⋯ menu with Edit and
+  Delete.
+- **The categories editor** (`weightClassesSheet`): the male and female lists, edited in place and
+  saved to `S.classes`, reached from Settings' new Competition section and from the meet sheet. A
+  logged meet keeps the string it was saved with, so editing the list never relabels a result.
+- **The medal glyph** is transcribed from `Icon.jsx` rather than approximated with the trophy.
+- **Two doors**: Stats gets a Competitions card (the best total and "All competitions"), and Home
+  gets the meet row it has been missing since Phase 1b — shown only when a meet is ahead, since an
+  empty competition row would be another card of nothing.
+
+### Deliberately not in 3b
+
+- **The Plan/Competitions switcher** (`PlanTabs.jsx`). The web puts a segmented control at the top of
+  both screens because they are one destination with two modes; here Competitions is pushed over the
+  tabs the way History is, so the bottom bar's Plan tab keeps meaning the plan.
+- **The class picker's inline pencil** (the web's `SelectRow action`): the meet sheet has an "Edit
+  categories" row under the class picker instead, which does not need the shared component to grow an
+  action slot.
+- **A meet's attempts are not in the training log**, by design rather than omission: `competition.js`
+  keeps them apart so no training curve answers a question it was never asked.
+
+
 
 
 
