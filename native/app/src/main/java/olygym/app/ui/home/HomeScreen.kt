@@ -48,6 +48,8 @@ import olygym.app.lib.fmtDate
 import olygym.app.lib.fmtLongDate
 import olygym.app.lib.fmtNum
 import olygym.app.lib.lastBW
+import olygym.app.lib.daysUntil
+import olygym.app.lib.nextMeet
 import olygym.app.lib.nextTrainingDay
 import olygym.app.lib.streakWeeks
 import olygym.app.lib.todayISO
@@ -55,13 +57,17 @@ import olygym.app.lib.weekFor
 import olygym.app.lib.weekKey
 import olygym.app.lib.weekStartOf
 import olygym.app.ui.Nav
+import olygym.app.ui.competitions.CompetitionsScreen
+import olygym.app.ui.components.Accessory
 import olygym.app.ui.components.Button
 import olygym.app.ui.components.ButtonSize
 import olygym.app.ui.components.ButtonVariant
 import olygym.app.ui.components.Glyph
 import olygym.app.ui.components.GlyphIcon
 import olygym.app.ui.components.IconButton
+import olygym.app.ui.components.ListRow
 import olygym.app.ui.components.OlyAppBar
+import olygym.app.ui.components.Section
 import olygym.app.ui.components.Tile
 import olygym.app.ui.components.olyAppBarScrollBehavior
 import olygym.app.ui.currentProfile
@@ -442,6 +448,30 @@ fun HomeScreen() {
                             modifier = Modifier.padding(top = 6.dp),
                         )
                     }
+                }
+            }
+            // A meet ahead is the only dated event the week strip cannot show yet, so it gets a row
+            // of its own under the numbers — a glance, and the door to the competitions screen.
+            val meet = nextMeet(profile.raw["competitions"], todayISO())
+            if (meet != null) {
+                val meetDays = daysUntil(meet, todayISO())
+                Section(modifier = Modifier.padding(top = 14.dp)) {
+                    ListRow(
+                        title = meet.str("name")?.takeIf { it.isNotEmpty() } ?: t("Competition"),
+                        icon = Glyph.TROPHY,
+                        subtitle = listOfNotNull(
+                            fmtDate(meet.str("d").orEmpty(), long = true, withYear = true),
+                            meet.str("place")?.takeIf { it.isNotEmpty() },
+                        ).joinToString(" · "),
+                        value = when (meetDays) {
+                            0 -> t("Today")
+                            1 -> t("Tomorrow")
+                            null -> null
+                            else -> t("in {0} days", meetDays)
+                        },
+                        accessory = Accessory.CHEVRON,
+                        onClick = { Nav.to(CompetitionsScreen) },
+                    )
                 }
             }
             Spacer(Modifier.height(28.dp))

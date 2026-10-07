@@ -78,6 +78,7 @@ import kotlinx.coroutines.withContext
 import olygym.app.lib.readXlsx
 import olygym.app.ui.sheet.coachImportSheet
 import olygym.app.ui.sheet.starterPlanSheet
+import olygym.app.ui.sheet.weightClassesSheet
 import olygym.app.ui.t
 import olygym.app.ui.ui
 
@@ -283,6 +284,18 @@ private fun Settings(profile: Profile) {
                     onChange = { value ->
                         write { it.with("effort", value).without("showRir") }
                     },
+                )
+            }
+
+            // The categories belong to a federation, not to the app: they change every few years,
+            // and a meet keeps the string it was saved with.
+            Section(title = t("Competition")) {
+                ListRow(
+                    title = t("Weight classes"),
+                    icon = Glyph.TROPHY,
+                    subtitle = t("The categories your federation runs. Edit them when the rules change."),
+                    accessory = Accessory.CHEVRON,
+                    onClick = { weightClassesSheet() },
                 )
             }
 
