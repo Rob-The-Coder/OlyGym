@@ -1,7 +1,7 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 3f**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 3g**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
@@ -18,7 +18,9 @@ included — and reviews every row of it before any of it lands in the plan, rem
 that have a routine, keeps a dated copy of it all in the Documents folder, keeps the meets apart
 from the training log with their attempts, totals and weight categories, and is
 configured (Settings — the preferences, the appearance and the data, with backup export/import
-through the platform's own file picker). **Phase 2 is complete**; phase 3 is what is left.
+through the platform's own file picker), and updates itself from its own releases. **Phase 2 is
+complete, and phase 3 is written**; the cutover, and the pieces each phase deliberately left out,
+are what remain.
 
 ## Pinned toolchain
 
@@ -53,7 +55,7 @@ cached under the plugin portal while their transitive dependencies were cached u
 ```bash
 cd native
 
-# unit tests — 701 of them, no emulator, about twenty seconds
+# unit tests — 717 of them, no emulator, about twenty seconds
 GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
   ./gradlew :app:testDebugUnitTest --offline
 
@@ -104,6 +106,10 @@ the plan and the log, a row's "+" adds with the default config (a toast names th
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
 
+Phase 3g's check is the updater, and it has not been run: the repository has no `native-v…` release
+for it to find, so there is nothing to download and nothing to install. It needs one release with the
+APK attached — GitHub publishes the SHA-256 for every asset by itself — before the walkthrough can be
+written. The check, the release parsing and the hash are unit-tested.
 Phase 3f's check is the snapshot. Settings' Dati section has "Backup automatico alle modifiche";
 turning it on wrote `"autoBackup": true` to the file, and finishing a workout (started from Home,
 ticked off with nothing logged, "Termina comunque") left `Documents/opengym-backup-2026-10-07.json`
@@ -225,14 +231,14 @@ app/src/main/java/olygym/app/
   rest/                 RestTimer, its foreground service, its receiver, its notification and
                         the rest mirror the app ticks from
   platform/             Sound (tones and haptics), ReminderAlarm (the workout-day
-                        reminder's alarm and receiver) and AutoBackup (the dated
-                        snapshot in Documents)
+                        reminder's alarm and receiver), AutoBackup (the dated snapshot
+                        in Documents) and Updater (the updater's download and installer)
   ui/                   the shell (AppNavigator, tabs, rest bar, toast, sheet host), Home, Plan
                         and the week editor, the session screen, Stats, History, the Library and
                         its By-muscle explorer, Settings, the sheets, the shared controls and the
                         theme
 app/src/main/assets/    the two generated assets
-app/src/test/java/      701 JVM tests, one per ported behaviour
+app/src/test/java/      717 JVM tests, one per ported behaviour
 ```
 
 The helpers keep the React filenames and are one-to-one ports, so a diff against `frontend/src/lib`
