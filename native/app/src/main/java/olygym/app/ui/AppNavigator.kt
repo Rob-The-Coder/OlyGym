@@ -43,6 +43,7 @@ import olygym.app.ui.components.ButtonSize
 import olygym.app.ui.components.ButtonVariant
 import olygym.app.ui.components.Glyph
 import olygym.app.ui.components.GlyphIcon
+import olygym.app.ui.components.WaveProgress
 import olygym.app.ui.home.HomeScreen
 import olygym.app.ui.library.LibraryScreen
 import olygym.app.ui.plan.PlanScreen
@@ -264,20 +265,11 @@ private fun RestTimerBar(snapshot: UiSnapshot) {
                 }
                 val left = work?.left ?: rest?.left ?: 0.0
                 val total = work?.total ?: rest?.total ?: 1.0
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-                ) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth(if (total > 0) (left / total).toFloat().coerceIn(0f, 1f) else 0f)
-                            .height(4.dp)
-                            .background(MaterialTheme.colorScheme.primary),
-                    )
-                }
+                // M3 Expressive's wavy bar, as the web's #timer draws it.
+                WaveProgress(
+                    fraction = if (total > 0) (left / total).toFloat() else 0f,
+                    track = MaterialTheme.colorScheme.surfaceContainerHighest,
+                )
             }
             Spacer(Modifier.size(10.dp))
             if (work != null) {

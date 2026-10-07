@@ -981,3 +981,44 @@ SHA-256 GitHub published for the upload, and hands it to the package installer.
 - **The device check.** The repository has no `native-v…` release yet, so the updater has nothing to
   find: the network path and the installer need a real release to walk through, and both are written
   and left for that day. The check, the parsing and the hash are unit-tested.
+
+---
+
+## Phase 4a — the wavy bar
+
+The app's two real progress indicators now carry M3 Expressive's wave: the rest timer's countdown and
+the workout header's sets-done bar. Those are the two the web app masks, and its CSS says why — they
+are the only bars in the app that are decorative rather than informational.
+
+**717 JVM tests** (unchanged: this phase is drawing). The device checks are in `native/README.md`;
+the pictures are in `oly-previews/native-phase4a/`.
+
+### What it adds
+
+- **`ui/components/WaveProgress.kt`**: the web's sine, drawn rather than masked — one quadratic hump
+  per half wavelength, a wavelength every 20dp, stroked 3.4dp on a 6dp bar, drifting one wavelength
+  every 2.4 seconds. The fill still advances by width, so what the bar measures is exactly as
+  accurate as it was as a plain rectangle.
+- **Both call sites and only those**: `#timer .bar` (the rest bar) and `.wprog` (the workout header).
+  The muscle-balance bars show how much each muscle got rather than how far along something is, and
+  stay straight, which is the distinction the web's CSS draws in a comment.
+- **The rest bar's 4dp became 6dp**, the height the web settled on: "at 4 there is no room for a wave
+  to read".
+
+### The expressive theme itself is not available
+
+`material3` 1.4.0 — the version this build pins — does contain `MaterialExpressiveTheme`,
+`MotionScheme` and `ExperimentalMaterial3ExpressiveApi`, but all three are Kotlin-`internal` in that
+artifact: importing them is a compile error from another module. So the theme cannot be swapped in,
+and the route taken here is the web's own — implement the expressive details with the ported tokens by
+hand, which is what `m3.tokens.css` does on the other side. The Emphasized type scale (400 -> 500,
+500 -> 700) is ported in `Type.kt` and the four curves in `Motion.kt`; what remains of the expressive
+work is the per-call-site application of both, not a theme swap.
+
+### Deliberately not in 4a
+
+- **The Emphasized weights app-wide**: the web applies them role by role at a handful of call sites
+  (a sheet's title, the big card and tile values, the hero headline, the weekday label), never as a
+  global scale. Widening them would be a heavier app than the one being ported, and the token table's
+  own test asserts the pairing rather than a blanket weight.
+- **The `MaterialExpressiveTheme` swap** — blocked, as above.

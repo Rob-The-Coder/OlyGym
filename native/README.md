@@ -1,7 +1,7 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 3g**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 4a**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
@@ -106,6 +106,11 @@ the plan and the log, a row's "+" adds with the default config (a toast names th
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
 
+Phase 4a's check is the wave. Starting today's session and ticking one set put the two bars on
+screen at once: the workout header read "0:44 · 1/8 serie" over a wavy fill covering its one eighth,
+and the rest bar read "1:29 · Serie 1 di 5" over a wave covering nearly all of it. Two frames 0.7s
+apart show the humps in different places — the drift is real, not a still sine — with the countdown
+between them moving 1:29 to 1:28. The pictures in `oly-previews/native-phase4a/` are those frames.
 Phase 3g's check is the updater, and it has not been run: the repository has no `native-v…` release
 for it to find, so there is nothing to download and nothing to install. It needs one release with the
 APK attached — GitHub publishes the SHA-256 for every asset by itself — before the walkthrough can be
