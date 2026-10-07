@@ -835,43 +835,6 @@ across them, a meet written down attempt by attempt, and the federation's weight
 
 ---
 
-## Phase 3e — the workout-day reminder
-
-A planned day announces itself now. One switch in Settings turns it on, the time comes from the same
-picker every other time in the app uses, and the phone posts a notification on the days that have a
-routine.
-
-**699 JVM tests.** The device checks are in `native/README.md`; the pictures are in
-`oly-previews/native-phase3e/`.
-
-### What it adds
-
-- **The date walk** (`lib/Reminder.kt`): the port of `buildReminderNotifications` — the next planned
-  date inside a sixty-day window, skipping a day already trained and today once its time has passed,
-  naming the day in the body and falling back to "Workout" when the day has no name of its own. The
-  web queues one notification per date because Capacitor's plugin has no recurrence; here the walk
-  stops at the first date that counts.
-- **The alarm** (`platform/ReminderAlarm.kt`): one `setAndAllowWhileIdle` alarm, inexact on purpose —
-  a reminder does not need the minute, and an exact alarm needs a permission of its own. The receiver
-  posts the copy it was carrying and asks for the following date, reading the profile off disk
-  because the system can run it in a process that never loaded a store.
-- **The re-arm**: `BOOT_COMPLETED`, a clock or timezone change, every return to the foreground, and
-  every write (`StateStore.onChange`) — so training a day drops that day's reminder instead of
-  announcing a session already done. The web does the same on every persist, and this is its debounce
-  with nothing added, because the writes are already coalesced.
-- **The card** in Settings: the switch, the time row it reveals, the footer sentence, and the
-  permission check — with notifications off, the switch refuses and says so rather than promising
-  something the phone will throw away.
-
-### Deliberately not in 3e
-
-- **The web's sixty-notification queue and its `tz` stamp**: Android has a real alarm, and the phone's
-  own clock is what that alarm is in. `tz` is still written by the web build and left alone here.
-- **A sound or vibration of its own**: the channel takes the system default, so the phone's own
-  notification settings decide what a reminder looks and sounds like.
-
----
-
 ## Phase 3d — the coach's file, wherever it is
 
 A week that arrives as a .csv now lands on the same review sheet as one that arrives as an .xlsx, and
@@ -913,7 +876,70 @@ way through, and the row's "Excel, CSV or Google Sheets" is the web's own wordin
   here already hands over.
 - **Writing a CSV** — an export of the plan. The row reads.
 
+---
 
+## Phase 3e — the workout-day reminder
 
+A planned day announces itself now. One switch in Settings turns it on, the time comes from the same
+picker every other time in the app uses, and the phone posts a notification on the days that have a
+routine.
 
+**699 JVM tests.** The device checks are in `native/README.md`; the pictures are in
+`oly-previews/native-phase3e/`.
 
+### What it adds
+
+- **The date walk** (`lib/Reminder.kt`): the port of `buildReminderNotifications` — the next planned
+  date inside a sixty-day window, skipping a day already trained and today once its time has passed,
+  naming the day in the body and falling back to "Workout" when the day has no name of its own. The
+  web queues one notification per date because Capacitor's plugin has no recurrence; here the walk
+  stops at the first date that counts.
+- **The alarm** (`platform/ReminderAlarm.kt`): one `setAndAllowWhileIdle` alarm, inexact on purpose —
+  a reminder does not need the minute, and an exact alarm needs a permission of its own. The receiver
+  posts the copy it was carrying and asks for the following date, reading the profile off disk
+  because the system can run it in a process that never loaded a store.
+- **The re-arm**: `BOOT_COMPLETED`, a clock or timezone change, every return to the foreground, and
+  every write (`StateStore.onChange`) — so training a day drops that day's reminder instead of
+  announcing a session already done. The web does the same on every persist, and this is its debounce
+  with nothing added, because the writes are already coalesced.
+- **The card** in Settings: the switch, the time row it reveals, the footer sentence, and the
+  permission check — with notifications off, the switch refuses and says so rather than promising
+  something the phone will throw away.
+
+### Deliberately not in 3e
+
+- **The web's sixty-notification queue and its `tz` stamp**: Android has a real alarm, and the phone's
+  own clock is what that alarm is in. `tz` is still written by the web build and left alone here.
+- **A sound or vibration of its own**: the channel takes the system default, so the phone's own
+  notification settings decide what a reminder looks and sounds like.
+
+---
+
+## Phase 3f — the auto-backup
+
+A dated copy of the whole profile now lands in the Documents folder whenever a workout is filed, so a
+sync app or a file manager always has something recent to point at.
+
+**701 JVM tests.** The device checks are in `native/README.md`; the pictures are in
+`oly-previews/native-phase3f/`.
+
+### What it adds
+
+- **The name** (`lib/Backup.kt`): `opengym-backup-<today>.json`, the port of the path
+  `writeAutoBackup` builds — one file per day, so a busy day leaves one snapshot rather than a pile.
+  The manual export's suggested name comes from the same function, so the two cannot drift apart.
+- **The writer** (`platform/AutoBackup.kt`): MediaStore on Android 10 and later, so the file is in the
+  real Documents folder — no storage permission at all, and it outlives an uninstall. On Android 9
+  and older the snapshot goes to the app's own external documents folder instead, because the public
+  one would need `WRITE_EXTERNAL_STORAGE` and this app never asks for it.
+- **The trigger** is the web's `autoBackupNow`: the moment a workout is filed, and only then. The
+  row's subtitle also promises routine edits, which neither build does — inherited wording, kept
+  because it is the same key the web ships.
+- **The row** in Settings' Data section, above "Reset everything".
+
+### Deliberately not in 3f
+
+- **A backup on every write**: the web fires this once, when a workout is filed. Backing up as each
+  set is ticked would write a fifty-kilobyte file every few seconds, and the private mirror in
+  `files/` already covers every change.
+- **A storage permission** for the public folder on Android 9 and older, as above.

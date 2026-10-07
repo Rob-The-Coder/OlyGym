@@ -59,6 +59,7 @@ import olygym.app.lib.THEMES
 import olygym.app.lib.WEIGHT_DECIMALS
 import olygym.app.lib.WEEK_STARTS
 import olygym.app.lib.WORKOUT_VIEWS
+import olygym.app.lib.backupFileName
 import olygym.app.lib.effortOf
 import olygym.app.lib.resetState
 import olygym.app.lib.todayISO
@@ -430,7 +431,14 @@ private fun Settings(profile: Profile) {
                 ListRow(
                     title = t("Export backup (JSON)"),
                     accessory = Accessory.CHEVRON,
-                    onClick = { exportLauncher.launch("opengym-backup-" + todayISO() + ".json") },
+                    onClick = { exportLauncher.launch(backupFileName(todayISO())) },
+                )
+                SwitchRow(
+                    title = t("Auto-backup on changes"),
+                    icon = Glyph.HISTORY,
+                    subtitle = t("Saves a dated copy to the Documents folder after finishing a workout or editing a routine — point a sync app at it, or copy it out by hand."),
+                    checked = S.bool("autoBackup") == true,
+                    onChange = { on -> write { it.with("autoBackup", on) } },
                 )
                 ListRow(
                     title = t("Reset everything"),
