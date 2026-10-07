@@ -105,6 +105,7 @@ import olygym.app.ui.sheet.renameWorkoutSheet
 import olygym.app.ui.sheet.sessionNoteSheet
 import olygym.app.ui.sheet.workoutCompleteSheet
 import olygym.app.ui.t
+import olygym.app.ui.theme.emphasizedWeight
 import olygym.app.ui.ui
 
 /** Everything the blocks of a session need to write back, in one object rather than fourteen args. */
@@ -173,7 +174,10 @@ private fun StartChooser() {
                     )
                     Text(
                         text = today.name,
-                        style = MaterialTheme.typography.headlineSmall,
+                        // The web's .card .big: the day's name at the headline role's Emphasized weight.
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = emphasizedWeight(MaterialTheme.typography.headlineSmall.fontWeight),
+                        ),
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(top = 6.dp),
                     )

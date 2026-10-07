@@ -8,7 +8,10 @@ import androidx.compose.animation.core.Easing
  * used to describe three durations in the web app; this is the three, and a new duration or a
  * bespoke curve is the thing the design system exists to stop.
  *
- * Nothing in this phase animates. It is here so the first animated control does not invent a curve.
+ * Two of the four have a consumer the app draws itself: the route fade (emphasizedDecelerate) and
+ * the Start disc's press (spring). The others curve motion the app does not own — M3's own sheets,
+ * dialogs and segmented thumb — and emphasized has no consumer at all, in the web either: it is
+ * defined in m3.tokens.css and referenced by nothing.
  */
 internal object Motion {
     const val SHORT = 150

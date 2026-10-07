@@ -11,9 +11,9 @@ import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.em
+import olygym.app.ui.theme.emphasizedWeight
 
 /**
  * The Material 3 large top app bar, in the app's type: a 64dp action row that stays put and a big
@@ -42,8 +42,9 @@ fun OlyAppBar(
             Column {
                 Text(
                     text = title,
+                    // The web's .ab-title: the headline role at its Emphasized weight.
                     style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.W700,
+                        fontWeight = emphasizedWeight(MaterialTheme.typography.headlineMedium.fontWeight),
                         letterSpacing = (-0.028).em,
                     ),
                     color = MaterialTheme.colorScheme.onSurface,

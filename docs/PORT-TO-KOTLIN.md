@@ -1017,8 +1017,67 @@ work is the per-call-site application of both, not a theme swap.
 
 ### Deliberately not in 4a
 
-- **The Emphasized weights app-wide**: the web applies them role by role at a handful of call sites
-  (a sheet's title, the big card and tile values, the hero headline, the weekday label), never as a
-  global scale. Widening them would be a heavier app than the one being ported, and the token table's
-  own test asserts the pairing rather than a blanket weight.
+- **The Emphasized weights and the app's own curves**: Phase 4b, next.
 - **The `MaterialExpressiveTheme` swap** — blocked, as above.
+---
+
+## Phase 4b — the Emphasized weights, and the two curves the app draws itself
+
+Phase 4a drew the wave; this is the other half of the expressive pass — the per-call-site
+application of the Emphasized type scale, and the two expressive curves whose motion the app owns
+rather than Material.
+
+**717 JVM tests** (unchanged: this phase moves nothing the tests can see). The device checks are in
+`native/README.md`; the pictures are in `oly-previews/native-phase4b/`.
+
+### The Emphasized scale, at the web's call sites and nowhere else
+
+The web picks the Emphasized weight at five selectors — `.sheet h3`, `.card .big`, `.tile .v`,
+`.ab-title` and `.ddow` — and the token table's rule is the whole table: 400 becomes 500, 500
+becomes 700, weight only, never a size. `emphasizedWeight` has carried that rule since Phase 0; this
+phase wires it at those sites, and each is handed the role's own baseline weight so the pair stays
+the table's:
+
+| call site | role | baseline | Emphasized |
+|---|---|---|---|
+| a sheet's title | title-large | 400 | 500 |
+| a tile's value | headline-small | 400 | 500 |
+| the app bar's headline, and WeekEdit's title field | headline-medium | 400 | 500 |
+| Home's body weight | headline-medium | 400 | 500 |
+| Workout's day name | headline-small | 400 | 500 |
+| the weekday on a Plan day row | label-medium | 500 | 700 |
+
+Nothing else moved. `emphasizedWeight` now takes the nullable weight a `TextStyle` reports — null is
+the default weight, which is the 400 the rule starts from — so a call site can say "this role,
+emphasized" without naming a number.
+
+Two of the six selectors had no native counterpart to move. The web's `.big` is two places, and both
+are here; `.ab-title` is two too — the plain heading every screen gets, and the `<input>` WeekEdit
+puts in its place — and both took the weight.
+
+### The two curves the app owns
+
+The web's expressive block animates six things. Four of them are Material's own — the bottom sheet,
+the dialog, the segmented thumb, the switch knob — and Material draws those: there is no easing
+parameter to hand them, which is the same `MaterialExpressiveTheme` wall Phase 4a hit. The two the
+app draws itself are now drawn:
+
+- **The route fade.** The web keys `#app` on the path and replays `viewfade` on every route change:
+  4dp up from transparent, 400ms on emphasized-decelerate, with the old view unmounted rather than
+  faded out. `AppNavigator` now does the same around whatever screen is on top, keyed on the route
+  and the selected tab.
+- **The Start disc's press.** The web compresses `.start .cir` to .94 and springs it back — 400ms on
+  `--m3-ease-spring`. The tab bar's centre button now does that, through `Motion.spring`.
+
+`Motion.emphasized` still has no consumer, and has none in the web either, where
+`--m3-ease-emphasized` is defined and referenced by nothing.
+
+### Deliberately not in 4b
+
+- **A blanket scale step.** The web's own token test asserts *which* selectors carry the Emphasized
+  weight, and stepping the whole app up is a heavier app than the one being ported.
+- **Tracking.** The call sites above keep the tracking the native port gave them — `-0.02em` on a
+  sheet title where the web uses the role's `-0.008em`, and so on. Moving it is a pass of its own:
+  decision 4 in DESIGN.md keeps the app's own weights, and it would change every screen at once.
+- **Re-curving the four Material-owned animations** — that is the theme swap, blocked as in 4a.
+

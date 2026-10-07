@@ -69,6 +69,7 @@ import olygym.app.ui.t
 import olygym.app.ui.theme.CardShape
 import olygym.app.ui.theme.OVERLINE_TRACK
 import olygym.app.ui.theme.OverlineWeight
+import olygym.app.ui.theme.emphasizedWeight
 
 /**
  * The plan, as a plan rather than a log — a port of frontend/src/views/Plan.jsx.
@@ -225,7 +226,11 @@ private fun WeekHero(
                     // carries the day's own name.
                     Text(
                         text = t(DAYS[day.dow.coerceIn(0, 6)]),
-                        style = MaterialTheme.typography.labelMedium,
+                        // The web's .ddow: the short weekday at the label role's Emphasized weight — the
+                        // one emphasized call site whose baseline is 500 rather than 400.
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = emphasizedWeight(MaterialTheme.typography.labelMedium.fontWeight),
+                        ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Column(Modifier.weight(1f)) {
