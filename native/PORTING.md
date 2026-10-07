@@ -158,7 +158,8 @@ screen offers, and what a reset leaves behind), the By-muscle reads in `LibraryF
 explorer reads now share), `ExerciseHistory` (Phase 2f), `Media` (Phase 2g — the video id, the
 poster URL and the chain, without `embedUrl`, which the platform player replaces) and `Xlsx`,
 `CoachSheet`, `PlanAliases`, `ImportPlan` and the merging half of `PlanShare` (Phase 3a — the
-coach's workbook read, matched and reviewed), `Competition` (Phase 3b) and `CoachFile` (Phase 3d —
-the CSV reader and the .csv/.xlsx dispatch). Read `WorkoutModel.kt` and
+coach's workbook read, matched and reviewed), `Competition` (Phase 3b), `CoachFile` (Phase 3d —
+the CSV reader and the .csv/.xlsx dispatch) and `Reminder` (Phase 3e — the date walk behind the
+workout-day notification). Read `WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.

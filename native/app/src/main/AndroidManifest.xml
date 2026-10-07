@@ -6,6 +6,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
+    <!-- The workout-day reminder's alarm is cleared by a reboot and invalidated by a clock or
+         timezone change, so it is set again from those broadcasts. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <!-- The demo poster frames, hotlinked from img.youtube.com: the only network this app does,
          exactly as the web app does it. Nothing of the training log ever leaves the device. -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -33,6 +37,23 @@
         <receiver
             android:name=".rest.RestActionReceiver"
             android:exported="false" />
+
+        <!-- The workout-day reminder: the alarm itself, and the re-arm after a reboot or a clock
+             change. Explicit intents only (the PendingIntents name these classes). -->
+        <receiver
+            android:name=".platform.ReminderReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".platform.ReminderBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
 
         <!-- Keeps the Live Update card's progress bar filling on Android 16+ (RestTimerService).
              A shortService because a rest is a bounded, user-started timer, and that type caps it

@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -41,6 +42,8 @@ import kotlinx.serialization.json.JsonPrimitive
 import olygym.app.data.Profile
 import olygym.app.data.bool
 import olygym.app.data.int
+import olygym.app.data.js
+import olygym.app.data.obj
 import olygym.app.data.str
 import olygym.app.data.with
 import olygym.app.data.without
@@ -50,6 +53,8 @@ import olygym.app.lib.EFFORT_MODES
 import olygym.app.lib.INSTR_LANGS
 import olygym.app.lib.LANGUAGES
 import olygym.app.lib.REST_OPTIONS
+import olygym.app.lib.REMINDER_DEFAULT_TIME
+import olygym.app.lib.REMINDER_TIMES
 import olygym.app.lib.THEMES
 import olygym.app.lib.WEIGHT_DECIMALS
 import olygym.app.lib.WEEK_STARTS
@@ -81,6 +86,7 @@ import kotlinx.coroutines.withContext
 import olygym.app.lib.readCoachSheets
 import olygym.app.ui.sheet.coachImportSheet
 import olygym.app.ui.sheet.starterPlanSheet
+import olygym.app.ui.sheet.timePickerSheet
 import olygym.app.ui.sheet.weightClassesSheet
 import olygym.app.ui.t
 import olygym.app.ui.ui
@@ -117,6 +123,15 @@ private fun Settings(profile: Profile) {
     val S = profile.raw
 
     val write: ((JsonObject) -> JsonObject) -> Unit = { block -> editProfile(block) }
+
+    // The workout-day reminder's own settings, {on, time, tz}. tz is the web's key, kept for a file
+    // both apps read; the alarm is in the phone's own clock either way.
+    val reminder = S.obj("reminder") ?: js("on" to false, "time" to REMINDER_DEFAULT_TIME)
+    val reminderOn = reminder.bool("on") == true
+    val reminderTime = reminder.str("time") ?: REMINDER_DEFAULT_TIME
+    // The write is all it takes: the store re-arms the alarm after every save, so turning the
+    // switch off cancels the pending one the same way turning it on sets it.
+    val setReminder: (JsonObject) -> Unit = { patch -> write { it.with("reminder", patch) } }
 
     // The whole state object, pretty-printed, into a file the user picks; and the same back again.
     val json = Json { prettyPrint = true }
@@ -302,6 +317,46 @@ private fun Settings(profile: Profile) {
 
             // The categories belong to a federation, not to the app: they change every few years,
             // and a meet keeps the string it was saved with.
+            Section(
+                title = t("Notifications"),
+                footer = if (reminderOn) {
+                    t("Reminds you at this time on days that have a routine planned.")
+                } else {
+                    null
+                },
+            ) {
+                SwitchRow(
+                    title = t("Workout day reminder"),
+                    icon = Glyph.CALENDAR,
+                    checked = reminderOn,
+                    onChange = { on ->
+                        // Nothing to schedule if the system will drop it: the switch stays off and
+                        // says so, rather than promising a notification that never arrives.
+                        if (on && !NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+                            ui.toast(t("Notifications are off for OlyGym"))
+                        } else {
+                            setReminder(reminder.with("on", on))
+                        }
+                    },
+                )
+                if (reminderOn) {
+                    ListRow(
+                        title = t("Reminder time"),
+                        icon = Glyph.CLOCK,
+                        value = reminderTime,
+                        accessory = Accessory.CHEVRON,
+                        onClick = {
+                            timePickerSheet(
+                                value = reminderTime,
+                                onPick = { v -> setReminder(reminder.with("time", v)) },
+                                title = t("Reminder time"),
+                                presets = REMINDER_TIMES,
+                            )
+                        },
+                    )
+                }
+            }
+
             Section(title = t("Competition")) {
                 ListRow(
                     title = t("Weight classes"),
