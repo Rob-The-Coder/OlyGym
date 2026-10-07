@@ -6,6 +6,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
+    <!-- The demo poster frames, hotlinked from img.youtube.com: the only network this app does,
+         exactly as the web app does it. Nothing of the training log ever leaves the device. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name=".OlyGymApp"
         android:allowBackup="false"

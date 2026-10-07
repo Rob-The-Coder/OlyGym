@@ -682,9 +682,54 @@ is where issue #43 wanted it.
 
 - **The chart's hover tooltip**: the same omission the Stats curves carry. There is no pointer to
   hover with on a phone, and tapping a point for its reading is its own piece of work.
-- **Media**, still: this sheet is text, a curve and tiles.
+- **Media**, still: this sheet is text, a curve and tiles. (Phase 2g brings the posters to the list
+  rows and the exercise detail sheet; this sheet is the same read without a picture.)
 - The reading is recomputed on each pass rather than memoised the way the web's `useMemo` does. A
   sheet this short-lived makes one scan of the log cheaper than comparing two state objects to decide
   whether to scan.
+
+---
+
+## Phase 2g — the demo media
+
+The catalogue looks like a catalogue now: every row carries the poster frame of its demo video, and
+the exercise detail sheet opens with the same picture and a badge that plays it.
+
+**595 JVM tests.** The device checks are in `native/README.md`; screenshots in
+`oly-previews/native-phase2g/`.
+
+### What it adds
+
+- **The reading** (`lib/Media.kt`): the port of `media.js` — the video id out of every link shape the
+  catalogue and the coaches use, the `img.youtube.com` URL for a size, and the chain an image walks
+  when the pretty frame is missing. Its tests are `media.test.js` plus the `videoMode` half of
+  `video.test.js`, and one of them scans the shipped catalogue: every built-in exercise has a usable
+  link.
+- **The picture** (`ui/components/Media.kt`): a `RemoteImage` that walks the chain, steps down when a
+  URL fails, and draws the app's own tile when the chain runs out. The fetch is the platform's
+  `HttpURLConnection` and `BitmapFactory` behind an `LruCache` — Compose has no network image and the
+  app carries no image library on purpose, and this is the whole of what one would do here. It is the
+  app's first network permission, and it makes the same hotlink the web app makes: nothing of the
+  training log leaves the device.
+- **The list rows** (`Thumb`): 44dp of `mqdefault`, the cheap end of the chain, with the glyph tile as
+  the placeholder while it loads.
+- **The detail sheet** (`ExerciseMedia`): the 16:9 poster with the play badge, honouring `S.video`,
+  where `off` means no badge at all.
+
+### The one deliberate difference from the web
+
+The web embeds a YouTube `<iframe>` in the page. Here the badge hands the video to whichever app the
+phone gives YouTube links to (`ACTION_VIEW`), which is the platform feature for it: no WebView, no
+player to stop when a sheet closes, and the poster — the part that makes the Library browsable — is
+the same picture. `embedUrl` is therefore not ported; `watchUrl` is what the badge opens.
+
+### Deliberately not in 2g
+
+- **The media in the workout cards.** The web's minimizable header (a thumbnail that expands to the
+  16:9 block, with `gifSize` turning it off) belongs to the session screen, which is dense enough
+  without a live picture per exercise; the detail sheet is one tap away.
+- **The Settings rows for it** (exercise pictures, demo videos): they are still in the same deferred
+  group as the wake lock and the reminders, so the profile's own keys are what is honoured.
+
 
 

@@ -32,6 +32,7 @@ import olygym.app.lib.smOf
 import olygym.app.lib.toggledFavs
 import olygym.app.lib.usesBar
 import olygym.app.ui.components.Accessory
+import olygym.app.ui.components.ExerciseMedia
 import olygym.app.ui.components.Glyph
 import olygym.app.ui.components.IconButton
 import olygym.app.ui.components.ListRow
@@ -120,6 +121,8 @@ private fun ExerciseDetailSheet(ex: Exercise, close: () -> Unit) {
                 })
             }
         }
+
+        ExerciseMedia(ex, Modifier.padding(top = 10.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp),

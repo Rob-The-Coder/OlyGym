@@ -26,6 +26,7 @@ import olygym.app.lib.MUSCLE_NAME
 import olygym.app.lib.bestWeightFor
 import olygym.app.lib.capWords
 import olygym.app.lib.fmtNum
+import olygym.app.lib.imageChain
 import olygym.app.ui.t
 
 /**
@@ -100,21 +101,36 @@ fun exerciseSubtitle(ex: Exercise): String {
     return listOfNotNull(muscle?.let { t(it) }, ex.eq?.let { t(it) }).joinToString(" · ")
 }
 
-/** The picture place: the web poster frame, drawn as the app own glyph for now. */
+/** The list-row picture: the poster frame, cropped square, or the app's own glyph. */
 @Composable
 fun Thumb(ex: Exercise?) {
+    // The cheap end of the chain: a row is 44dp, and mqdefault is the size YouTube always has.
+    val chain = ex?.let { imageChain(it, listOf("mqdefault", "hqdefault")) }.orEmpty()
+    val tile = Modifier.size(44.dp).clip(RoundedCornerShape(10.dp))
+    if (chain.isEmpty()) {
+        ThumbTile(ex, tile)
+    } else {
+        RemoteImage(
+            chain = chain,
+            contentDescription = null,
+            modifier = tile,
+            fallback = { ThumbTile(ex, tile) },
+        )
+    }
+}
+
+/** The tile the row falls back to: a glyph, and the custom-exercise sparkle where a video would be. */
+@Composable
+private fun ThumbTile(ex: Exercise?, modifier: Modifier) {
     val tint = if (ex == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(
-                if (ex != null) {
-                    MaterialTheme.colorScheme.surfaceContainerHigh
-                } else {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                },
-            ),
+        modifier = modifier.background(
+            if (ex != null) {
+                MaterialTheme.colorScheme.surfaceContainerHigh
+            } else {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+            },
+        ),
         contentAlignment = Alignment.Center,
     ) {
         GlyphIcon(

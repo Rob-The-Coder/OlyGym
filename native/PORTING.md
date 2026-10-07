@@ -84,11 +84,12 @@ that is expected.
   data written is identical; what is missing is three pieces of presentation, and the JS for each is
   in `Workout.jsx` (`onSwipePointerDown`, the two scroll effects, `RoundsTable`).
 - All four tabs are live (Home, Plan, Stats, Library) and Settings has its door on Home. What is
-  still stated rather than shown is the media, the exercise history sheet and the body map.
-- Media is not ported anywhere: the Library's rows, the picker's rows and the detail sheet all draw
-  the app's own glyph where the web shows the YouTube poster frame, and the detail sheet has no
-  gallery. It is its own phase — it needs an image loader and the network permission, which nothing
-  else in this app has asked for. See the Phase 1c and 2e lists in docs/PORT-TO-KOTLIN.md.
+  still stated rather than shown is the body map and the media inside the workout cards.
+- The posters are hotlinked from `img.youtube.com`, which is the app's one network permission and the
+  same request the web app makes. The video itself is not embedded: the badge fires `ACTION_VIEW` and
+  the platform's player takes it, so `embedUrl` is deliberately not ported (see `lib/Media.kt`). The
+  workout cards' minimizable media and the two Settings rows for it are still absent — the Phase 2g
+  list in docs/PORT-TO-KOTLIN.md says why.
 - The exercise history sheet recomputes its reading on each pass instead of memoising it as the web's
   `useMemo` does: comparing two state objects to decide whether to scan costs more than the scan.
 - The Library's list is all of it — no 40-row page and no "Show more" — because a LazyColumn builds
@@ -138,6 +139,8 @@ that is expected.
 and `Progress` (Phase 2b), `HistoryView` (Phase 2c) and `Settings` (Phase 2d — the option lists the
 screen offers, and what a reset leaves behind), the By-muscle reads in `LibraryFilter` (Phase 2e —
 `muscleWeightOf` and `muscleCounts`, over the one `exerciseJson` that the progression, recovery and
-explorer reads now share) and `ExerciseHistory` (Phase 2f). Read `WorkoutModel.kt` and
+explorer reads now share), `ExerciseHistory` (Phase 2f) and `Media` (Phase 2g — the video id, the
+poster URL and the chain, without `embedUrl`, which the platform player replaces). Read
+`WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.
