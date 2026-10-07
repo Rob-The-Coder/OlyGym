@@ -1,7 +1,7 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 3b**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 3d**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
@@ -13,8 +13,8 @@ readable and writable (History, with its search, its month headings and log-a-pa
 the catalogue (the Library, its shared filter sheet and the By-muscle explorer), reads one exercise
 back (the Exercise history sheet — its curve, its PR, and the cue that outlives a session), shows
 the catalogue's demo posters (hotlinked from YouTube, with the platform's player behind the badge),
-reads the coach's Excel week and reviews every row of it before any of it lands in the plan, keeps
-the meets apart from the training log with their attempts, totals and weight categories, and is
+reads the coach's Excel or CSV week — whatever file the platform's picker can reach, Drive
+included — and reviews every row of it before any of it lands in the plan, keeps the meets apart from the training log with their attempts, totals and weight categories, and is
 configured (Settings — the preferences, the appearance and the data, with backup export/import
 through the platform's own file picker). **Phase 2 is complete**; phase 3 is what is left.
 
@@ -51,7 +51,7 @@ cached under the plugin portal while their transitive dependencies were cached u
 ```bash
 cd native
 
-# unit tests — 674 of them, no emulator, about twenty seconds
+# unit tests — 689 of them, no emulator, about twenty seconds
 GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
   ./gradlew :app:testDebugUnitTest --offline
 
@@ -102,6 +102,16 @@ the plan and the log, a row's "+" adds with the default config (a toast names th
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
 
+Phase 3d's check is the coach's file. Settings' Data row "Importa la scheda del coach" opens the
+platform's picker; a CSV pushed into Downloads — a BOM, CRLF, a blank line and an exercise called
+"Bench Press, Close Grip" in it — reads as 2 giorni · 4 esercizi · 1 da controllare: the comma survived
+because the name and the cue arrived in the right cells ("bench press · 3 × 3 · 60 kg" with
+"Bench Press, Close Grip · fermo al petto" under it) rather than every column shifted by one, and the
+sheet is named after the file ("GIORNO 1 · COACH-WEEK"). Picking the phase-3a `coach-week.xlsx` from
+the same folder still gives its own review — 3 giorni · 8 esercizi · 1 nuovi · 1 da controllare, the
+complex intact. The picker's drawer offers Recent, Documents, Downloads and the SD card; Drive is not
+in it on this emulator because the Drive app there has no account signed in. The pictures in
+`oly-previews/native-phase3d/` are those steps.
 Phase 3b's check is the meets. Home carries the coming one ("Coppa Italia · dom 22 nov 2026 · Milano ·
 tra 46 giorni") and opens Competitions: the best tiles (100 / 120 / 220 kg), Prossime and Passate, and
 a row per meet — a trophy while it is ahead, the medal once there is a result. A past meet's detail
@@ -203,7 +213,7 @@ app/src/main/java/olygym/app/
                         its By-muscle explorer, Settings, the sheets, the shared controls and the
                         theme
 app/src/main/assets/    the two generated assets
-app/src/test/java/      674 JVM tests, one per ported behaviour
+app/src/test/java/      689 JVM tests, one per ported behaviour
 ```
 
 The helpers keep the React filenames and are one-to-one ports, so a diff against `frontend/src/lib`

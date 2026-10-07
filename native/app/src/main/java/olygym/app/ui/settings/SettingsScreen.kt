@@ -1,5 +1,8 @@
 package olygym.app.ui.settings
 
+import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -75,7 +78,7 @@ import olygym.app.ui.sheet.confirmSheet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import olygym.app.lib.readXlsx
+import olygym.app.lib.readCoachSheets
 import olygym.app.ui.sheet.coachImportSheet
 import olygym.app.ui.sheet.starterPlanSheet
 import olygym.app.ui.sheet.weightClassesSheet
@@ -87,8 +90,9 @@ import olygym.app.ui.ui
  * workout screen obeys, the appearance, and the data.
  *
  * Not ported, and each for a reason of its own:
- * - **Weight classes**, **import from Google Drive**, **auto-backup** and
- *   **the update check**: phase 3 (competitions, the spreadsheet, the background jobs).
+ * - **Auto-backup** and **the update check**: phase 3's background jobs and the updater.
+ * - **Import from Google Drive** needs no row of its own: the platform's picker lists Drive beside
+ *   Downloads, so the coach's file row in Data already reaches it.
  * - **Keep the screen awake**, **exercise pictures**, **demo videos** and **the reminder card**: they
  *   are the Capacitor build's job (a wake lock, the media packs, a local notification), which the
  *   native app does with its own platform pieces in their own phases.
@@ -127,23 +131,32 @@ private fun Settings(profile: Profile) {
         }.onSuccess { ui.toast(t("Backup exported")) }
             .onFailure { ui.toast(t("Export failed: {0}", it.message ?: "")) }
     }
-    // The coach's workbook is read off the main thread: the zip and its XML are the one piece of
-    // real work this screen does, and the review it opens is derived state from then on.
+    // The coach's file is read off the main thread: the zip and its XML are the one piece of real
+    // work this screen does, and the review it opens is derived state from then on. The picker is
+    // the platform's own, so "a file" is anything the phone can reach -- Downloads, a USB stick, and
+    // Drive itself wherever the Drive app is there to serve it. A native Google Sheet has no bytes
+    // of its own: exporting it is the Drive app's job, not this screen's.
     val coachScope = rememberCoroutineScope()
     val coachLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         coachScope.launch {
-            val workbook = withContext(Dispatchers.IO) {
+            val sheets = withContext(Dispatchers.IO) {
                 runCatching {
-                    context.contentResolver.openInputStream(uri)?.use { readXlsx(it.readBytes()) }
+                    val name = displayName(context, uri)
+                    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    if (bytes == null) emptyList() else readCoachSheets(name, bytes)
                 }.getOrNull()
             }
-            if (workbook == null || workbook.sheets.isEmpty()) {
-                ui.toast(t("Import failed: {0}", "not an Excel workbook"))
-            } else {
-                coachImportSheet(workbook.sheets)
+            // A sheet with nothing in it is a tab the coach never used.
+            val usable = sheets?.filter { sheet -> sheet.grid.any { row -> row.any { it.isNotEmpty() } } }
+            when {
+                usable == null -> ui.toast(
+                    t("Could not read that file. A coach’s plan is an .xlsx, .csv or Google Sheets file."),
+                )
+                usable.isEmpty() -> ui.toast(t("That file has no training in it"))
+                else -> coachImportSheet(usable)
             }
         }
     }
@@ -350,7 +363,7 @@ private fun Settings(profile: Profile) {
                 )
                 ListRow(
                     title = t("Import a coach’s plan"),
-                    subtitle = t("An Excel week: his exercises, sets, reps and loads, read and reviewed before they land in your plan"),
+                    subtitle = t("An Excel, CSV or Google Sheets week: his exercises, sets, reps and loads, read and reviewed before they land in your plan"),
                     accessory = Accessory.CHEVRON,
                     onClick = { coachLauncher.launch(arrayOf("*/*")) },
                 )
@@ -385,6 +398,15 @@ private fun Settings(profile: Profile) {
             }
         }
     }
+}
+
+/** The picked file's own name, which is what decides a .csv from a workbook. */
+private fun displayName(context: Context, uri: Uri): String {
+    context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+        val column = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+        if (column >= 0 && cursor.moveToFirst()) cursor.getString(column)?.let { return it }
+    }
+    return uri.lastPathSegment ?: ""
 }
 
 /** A row that is a label and a control, which is how the segmented settings read. */

@@ -833,6 +833,49 @@ across them, a meet written down attempt by attempt, and the federation's weight
 - **A meet's attempts are not in the training log**, by design rather than omission: `competition.js`
   keeps them apart so no training curve answers a question it was never asked.
 
+---
+
+## Phase 3d — the coach's file, wherever it is
+
+A week that arrives as a .csv now lands on the same review sheet as one that arrives as an .xlsx, and
+the picker behind the row is the platform's own — so it reaches Downloads, a USB stick and Drive alike.
+
+**689 JVM tests.** The device checks are in `native/README.md`; the pictures are in
+`oly-previews/native-phase3d/`.
+
+### What it adds
+
+- **The CSV reader** (`lib/CoachFile.kt`): `csv.js`'s state machine — quoted fields, embedded commas
+  and newlines, doubled quotes, a byte-order mark, CRLF — with the tests the web never shipped.
+  Splitting on commas shifts a whole sheet by one column the first time an exercise is called
+  "Bench Press, Close Grip", and nothing errors.
+- **The dispatch**: a .csv is one sheet named after the file; anything else goes through the workbook
+  reader, which throws `NotAWorkbookException` for a file that is neither. This is the half of the
+  import `sheets.jsx` keeps inside the component; it is a pure function with a test here.
+- **The row** in Settings: the picked file's own name is read back from the platform and decides the
+  reader, the sheets with nothing in them are dropped, and the web's two sentences say why nothing
+  arrived ("That file has no training in it", "Could not read that file…") where this screen used to
+  invent its own. Its subtitle is the web's own copy now, so it is translated.
+
+### Drive needed no code
+
+The web carries a Drive plugin and a REST client (`drive.js`, `DrivePlugin.java`, Play Services auth,
+a `drive.file` token) because a browser has no file system to browse. Android does: the picker behind
+`ACTION_OPEN_DOCUMENT` lists Drive beside Downloads, and the bytes come back through the same
+`ContentResolver` as any other file. So there is **no "Import from Google Drive" row of its own**, and
+no OAuth, no Play Services and no Drive dependency in the app.
+
+What that does not buy: a *native* Google Sheet has no bytes of its own, and only Drive's export
+endpoint produces them. Whether the Drive provider hands an equivalent over is the provider's business;
+if it does not, the read fails and says so. Exporting the Sheet to .xlsx or CSV and picking that is the
+way through, and the row's "Excel, CSV or Google Sheets" is the web's own wording for it.
+
+### Deliberately not in 3d
+
+- **The Drive API and its sign-in**: it exists in the web build to reach a file system the platform
+  here already hands over.
+- **Writing a CSV** — an export of the plan. The row reads.
+
 
 
 
