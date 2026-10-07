@@ -2,6 +2,8 @@ package olygym.app.ui.workout
 
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
+import olygym.app.OlyGymApp
+import olygym.app.platform.AutoBackup
 import kotlinx.serialization.json.JsonObject
 import olygym.app.data.Catalogue
 import olygym.app.data.Exercise
@@ -227,6 +229,8 @@ fun doFinishWorkout() {
         }
         next.with("active", null)
     }
+    // The web's autoBackupNow: after the one moment where losing the local data would hurt.
+    profileNow()?.raw?.let { AutoBackup.write(OlyGymApp.appContext, it) }
     ui.stopRest()
     finishSummarySheet(workout, prs)
 }

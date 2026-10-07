@@ -1,6 +1,7 @@
 package olygym.app
 
 import android.app.Application
+import android.content.Context
 import java.io.File
 import olygym.app.data.AppState
 import olygym.app.data.Assets
@@ -20,6 +21,7 @@ import olygym.app.ui.UiState
 class OlyGymApp : Application() {
     override fun onCreate() {
         super.onCreate()
+        appContext = this
         store = StateStore(
             file = File(filesDir, StateStore.FILE),
             localePack = { lang -> Assets.locale(this, lang) },
@@ -58,6 +60,13 @@ class OlyGymApp : Application() {
 
         /** The ephemeral half — the sheet stack, the toast and the two countdowns. */
         lateinit var ui: UiState
+            private set
+
+        /**
+         * The application context, for the platform jobs that run outside a composition: the
+         * reminder's alarm and the auto-backup both fire from places that have no Context to pass.
+         */
+        lateinit var appContext: Context
             private set
     }
 }
