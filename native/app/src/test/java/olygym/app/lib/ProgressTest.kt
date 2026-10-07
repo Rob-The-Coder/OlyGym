@@ -1,8 +1,13 @@
 package olygym.app.lib
 
+import java.io.File
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import olygym.app.data.Catalogue
+import olygym.app.data.Exercise
 import olygym.app.data.js
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
 
 /**
@@ -10,6 +15,20 @@ import org.junit.Test
  * depends on: the picker lists what has a history, a session that logged another mode is skipped,
  * an unloaded exercise's progress is its reps, and a session whose mode never changed is one point.
  */
+
+private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true }
+
+/**
+ * The shipped catalogue, read the way MusclesTest reads it. These cases name real ids (wl58, wl77)
+ * and the picker drops an exercise the catalogue does not know, so without this the class passes only
+ * when another class happened to install the real index first -- which it no longer always does.
+ */
+private val progressCatalogue: List<Exercise> by lazy {
+    val file = listOf(File("src/main/assets/exercises-data.json"), File("app/src/main/assets/exercises-data.json"))
+        .firstOrNull { it.isFile }
+        ?: error("exercises-data.json not found (working directory is " + File(".").absolutePath + ")")
+    json.decodeFromString<List<Exercise>>(file.readText())
+}
 private fun pSet(w: Double, r: Int, done: Boolean = true) = js("w" to w, "r" to r, "done" to done)
 
 private fun pEntry(id: String, sets: List<kotlinx.serialization.json.JsonObject>, target: kotlinx.serialization.json.JsonObject? = null) =
@@ -22,6 +41,11 @@ private fun pState(vararg workouts: kotlinx.serialization.json.JsonObject) =
     js("unit" to "kg", "workouts" to workouts.toList())
 
 class ProgressTest {
+
+    @Before
+    fun installCatalogue() {
+        Catalogue.install(progressCatalogue)
+    }
 
     @Test
     fun `the picker lists each exercise once, biggest reading first`() {

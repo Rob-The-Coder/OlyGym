@@ -1,7 +1,7 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 3b**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 3c**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
@@ -14,9 +14,9 @@ the catalogue (the Library, its shared filter sheet and the By-muscle explorer),
 back (the Exercise history sheet — its curve, its PR, and the cue that outlives a session), shows
 the catalogue's demo posters (hotlinked from YouTube, with the platform's player behind the badge),
 reads the coach's Excel week and reviews every row of it before any of it lands in the plan, keeps
-the meets apart from the training log with their attempts, totals and weight categories, and is
-configured (Settings — the preferences, the appearance and the data, with backup export/import
-through the platform's own file picker). **Phase 2 is complete**; phase 3 is what is left.
+the meets apart from the training log with their attempts, totals and weight categories, prints the
+plan through the platform's own print sheet, and is configured (Settings — the preferences, the
+appearance and the data, with backup export/import through the platform's own file picker). **Phase 2 is complete**; phase 3 is what is left.
 
 ## Pinned toolchain
 
@@ -51,7 +51,7 @@ cached under the plugin portal while their transitive dependencies were cached u
 ```bash
 cd native
 
-# unit tests — 674 of them, no emulator, about twenty seconds
+# unit tests — 689 of them, no emulator, about twenty seconds
 GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
   ./gradlew :app:testDebugUnitTest --offline
 
@@ -102,6 +102,18 @@ the plan and the log, a row's "+" adds with the default config (a toast names th
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
 
+Phase 3c's check is the printout. The Plan tab's app bar has the share button it was missing: it opens
+"Condividi il tuo piano" with "Stampa / Salva come PDF" (disabled, with the sentence that says why,
+until a routine has an exercise). Tapping it hands the page to Android's print sheet, whose preview
+shows the plan itself — "Piano di allenamento settimanale", the date under the title, "Le tue
+settimane", a card per routine with its exercises and their schemes, the complex nested under its own
+green rule, the plan's two weeks across 1/2 pages — and the printer list offers "Salva come PDF".
+Writing that file is where the emulator gives up: the moment the system starts the job,
+`olygym.app.dev` dies with `Fatal signal 4 (SIGILL)` in `libwebviewchromium.so`, the sheet reports
+"Printing app died unexpectedly", and Downloads keeps a 0-byte PDF. Same fault address every run, on
+both emulator CPU models. The app has nothing left to run by then — the platform draws the PDF from
+the page the adapter was handed. The pictures in `oly-previews/native-phase3c/` are each of those
+steps.
 Phase 3b's check is the meets. Home carries the coming one ("Coppa Italia · dom 22 nov 2026 · Milano ·
 tra 46 giorni") and opens Competitions: the best tiles (100 / 120 / 220 kg), Prossime and Passate, and
 a row per meet — a trophy while it is ahead, the medal once there is a result. A past meet's detail
@@ -197,13 +209,13 @@ app/src/main/java/olygym/app/
                         Starter, Recovery, ChartMath, Activity, Progress, HistoryView and Settings
   rest/                 RestTimer, its foreground service, its receiver, its notification and
                         the rest mirror the app ticks from
-  platform/             Sound (tones and haptics)
+  platform/             Sound (tones and haptics) and PlanPrint (the platform's print flow)
   ui/                   the shell (AppNavigator, tabs, rest bar, toast, sheet host), Home, Plan
                         and the week editor, the session screen, Stats, History, the Library and
                         its By-muscle explorer, Settings, the sheets, the shared controls and the
                         theme
 app/src/main/assets/    the two generated assets
-app/src/test/java/      674 JVM tests, one per ported behaviour
+app/src/test/java/      689 JVM tests, one per ported behaviour
 ```
 
 The helpers keep the React filenames and are one-to-one ports, so a diff against `frontend/src/lib`

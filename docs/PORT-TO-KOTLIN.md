@@ -833,6 +833,62 @@ across them, a meet written down attempt by attempt, and the federation's weight
 - **A meet's attempts are not in the training log**, by design rather than omission: `competition.js`
   keeps them apart so no training curve answers a question it was never asked.
 
+---
+
+## Phase 3c — the printable plan
+
+The plan leaves the phone as paper: the Plan screen's share button hands a self-contained page to
+Android's own print sheet, which is where "Save as PDF" comes from.
+
+**689 JVM tests.** The device checks are in `native/README.md`; the pictures are in
+`oly-previews/native-phase3c/`.
+
+### What it adds
+
+- **The printable page** (`lib/PlanShare.kt`, the other half of `plan-share.js`): the whole document
+  as one string — the header with the date, a section per week and per routine, each exercise's
+  scheme, the superset blocks, the notes, and the stylesheet that keeps an exercise and its day from
+  splitting across a page. The escaping and the defaults are the web's, including `e.reps ?? 10`: an
+  exercise with no reps prints as ten of them.
+- **The print flow** (`platform/PlanPrint.kt`): a WebView renders the page and hands its own
+  `PrintDocumentAdapter` to `PrintManager`, and the platform lays it out against the chosen paper and
+  draws the PDF. No PDF library rides in the app, and nothing is ported from the local `Print`
+  plugin's Java — that plugin exists only because a WebView has no `window.print()`, and here the
+  WebView's own adapter is that call. The page goes into the window underneath everything while the job
+  lives — a WebView that was never attached prints blank pages — and it is destroyed when the print
+  job's own state goes terminal (completed, cancelled, failed) rather than on the adapter's
+  `onFinish`, which belongs to the adapter and not to the job.
+- **The door** (`ui/sheet/PlanToolsSheet.kt`): the Plan screen's app bar gets the share button it has
+  been missing since Phase 2a, opening the web's "Share your plan" sheet with its copy, its disabled
+  state on an empty plan, and the sentence that says why.
+- **Two glyphs** (`upload`, `download`) transcribed from `Icon.jsx`.
+
+### Deliberately not in 3c
+
+- **The sheet's other two rows.** The web's share sheet also carries "Import a coach's plan" and
+  "Import from Google Drive"; the first already has its own door in Settings (Phase 3a) and the second
+  is its own piece of work. This sheet is where the Drive row will land.
+- **No in-app preview and no paper choice**: the system print sheet owns both, which is the point of
+  handing it the page rather than drawing a PDF here.
+
+### The one thing the emulator would not do
+
+The print sheet renders the whole plan — the picture in `oly-previews/native-phase3c/03-print-preview.png`
+is page 1 of 2 — but saving it does not finish on the emulator. The moment the system starts the job,
+`olygym.app.dev` dies with `Fatal signal 4 (SIGILL)` inside `libwebviewchromium.so`, the print sheet
+reports "Printing app died unexpectedly", and the file in Downloads stays 0 bytes. It is the same fault
+address on every run, with the emulator's default CPU model and with `-cpu host`, so it is that
+WebView build rather than the port. By then the app has nothing left to do: the page is already handed
+over, and the platform's own adapter is what draws the PDF. Worth re-checking on real hardware before
+the cutover.
+
+### One thing this phase fixed
+
+`ProgressTest` passed only when another class happened to install the real catalogue first: it names
+`wl58`/`wl77`, and the picker drops an exercise the catalogue does not know. Adding a test class
+shuffled that order and it began failing on its own. It installs the shipped catalogue now, the way
+`MusclesTest` already did.
+
 
 
 

@@ -37,7 +37,7 @@ enum class Glyph {
     // status
     TROPHY, MEDAL, TARGET, SPARKLES, LIGHTBULB, STAR, STAR_FILLED,
     // actions
-    PLUS, MINUS, CHECK, CHECK_CIRCLE, XMARK, PENCIL, TRASH, LINK, PLAY, RESET,
+    PLUS, MINUS, CHECK, CHECK_CIRCLE, XMARK, PENCIL, TRASH, LINK, UPLOAD, DOWNLOAD, PLAY, RESET,
     CHEVRON_RIGHT, CHEVRON_LEFT, CHEVRON_DOWN, CHEVRON_UP, ARROW_UP, ARROW_DOWN,
     MINIMIZE, LIST, CLIPBOARD, FLAG, SHUFFLE, INFO, MORE, HISTORY, WARNING, CHART_LINE,
     // objects
@@ -177,6 +177,8 @@ val GLYPHS: Map<Glyph, List<IconPart>> = mapOf(
     ),
     Glyph.PLAY to listOf(stroke("M8.4 5.6 18 12l-9.6 6.4Z")),
     Glyph.RESET to listOf(stroke("M4.4 12a7.6 7.6 0 1 0 2.3-5.4"), stroke("M4 4.4v4.4h4.4")),
+    Glyph.UPLOAD to listOf(stroke("M12 15.6V4.2M7.6 8.2 12 3.8l4.4 4.4M4.6 19.4h14.8")),
+    Glyph.DOWNLOAD to listOf(stroke("M12 3.8v11.4M7.6 11.2 12 15.6l4.4-4.4M4.6 19.4h14.8")),
     Glyph.CHEVRON_RIGHT to listOf(stroke("m9.6 5.6 6.6 6.4-6.6 6.4")),
     Glyph.CHEVRON_LEFT to listOf(stroke("m14.4 5.6-6.6 6.4 6.6 6.4")),
     Glyph.CHEVRON_DOWN to listOf(stroke("m5.6 9.4 6.4 6.2 6.4-6.2")),

@@ -64,6 +64,7 @@ import olygym.app.ui.components.OlyAppBar
 import olygym.app.ui.components.Overline
 import olygym.app.ui.components.olyAppBarScrollBehavior
 import olygym.app.ui.editProfile
+import olygym.app.ui.sheet.planToolsSheet
 import olygym.app.ui.sheet.starterPlanSheet
 import olygym.app.ui.t
 import olygym.app.ui.theme.CardShape
@@ -77,8 +78,7 @@ import olygym.app.ui.theme.OverlineWeight
  * they planned and how much of it happened. This used to run oldest first, so the week you are in
  * sat below every week you had already trained.
  *
- * Not ported: the app bar's "Share your plan" (printing and the coach's spreadsheet are a later
- * phase, and the upload glyph is not in this app's icon set) and the Competitions switch.
+ * Not ported: the Competitions switch (Competitions is pushed over the tabs, like History).
  */
 object PlanScreen : AppScreen() {
     @Composable
@@ -127,7 +127,10 @@ private fun Ready(profile: Profile) {
                 title = t("Plan"),
                 scrollBehavior = scroll,
                 subtitle = t("Your weeks"),
-                actions = { IconButton(Glyph.PLUS, onClick = newWeek) },
+                actions = {
+                    IconButton(Glyph.UPLOAD, onClick = { planToolsSheet() })
+                    IconButton(Glyph.PLUS, onClick = newWeek)
+                },
             )
         },
     ) { padding ->

@@ -157,7 +157,8 @@ screen offers, and what a reset leaves behind), the By-muscle reads in `LibraryF
 `muscleWeightOf` and `muscleCounts`, over the one `exerciseJson` that the progression, recovery and
 explorer reads now share), `ExerciseHistory` (Phase 2f), `Media` (Phase 2g — the video id, the
 poster URL and the chain, without `embedUrl`, which the platform player replaces) and `Xlsx`,
-`CoachSheet`, `PlanAliases`, `ImportPlan` and the merging half of `PlanShare` (Phase 3a — the
-coach's workbook read, matched and reviewed) and `Competition` (Phase 3b). Read `WorkoutModel.kt` and
+`CoachSheet`, `PlanAliases` and `ImportPlan` (Phase 3a — the coach's workbook read, matched and
+reviewed), `PlanShare` (Phase 3a's merging half and Phase 3c's printable page) and `Competition`
+(Phase 3b). Read `WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.
