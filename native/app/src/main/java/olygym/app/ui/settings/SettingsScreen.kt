@@ -25,7 +25,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,6 +66,7 @@ import olygym.app.lib.effortOf
 import olygym.app.lib.resetState
 import olygym.app.lib.todayISO
 import olygym.app.lib.weekStartOf
+import olygym.app.platform.Updater
 import olygym.app.ui.AppScreen
 import olygym.app.ui.Nav
 import olygym.app.ui.components.Accessory
@@ -133,6 +136,21 @@ private fun Settings(profile: Profile) {
     // The write is all it takes: the store re-arms the alarm after every save, so turning the
     // switch off cancels the pending one the same way turning it on sets it.
     val setReminder: (JsonObject) -> Unit = { patch -> write { it.with("reminder", patch) } }
+
+    // The updater's row: what the automatic check found, plus what a tap does about it. The check
+    // itself runs once per process when the app comes to the front.
+    val updateState by Updater.state.collectAsState()
+    val version = remember { Updater.version(context) }
+    val updateScope = rememberCoroutineScope()
+    val checkUpdates: () -> Unit = {
+        updateScope.launch {
+            when (Updater.checkNow(version)) {
+                is Updater.State.Latest -> ui.toast(t("You have the latest version."))
+                is Updater.State.Failed -> ui.toast(t("Could not check for updates — are you online?"))
+                else -> Unit
+            }
+        }
+    }
 
     // The whole state object, pretty-printed, into a file the user picks; and the same back again.
     val json = Json { prettyPrint = true }
@@ -458,6 +476,69 @@ private fun Settings(profile: Profile) {
                         )
                     },
                 )
+            }
+
+            Section(
+                title = t("Updates"),
+                footer = t("Read from this app's own releases on GitHub. The download is checked against the SHA-256 GitHub publishes for it before the installer opens."),
+            ) {
+                when (val offer = updateState) {
+                    is Updater.State.Available -> ListRow(
+                        title = t("Update to OlyGym v{0}", offer.version),
+                        subtitle = t("You have v{0}", version),
+                        icon = Glyph.DOWNLOAD,
+                        accessory = Accessory.CHEVRON,
+                        onClick = {
+                            confirmSheet(
+                                title = t("Update to {0}?", offer.version),
+                                message = t("The latest version will be downloaded and the installer will open."),
+                                confirmText = t("Download & Install"),
+                                onConfirm = {
+                                    // The one permission Android keeps for itself: without it the
+                                    // installer opens on "not allowed" and nothing else happens.
+                                    if (!Updater.canInstall(context)) {
+                                        Updater.requestInstallPermission(context)
+                                        ui.toast(t("Allow OlyGym to install apps, then try again"))
+                                    } else {
+                                        Updater.install(context)
+                                    }
+                                },
+                            )
+                        },
+                    )
+
+                    is Updater.State.Downloading -> ListRow(
+                        title = t("Downloading update…"),
+                        subtitle = if (offer.total > 0) {
+                            t("{0} %", (offer.received * 100 / offer.total).toInt().toString())
+                        } else {
+                            t("{0} MB", (offer.received / 1048576).toInt().toString())
+                        },
+                        icon = Glyph.DOWNLOAD,
+                    )
+
+                    is Updater.State.Failed -> ListRow(
+                        title = t("Check for updates"),
+                        subtitle = t("Update failed: {0}", offer.reason),
+                        icon = Glyph.DOWNLOAD,
+                        accessory = Accessory.CHEVRON,
+                        onClick = checkUpdates,
+                    )
+
+                    is Updater.State.Checking -> ListRow(
+                        title = t("Checking…"),
+                        subtitle = t("You have v{0}", version),
+                        icon = Glyph.DOWNLOAD,
+                    )
+
+                    else -> ListRow(
+                        title = t("Check for updates"),
+                        subtitle = t("You have v{0}", version),
+                        icon = Glyph.DOWNLOAD,
+                        accessory = Accessory.CHEVRON,
+                        onClick = checkUpdates,
+                    )
+                }
             }
         }
     }

@@ -943,3 +943,41 @@ sync app or a file manager always has something recent to point at.
   set is ticked would write a fifty-kilobyte file every few seconds, and the private mirror in
   `files/` already covers every change.
 - **A storage permission** for the public folder on Android 9 and older, as above.
+
+---
+
+## Phase 3g — the in-app updater
+
+The app updates itself from this repository's own releases now: it reads the GitHub API, compares the
+newest native release against the version it is running, downloads the APK, checks it against the
+SHA-256 GitHub published for the upload, and hands it to the package installer.
+
+**717 JVM tests.** There is no device check yet — see the end of this section.
+
+### What it adds
+
+- **The reading** (`lib/Update.kt`): the port of `update.js` — `compareSemver`, the walk over the
+  releases, and `sha256Hex`. Two deliberate differences: the list is read with `per_page=30` and
+  filtered on a `native-v` tag, because the web app's own releases (`v1.3.x`) share this repository
+  and carry no APK; and drafts and pre-releases are never offered.
+- **The platform half** (`platform/Updater.kt`): `HttpURLConnection` (no dependency), the download
+  into the cache with the hash computed while it streams, the FileProvider hand-off to
+  `ACTION_VIEW` + `application/vnd.android.package-archive`, and the one permission Android keeps to
+  itself — `REQUEST_INSTALL_PACKAGES`, with its "install unknown apps" screen opened when it has not
+  been granted.
+- **The check runs itself**, once per process, when the app comes to the front: silent when the app
+  is current and silent when github.com cannot be reached, because nobody asked. Settings' Updates
+  section shows what it found, and its row is the on-demand check as well.
+- **The `download` glyph** is transcribed from `Icon.jsx`; the update row needed one.
+
+### Deliberately not in 3g
+
+- **Silent installation.** Android shows the installer and the user confirms; no ordinary app can skip
+  that. "Automatic" here means the check is automatic and the download starts when the offer is
+  accepted.
+- **Installing without a checksum**: GitHub publishes a SHA-256 for every uploaded asset, and that is
+  what the download is checked against. A release that carried no digest would be installed
+  unverified, as the web build does — leaving it off is not worth doing.
+- **The device check.** The repository has no `native-v…` release yet, so the updater has nothing to
+  find: the network path and the installer need a real release to walk through, and both are written
+  and left for that day. The check, the parsing and the hash are unit-tested.

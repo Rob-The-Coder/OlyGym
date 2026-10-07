@@ -10,6 +10,10 @@
          timezone change, so it is set again from those broadcasts. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- The in-app updater reads this app's own GitHub releases and hands the downloaded APK to
+         the package installer. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <!-- The demo poster frames, hotlinked from img.youtube.com: the only network this app does,
          exactly as the web app does it. Nothing of the training log ever leaves the device. -->
     <uses-permission android:name="android.permission.INTERNET" />
@@ -20,6 +24,18 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.OlyGym">
+
+        <!-- The one file the updater shares with the system: the APK it downloaded into the cache.
+             The authority carries the applicationId, so the debug build's .dev package has its own. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <activity
             android:name=".MainActivity"

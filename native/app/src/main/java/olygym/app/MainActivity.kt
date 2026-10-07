@@ -21,6 +21,7 @@ import kotlinx.coroutines.delay
 import olygym.app.data.AppState
 import olygym.app.lib.DEFAULT_ACCENT
 import olygym.app.platform.ReminderAlarm
+import olygym.app.platform.Updater
 import olygym.app.ui.AppNavigator
 import olygym.app.ui.theme.OlyGymTheme
 import olygym.app.ui.theme.THEME_DARK
@@ -88,6 +89,9 @@ class MainActivity : ComponentActivity() {
         // reminder is worked out again every time the app comes back to the front.
         (OlyGymApp.store.state.value as? AppState.Ready)?.profile?.raw
             ?.let { ReminderAlarm.schedule(this, it) }
+        // The updater's automatic check: one request per process, silent when there is nothing to
+        // say. Settings shows what it found.
+        Updater.checkSilently(Updater.version(this))
     }
 
     /**
