@@ -1,7 +1,9 @@
 # native/ — the Kotlin app
 
-The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 7e**: the app opens on
+This is the port described in [../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and **it has
+been cut over**: it ships as `olygym.app`, versionCode 27, signed with the same key as the Capacitor
+app it replaces, so an install of this APK lands on top of that app rather than beside it. The app
+opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
@@ -29,9 +31,8 @@ fatigue view on the body silhouette rather than as bars, and draws a complex as 
 one load and one check for the whole sequence, its movements keeping everything but their set
 tables, swipes the session's cards from one unit to the next, and keeps the thing you are working on
 in view — the cards bring the movement the flow stepped to back on screen, and the list opens on the
-unit you are on. **Phase 2 is complete, and phases 3 to 7 are written** — the last piece being the
-class picker's own row to edit the categories it is choosing from. The cutover, and the pieces each
-phase deliberately left out, are what remain.
+unit you are on. **Phase 2 is complete, phases 3 to 7 are written, and the cutover is done**; what
+remain are the pieces each phase deliberately left out.
 
 ## Pinned toolchain
 
@@ -70,11 +71,24 @@ cd native
 GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
   ./gradlew :app:testDebugUnitTest --offline
 
-# the debug APK
+# the debug APK (olygym.app.dev, so it can sit beside the shipped app)
 GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
   ./gradlew :app:assembleDebug --offline
 # -> app/build/outputs/apk/debug/app-debug.apk
+
+# the shipped APK — olygym.app, versionCode 27, signed with the release key
+GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
+  ./gradlew :app:assembleRelease --offline
+# -> app/build/outputs/apk/release/app-release.apk
 ```
+
+The release build signs itself when `android-keys/` is present (`$KS_PASS`, else
+`android-keys/password.txt`); without it the APK comes out unsigned, which is what a fresh clone
+gets. `:app:assembleRelease` was what the cutover changed here — no zipalign step and no separate
+`apksigner` call, unlike the Capacitor app's `scripts/build-apk.sh`. Check a built APK with
+`apksigner verify --print-certs`; the certificate must be
+`27c8846da58bef38830b54d34474901f44a1992ba6f837c7826b1dfe4cf998c4`, or it will not install over
+the app already on the phone.
 
 On a machine with a normal `~/.gradle`, `./gradlew :app:assembleDebug` just works, online or off.
 The extra environment is for this one, where `~/.gradle` is not writable:

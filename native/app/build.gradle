@@ -3,6 +3,16 @@ apply plugin: 'kotlin-android'
 apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 apply plugin: 'org.jetbrains.kotlin.plugin.serialization'
 
+// The cutover's key: the same one the shipping Capacitor app is signed with, so this APK installs
+// over it as an update instead of as a second app. android-keys/ is gitignored and holds the
+// password too (override it with $KS_PASS); the recipe and the certificate's SHA-256 are in
+// android-keys/README.txt. Without the key — a fresh clone, or anyone else's machine — the release
+// build is simply unsigned, which is what it was before the cutover.
+def releaseKey = rootProject.file('../android-keys/olygym-release.jks')
+def releasePassFile = rootProject.file('../android-keys/password.txt')
+def releasePass = System.getenv('KS_PASS') ?: (releasePassFile.exists() ? releasePassFile.text.trim() : null)
+def canSignRelease = releaseKey.exists() && releasePass
+
 android {
     namespace = 'olygym.app'
     compileSdk = 36
@@ -11,18 +21,31 @@ android {
         applicationId = 'olygym.app'
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
+        // 26 is the last Capacitor build; Android refuses an update that is not above it.
+        versionCode = 27
+        // The native line is its own, and it is what the updater compares against native-v* tags.
         versionName = '0.1.0'
+    }
+
+    signingConfigs {
+        if (canSignRelease) {
+            release {
+                storeFile = releaseKey
+                storePassword = releasePass
+                keyAlias = 'olygym'
+                keyPassword = releasePass
+            }
+        }
     }
 
     buildTypes {
         debug {
-            // The native app must install beside the shipping Capacitor app and get its own
-            // sandbox, or the two would fight over /data/data/<pkg>/files/opengym-state.json.
-            // Cutover is deleting this one line: the release build then is olygym.app.
+            // The dev build keeps its own sandbox: the release one is the shipped app now, and two
+            // builds of the same package signed with different keys cannot share a phone anyway.
             applicationIdSuffix '.dev'
         }
         release {
+            if (canSignRelease) signingConfig = signingConfigs.release
             minifyEnabled false
         }
     }
