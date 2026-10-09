@@ -192,13 +192,30 @@ weeks rather than a four-phase march with nothing to show.
 - No Room migration in phases 0 and 1; the JSON blob is the contract with the old app.
 - No redesign. Same features, same behaviour, different runtime.
 
-## Cutover checklist
+## Cutover checklist — done
 
-1. The native app covers phases 0 to 2 and has been used for real sessions.
-2. Release package olygym.app, the existing release key, versionCode above the last Capacitor
-   build (26 at the time of writing).
-3. Confirm opengym-state.json is read and rewritten without loss.
-4. Keep the last Capacitor APK and a state export until the new app has survived a week.
+What each item turned into. The cutover is `native/app/build.gradle` and a release, not a phase: there
+is nothing left to port.
+
+1. **The native app covers phases 0 to 7 and has been used for real sessions.**
+2. **Release package `olygym.app`, the existing release key, versionCode above the last Capacitor
+   build.** `versionCode = 27` (the Capacitor line stopped at 26) and `versionName = '0.1.0'`, the
+   native line the updater compares against `native-v*` tags. The release build type signs with
+   `android-keys/olygym-release.jks` — the same key the shipping app is signed with — so
+   `:app:assembleRelease` produces a signed APK and Android installs it *over* the Capacitor app
+   rather than beside it. `apksigner verify --print-certs` reports
+   `27c8846da58bef38830b54d34474901f44a1992ba6f837c7826b1dfe4cf998c4`, the certificate
+   `android-keys/README.txt` records. Without the key — a fresh clone, anyone else's machine — the
+   release build is unsigned, exactly as it was before.
+3. **`opengym-state.json` is read and rewritten without loss.** The same file at the same path under
+   the same package id, so Android hands it to the new app on upgrade. Checked with the release
+   build itself: it launched, changed the language in Settings, force-stopped and came back
+   speaking it — which is only possible if the file was written and read again.
+4. **Keep the last Capacitor APK and a state export** until the new app has survived a week.
+   Unchanged, and it is the user's call: nothing here deletes anything.
+
+The updater's first release is tagged `native-v0.1.0` with this APK attached, which is what Settings
+→ Check for updates reads.
 ---
 
 ## Phase 0 decisions — what actually shipped
