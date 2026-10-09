@@ -15,7 +15,8 @@ per-exercise curves, and the workout detail sheet behind the recent sessions), k
 readable and writable (History, with its search, its month headings and log-a-past-workout), browses
 the catalogue (the Library, its shared filter sheet and the By-muscle explorer), reads one exercise
 back (the Exercise history sheet — its curve, its PR, and the cue that outlives a session), shows
-the catalogue's demo posters (hotlinked from YouTube, with the platform's player behind the badge),
+the catalogue's demo posters (hotlinked from YouTube) and plays the video itself in the app — the
+same embed the web builds, in a WebView, with the workout's chip expanding to hold it —
 reads the coach's Excel or CSV week — whatever file the platform's picker can reach, Drive
 included — and reviews every row of it before any of it lands in the plan, reminds you on the days
 that have a routine, keeps a dated copy of it all in the Documents folder, keeps the meets apart
@@ -31,8 +32,8 @@ fatigue view on the body silhouette rather than as bars, and draws a complex as 
 one load and one check for the whole sequence, its movements keeping everything but their set
 tables, swipes the session's cards from one unit to the next, and keeps the thing you are working on
 in view — the cards bring the movement the flow stepped to back on screen, and the list opens on the
-unit you are on. **Phase 2 is complete, phases 3 to 7 are written, and the cutover is done**; what
-remain are the pieces each phase deliberately left out.
+unit you are on. **Phase 2 is complete, phases 3 to 7 and 5b are written, and the cutover is done**;
+what remain are the pieces each phase deliberately left out.
 
 ## Pinned toolchain
 
@@ -67,7 +68,7 @@ cached under the plugin portal while their transitive dependencies were cached u
 ```bash
 cd native
 
-# unit tests — 720 of them, no emulator, about twenty seconds
+# unit tests — 724 of them, no emulator, about twenty seconds
 GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
   ./gradlew :app:testDebugUnitTest --offline
 
@@ -130,6 +131,16 @@ Phase 1c's check is the picker: its search field reads the catalogue's size, the
 the plan and the log, a row's "+" adds with the default config (a toast names the day), and the new
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
+
+Phase 5b's check is the player. In a session the demo chip sat beside "back squat" as before; a tap
+grew it to the header's whole width, 16:9, above the name and the tags, with "Riduci" under it — and
+`dumpsys audio` listed a started `AAudio` track owned by the app for as long as it was open. YouTube
+answered "Video player configuration error / 153" when the embed URL was loaded directly (a WebView
+sends no `Referer`); loading a one-iframe document *as* the nocookie host is what plays it. Minimize
+collapsed the header and the track was gone. With `video` 'off' there was no mark at all; with
+'inline' the detail sheet mounted the player without a tap, and closing the sheet stopped it. The
+pictures in `oly-previews/native-phase5b/` are those steps — the video surface itself does not appear
+in `screencap`, so the black 16:9 rectangle is the player and the audio stack is the proof it runs.
 
 Phase 7e's check is the picker's action row. Home's competitions tile opened Gare (Strappo 95,
 Girata e slancio 110, Miglior totale 205 — the seeded meet's bests), its "+" opened "Aggiungi una
@@ -355,7 +366,7 @@ app/src/main/java/olygym/app/
                         its By-muscle explorer, Settings, the sheets, the shared controls and the
                         theme
 app/src/main/assets/    the three generated assets
-app/src/test/java/      720 JVM tests, one per ported behaviour
+app/src/test/java/      724 JVM tests, one per ported behaviour
 ```
 
 The helpers keep the React filenames and are one-to-one ports, so a diff against `frontend/src/lib`
