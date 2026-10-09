@@ -13,6 +13,8 @@ import olygym.app.data.bool
 import olygym.app.data.js
 import olygym.app.data.num
 import olygym.app.data.obj
+import olygym.app.data.str
+import olygym.app.data.with
 
 /*
  * Pure decisions for the active-workout superset flow — a port of
@@ -54,6 +56,24 @@ fun complexRounds(entries: JsonElement?, unit: JsonElement?): JsonArray? {
         sets.withIndex().all { (i, set) -> isWarmupRow(set) == isWarmupRow(rows[i]) }
     }
     return if (aligned) JsonArray(rows.map { js("warmup" to isWarmupRow(it)) }) else null
+}
+
+/**
+ * The unit drawn as one table of rounds when every member can share it, or null when it cannot.
+ *
+ * Two gates sit in front of [complexRounds]: a bodyweight movement with no load logged has no
+ * weight column to share, and effort tracking rates RIR/RPE per movement, so a shared row would
+ * overwrite it. The screen then keeps the per-movement tables and their own checks, as before.
+ */
+fun complexRoundsFor(entries: JsonElement?, unit: JsonElement?, effort: String): JsonArray? {
+    if (effort != "none") return null
+    val entriesArr = entries.asArr() ?: return null
+    val loadless = unit.asArr()?.any { element ->
+        val entry = element.asInt()?.let { entriesArr.getOrNull(it) }?.asObj() ?: return@any false
+        val cfg = (entry.obj("target") ?: JsonObject(emptyMap())).with("id", entry.str("id"))
+        isBw(cfg) && entry.arr("sets").none { (it.asObj()?.num("w") ?: 0.0) > 0.0 }
+    } ?: false
+    return if (loadless) null else complexRounds(entries, unit)
 }
 
 // Return the first unfinished navigation unit after the current one, wrapping once so a user

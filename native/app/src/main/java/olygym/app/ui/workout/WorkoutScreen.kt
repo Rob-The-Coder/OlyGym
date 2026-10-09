@@ -28,6 +28,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import olygym.app.data.Catalogue
 import olygym.app.data.Profile
@@ -45,14 +46,17 @@ import olygym.app.data.num
 import olygym.app.data.obj
 import olygym.app.data.objectAt
 import olygym.app.data.str
+import olygym.app.data.toJson
 import olygym.app.data.with
 import olygym.app.data.without
 import olygym.app.lib.DAYN
 import olygym.app.lib.bestWeightForEntry
 import olygym.app.lib.canMoveActiveWorkoutUnit
 import olygym.app.lib.cascadeWeight
+import olygym.app.lib.complexRoundsFor
 import olygym.app.lib.defaultIncrement
 import olygym.app.lib.effectiveDay
+import olygym.app.lib.effortOf
 import olygym.app.lib.exCount
 import olygym.app.lib.fmtDate
 import olygym.app.lib.insertWarmupRow
@@ -125,6 +129,11 @@ private class BlockActions(
     val onPair: (Int, Int) -> Unit,
     val onUnpair: (Int) -> Unit,
     val onMove: (Int, Int) -> Unit,
+    val onToggleRound: (List<Int>, Int) -> Unit,
+    val onRoundWeight: (List<Int>, Int, Double?) -> Unit,
+    val onAddRound: (List<Int>) -> Unit,
+    val onRemoveRound: (List<Int>, Int) -> Unit,
+    val onAddWarmupAll: (List<Int>) -> Unit,
 )
 
 /** The session screen: the day's plan if nothing is running, the running session if something is. */
@@ -273,6 +282,11 @@ private fun ActiveWorkout(profile: Profile) {
         onPair = { first, second -> pairAt(first, second) },
         onUnpair = { index -> unpairAt(index) },
         onMove = { index, direction -> moveUnit(index, direction) },
+        onToggleRound = { unit, row -> toggleRound(unit, row, highWater) },
+        onRoundWeight = { unit, row, value -> setRoundWeight(unit, row, value) },
+        onAddRound = { unit -> addRound(unit) },
+        onRemoveRound = { unit, row -> removeRoundAt(unit, row) },
+        onAddWarmupAll = { unit -> addWarmupAll(unit) },
     )
 
     Scaffold(
@@ -473,6 +487,14 @@ private fun UnitBlocks(
     actions: BlockActions,
     busy: Boolean,
 ) {
+    val profile = currentProfile() ?: return
+    // A merged complex is one table of rounds instead of a table per movement: the movements keep
+    // everything but their own set tables, and the card rounds them off with the shared table.
+    val rounds = if (unit.size > 1) {
+        complexRoundsFor(JsonArray(entries), JsonArray(unit.map { it.toJson() }), effortOf(profile.raw))
+    } else {
+        null
+    }
     if (unit.size > 1) {
         SectionCard(modifier = Modifier.padding(top = 10.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -498,7 +520,7 @@ private fun UnitBlocks(
             onToggle = { row -> actions.onToggle(index, row) },
             onField = { row, field, value -> actions.onField(index, row, field, value) },
             onAddSet = { actions.onAddSet(index) },
-            onAddWarmup = { actions.onAddWarmup(index) },
+            onAddWarmup = if (rounds != null) ({ actions.onAddWarmupAll(unit) }) else ({ actions.onAddWarmup(index) }),
             onRemoveSetAt = { row -> actions.onRemoveSetAt(index, row) },
             onStartTimed = { row -> actions.onStartTimed(index, row) },
             onBarWeight = { actions.onBarWeight(index) },
@@ -515,9 +537,21 @@ private fun UnitBlocks(
             canMoveDown = canMoveActiveWorkoutUnit(profileNow()?.active, index, 1),
             step = if (unit.size > 1) position + 1 else null,
             compact = unit.size > 1,
+            headOnly = rounds != null,
             dense = dense,
             busy = busy,
             modifier = Modifier.padding(top = 10.dp),
+        )
+    }
+    if (rounds != null) {
+        RoundsTable(
+            entries = entries,
+            unit = unit,
+            rounds = rounds,
+            onToggleRound = { row -> actions.onToggleRound(unit, row) },
+            onFieldRound = { row, value -> actions.onRoundWeight(unit, row, value) },
+            onAddRound = { actions.onAddRound(unit) },
+            onRemoveRoundAt = { row -> actions.onRemoveRound(unit, row) },
         )
     }
 }
@@ -580,6 +614,158 @@ private fun addWarmup(index: Int) = mutEntry(index) { entry ->
 
 private fun removeSetAt(index: Int, row: Int) = mutEntry(index) { entry ->
     entry.with("sets", removeRowAt(entry.arr("sets"), row))
+}
+
+/* ------------------------------------------------- the complex, as one table -- */
+
+/**
+ * Ticking one round of a merged complex: the tap closes that round of every movement at once, so the
+ * group moves together, there is no partner to navigate to, and the rest belongs after the round.
+ * The port of the `round` branch of toggle in Workout.jsx.
+ */
+private fun toggleRound(unit: List<Int>, row: Int, highWater: MutableList<Int>) {
+    val before = profileNow() ?: return
+    val entriesBefore = before.active?.arr("entries") ?: return
+    val head = entriesBefore.getOrNull(unit.first())?.asObj() ?: return
+    if (head.arr("sets").getOrNull(row) == null) return
+    // The round's load, read before it is written back: a complex is one barbell, so the weight the
+    // shared row showed becomes every movement's weight for that round. What is seen is what is logged.
+    val roundW = head.arr("sets").getOrNull(row)?.asObj()?.num("w")
+    val done = unit.any { k ->
+        entriesBefore.getOrNull(k)?.asObj()?.arr("sets")?.getOrNull(row)?.asObj()?.bool("done") != true
+    }
+
+    editProfile { raw ->
+        raw.editObject("active") { a ->
+            a.editArray("entries") { es ->
+                unit.fold(es) { acc, k ->
+                    acc.editAt(k) { entry ->
+                        val set = entry.arr("sets").getOrNull(row)?.asObj() ?: return@editAt entry
+                        var next = set.with("done", done)
+                        if (done && roundW != null) next = next.with("w", roundW)
+                        entry.with("sets", entry.arr("sets").editAt(row) { next })
+                    }
+                }
+            }
+        }
+    }
+    if (done) ui.setTick()
+
+    val fresh = profileNow() ?: return
+    val freshEntries = fresh.active?.arr("entries") ?: return
+    val groupJson = JsonArray(unit.map { it.toJson() })
+    val unitDone = unit.all { k ->
+        freshEntries.getOrNull(k)?.asObj()?.arr("sets")?.all { it.asObj()?.bool("done") == true } == true
+    }
+    val nextUnit = if (unitDone) nextUnfinishedUnit(freshEntries, supersetUnits(freshEntries), unit.first()) else null
+    val workoutDone = unitDone && nextUnit == null
+    val restBeforeWarmup = nextUnit?.asArr()?.any { k ->
+        freshEntries.getOrNull(k.asNum()?.toInt() ?: return@any false)?.asObj()
+            ?.arr("sets")?.any { isWarmupRow(it) && it.asObj()?.bool("done") != true } == true
+    } == true
+
+    if (done && unitDone) {
+        unit.forEach { k ->
+            val entry = freshEntries.getOrNull(k) ?: return@forEach
+            if (entry.asObj()?.arr("sets")?.all { it.asObj()?.bool("done") == true } == true) {
+                val top = bestWeightForEntry(entry).takeIf { it != 0.0 }
+                editProfile { raw ->
+                    raw.editObject("active") { a -> a.editArray("entries") { es -> es.editAt(k) { it.with("topW", top) } } }
+                }
+            }
+        }
+    }
+
+    if (workoutDone) {
+        workoutCompleteSheet { finishWorkout() }
+    }
+
+    if (!done) {
+        if (restOnRecheck(ui.state.value.rest != null, unitDone, workoutDone)) {
+            startRestFor(fresh, unit.first(), row, groupJson)
+        }
+        return
+    }
+
+    var isNew = false
+    unit.forEach { k ->
+        val progress = setProgressHighWater(freshEntries.getOrNull(k), highWater.getOrElse(k) { 0 })
+        highWater[k] = progress.int("highWater") ?: 0
+        if (k == unit.first()) isNew = progress.bool("isNew") == true
+    }
+    if (!isNew) {
+        if (restOnRecheck(ui.state.value.rest != null, unitDone, workoutDone)) {
+            startRestFor(fresh, unit.first(), row, groupJson)
+        }
+        return
+    }
+    if (unitDone) ui.stopRest()
+    if (!restBeforeWarmup && restAfterSet(unitDone, workoutDone)) {
+        startRestFor(fresh, unit.first(), row, groupJson)
+    }
+}
+
+/** The complex's shared load: the weight typed once lands on every movement's row for that round. */
+private fun setRoundWeight(unit: List<Int>, row: Int, value: Double?) = editProfile { raw ->
+    raw.editObject("active") { a ->
+        a.editArray("entries") { es ->
+            unit.fold(es) { acc, k ->
+                acc.editAt(k) { entry ->
+                    val sets = entry.arr("sets").editAt(row) { set ->
+                        if (value == null) set.without("w") else set.with("w", value)
+                    }
+                    entry.with("sets", cascadeWeight(sets, row, value))
+                }
+            }
+        }
+    }
+}
+
+/** A round is added to every movement at once, so the shared table stays one table. */
+private fun addRound(unit: List<Int>) = editProfile { raw ->
+    raw.editObject("active") { a ->
+        a.editArray("entries") { es ->
+            unit.fold(es) { acc, k ->
+                acc.editAt(k) { entry ->
+                    val sets = entry.arr("sets")
+                    val last = sets.objectAt(sets.size - 1)
+                    val target = entry.obj("target")
+                    // A merged complex is always reps mode (complexRoundsFor), so a round is a
+                    // weight-and-reps row, never a hold.
+                    val row = js(
+                        "w" to (last?.num("w") ?: 0.0),
+                        "r" to (last?.num("r") ?: target?.num("reps") ?: 0.0),
+                        "done" to false,
+                    )
+                    entry.with("sets", sets + row)
+                }
+            }
+        }
+    }
+}
+
+private fun removeRoundAt(unit: List<Int>, row: Int) = editProfile { raw ->
+    raw.editObject("active") { a ->
+        a.editArray("entries") { es ->
+            unit.fold(es) { acc, k ->
+                acc.editAt(k) { entry -> entry.with("sets", removeRowAt(entry.arr("sets"), row)) }
+            }
+        }
+    }
+}
+
+/** A warm-up ramp belongs to the complex, not to the movement whose menu happened to open. */
+private fun addWarmupAll(unit: List<Int>) = editProfile { raw ->
+    raw.editObject("active") { a ->
+        a.editArray("entries") { es ->
+            unit.fold(es) { acc, k ->
+                acc.editAt(k) { entry ->
+                    val mode = modeOf((entry.obj("target") ?: JsonObject(emptyMap())).with("id", entry.str("id")))
+                    entry.with("sets", insertWarmupRow(entry.arr("sets"), mode, entry.obj("target"), defaultIncrement(entry.str("id"))))
+                }
+            }
+        }
+    }
 }
 
 private fun pairAt(first: Int, second: Int) = editProfile { raw ->
