@@ -73,6 +73,7 @@ import olygym.app.ui.components.olyAppBarScrollBehavior
 import olygym.app.ui.currentProfile
 import olygym.app.ui.profileNow
 import olygym.app.ui.sheet.bwDeltaColor
+import olygym.app.ui.sheet.calendarSheet
 import olygym.app.ui.sheet.goalSheet
 import olygym.app.ui.sheet.weighInSheet
 import olygym.app.ui.t
@@ -322,6 +323,7 @@ fun HomeScreen() {
                     value = streakWeeks(profile.raw).toString(),
                     suffix = t("weeks"),
                     icon = Glyph.FLAME,
+                    onClick = { calendarSheet() },
                     modifier = Modifier.weight(1f),
                 )
                 Tile(
@@ -329,6 +331,7 @@ fun HomeScreen() {
                     value = thisWeek.toString() + if (plannedThisWeek > 0) "/" + plannedThisWeek else "",
                     suffix = t("sessions"),
                     icon = Glyph.CALENDAR,
+                    onClick = { calendarSheet() },
                     modifier = Modifier.weight(1f),
                 )
                 Tile(
@@ -341,6 +344,7 @@ fun HomeScreen() {
                     } else {
                         null
                     },
+                    onClick = { weighInSheet() },
                     modifier = Modifier.weight(1f),
                 )
             }

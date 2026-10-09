@@ -1,7 +1,7 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 5a**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 6a**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
@@ -22,8 +22,9 @@ through the platform's own file picker), updates itself from its own releases, a
 design system says it should — the Emphasized weights at the web's own call sites, the wavy progress
 bars, the route fade and the Start button's press — and shows the demo poster in the exercise header
 itself, with the two Settings rows that decide what it shows and the display kept awake while a
-session runs. **Phase 2 is complete, and phases 3 to 5 are written**; the cutover, and the pieces each
-phase deliberately left out, are what remain.
+session runs, and shows a month at a glance — the calendar behind Home's tiles, which is also the door
+to a past day and to a day holding more than one session. **Phase 2 is complete, and phases 3 to 6 are
+written**; the cutover, and the pieces each phase deliberately left out, are what remain.
 
 ## Pinned toolchain
 
@@ -109,6 +110,15 @@ the plan and the log, a row's "+" adds with the default config (a toast names th
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
 
+Phase 6a's check is the calendar. Home's *Streak* tile opened Ottobre 2026 with the month's own line
+("4 allenamenti · 4h 0m · 4.000 kg"), a dot under 2, 5 and 7 (trained) and a muted one under 9
+(planned), today ringed — and every tap on a day did what the web's rule says. Day 7, which holds two
+sessions, opened "mer 7 ott · 2 allenamenti" with Clean & Jerk Day (4.800 kg) and Squat & Pull Day
+(3.600 kg); day 8, past and empty, opened the backfill already dated gio 8 ott; day 2, one session,
+opened Back Squat Day's own detail; day 9, still to come, closed the sheet and landed on the plan.
+The month's arrows step a month either way, and September — which has nothing — says "Nessun
+allenamento questo mese" and offers "Torna a questo mese". The pictures in
+`oly-previews/native-phase6a/` are those steps.
 Phase 5a's check is the session's picture and the screen that stays on. Starting today's session put
 the demo poster in the exercise header as an 88dp chip beside "back squat", with the play mark over
 it, the tags under the name and the set table exactly where it was; switching Settings' "Immagini

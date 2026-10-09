@@ -100,6 +100,7 @@ import olygym.app.ui.history.HistoryScreen
 import olygym.app.ui.sheet.SelectOption
 import olygym.app.ui.sheet.SelectRow
 import olygym.app.ui.sheet.bwDeltaColor
+import olygym.app.ui.sheet.calendarSheet
 import olygym.app.ui.sheet.goalSheet
 import olygym.app.ui.sheet.weighInSheet
 import olygym.app.ui.sheet.workoutDetailSheet
@@ -117,8 +118,8 @@ import olygym.app.ui.theme.levelColor
  * Not ported in this phase, and stated where each would show:
  * - the body silhouette on the balance and fatigue views. The numbers are here and drawn as bars;
  *   the map is ~90 KB of SVG paths plus a path renderer, which is its own piece of work.
- * - competitions (phase 3), the exercise-history sheet, and the calendar sheet a heatmap cell with
- *   several sessions would open — a cell with exactly one session opens it, as on the web.
+ * - competitions (the Competitions card at the foot of the screen), and the exercise-history sheet
+ *   behind the exercise detail's row.
  * - the search inside the exercise picker (the app's SelectRow has none yet); the sheet lists every
  *   exercise with a history, which is the list the search would filter.
  */
@@ -216,10 +217,12 @@ private fun Stats(profile: Profile) {
                     weekStart = weekStart,
                     unit = unit,
                     modifier = Modifier.padding(top = 10.dp),
-                    // One session opens it; several would open the calendar sheet, which is phase 3.
+                    // One session opens it; several open the calendar on that month, which is where a
+                    // day's own list of sessions lives.
                     onDay = { dayIso ->
                         val onDay = workoutsOnDate(S["workouts"], dayIso)
                         if (onDay.size == 1) workoutDetailSheet(onDay[0])
+                        else if (onDay.isNotEmpty()) calendarSheet(dayIso)
                     },
                 )
             }
