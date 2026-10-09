@@ -1,7 +1,7 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 7d**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 7e**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
@@ -29,8 +29,9 @@ fatigue view on the body silhouette rather than as bars, and draws a complex as 
 one load and one check for the whole sequence, its movements keeping everything but their set
 tables, swipes the session's cards from one unit to the next, and keeps the thing you are working on
 in view — the cards bring the movement the flow stepped to back on screen, and the list opens on the
-unit you are on. **Phase 2 is complete, and phases 3 to 7 are written**; the cutover, and the pieces
-each phase deliberately left out, are what remain.
+unit you are on. **Phase 2 is complete, and phases 3 to 7 are written** — the last piece being the
+class picker's own row to edit the categories it is choosing from. The cutover, and the pieces each
+phase deliberately left out, are what remain.
 
 ## Pinned toolchain
 
@@ -115,6 +116,13 @@ Phase 1c's check is the picker: its search field reads the catalogue's size, the
 the plan and the log, a row's "+" adds with the default config (a toast names the day), and the new
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
+
+Phase 7e's check is the picker's action row. Home's competitions tile opened Gare (Strappo 95,
+Girata e slancio 110, Miglior totale 205 — the seeded meet's bests), its "+" opened "Aggiungi una
+gara", and "Categoria di peso" opened the categories with the standard list. Under them, in a card of
+its own, sat the pencil row "Modifica categorie" — and tapping it closed the picker and opened
+"Categorie di peso", which is the one thing that list edits. The meet sheet itself now holds nothing
+but the date and the category. The pictures in `oly-previews/native-phase7e/` are those steps.
 
 Phase 7d's check is the two keep-it-in-view scrolls, and the layout the swipe surface had broken. A
 seeded unmerged complex (effort on, so it keeps a table per movement) opened on its second movement

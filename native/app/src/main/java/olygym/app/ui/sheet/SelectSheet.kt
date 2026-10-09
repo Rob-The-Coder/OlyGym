@@ -25,6 +25,17 @@ import olygym.app.ui.ui
  */
 data class SelectOption(val value: String, val label: String, val subtitle: String? = null)
 
+/**
+ * The optional row a picker puts under its choices: the one thing the list edits lives in another
+ * sheet, and the moment you notice it needs editing is while you are looking at the list. The web's
+ * `SelectSheet` calls it `action`, and the meet's weight-class picker is its one caller.
+ */
+data class SelectAction(
+    val label: String,
+    val icon: Glyph = Glyph.PENCIL,
+    val onClick: () -> Unit,
+)
+
 @Composable
 fun SelectRow(
     title: String,
@@ -34,6 +45,7 @@ fun SelectRow(
     modifier: Modifier = Modifier,
     icon: Glyph? = null,
     sheetTitle: String? = null,
+    action: SelectAction? = null,
 ) {
     val current = options.firstOrNull { it.value == value }
     ListRow(
@@ -42,12 +54,18 @@ fun SelectRow(
         value = current?.label ?: value.takeIf { it.isNotEmpty() },
         accessory = Accessory.CHEVRON,
         modifier = modifier,
-        onClick = { selectSheet(sheetTitle ?: title, options, value, onChange) },
+        onClick = { selectSheet(sheetTitle ?: title, options, value, onChange, action) },
     )
 }
 
-fun selectSheet(title: String, options: List<SelectOption>, value: String, onPick: (String) -> Unit) {
-    ui.openSheet { close -> SelectSheetContent(close, title, options, value, onPick) }
+fun selectSheet(
+    title: String,
+    options: List<SelectOption>,
+    value: String,
+    onPick: (String) -> Unit,
+    action: SelectAction? = null,
+) {
+    ui.openSheet { close -> SelectSheetContent(close, title, options, value, onPick, action) }
 }
 
 @Composable
@@ -57,6 +75,7 @@ private fun SelectSheetContent(
     options: List<SelectOption>,
     value: String,
     onPick: (String) -> Unit,
+    action: SelectAction?,
 ) {
     Column(Modifier.fillMaxWidth()) {
         SheetTitle(title)
@@ -70,6 +89,19 @@ private fun SelectSheetContent(
                     onClick = {
                         close()
                         onPick(option.value)
+                    },
+                )
+            }
+        }
+        if (action != null) {
+            Section(modifier = Modifier.padding(top = 8.dp)) {
+                ListRow(
+                    title = action.label,
+                    icon = action.icon,
+                    accessory = Accessory.CHEVRON,
+                    onClick = {
+                        close()
+                        action.onClick()
                     },
                 )
             }

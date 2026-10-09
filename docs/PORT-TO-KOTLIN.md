@@ -1378,6 +1378,31 @@ again in `oly-previews/native-phase7d/`.
   requester brings the movement itself into view with the platform's own `BringIntoViewSpec`. The row
   is inside the block either way, and the block is what a finger can act on.
 
+## Phase 7e — the picker's own action row
+
+The web's `SelectRow` carries an optional `action`: a row under the choices for the one thing the
+list edits, which lives in another sheet — in practice the meet's weight-class picker and the
+federation's category list. The port had worked around it by putting "Edit categories" in the meet
+sheet itself, next to the picker rather than inside it. This phase is the slot, and it retires the
+workaround.
+
+**720 JVM tests** (no new: a row and a callback). The device check is in `native/README.md`; the
+pictures are in `oly-previews/native-phase7e/`.
+
+### What it adds
+
+- **`SelectAction`** and an optional `action` on `SelectRow` / `selectSheet`
+  (`ui/sheet/SelectSheet.kt`): the label, an icon (a pencil unless the caller says otherwise) and what
+  to open. The sheet renders it as its own `Section` under the choices, closes itself first, and calls
+  it — the web's order, so the second sheet does not stack on the first.
+- **The meet sheet loses the row** (`ui/sheet/MeetSheets.kt`): "Edit categories" is now the class
+  picker's action, which is where you notice it needs editing.
+
+### Deliberately not in 7e
+
+- **The rest of the web's `SelectRow`.** `search`, `help`, `stackedValue` and the `children` slot are
+  still unported; the Stats exercise selector's missing search is the one that shows.
+
 
 
 
