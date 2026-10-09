@@ -140,12 +140,7 @@ private fun MeetSheet(meet: JsonObject?, close: () -> Unit) {
                 options = listOf(SelectOption("", t("Not set"))) +
                     classOptions(listFor(S)).map { SelectOption(it.value, it.label) },
                 onChange = { cls = it.takeIf { value -> value.isNotEmpty() } },
-            )
-            ListRow(
-                title = t("Edit categories"),
-                icon = Glyph.PENCIL,
-                accessory = Accessory.CHEVRON,
-                onClick = { weightClassesSheet() },
+                action = SelectAction(t("Edit categories"), onClick = { weightClassesSheet() }),
             )
         }
 

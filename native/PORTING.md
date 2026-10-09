@@ -91,9 +91,7 @@ that is expected.
 - The exercise history sheet recomputes its reading on each pass instead of memoising it as the web's
   `useMemo` does: comparing two state objects to decide whether to scan costs more than the scan.
 - Competitions are their own screen, pushed the way History is, rather than the web's Plan/Competitions
-  segmented switcher (`PlanTabs.jsx`) — the bottom bar's Plan tab keeps meaning the plan. The class
-  picker's inline pencil became an "Edit categories" row under it, so `SelectRow` did not need an
-  action slot.
+  segmented switcher (`PlanTabs.jsx`) — the bottom bar's Plan tab keeps meaning the plan.
 - `competition.js`'s list readers return `List<JsonObject>` here, so a non-object entry in
   `S.competitions` is dropped where the JS would carry it through, and `classLists` coerces its raw
   entries to strings where the JS keeps them as they are. Neither shape occurs in a file this app
