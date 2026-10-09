@@ -79,9 +79,6 @@ that is expected.
 - `SupersetFlow.kt` flattens a JS truthiness check to `=== true` where `History.kt` keeps the
   distinction. Nothing in the shipped data tells those two apart — a stored `done` is a real
   boolean — but imported data could.
-- The session screen does not implement the web's scroll-to-the-actionable row: the two scroll
-  effects in `Workout.jsx` that keep the set you are working on in view as the flow moves. The data
-  written is identical; what is missing is presentation.
 - All four tabs are live (Home, Plan, Stats, Library) and Settings has its door on Home. What is
   still stated rather than shown is the body map.
 - The posters are hotlinked from `img.youtube.com`, which is the app's one network permission and the
@@ -181,6 +178,7 @@ movement — are `complexRoundsFor`, in front of the already-ported `complexRoun
 Compose's own axis lock in place of its hand-rolled `touchmove`. The cards layout's swipe between
 units (Phase 7c) is the seventh: `Workout.jsx`'s `onSwipePointerDown` and `finishSwipe`, with
 `detectHorizontalDragGestures` supplying the axis lock the web writes out by hand as a 1.25 ratio.
-Read `WorkoutModel.kt` and
+The session's two keep-it-in-view scrolls (Phase 7d) are the eighth: the web's `scrollIntoView`
+calls, asked of Compose as `BringIntoViewRequester`. Read `WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.

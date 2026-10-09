@@ -1341,6 +1341,43 @@ pointer from inside a `pointerInput` block, so a drag begun on a stepper or the 
 where the web's would not. The drag still has to travel 48dp and go sideways, which is what keeps a
 tap on those controls a tap.
 
+## Phase 7d — the two keep-it-in-view scrolls
+
+The cards layout shows one unit at a time and steps between the movements of a superset; the list
+layout stacks every unit. Each had a scroll the web does and the port did not: the cards bring the
+movement the flow just stepped to back on screen, and the list opens on the unit you are on rather
+than at the top (the web's issue #224).
+
+**720 JVM tests** (no new: both are scrolls). The device checks are in `native/README.md`; the
+pictures are in `oly-previews/native-phase7d/`.
+
+### What it adds
+
+- **Two `BringIntoViewRequester`s** (`ui/workout/WorkoutScreen.kt`): one attached to the member the
+  flow is on, one to the unit you are on in the list. The web asks the DOM's `scrollIntoView`;
+  the requester is Compose's own way to ask the enclosing scrollable the same thing, so no scroll
+  arithmetic lives here.
+- **When they fire**, matching the web's two effects: `LaunchedEffect(workoutView)` scrolls only when
+  the view changes, so the list does not move under your thumb as you tick rows in it, and
+  `LaunchedEffect(cur)` scrolls only in cards mode and only for a unit with more than one member. A
+  frame is awaited first, because the requester has to be attached to the member the flow moved to and
+  the old node must have let go.
+
+### The regression this phase also fixes
+
+Phase 7c wrapped the cards' unit in a `Box` so it could take the swipe, and `UnitBlocks` emits its
+pieces — the Complex card, one block per movement, the rounds table — as **siblings**. A `Box` stacks
+its children, so every piece of a unit landed on top of the others: a merged complex's rounds table
+covered its own movements' headers, and an effort-tracked one drew both movements in the same place.
+The fix is a `Column` inside the swipe surface, and both complex shapes are checked on the device
+again in `oly-previews/native-phase7d/`.
+
+### Deliberately not in 7d
+
+- **The exact alignment.** The web centres the acting movement's first unchecked set row; the
+  requester brings the movement itself into view with the platform's own `BringIntoViewSpec`. The row
+  is inside the block either way, and the block is what a finger can act on.
+
 
 
 
