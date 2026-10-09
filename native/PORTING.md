@@ -125,9 +125,10 @@ that is expected.
   which is not where the web keeps it — LineChart.jsx, Heatmap.jsx and Stats.jsx hold it inline. It
   lives in lib/ here because it is what the curves *mean*, and the porting contract puts those
   decisions where a test can reach them. The drawing is Compose and is not tested.
-- The body map (`components/BodyMap.jsx` and its ~90 KB `lib/body-paths.js`) is not ported. The
-  balance and fatigue readings it draws are shown as ranked bars with the same ramp and the same
-  state words; the silhouette needs the path blob shipped as an asset and an SVG-path renderer.
+- The body map is drawn now (`ui/components/BodyMap.kt`, Phase 6b) from the geometry shipped as
+  `assets/body-paths.json`, but not tappable: the web highlights the muscle you tap and shows its own
+  reading, and here the rows under the map already name the hard-worked and the missed ones. The map
+  is also not in the By-muscle explorer, which is a list of eighteen muscles you pick from.
 - The line chart has no hover tooltip (no pointer, on a phone). Several workouts on one heatmap date
   open the calendar on that month rather than their list, which is the web's own path — the heatmap
   knows the month, the calendar knows the day.
@@ -173,6 +174,7 @@ the version comparison and the release walk). `WaveProgress` (Phase 4a) and
 implements with an SVG mask and `material3` 1.4.0 keeps `internal` — and the Emphasized type scale
 the token table pairs with each role's baseline, picked per call site. `WorkoutMedia` (Phase 5a) is
 the third: the workout header's poster chip, which is `Media.jsx` without its iframe and therefore
-without the expand that holds one. Read `WorkoutModel.kt` and
+without the expand that holds one. `BodyMap` (Phase 6b) is the fourth: the silhouette, whose geometry
+is shipped as a generated asset rather than ported. Read `WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.

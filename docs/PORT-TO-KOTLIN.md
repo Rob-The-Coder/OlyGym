@@ -495,9 +495,8 @@ last few sessions opening into their own detail sheet.
 
 ### Deliberately not in 2b
 
-- **The body silhouette** on the balance and fatigue views. The web draws them on a ~90 KB SVG path
-  blob (`lib/body-paths.js`) that it lazy-loads; here the same numbers are ranked bars with the same
-  ramp and the same state words. The map is its own piece of work, not a line in a chart task.
+- **The body silhouette** on the balance and fatigue views: Phase 6b. Until it landed the same numbers
+  were ranked bars with the same ramp and the same state words.
 - **The hover tooltip** on a line chart: there is no pointer to hover with. The reading it gave is
   the dated value under the finger, which the card's own rows and captions already carry.
 - **Competitions** (phase 3), the calendar sheet (Phase 6a) a heatmap cell with several sessions would
@@ -1178,6 +1177,47 @@ picker's). The device checks are in `native/README.md`; the pictures are in
 - **The in-app player** — Phase 5b, above.
 - **The day-sessions sheet is reached through the calendar from the heatmap**, not directly: the
   heatmap knows the month, the calendar knows the day. That is the web's own path.
+
+---
+
+## Phase 6b — the body silhouette
+
+Phase 2b replaced the muscle map with ranked bars and said why: the map is ~90 KB of SVG paths plus a
+path renderer. The renderer was already here — `Icons.kt` parses the app's own glyphs with Compose's
+`PathParser` — so this phase is the geometry and the drawing, and nothing else. The bars stay: the map
+answers "what did I neglect" at a glance, the rows say by how much.
+
+**718 JVM tests** (one new: the geometry asset's four views). The device checks are in
+`native/README.md`; the pictures are in `oly-previews/native-phase6b/`.
+
+### What it adds
+
+- **The geometry as an asset** (`body-paths.json`, ~93 KB): `native/tools/assets.mjs` now writes it
+  from `frontend/src/lib/body-paths.js`, the way it already writes the catalogue and the Italian pack,
+  and `AssetsTest` checks the four views and that every muscle the readings name has paths somewhere.
+- **`ui/components/BodyMap.kt`**: the two views side by side, parsed once per process off the main
+  thread — the web lazy-imports the same file for the same reason — with each canvas mapping its own
+  viewBox, because the two views crop out of one shared coordinate space. Every path is stroked in the
+  page colour so two neighbouring muscles read as two shapes.
+- **The map's own ramp** (`muscleBase`, `muscleSilhouette`, `muscleLevelColor` in the theme): the web's
+  `.bm-m` mixes the accent into `--bm-base`, a shade off the heatmap's base, and the silhouette is a
+  third tone again. The fatigue view reuses `fatigueLevelColor`.
+- **Draw order follows the web, not the asset**: the silhouette first, then the muscles head to toe.
+  Where two flat shapes overlap the later one wins, so the order is part of the picture.
+
+### What it deliberately does not do
+
+The web's map is tappable — a muscle highlights and its own reading appears under it. That is not
+here. The rows below already name the four hardest-worked muscles and the ones with none, and a tap
+target that is a 20-unit-wide path on a 160dp figure is a poor one. Selection is the piece a later
+phase would add, and it is the only part of `BodyMap.jsx` this does not carry.
+
+### Deliberately not in 6b
+
+- **The map in the By-muscle explorer** (`MuscleExplorerScreen`): the explorer is a list of eighteen
+  muscles you pick from, which does the same job without the picture.
+- **The in-app player** — Phase 5b, above.
+
 
 
 

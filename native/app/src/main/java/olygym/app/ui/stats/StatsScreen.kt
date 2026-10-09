@@ -76,10 +76,13 @@ import olygym.app.lib.weekStartOf
 import olygym.app.lib.workoutsOnDate
 import olygym.app.ui.AppScreen
 import olygym.app.ui.components.Accessory
+import olygym.app.ui.components.BodyMap
+import olygym.app.ui.components.BodyMapLegend
 import olygym.app.ui.components.Button
 import olygym.app.ui.components.ButtonSize
 import olygym.app.ui.components.ButtonVariant
 import olygym.app.ui.components.CardHead
+import olygym.app.ui.components.FatigueLegend
 import olygym.app.ui.components.ListRow
 import olygym.app.ui.components.OlyAppBar
 import olygym.app.ui.components.Overline
@@ -116,8 +119,6 @@ import olygym.app.ui.theme.levelColor
  * weight and one exercise's own curve, then the last few sessions.
  *
  * Not ported in this phase, and stated where each would show:
- * - the body silhouette on the balance and fatigue views. The numbers are here and drawn as bars;
- *   the map is ~90 KB of SVG paths plus a path renderer, which is its own piece of work.
  * - competitions (the Competitions card at the foot of the screen), and the exercise-history sheet
  *   behind the exercise detail's row.
  * - the search inside the exercise picker (the app's SelectRow has none yet); the sheet lists every
@@ -326,6 +327,10 @@ private fun MuscleBalanceCard(profile: Profile, iso: String, weekStart: Int, now
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
+                // The web's card is the map first and the numbers under it: the picture answers "what
+                // did I neglect" at a glance, the rows say by how much.
+                BodyMap(load, S.str("body") ?: "male")
+                BodyMapLegend()
                 worked.take(4).forEach { slug ->
                     BarRow(
                         label = t(MUSCLE_NAME[slug] ?: slug),
@@ -376,6 +381,12 @@ private fun MuscleBalanceCard(profile: Profile, iso: String, weekStart: Int, now
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
+                BodyMap(
+                    load = JsonObject(fatigue.mapValues { JsonPrimitive(it.value) }),
+                    body = S.str("body") ?: "male",
+                    thresholds = FATIGUE_LEVELS,
+                )
+                FatigueLegend()
                 MUSCLES
                     .map { it to (fatigue[it] ?: 0.0) }
                     .sortedByDescending { it.second }

@@ -91,3 +91,43 @@ fun levelColor(level: Int): Color {
     }
     return if (level <= 0) base else androidx.compose.ui.graphics.lerp(base, accent, mix)
 }
+
+/**
+ * The muscle map's own base, index.css's --bm-base: a touch of the label on the page rather than the
+ * heatmap's container. The two are a shade apart in practice, and the map keeps its own so the
+ * silhouette and an untrained muscle do not read as the same shape at different tones.
+ */
+@Composable
+@ReadOnlyComposable
+fun muscleBase(): Color = androidx.compose.ui.graphics.lerp(
+    MaterialTheme.colorScheme.surface,
+    MaterialTheme.colorScheme.onSurface,
+    0.11f,
+)
+
+/** index.css's --bm-sil: the head, hands and knees, never shaded — they carry no training load. */
+@Composable
+@ReadOnlyComposable
+fun muscleSilhouette(): Color = androidx.compose.ui.graphics.lerp(
+    MaterialTheme.colorScheme.surface,
+    MaterialTheme.colorScheme.onSurface,
+    0.18f,
+)
+
+/**
+ * The muscle map's ramp (index.css's .bm-m.l1…l4): the accent mixed into --bm-base at 32%, 56% and
+ * 78%, then the accent itself. Same idea as [levelColor], its own base.
+ */
+@Composable
+@ReadOnlyComposable
+fun muscleLevelColor(level: Int): Color {
+    val base = muscleBase()
+    val accent = MaterialTheme.colorScheme.primary
+    val mix = when (level) {
+        1 -> 0.32f
+        2 -> 0.56f
+        3 -> 0.78f
+        else -> 1f
+    }
+    return if (level <= 0) base else androidx.compose.ui.graphics.lerp(base, accent, mix)
+}
