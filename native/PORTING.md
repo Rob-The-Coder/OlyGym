@@ -112,8 +112,6 @@ that is expected.
   apps read it as the same value, so this is a spelling difference, not a compatibility one. Making
   them match means one numeric writer used by `toJson` *and* by the helpers that build
   `JsonPrimitive(double)` directly (`Muscles.kt`, `Units.kt`, `History.kt`).
-- The plan editor has no swipe-to-delete on a row (that is the web's); a row is removed through the
-  config sheet's own "Remove from routine".
 - `PlanScreen` no longer gates on `Profile.fileExists`. Phase 0 showed a notice there because it had
   nothing that could write a file; an empty plan is now a plan you can fill, which is also the first
   run on a phone that has never had this app's file.
@@ -178,6 +176,8 @@ the third: the workout header's poster chip, which is `Media.jsx` without its if
 without the expand that holds one. `BodyMap` (Phase 6b) is the fourth: the silhouette, whose geometry
 is shipped as a generated asset rather than ported. `RoundsTable` (Phase 7a) is the fifth: the
 complex's one table of rounds, whose two gates — effort tracking, and an unloaded bodyweight
-movement — are `complexRoundsFor`, in front of the already-ported `complexRounds`. Read `WorkoutModel.kt` and
+movement — are `complexRoundsFor`, in front of the already-ported `complexRounds`. `SwipeToDeleteRow`
+(Phase 7b) is the sixth: the plan row's swipe-to-reveal, which is the web's `SwipeToDelete.jsx` with
+Compose's own axis lock in place of its hand-rolled `touchmove`. Read `WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.

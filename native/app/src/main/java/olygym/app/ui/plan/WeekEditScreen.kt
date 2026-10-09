@@ -1,15 +1,22 @@
 package olygym.app.ui.plan
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -19,12 +26,21 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import olygym.app.data.Catalogue
@@ -97,8 +113,7 @@ import olygym.app.ui.ui
  * card per weekday it plans. A day's exercises are edited inside the day itself, because a day is a
  * routine that belongs to a concrete week instead of repeating.
  *
- * Not ported: swipe-to-delete on a row (the config sheet's own Remove from routine is the way out
- * here) and the demo thumbnail (media is its own phase, so a row gets the app's own glyph).
+ * Not ported: the demo thumbnail (media is its own phase, so a row gets the app's own glyph).
  */
 class WeekEditScreen(private val weekId: String) : AppScreen() {
     /** Voyager keys the stack by this: two weeks must not share one entry. */
@@ -344,6 +359,7 @@ private fun DayExercises(weekId: String, day: Day, dayIndex: Int, unit: String) 
                             unit = unit,
                             first = k == 0,
                             last = k == indices.size - 1,
+                            background = MaterialTheme.colorScheme.surfaceContainerLow,
                         )
                     }
                 }
@@ -433,13 +449,107 @@ private fun ComplexCard(
                         modifier = Modifier.padding(end = 8.dp),
                     )
                     Box(Modifier.weight(1f)) {
-                        ExRow(weekId, day, dayIndex, list, i, unit, first = false, last = false)
+                        ExRow(
+                            weekId,
+                            day,
+                            dayIndex,
+                            list,
+                            i,
+                            unit,
+                            first = false,
+                            last = false,
+                            background = MaterialTheme.colorScheme.surfaceContainer,
+                        )
                     }
                 }
             }
         }
     }
 }
+
+/**
+ * Swipe-left-to-reveal-delete, the port of `components/SwipeToDelete.jsx`: the row slides 76dp and a
+ * Delete button shows behind it, which is what the swipe is for. It reveals rather than deleting
+ * outright, because a swipe that goes through by accident is a worse mistake than a sheet that
+ * closes by accident — the web's own reason for the two steps. `background` is the row's own opaque
+ * fill, so the button cannot bleed out of the rounded corner at rest.
+ *
+ * The drag is claimed only once the pointer has clearly gone sideways, which is the web's axis lock:
+ * a normal vertical scroll is never hijacked. The row's own tap lives here too, so an open row
+ * closes on a tap instead of opening the config sheet under it.
+ */
+@Composable
+private fun SwipeToDeleteRow(
+    background: Color,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    val offset = remember { Animatable(0f) }
+    var armed by remember { mutableStateOf(false) }
+    val reveal = with(LocalDensity.current) { REVEAL.toPx() }
+    val close: () -> Unit = {
+        armed = false
+        scope.launch { offset.animateTo(0f, tween(180)) }
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(CardShape)
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragStart = { armed = true },
+                    onHorizontalDrag = { change, dragAmount ->
+                        change.consume()
+                        val next = (offset.value + dragAmount).coerceIn(-reveal - 12f, 0f)
+                        scope.launch { offset.snapTo(next) }
+                    },
+                    onDragEnd = {
+                        val open = offset.value < -reveal / 2f
+                        armed = open
+                        scope.launch { offset.animateTo(if (open) -reveal else 0f, tween(180)) }
+                    },
+                    onDragCancel = close,
+                )
+            },
+    ) {
+        // Only put the button on screen once a swipe is actually going horizontal. Left on at rest
+        // it bleeds a red arc out of the rounded corner's antialiased pixels — the "strange red
+        // outline" the web keeps the button's opacity down to avoid, and for the same reason.
+        if (armed) {
+            Box(modifier = Modifier.matchParentSize(), contentAlignment = Alignment.CenterEnd) {
+                Box(
+                    modifier = Modifier
+                        .width(REVEAL)
+                        .fillMaxHeight()
+                        .background(MaterialTheme.colorScheme.error)
+                        .clickable(enabled = armed) { close(); onDelete() }
+                        .semantics { contentDescription = t("Remove") },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = t("Delete"),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onError,
+                    )
+                }
+            }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset { IntOffset(offset.value.roundToInt(), 0) }
+                .background(background)
+                .clickable { if (armed) close() else onClick() },
+        ) {
+            content()
+        }
+    }
+}
+
+/** The web's 76px reveal, in the app's own units. */
+private val REVEAL = 76.dp
 
 /**
  * One prescribed exercise. The three actions stay on the row: this is the screen where order is
@@ -455,12 +565,18 @@ private fun ExRow(
     unit: String,
     first: Boolean,
     last: Boolean,
+    background: Color,
 ) {
     val entry = list.objectAt(index) ?: return
     val id = entry.str("id").orEmpty()
     val sg = entry["sg"]
     val prevSg = list.objectAt(index - 1)?.get("sg")
     val linked = truthy(sg) && truthy(prevSg) && sg == prevSg
+    SwipeToDeleteRow(
+        background = background,
+        onClick = { openExConfig(weekId, day, dayIndex, index, entry) },
+        onDelete = { editProfile { raw -> removeExAt(raw, weekId, dayIndex, index) } },
+    ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -474,8 +590,7 @@ private fun ExRow(
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(start = 10.dp)
-                .clickable { openExConfig(weekId, day, dayIndex, index, entry) },
+                .padding(start = 10.dp),
         ) {
             Text(
                 text = capWords(Catalogue.nameOf(id)),
@@ -518,6 +633,7 @@ private fun ExRow(
             enabled = !last,
             onClick = { editProfile { raw -> moveUnitAt(raw, weekId, dayIndex, index, 1) } },
         )
+    }
     }
 }
 

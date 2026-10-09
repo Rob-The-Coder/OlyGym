@@ -1,12 +1,13 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 7a**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 7b**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
 sheet, swap and freestyle are here too — writes the plan itself (Plan and the week editor, with the
-starter plans, the complexes and a pure write for every edit), reads it back (Stats, with the
+starter plans, the complexes, a pure write for every edit and a row swiped left to reveal its own
+delete), reads it back (Stats, with the
 activity heatmap, the muscle balance and its fatigue view, the effort card, the body-weight and
 per-exercise curves, and the workout detail sheet behind the recent sessions), keeps the log
 readable and writable (History, with its search, its month headings and log-a-past-workout), browses
@@ -112,6 +113,17 @@ Phase 1c's check is the picker: its search field reads the catalogue's size, the
 the plan and the log, a row's "+" adds with the default config (a toast names the day), and the new
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
+
+Phase 7b's check is the plan row's swipe. With a day holding a two-movement complex and a lone
+exercise open in the editor, a left drag slid the lone row 76dp and put a red "Elimina" behind it;
+tapping it removed the row — the day went from "3 esercizi · 5 esercizi" to "2 esercizi · 4 esercizi"
+in the header, and the file dropped it. The same drag on the complex's first movement revealed the
+same button with the step number "1" staying put outside the sliding part, and deleting it left Clean
+alone — and its `sg` was gone too, so the complex dissolved rather than leaving a one-member group.
+At rest the rows render exactly as before: the first cut drew the button behind them always, and its
+red background bled a hairline arc out of the rounded corners' antialiased pixels (the web's "strange
+red outline"), which is why the button is only mounted once a swipe is going horizontal. The pictures
+in `oly-previews/native-phase7b/` are those steps.
 
 Phase 7a's check is the complex's shared table. A day seeded with two movements sharing an `sg`, plus
 a lone exercise, opens as "Complex 1 / 2": the two movements keep everything but their set tables,
