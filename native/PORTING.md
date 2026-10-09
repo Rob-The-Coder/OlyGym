@@ -79,10 +79,9 @@ that is expected.
 - `SupersetFlow.kt` flattens a JS truthiness check to `=== true` where `History.kt` keeps the
   distinction. Nothing in the shipped data tells those two apart — a stored `done` is a real
   boolean — but imported data could.
-- The session screen does not implement the web's swipe between units, its scroll-to-the-actionable
-  row, or the merged complex's single rounds table (a complex draws its members' own tables). The
-  data written is identical; what is missing is three pieces of presentation, and the JS for each is
-  in `Workout.jsx` (`onSwipePointerDown`, the two scroll effects, `RoundsTable`).
+- The session screen does not implement the web's swipe between units or its scroll-to-the-actionable
+  row. The data written is identical; what is missing is two pieces of presentation, and the JS for
+  each is in `Workout.jsx` (`onSwipePointerDown`, the two scroll effects).
 - All four tabs are live (Home, Plan, Stats, Library) and Settings has its door on Home. What is
   still stated rather than shown is the body map.
 - The posters are hotlinked from `img.youtube.com`, which is the app's one network permission and the
@@ -177,6 +176,8 @@ implements with an SVG mask and `material3` 1.4.0 keeps `internal` — and the E
 the token table pairs with each role's baseline, picked per call site. `WorkoutMedia` (Phase 5a) is
 the third: the workout header's poster chip, which is `Media.jsx` without its iframe and therefore
 without the expand that holds one. `BodyMap` (Phase 6b) is the fourth: the silhouette, whose geometry
-is shipped as a generated asset rather than ported. Read `WorkoutModel.kt` and
+is shipped as a generated asset rather than ported. `RoundsTable` (Phase 7a) is the fifth: the
+complex's one table of rounds, whose two gates — effort tracking, and an unloaded bodyweight
+movement — are `complexRoundsFor`, in front of the already-ported `complexRounds`. Read `WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.

@@ -1,7 +1,7 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 6b**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 7a**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
@@ -24,8 +24,10 @@ bars, the route fade and the Start button's press — and shows the demo poster 
 itself, with the two Settings rows that decide what it shows and the display kept awake while a
 session runs, and shows a month at a glance — the calendar behind Home's tiles, which is also the door
 to a past day and to a day holding more than one session, and draws the muscle balance and the
-fatigue view on the body silhouette rather than as bars. **Phase 2 is complete, and phases 3 to 6 are
-written**; the cutover, and the pieces each phase deliberately left out, are what remain.
+fatigue view on the body silhouette rather than as bars, and draws a complex as one table of rounds —
+one load and one check for the whole sequence, its movements keeping everything but their set tables.
+**Phase 2 is complete, and phases 3 to 7 are written**; the cutover, and the pieces each phase
+deliberately left out, are what remain.
 
 ## Pinned toolchain
 
@@ -60,7 +62,7 @@ cached under the plugin portal while their transitive dependencies were cached u
 ```bash
 cd native
 
-# unit tests — 718 of them, no emulator, about twenty seconds
+# unit tests — 720 of them, no emulator, about twenty seconds
 GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
   ./gradlew :app:testDebugUnitTest --offline
 
@@ -110,6 +112,18 @@ Phase 1c's check is the picker: its search field reads the catalogue's size, the
 the plan and the log, a row's "+" adds with the default config (a toast names the day), and the new
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
+
+Phase 7a's check is the complex's shared table. A day seeded with two movements sharing an `sg`, plus
+a lone exercise, opens as "Complex 1 / 2": the two movements keep everything but their set tables,
+and one table of rounds under them carries the load and the check. One tick of round 1 read
+"2/15 serie" and started the rest ("Serie 1 di 5") — the one tap closed both movements' rows, which
+`run-as olygym.app.dev cat files/opengym-state.json` confirms (`done` true on both entries) — and the
+lone exercise was untouched. The row's `+` took round 2 to 62,5 and the cascade carried it through the
+round for both movements, which their two bar-weight lines independently show ("21,3 kg per lato"). The
+round's number opened "Serie 2 · Rimuovi questa serie", and removing it left both movements at four
+sets, the lone exercise still at five. With effort tracking on ("RIR") the shared table is gone and
+each movement has its own table back, RIR column included. The pictures in
+`oly-previews/native-phase7a/` are those steps.
 
 Phase 6b's check is the silhouette, and tapping it. The muscle balance card opens with the two figures
 — front and back, muscles on the accent ramp, the head, hands and knees in the silhouette tone, every
@@ -289,7 +303,7 @@ app/src/main/java/olygym/app/
                         its By-muscle explorer, Settings, the sheets, the shared controls and the
                         theme
 app/src/main/assets/    the three generated assets
-app/src/test/java/      718 JVM tests, one per ported behaviour
+app/src/test/java/      720 JVM tests, one per ported behaviour
 ```
 
 The helpers keep the React filenames and are one-to-one ports, so a diff against `frontend/src/lib`

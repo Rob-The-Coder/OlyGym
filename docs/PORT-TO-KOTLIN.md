@@ -1232,6 +1232,52 @@ That is the one thing this does not carry.
   muscles you pick from, which does the same job without the picture.
 - **The in-app player** — Phase 5b, above.
 
+## Phase 7a — the complex, as one table of rounds
+
+A complex is one barbell done as one sequence, and it was already one unit everywhere except the
+screen you log it on: the pairing, the shared sets and load in the editor, and `complexRounds` in the
+port of `supersetFlow.js` with its nine vitest cases. What was missing was the table itself, so this
+phase is `RoundsTable` and the writes it needs, and no new state.
+
+**720 JVM tests** (two new: the shared table's two gates). The device checks are in
+`native/README.md`; the pictures are in `oly-previews/native-phase7a/`.
+
+### What it adds
+
+- **`RoundsTable`** (`ui/workout/ExerciseBlock.kt`): the weight column's header, one row per round with
+  the phase headings the members share, a round number that opens the same "remove this set" menu a
+  set row does, and "Add set".
+- **`complexRoundsFor`** (`lib/SupersetFlow.kt`): the two gates the web puts in front of
+  `complexRounds` — effort tracking rates RIR/RPE per movement, so a shared row would overwrite it,
+  and a bodyweight movement with no load has no weight column to share. Both fall back to the
+  per-movement tables.
+- **The members go head-only** when the unit merges: everything but their set tables — the name with
+  its `×reps`, the media, the tags, "last time", the bar maths, the progression line and the ⋯ menu —
+  exactly as the web's `headOnly` does. It was already a parameter here; this gives it its first
+  caller.
+- **The writes** (`WorkoutScreen.kt`): a round ticked closes that round of every movement at once, a
+  typed weight lands on every movement's row (and cascades through the phase), a round added or
+  removed is added or removed from every movement, and a warm-up ramp added from a movement's menu
+  belongs to the whole complex.
+- **The round's own tick path** (`toggleRound`): there is no partner to step to, so the group moves
+  together and the rest belongs after the round — the port of the `round` branch of the web's
+  `toggle`, high-water mark and all.
+
+### The trap worth writing down
+
+`complexRounds` guarantees the members share a set structure, never that they share a *load*: a
+bodyweight movement with an added weight is aligned and mergeable, and its `w` is the added load.
+So the shared row reads and writes the first member's weight and the tick copies it across the group,
+which is the web's "what is seen is what is logged", preserved rather than re-derived.
+
+### Deliberately not in 7a
+
+- **The scheme line** in the complex header (the web's `ss-load`, the coach's "3+3 @ 60kg"): the
+  movements' own `×reps` ride on their name lines as before and the shared table shows the load
+  itself.
+- **The unloaded bodyweight complex and the effort-tracked one** keep their per-movement tables by
+  design — that is the gate above, not a gap.
+
 
 
 

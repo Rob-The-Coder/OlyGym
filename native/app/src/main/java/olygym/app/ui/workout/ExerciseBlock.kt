@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import olygym.app.data.Catalogue
 import olygym.app.data.arr
@@ -601,6 +602,108 @@ fun ExerciseBlock(
                 )
             }
         }
+    }
+}
+
+/**
+ * A complex drawn as one table of rounds — the port of RoundsTable in Workout.jsx.
+ *
+ * A complex is performed as one sequence without stopping, so it is checked as one sequence: one
+ * load and one check per round, taken once for the whole group and written to every movement. Each
+ * movement still carries its own set rows in the data — volume, records and history read exactly
+ * what they read before — this table only decides where the tap and the weight land.
+ */
+@Composable
+internal fun RoundsTable(
+    entries: List<JsonObject>,
+    unit: List<Int>,
+    rounds: JsonArray,
+    onToggleRound: (Int) -> Unit,
+    onFieldRound: (Int, Double?) -> Unit,
+    onAddRound: () -> Unit,
+    onRemoveRoundAt: (Int) -> Unit,
+) {
+    val profile = currentProfile() ?: return
+    val head = entries.getOrNull(unit.first()) ?: return
+    val cfg = (head.obj("target") ?: JsonObject(emptyMap())).with("id", head.str("id"))
+    val step = weightIncrement(cfg)
+    val controls = workoutControls(profile.raw)
+    val sets = head.arr("sets").mapNotNull { it.asObj() }
+    val loadCol = SetColumn(f = "w", step = step, decimal = true, hd = t("Weight ({0})", profile.settings.unit))
+    val roundDone = { index: Int ->
+        unit.all { k -> entries.getOrNull(k)?.arr("sets")?.getOrNull(index)?.asObj()?.bool("done") == true }
+    }
+    // The round number is its own menu, exactly as a set number is: removing a round removes it
+    // from every movement of the complex.
+    val openRoundMenu = { index: Int ->
+        val warm = rounds.getOrNull(index)?.asObj()?.bool("warmup") == true
+        val num = rounds.take(index + 1).count { it.asObj()?.bool("warmup") == warm }
+        menuSheet(
+            title = if (warm) t("Warm-up") else t("Set {0}", num),
+            items = listOf(
+                MenuItem(
+                    label = t("Remove this set"),
+                    icon = Glyph.TRASH,
+                    danger = true,
+                    disabled = unit.any { (entries.getOrNull(it)?.arr("sets")?.size ?: 0) <= 1 },
+                    onClick = { onRemoveRoundAt(index) },
+                ),
+            ),
+        )
+    }
+    SectionCard(modifier = Modifier.padding(top = 10.dp)) {
+        SetHeader(loadCol, null, null)
+        rounds.forEachIndexed { index, element ->
+            val warm = element.asObj()?.bool("warmup") == true
+            val warmBefore = index > 0 && rounds.getOrNull(index - 1)?.asObj()?.bool("warmup") == true
+            val num = rounds.take(index + 1).count { it.asObj()?.bool("warmup") == warm }
+            val done = roundDone(index)
+            if (warm && !warmBefore) {
+                Overline(t("Warm-up"), Modifier.padding(top = 6.dp, bottom = 2.dp))
+            }
+            if (!warm && warmBefore) {
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.extraColors.hairline,
+                    modifier = Modifier.padding(vertical = 6.dp),
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp).alpha(if (done) 0.55f else 1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Box(
+                    modifier = Modifier.size(28.dp).clickable { openRoundMenu(index) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = num.toString(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                CellStepper(
+                    value = sets.getOrNull(index)?.num("w"),
+                    onChange = { onFieldRound(index, it) },
+                    decimal = true,
+                    nullable = false,
+                    buttons = controls.steppers,
+                    step = step,
+                    modifier = Modifier.weight(1f),
+                )
+                Check(checked = done, onChange = { onToggleRound(index) })
+            }
+        }
+        Button(
+            text = t("Add set"),
+            onClick = onAddRound,
+            variant = ButtonVariant.PLAIN,
+            size = ButtonSize.SM,
+            icon = Glyph.PLUS,
+            modifier = Modifier.padding(top = 8.dp),
+        )
     }
 }
 

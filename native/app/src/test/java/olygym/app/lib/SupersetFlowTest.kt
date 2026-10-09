@@ -99,6 +99,26 @@ class SupersetFlowTest {
         assertNull(complexRounds(null, arr(0, 1)))
     }
 
+    private fun bw(w: Int): JsonObject = js(
+        "target" to js("mode" to "reps", "reps" to 3, "bodyweight" to true),
+        "sets" to listOf(js("w" to w, "r" to 3, "done" to false), js("w" to w, "r" to 3, "done" to false)),
+    )
+
+    @Test
+    fun `shares the table only with effort tracking off`() {
+        val complex = arr(member(), member())
+        assertEquals(arr(js("warmup" to false), js("warmup" to false)), complexRoundsFor(complex, arr(0, 1), "none"))
+        assertNull(complexRoundsFor(complex, arr(0, 1), "rir"))
+        assertNull(complexRoundsFor(complex, arr(0, 1), "rpe"))
+    }
+
+    @Test
+    fun `refuses a bodyweight complex until every member has a load`() {
+        assertNull(complexRoundsFor(arr(bw(0), bw(0)), arr(0, 1), "none"))
+        assertNull(complexRoundsFor(arr(bw(20), bw(0)), arr(0, 1), "none"))
+        assertEquals(arr(js("warmup" to false), js("warmup" to false)), complexRoundsFor(arr(bw(20), bw(20)), arr(0, 1), "none"))
+    }
+
     @Test
     fun `rests between the sets of an exercise`() {
         assertEquals(true, restAfterSet(unitDone = false, lastUnit = false))
