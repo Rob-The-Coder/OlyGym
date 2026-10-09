@@ -1,5 +1,6 @@
 package olygym.app.ui.workout
 
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,8 +26,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -395,7 +398,28 @@ private fun ActiveWorkout(profile: Profile) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 10.dp),
                     )
-                    UnitBlocks(entries, unit, dense, actions, busy = ui.state.value.work != null)
+                    // The cards layout swipes between units — the web's .workout-swipe-surface. A
+                    // horizontal drag of at least 48dp navigates, and the detector's own slop test is
+                    // the axis lock that leaves the page's vertical scroll alone. The web also ignores
+                    // a drag that starts on a button or the media; Compose cannot ask what is under the
+                    // pointer, so a drag begun there navigates here where the web's would not.
+                    Box(
+                        modifier = Modifier.fillMaxWidth().pointerInput(Unit) {
+                            var travelled = 0f
+                            detectHorizontalDragGestures(
+                                onDragStart = { travelled = 0f },
+                                onHorizontalDrag = { change, amount ->
+                                    change.consume()
+                                    travelled += amount
+                                },
+                                onDragEnd = {
+                                    if (abs(travelled) >= 48.dp.toPx()) navigateUnit(if (travelled < 0) 1 else -1)
+                                },
+                            )
+                        },
+                    ) {
+                        UnitBlocks(entries, unit, dense, actions, busy = ui.state.value.work != null)
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),

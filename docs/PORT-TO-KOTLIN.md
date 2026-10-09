@@ -1309,10 +1309,37 @@ back into an always-drawn background.
 
 ### Deliberately not in 7b
 
-- **Swipe between units** on the session screen: the port's Prev/Next buttons are the way through, and
-  the web's `onSwipePointerDown` is the piece still missing there.
+- **Swipe between units** on the session screen — Phase 7c, below.
 - **The demo thumbnail** on a row, which the session's own media chip carries and the editor's row
   does not.
+
+## Phase 7c — swipe between units
+
+The session's cards layout showed one unit at a time, with Prev and Next under it. The web's cards
+also swipe — left for the next unit, right for the previous one — and only the cards layout does,
+because the list and compact layouts stack every unit and scroll. This phase is that gesture.
+
+**720 JVM tests** (no new: a gesture has no pure decision to test). The device checks are in
+`native/README.md`; the pictures are in `oly-previews/native-phase7c/`.
+
+### What it adds
+
+- **A `pointerInput` on the card** (`ui/workout/WorkoutScreen.kt`), in the cards branch only, the way
+  the web's `.workout-swipe-surface` wraps only the card.
+- **The two rules that matter**: a drag navigates only after 48dp of horizontal travel, and only when
+  the horizontal detector has claimed the pointer. `detectHorizontalDragGestures` claims a pointer
+  once it has clearly gone sideways, so the page's vertical scroll is never hijacked — the web writes
+  the same axis rule out by hand as `|dx| >= 1.25 * |dy|`.
+- **The ends are already safe**: `navigateUnit` does nothing outside the first and last unit, which is
+  what the disabled Prev/Next buttons say.
+
+### The one deliberate difference
+
+The web ignores a swipe whose `pointerdown` landed on a button, an input or the media
+(`SWIPE_IGNORED_TARGETS`, matched with `event.target.closest`). Compose cannot ask what is under the
+pointer from inside a `pointerInput` block, so a drag begun on a stepper or the poster navigates here
+where the web's would not. The drag still has to travel 48dp and go sideways, which is what keeps a
+tap on those controls a tap.
 
 
 
