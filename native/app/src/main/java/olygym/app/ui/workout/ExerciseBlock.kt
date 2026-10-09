@@ -73,6 +73,7 @@ import olygym.app.ui.components.IconButton
 import olygym.app.ui.components.NumberField
 import olygym.app.ui.components.Overline
 import olygym.app.ui.components.SectionCard
+import olygym.app.ui.components.WorkoutMedia
 import olygym.app.ui.currentProfile
 import olygym.app.ui.t
 import olygym.app.ui.tMessage
@@ -398,7 +399,13 @@ fun ExerciseBlock(
     }
 
     Column(modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+        // The web's .ex-head: the demo picture, the text and the row's own actions, 10px apart.
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            if (!dense && ex != null) WorkoutMedia(ex)
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (step != null) {

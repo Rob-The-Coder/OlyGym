@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import kotlinx.coroutines.delay
 import olygym.app.data.AppState
+import olygym.app.data.bool
 import olygym.app.lib.DEFAULT_ACCENT
 import olygym.app.platform.ReminderAlarm
 import olygym.app.platform.Updater
@@ -38,7 +40,17 @@ class MainActivity : ComponentActivity() {
             // dark, and the M3 baseline purple — so the first frame is already the right colour.
             val state by OlyGymApp.store.state.collectAsState()
             val ui by OlyGymApp.ui.state.collectAsState()
-            val settings = (state as? AppState.Ready)?.profile?.settings
+            val profile = (state as? AppState.Ready)?.profile
+            val settings = profile?.settings
+
+            // The web's useWakeLock(!!S.active && S.keepAwake !== false): the display stays on while
+            // a session is running, so nobody has to unlock the phone between sets. The window flag
+            // is only honoured while this window is in front, which is the browser's own behaviour.
+            val wake = profile?.active != null && profile.raw.bool("keepAwake") != false
+            LaunchedEffect(wake) {
+                if (wake) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
 
             // The timer's completion blinks the app's own theme rather than covering the screen with
             // a rectangle: the alert reads as the app itself flashing, and it settles back on

@@ -28,6 +28,7 @@ class SettingsTest {
         assertEquals(listOf("cards", "list", "compact"), WORKOUT_VIEWS)
         assertEquals(listOf("dark", "light", "system"), THEMES)
         assertEquals(listOf("none", "rir", "rpe"), EFFORT_MODES)
+        assertEquals(listOf("full", "off"), GIF_SIZES)
         assertEquals(listOf(1, 2), WEIGHT_DECIMALS)
         assertEquals(listOf(MONDAY, SUNDAY), WEEK_STARTS)
         assertEquals(8, ACCENTS.size)

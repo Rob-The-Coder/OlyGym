@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -170,6 +173,60 @@ fun ExerciseMedia(ex: Exercise, modifier: Modifier = Modifier) {
                     style = MaterialTheme.typography.labelLarge,
                     color = colors.inverseOnSurface,
                 )
+            }
+        }
+    }
+}
+
+/**
+ * The workout header's own picture: the demo poster at the size a thumbnail wants — the web's 88px
+ * chip in .ex-head .exmedia — with the play mark over it.
+ *
+ * One deliberate difference from the web. There the chip expands to a full-width 16:9 block and
+ * mounts the YouTube iframe in it; here the mark hands the video to the platform player, which is the
+ * difference the whole media layer already makes (see lib/Media.kt), and the expand exists only to
+ * give an in-place player the width. So the chip stays a chip, which is also what the web's own
+ * comment wants: a full-width picture pushed the first set row below the fold on the one screen where
+ * the phone is in your hand.
+ *
+ * Settings → Exercise pictures turns it off (gifSize 'off'; any legacy value reads as on, the way the
+ * web reads it), and video 'off' keeps the picture and drops the mark.
+ */
+@Composable
+fun WorkoutMedia(ex: Exercise, modifier: Modifier = Modifier) {
+    val raw = currentProfile()?.raw ?: return
+    if (raw.str("gifSize") == "off") return
+    // The cheap end of the chain: this is an 88dp chip, and mqdefault is 320x180.
+    val chain = imageChain(ex, listOf("mqdefault", "hqdefault"))
+    if (chain.isEmpty()) return
+    val context = LocalContext.current
+    val target = watchUrl(ex)?.takeIf { videoMode(raw.str("video")) != "off" }
+
+    Box(
+        modifier = modifier
+            .width(88.dp)
+            .aspectRatio(16f / 9f)
+            .clip(MaterialTheme.shapes.medium)
+            .then(if (target != null) Modifier.clickable { openVideo(context, target) } else Modifier),
+    ) {
+        RemoteImage(
+            chain = chain,
+            contentDescription = Catalogue.nameOf(ex.id),
+            modifier = Modifier.fillMaxSize(),
+            fallback = { MediaTile() },
+        )
+        if (target != null) {
+            // The web draws a bare white ▶ with a drop shadow. On a poster that can be bright, a dark
+            // disc is the same idea with a guaranteed contrast, and the chip is the whole tap target.
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(30.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.45f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                GlyphIcon(Glyph.PLAY, Modifier.size(16.dp), tint = Color.White, stroke = 1.8f)
             }
         }
     }

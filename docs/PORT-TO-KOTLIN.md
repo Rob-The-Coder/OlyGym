@@ -725,11 +725,8 @@ the same picture. `embedUrl` is therefore not ported; `watchUrl` is what the bad
 
 ### Deliberately not in 2g
 
-- **The media in the workout cards.** The web's minimizable header (a thumbnail that expands to the
-  16:9 block, with `gifSize` turning it off) belongs to the session screen, which is dense enough
-  without a live picture per exercise; the detail sheet is one tap away.
-- **The Settings rows for it** (exercise pictures, demo videos): they are still in the same deferred
-  group as the wake lock and the reminders, so the profile's own keys are what is honoured.
+- **The media in the workout cards**, **the Settings rows for it** and **the wake lock**: Phase 5a.
+  Until then the profile's own keys are what is honoured.
 
 ---
 
@@ -1080,4 +1077,45 @@ app draws itself are now drawn:
   sheet title where the web uses the role's `-0.008em`, and so on. Moving it is a pass of its own:
   decision 4 in DESIGN.md keeps the app's own weights, and it would change every screen at once.
 - **Re-curving the four Material-owned animations** — that is the theme swap, blocked as in 4a.
+---
+
+## Phase 5a — the workout's picture, its Settings rows, and the screen that stays awake
+
+The session screen and Settings now carry the three things Phases 2d and 2g left behind: the demo
+poster in the exercise header, the two rows that decide what it shows, and the display that stays on
+while a session is running.
+
+**717 JVM tests** (one existing case grew an assertion; this phase is UI). The device checks are in
+`native/README.md`; the pictures are in `oly-previews/native-phase5a/`.
+
+### What it adds
+
+- **The workout header's picture** (`WorkoutMedia`, `ui/components/Media.kt`): the demo poster at the
+  web's 88dp chip in the exercise header's own row, with the play mark over it. `gifSize` 'off'
+  renders nothing and the header closes up, which is what the Settings row means; `video` 'off' keeps
+  the picture and drops the mark.
+- **The three Settings rows** the web has: *Keep screen awake*, *Exercise pictures* (On tap / Hidden)
+  and *Demo videos* (Hidden / On tap / Always). They write `keepAwake`, `gifSize` and `video` — the
+  last being the key the media layer's badge already read.
+- **The wake lock** (`MainActivity`): `FLAG_KEEP_SCREEN_ON` while `active` is set and `keepAwake` is
+  not false, which is the web's `useWakeLock(!!S.active && S.keepAwake !== false)`. The flag is only
+  honoured while the window is in front, so the browser's own backgrounding behaviour comes free.
+
+### The expand is deliberately not ported
+
+The web's chip expands to a full-width 16:9 block with a Minimize button. That exists to give the
+YouTube `<iframe>` somewhere to live — the iframe is mounted on the tap and stopping when the block
+collapses is what stops the playback. Here the mark hands the video to the platform player, the
+difference Phase 2g already records, so there is nothing to expand *for*: the chip stays a chip.
+That is also what the web's own comment on `.ex-head` wants — a full-width picture pushed the first
+set row below the fold on the one screen where the phone is in your hand.
+
+### Deliberately not in 5a
+
+- **`inline`.** The web's third `video` value loads the player with the exercise. There is no player
+  to load here; the row offers the value because the key is shared with the web app, and it behaves
+  as 'On tap'.
+- **Workout controls** and **the body diagram**: still absent from Settings, for the reasons in the
+  screen's own header.
+
 

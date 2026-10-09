@@ -41,7 +41,7 @@ enum class Glyph {
     CHEVRON_RIGHT, CHEVRON_LEFT, CHEVRON_DOWN, CHEVRON_UP, ARROW_UP, ARROW_DOWN,
     MINIMIZE, LIST, CLIPBOARD, FLAG, SHUFFLE, INFO, MORE, HISTORY, WARNING, CHART_LINE,
     // objects
-    MOON, DOT,
+    MOON, SUN, DOT,
 }
 
 /** One drawable piece of a glyph, in the 24x24 space the web app draws in. */
@@ -211,5 +211,9 @@ val GLYPHS: Map<Glyph, List<IconPart>> = mapOf(
 
     Glyph.CHART_LINE to listOf(stroke("M3.6 20.2V4.4M3.6 20.2h16.8M6.4 16.4l3.9-4.8 3.1 2.7 5.2-6.6")),
     Glyph.MOON to listOf(stroke("M19.4 14.2A7.8 7.8 0 0 1 9.8 4.6a8.2 8.2 0 1 0 9.6 9.6Z")),
+    Glyph.SUN to listOf(
+        circle(12.0, 12.0, 4.4),
+        stroke("M12 3.6v2M12 18.4v2M20.4 12h-2M5.6 12h-2M17.94 6.06l-1.42 1.42M7.48 16.52l-1.42 1.42M17.94 17.94l-1.42-1.42M7.48 7.48 6.06 6.06"),
+    ),
     Glyph.DOT to listOf(dot(12.0, 12.0, 4.2)),
 )

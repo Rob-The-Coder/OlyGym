@@ -84,12 +84,14 @@ that is expected.
   data written is identical; what is missing is three pieces of presentation, and the JS for each is
   in `Workout.jsx` (`onSwipePointerDown`, the two scroll effects, `RoundsTable`).
 - All four tabs are live (Home, Plan, Stats, Library) and Settings has its door on Home. What is
-  still stated rather than shown is the body map and the media inside the workout cards.
+  still stated rather than shown is the body map.
 - The posters are hotlinked from `img.youtube.com`, which is the app's one network permission and the
   same request the web app makes. The video itself is not embedded: the badge fires `ACTION_VIEW` and
   the platform's player takes it, so `embedUrl` is deliberately not ported (see `lib/Media.kt`). The
-  workout cards' minimizable media and the two Settings rows for it are still absent — the Phase 2g
-  list in docs/PORT-TO-KOTLIN.md says why.
+  workout card carries the poster as an 88dp chip now (`WorkoutMedia`, Phase 5a) and Settings has the
+  two rows for it, but without the web's expand-to-16:9: that exists to give the iframe somewhere to
+  live, and here the mark hands the video to the platform player instead. `video` 'inline' therefore
+  behaves as 'On tap'.
 - The exercise history sheet recomputes its reading on each pass instead of memoising it as the web's
   `useMemo` does: comparing two state objects to decide whether to scan costs more than the scan.
 - Competitions are their own screen, pushed the way History is, rather than the web's Plan/Competitions
@@ -169,6 +171,8 @@ workout-day notification), `Backup` (Phase 3f — the snapshot's own name) and `
 the version comparison and the release walk). `WaveProgress` (Phase 4a) and
 `emphasizedWeight` (Phase 4b) are drawing, not ports: the M3 Expressive wavy bar — which the web
 implements with an SVG mask and `material3` 1.4.0 keeps `internal` — and the Emphasized type scale
-the token table pairs with each role's baseline, picked per call site. Read `WorkoutModel.kt` and
+the token table pairs with each role's baseline, picked per call site. `WorkoutMedia` (Phase 5a) is
+the third: the workout header's poster chip, which is `Media.jsx` without its iframe and therefore
+without the expand that holds one. Read `WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.

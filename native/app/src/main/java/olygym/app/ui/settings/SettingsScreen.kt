@@ -52,6 +52,7 @@ import olygym.app.data.without
 import olygym.app.lib.ACCENTS
 import olygym.app.lib.DEFAULT_ACCENT
 import olygym.app.lib.EFFORT_MODES
+import olygym.app.lib.GIF_SIZES
 import olygym.app.lib.INSTR_LANGS
 import olygym.app.lib.LANGUAGES
 import olygym.app.lib.REST_OPTIONS
@@ -65,6 +66,7 @@ import olygym.app.lib.backupFileName
 import olygym.app.lib.effortOf
 import olygym.app.lib.resetState
 import olygym.app.lib.todayISO
+import olygym.app.lib.videoMode
 import olygym.app.lib.weekStartOf
 import olygym.app.platform.Updater
 import olygym.app.ui.AppScreen
@@ -99,17 +101,13 @@ import olygym.app.ui.ui
  * Settings — a port of frontend/src/views/Settings.jsx: the general preferences, the ones the
  * workout screen obeys, the appearance, and the data.
  *
- * Not ported, and each for a reason of its own:
- * - **Auto-backup** and **the update check**: phase 3's background jobs and the updater.
- * - **Import from Google Drive** needs no row of its own: the platform's picker lists Drive beside
- *   Downloads, so the coach's file row in Data already reaches it.
- * - **Keep the screen awake**, **exercise pictures**, **demo videos** and **the reminder card**: they
- *   are the Capacitor build's job (a wake lock, the media packs, a local notification), which the
- *   native app does with its own platform pieces in their own phases.
- * - **Workout controls** and **the body diagram**: their sheets and their screen are not ported yet,
- *   and a switch that wrote a key nothing reads would be a lie. The automatic-progression help is in
- *   the same position — the row works, the (i) is not there.
- * - **Play sounds on silent**: iOS only.
+ * Three rows the web has are deliberately absent. **Workout controls** and **the body diagram**
+ * need their sheet and their screen, and a switch that wrote a key nothing reads would be a lie —
+ * the automatic-progression help is in the same position: the row works, the (i) is not there.
+ * **Play sounds on silent** is iOS only.
+ *
+ * **Import from Google Drive** needs no row of its own: the platform's picker lists Drive beside
+ * Downloads, so the coach's file row in Data already reaches it.
  */
 object SettingsScreen : AppScreen() {
     @Composable
@@ -306,6 +304,41 @@ private fun Settings(profile: Profile) {
                         SelectOption(it.toString(), if (it == 0) t("Off") else it.toString() + "s")
                     },
                     onChange = { value -> write { it.with("restSec", value.toIntOrNull() ?: 90) } },
+                )
+                // The web's useWakeLock: the display stays on while a session is running, so
+                // nobody has to unlock the phone between sets. Applies on the next state change.
+                SwitchRow(
+                    title = t("Keep screen awake"),
+                    icon = Glyph.SUN,
+                    checked = S.bool("keepAwake") != false,
+                    onChange = { value -> write { it.with("keepAwake", value) } },
+                )
+                // The picture is a thumbnail in the workout header now, so the old three-way size
+                // has one option left that means anything: hidden. Legacy 'mini' reads as 'full',
+                // and the key is still called gifSize because renaming it would be a migration for
+                // no behaviour.
+                InlineRow(t("Exercise pictures")) {
+                    Segmented(
+                        options = GIF_SIZES,
+                        labels = listOf(t("On tap"), t("Hidden")),
+                        value = if (S.str("gifSize") == "off") "off" else "full",
+                        onChange = { value -> write { it.with("gifSize", value) } },
+                        modifier = Modifier.fillMaxWidth(0.6f),
+                    )
+                }
+                // A layer of its own, deliberately not the same setting as the picture: the frame is
+                // hotlinked from img.youtube.com, the video belongs to the platform's player.
+                // 'On tap' is the default and the reason the poster exists at all.
+                SelectRow(
+                    title = t("Demo videos"),
+                    value = videoMode(S.str("video")),
+                    icon = Glyph.PLAY,
+                    options = listOf(
+                        SelectOption("off", t("Hidden")),
+                        SelectOption("button", t("On tap")),
+                        SelectOption("inline", t("Always")),
+                    ),
+                    onChange = { value -> write { it.with("video", value) } },
                 )
                 SwitchRow(
                     title = t("Sounds"),

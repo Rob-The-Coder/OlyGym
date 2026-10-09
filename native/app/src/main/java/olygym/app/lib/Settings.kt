@@ -17,6 +17,12 @@ val REST_OPTIONS = listOf(0, 60, 90, 120, 150, 180)
 val WORKOUT_VIEWS = listOf("cards", "list", "compact")
 val THEMES = listOf("dark", "light", "system")
 val EFFORT_MODES = listOf("none", "rir", "rpe")
+
+/**
+ * The workout header's picture: shown, or hidden. The web's old three-way size has one option worth
+ * offering left, and anything but "off" — including the legacy "mini" — reads as shown.
+ */
+val GIF_SIZES = listOf("full", "off")
 val WEIGHT_DECIMALS = listOf(1, 2)
 val WEEK_STARTS = listOf(MONDAY, SUNDAY)
 
