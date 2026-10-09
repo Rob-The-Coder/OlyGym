@@ -128,9 +128,9 @@ that is expected.
 - The body map (`components/BodyMap.jsx` and its ~90 KB `lib/body-paths.js`) is not ported. The
   balance and fatigue readings it draws are shown as ranked bars with the same ramp and the same
   state words; the silhouette needs the path blob shipped as an asset and an SVG-path renderer.
-- The line chart has no hover tooltip (no pointer, on a phone), and the heatmap's day tap falls
-  through when several workouts share a date, because the sheet it would open (the calendar) is not
-  ported yet.
+- The line chart has no hover tooltip (no pointer, on a phone). Several workouts on one heatmap date
+  open the calendar on that month rather than their list, which is the web's own path — the heatmap
+  knows the month, the calendar knows the day.
 - The backfill writes its `backfill` block through `js()`, which drops null keys: the web writes
   `replaceId: null` explicitly and this writes no key at all. `completeBackfill` reads both the same
   way, so only the file's spelling differs.

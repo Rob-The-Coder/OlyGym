@@ -500,9 +500,10 @@ last few sessions opening into their own detail sheet.
   ramp and the same state words. The map is its own piece of work, not a line in a chart task.
 - **The hover tooltip** on a line chart: there is no pointer to hover with. The reading it gave is
   the dated value under the finger, which the card's own rows and captions already carry.
-- **Competitions** (phase 3), the calendar sheet a heatmap cell with several sessions would open, and
-  the exercise-history sheet. The exercise picker's search is not in the ported `SelectRow` yet, so
-  the progress card's picker lists every exercise with a history instead of filtering it.
+- **Competitions** (phase 3), the calendar sheet (Phase 6a) a heatmap cell with several sessions would
+  open, and the exercise-history sheet (Phase 2f). The exercise picker's search is not in the ported
+  `SelectRow` yet, so the progress card's picker lists every exercise with a history instead of
+  filtering it.
 - **The History screen itself** and **log a past workout**: they are phase 2c, and the door to them
   ("All N") is absent from Stats until they exist.
 
@@ -550,11 +551,8 @@ logged too, from the app bar or the empty state.
 
 ### Deliberately not in 2c
 
-- **The calendar sheet** (the month at a glance, six months back with its own "back to this month"),
-  and with it the `MonthGrid` reuse: the grid itself is here, as the backfill's date picker, and the
-  calendar is the screen that would put a month's totals above it.
-- **A day with several sessions** (the day-sessions sheet): a heatmap cell with one session opens it,
-  one with several still does nothing.
+- **The calendar sheet** and **a day with several sessions**: Phase 6a — the grid itself was already
+  here, as the backfill's date picker.
 - **The exercise history sheet** behind the exercise detail's row: it needs its own chart work.
 - **Settings** — the last of the phase-2 screens.
 ## Phase 2d — Settings
@@ -1117,5 +1115,70 @@ set row below the fold on the one screen where the phone is in your hand.
   as 'On tap'.
 - **Workout controls** and **the body diagram**: still absent from Settings, for the reasons in the
   screen's own header.
+
+---
+
+## Phase 5b — the in-app player (planned, not built)
+
+Phase 5a hands the demo video to the platform player, which is the Phase 2g decision and what the
+workout card is built on. There is one way to put a player back inside the app, and it was costed
+before being deferred:
+
+- **A `WebView` around the same `youtube-nocookie.com/embed` URL the web builds.** It needs no
+  dependency — `android.webkit.WebView` is a platform class, and `androidx.webkit` 1.12.1 is in this
+  machine's offline cache if the modern helpers are wanted. The shipping Capacitor app *is* a
+  `WebView` running exactly that iframe
+  (`frontend/android/app/src/main/res/layout/activity_main.xml`), so it is proven on the target
+  phones rather than hoped for.
+- **The other two routes are closed.** media3/ExoPlayer cannot play YouTube — YouTube serves no media
+  URL an app may fetch, which is why the web uses an iframe at all — and it is not in the offline
+  cache. The YouTube Android Player API is deprecated, needs the YouTube app installed, and is not
+  cached either.
+- **What it costs.** One renderer process per mounted player, so the expand has to unmount and
+  `destroy()` the view or playback outlives the sheet — the web's own comment on `inline` is the
+  precedent (it refuses six live players on the workout screen). It reverses two recorded decisions:
+  `WebView | none` in the table above, and Phase 2g's hand-off. `embedUrl` comes back with them, and
+  so do the five `embedUrl` cases in `frontend/src/lib/video.test.js` — including "can embed every
+  exercise of the catalogue", which becomes a JVM test scanning the shipped 624.
+- **The animation comes with it.** With a player in the app the web's expand-to-16:9 has a reason
+  again: tap the chip, it grows to full width and plays, Minimize collapses it — the size and shape
+  change on `Motion.LONG` + `Motion.emphasizedDecelerate`, which the theme already carries. `inline`
+  becomes real in the detail sheet too, and *Always* in the Demo videos row finally means something.
+- **It cannot be device-checked on this machine.** Phase 3c's emulator WebView died with `SIGILL`
+  inside `libwebviewchromium.so` — the API 37 `ps16k` system image ships a broken Chromium — so that
+  check would have to happen on a real phone.
+
+---
+
+## Phase 6a — the calendar, and a day with several sessions
+
+Three taps that did nothing now do something: Home's streak and week tiles, and a heatmap cell holding
+more than one session. Behind them are the two sheets Phase 2c left out.
+
+**717 JVM tests** (unchanged: the month's own reading was already ported and tested, as the backfill
+picker's). The device checks are in `native/README.md`; the pictures are in
+`oly-previews/native-phase6a/`.
+
+### What it adds
+
+- **`ui/sheet/CalendarSheet.kt`** — `Calendar` and `DaySessions`, the ports of the two functions of the
+  same name in `sheets.jsx`. Neither grid nor summary is new: `MonthGrid` is what the backfill's date
+  picker already draws, so a day's dots mean the same thing in both, and `monthSummary` was ported with
+  it. What the calendar adds is where they are put and what a tap on a day means.
+- **What a tap means** depends on which side of today the day is, which is the web's rule: one session
+  opens it, several open their list, a day already gone opens the backfill dated to it, and a day still
+  to come goes to the plan. Only this screen knows which date was meant, so it hands the date over
+  rather than sending the reader to the plan to find it.
+- **The three taps**: Home's *Streak* and *This week* tiles, and the heatmap cell. The *Weight* tile
+  opens the weigh-in sheet — the web's third tile does that and the native one was the one tile in the
+  row with no tap at all.
+
+### Deliberately not in 6a
+
+- **The in-app player** — Phase 5b, above.
+- **The day-sessions sheet is reached through the calendar from the heatmap**, not directly: the
+  heatmap knows the month, the calendar knows the day. That is the web's own path.
+
+
 
 
