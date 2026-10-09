@@ -111,12 +111,15 @@ the plan and the log, a row's "+" adds with the default config (a toast names th
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
 
-Phase 6b's check is the silhouette. The muscle balance card opens with the two figures — front and
-back, muscles on the accent ramp, the head, hands and knees in the silhouette tone, every outline
-stroked so two neighbours read as two shapes — over the Meno/Più legend and the same four rows and
+Phase 6b's check is the silhouette, and tapping it. The muscle balance card opens with the two figures
+— front and back, muscles on the accent ramp, the head, hands and knees in the silhouette tone, every
+outline stroked so two neighbours read as two shapes — over the Meno/Più legend and the four rows and
 missed list as before. Fatica shades the same bodies on the fatigue ramp: the back (clean & jerk and
-squat day, two days back in the seed) yellow, the front quads orange, and the muscles that have
-rested at the dark base. The pictures in `oly-previews/native-phase6b/` are those two.
+squat day two days back) yellow, the front quads orange, the rested muscles at the dark base. A tap on
+the back's lower back outlines that muscle in the label colour and puts "Lombari — 0,4 serie" where the
+rows were; on the fatigue view the shoulder blade gives "Dorsali — In recupero"; tapping the same muscle
+again brings the ranked rows back, and so does switching the view. The pictures in
+`oly-previews/native-phase6b/` are those steps.
 Phase 6a's check is the calendar. Home's *Streak* tile opened Ottobre 2026 with the month's own line
 ("4 allenamenti · 4h 0m · 4.000 kg"), a dot under 2, 5 and 7 (trained) and a muted one under 9
 (planned), today ringed — and every tap on a day did what the web's rule says. Day 7, which holds two

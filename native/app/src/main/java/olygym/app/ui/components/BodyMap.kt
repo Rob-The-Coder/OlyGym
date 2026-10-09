@@ -3,6 +3,7 @@ package olygym.app.ui.components
 import android.content.Context
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -22,9 +23,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.asAndroidPath
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import java.util.concurrent.ConcurrentHashMap
@@ -105,6 +108,10 @@ private object Bodies {
 /**
  * The two views. `load` is effective sets per muscle (or the fatigue reading), `thresholds` switches
  * from the balance ramp to the fixed fatigue bands — the same shape levelsOf() takes.
+ *
+ * With `onMuscle` the figures are tappable: the muscle under the finger is named back to the caller,
+ * which is what the web's `className="tappable"` map does on the balance, fatigue and By-muscle
+ * screens. `selected` draws that muscle's outline in the label colour, the web's `.bm-m.sel`.
  */
 @Composable
 fun BodyMap(
@@ -112,6 +119,8 @@ fun BodyMap(
     body: String,
     modifier: Modifier = Modifier,
     thresholds: JsonArray? = null,
+    selected: String? = null,
+    onMuscle: ((String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val parsed by produceState<BodyPaths?>(null, body) {
@@ -122,15 +131,23 @@ fun BodyMap(
     val paths = parsed ?: return
 
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        BodyPanel(paths.front, levels, fatigue, Modifier.weight(1f))
-        BodyPanel(paths.back, levels, fatigue, Modifier.weight(1f))
+        BodyPanel(paths.front, levels, fatigue, selected, onMuscle, Modifier.weight(1f))
+        BodyPanel(paths.back, levels, fatigue, selected, onMuscle, Modifier.weight(1f))
     }
 }
 
 @Composable
-private fun BodyPanel(view: BodyViewPaths, levels: JsonObject, fatigue: Boolean, modifier: Modifier) {
+private fun BodyPanel(
+    view: BodyViewPaths,
+    levels: JsonObject,
+    fatigue: Boolean,
+    selected: String?,
+    onMuscle: ((String) -> Unit)?,
+    modifier: Modifier,
+) {
     val silhouette = muscleSilhouette()
     val outline = MaterialTheme.colorScheme.surface
+    val pickedOutline = MaterialTheme.colorScheme.onSurface
     val fills = HashMap<String, androidx.compose.ui.graphics.Color>()
     view.paths.keys.forEach { slug ->
         fills[slug] = if (slug in INERT) {
@@ -141,7 +158,24 @@ private fun BodyPanel(view: BodyViewPaths, levels: JsonObject, fatigue: Boolean,
         }
     }
 
-    Canvas(modifier.aspectRatio(view.width / view.height)) {
+    Canvas(
+        modifier
+            .aspectRatio(view.width / view.height)
+            .then(
+                if (onMuscle == null) {
+                    Modifier
+                } else {
+                    Modifier.pointerInput(onMuscle) {
+                        detectTapGestures { at ->
+                            // The box has the viewBox's own ratio, so this is the draw transform read
+                            // backwards: screen to view units, then ask which muscle is under it.
+                            val s = size.width / view.width
+                            muscleAt(view, at.x / s + view.minX, at.y / s + view.minY)?.let(onMuscle)
+                        }
+                    }
+                },
+            ),
+    ) {
         // The viewBox is one coordinate space the two views crop out of, so each canvas maps its own
         // rectangle onto its own box: subtract the origin, then scale by width.
         val s = size.width / view.width
@@ -150,19 +184,57 @@ private fun BodyPanel(view: BodyViewPaths, levels: JsonObject, fatigue: Boolean,
             translate(-view.minX, -view.minY)
         }) {
             val line = Stroke(width = 2.5f, join = StrokeJoin.Round)
+            val picked = Stroke(width = 7f, join = StrokeJoin.Round)
             // The web's order, not the asset's: the silhouette first and then the muscles head to toe.
             // Where two flat shapes overlap, the one drawn later is the one you see, so this order is
             // part of the picture rather than an accident of how the JSON happens to be keyed.
             val order = INERT + MUSCLES
             order.forEach { slug ->
                 val color = fills[slug] ?: return@forEach
+                val isPicked = slug == selected
                 view.paths[slug]?.forEach { path ->
                     drawPath(path, color)
-                    drawPath(path, outline, style = line)
+                    drawPath(path, if (isPicked) pickedOutline else outline, style = if (isPicked) picked else line)
                 }
             }
         }
     }
+}
+
+/**
+ * Which muscle is under a point, in the view's own units. The draw order is the other way round: the
+ * shape painted last is the one you can see, so it is the first one a tap should find.
+ */
+private fun muscleAt(view: BodyViewPaths, x: Float, y: Float): String? {
+    val at = Offset(x, y)
+    // The silhouette is not a target in the web either: only the muscles answer a tap.
+    return MUSCLES.asReversed().firstOrNull { slug ->
+        view.paths[slug]?.any { it.getBounds().contains(at) && pathHolds(it, x, y) } == true
+    }
+}
+
+/**
+ * The fill the hit test rasterises with: white, no antialiasing, the platform's default winding.
+ */
+private val HIT_FILL = android.graphics.Paint().apply {
+    color = android.graphics.Color.WHITE
+    isAntiAlias = false
+    style = android.graphics.Paint.Style.FILL
+}
+
+/**
+ * Is the point inside the shape? A Compose Path cannot be asked, and the obvious tool — the platform's
+ * Region.setPath — came back empty for these outlines, so this rasterises instead: the path is drawn
+ * into one pixel at the point's offset, and that pixel is the answer. It is the same rule the picture
+ * is drawn by, which is the one thing a hit test must not disagree with. Only paths whose bounds
+ * already hold the point are ever drawn.
+ */
+private fun pathHolds(path: Path, x: Float, y: Float): Boolean {
+    val pixel = android.graphics.Bitmap.createBitmap(1, 1, android.graphics.Bitmap.Config.ARGB_8888)
+    val canvas = android.graphics.Canvas(pixel)
+    canvas.translate(-x, -y)
+    canvas.drawPath(path.asAndroidPath(), HIT_FILL)
+    return pixel.getPixel(0, 0) != 0
 }
 
 /** The five-step ramp, named the way the heatmap names its own: less work on the left. */

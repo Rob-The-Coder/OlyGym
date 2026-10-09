@@ -1205,12 +1205,26 @@ answers "what did I neglect" at a glance, the rows say by how much.
 - **Draw order follows the web, not the asset**: the silhouette first, then the muscles head to toe.
   Where two flat shapes overlap the later one wins, so the order is part of the picture.
 
+### Tapping a muscle
+
+The map is tappable, as the web's is: a tap names the muscle under the finger back to the card, which
+draws that muscle's outline in the label colour (the web's `.bm-m.sel`) and puts its one reading where
+the ranked rows were — its sets in the balance view, its band in the fatigue view. Tapping the same
+muscle again clears it, and so does changing the window, the hard-sets scale or the view: the row is
+then about a different reading.
+
+Finding *which* muscle is the interesting half. A Compose `Path` cannot be asked what is inside it, and
+the obvious tool — the platform's `Region.setPath` — came back empty for these outlines. What works is
+the rule the picture is already drawn by: each candidate path is rasterised into a single pixel at the
+point's offset, and that pixel is the answer. Only paths whose bounds already hold the point are drawn,
+and the candidates are tried in the web's own order and backwards, because the shape painted last is
+the one you can see.
+
 ### What it deliberately does not do
 
-The web's map is tappable — a muscle highlights and its own reading appears under it. That is not
-here. The rows below already name the four hardest-worked muscles and the ones with none, and a tap
-target that is a 20-unit-wide path on a 160dp figure is a poor one. Selection is the piece a later
-phase would add, and it is the only part of `BodyMap.jsx` this does not carry.
+The web gives every path `role="button"`, an `aria-label` and `aria-pressed`, so a screen reader
+reads eighteen targets. A Compose `Canvas` is one node, so it reads the map and not the muscles in it.
+That is the one thing this does not carry.
 
 ### Deliberately not in 6b
 

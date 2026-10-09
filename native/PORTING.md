@@ -125,10 +125,12 @@ that is expected.
   which is not where the web keeps it — LineChart.jsx, Heatmap.jsx and Stats.jsx hold it inline. It
   lives in lib/ here because it is what the curves *mean*, and the porting contract puts those
   decisions where a test can reach them. The drawing is Compose and is not tested.
-- The body map is drawn now (`ui/components/BodyMap.kt`, Phase 6b) from the geometry shipped as
-  `assets/body-paths.json`, but not tappable: the web highlights the muscle you tap and shows its own
-  reading, and here the rows under the map already name the hard-worked and the missed ones. The map
-  is also not in the By-muscle explorer, which is a list of eighteen muscles you pick from.
+- The body map (`ui/components/BodyMap.kt`, Phase 6b) is drawn from the geometry shipped as
+  `assets/body-paths.json` and is tappable: the muscle under the finger gets its own outline and its
+  reading replaces the ranked rows, as in `BodyMap.jsx`. Two things are missing. It is not in the
+  By-muscle explorer, which is a list of eighteen muscles you pick from. And the web gives every path
+  `role="button"` with an `aria-label` and `aria-pressed`, so a screen reader reads eighteen targets,
+  where a Compose Canvas is one node — the map reads as a picture, not as its muscles.
 - The line chart has no hover tooltip (no pointer, on a phone). Several workouts on one heatmap date
   open the calendar on that month rather than their list, which is the web's own path — the heatmap
   knows the month, the calendar knows the day.
