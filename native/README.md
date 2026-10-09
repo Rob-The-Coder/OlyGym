@@ -1,7 +1,7 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 4b**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 5a**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
@@ -20,8 +20,10 @@ from the training log with their attempts, totals and weight categories, and is
 configured (Settings — the preferences, the appearance and the data, with backup export/import
 through the platform's own file picker), updates itself from its own releases, and moves the way the
 design system says it should — the Emphasized weights at the web's own call sites, the wavy progress
-bars, the route fade and the Start button's press. **Phase 2 is complete, and phases 3 and 4 are
-written**; the cutover, and the pieces each phase deliberately left out, are what remain.
+bars, the route fade and the Start button's press — and shows the demo poster in the exercise header
+itself, with the two Settings rows that decide what it shows and the display kept awake while a
+session runs. **Phase 2 is complete, and phases 3 to 5 are written**; the cutover, and the pieces each
+phase deliberately left out, are what remain.
 
 ## Pinned toolchain
 
@@ -107,6 +109,17 @@ the plan and the log, a row's "+" adds with the default config (a toast names th
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
 
+Phase 5a's check is the session's picture and the screen that stays on. Starting today's session put
+the demo poster in the exercise header as an 88dp chip beside "back squat", with the play mark over
+it, the tags under the name and the set table exactly where it was; switching Settings' "Immagini
+degli esercizi" to Nascosta — the file then read `"gifSize":"off"` — closed the header up on the
+next visit, the picture gone and the name starting at the margin. Settings' workout section carries
+all three new rows: Mantieni lo schermo acceso (on), Immagini degli esercizi (Al tocco / Nascosta)
+and Video dimostrativi (Al tocco). The wake lock is the one to read in `dumpsys power`: with the
+session running, `mWakeLockSummary=0x23` and a `SCREEN_BRIGHT_WAKE_LOCK ... ws=WorkSource{…
+olygym.app.dev}`; with the same profile and no `active`, `mWakeLockSummary=0x1` and no such lock at
+all — the app the front activity in both cases. The pictures in `oly-previews/native-phase5a/` are
+those steps.
 Phase 4a's check is the wave. Starting today's session and ticking one set put the two bars on
 screen at once: the workout header read "0:44 · 1/8 serie" over a wavy fill covering its one eighth,
 and the rest bar read "1:29 · Serie 1 di 5" over a wave covering nearly all of it. Two frames 0.7s
