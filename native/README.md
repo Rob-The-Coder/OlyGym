@@ -1,7 +1,7 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 7c**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 7d**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
@@ -27,9 +27,10 @@ session runs, and shows a month at a glance — the calendar behind Home's tiles
 to a past day and to a day holding more than one session, and draws the muscle balance and the
 fatigue view on the body silhouette rather than as bars, and draws a complex as one table of rounds —
 one load and one check for the whole sequence, its movements keeping everything but their set
-tables, and swipes the session's cards from one unit to the next. **Phase 2 is complete, and phases 3
-to 7 are written**; the cutover, and the pieces each phase
-deliberately left out, are what remain.
+tables, swipes the session's cards from one unit to the next, and keeps the thing you are working on
+in view — the cards bring the movement the flow stepped to back on screen, and the list opens on the
+unit you are on. **Phase 2 is complete, and phases 3 to 7 are written**; the cutover, and the pieces
+each phase deliberately left out, are what remain.
 
 ## Pinned toolchain
 
@@ -114,6 +115,15 @@ Phase 1c's check is the picker: its search field reads the catalogue's size, the
 the plan and the log, a row's "+" adds with the default config (a toast names the day), and the new
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
+
+Phase 7d's check is the two keep-it-in-view scrolls, and the layout the swipe surface had broken. A
+seeded unmerged complex (effort on, so it keeps a table per movement) opened on its second movement
+with "2 clean" at the top and its own table below, the Complex card and the snatch block scrolled
+above it — and the accessibility tree, which is what caught the breakage, listed one `clean` title and
+no second block at the same offset. A merged complex opened correctly again too: the Complex card,
+"1 snatch ×3", "2 clean ×3", then the shared table, where phase 7c had stacked all four on top of each
+other. A list of eight exercises on the seventh opened at "Esercizio 7 / 8 · Corrente" rather than at
+the top. The pictures in `oly-previews/native-phase7d/` are those steps.
 
 Phase 7c's check is the session's swipe. On a seeded day holding a two-movement complex and a lone
 exercise — two units — a left drag across the card took the header from "Complex 1 / 2" to

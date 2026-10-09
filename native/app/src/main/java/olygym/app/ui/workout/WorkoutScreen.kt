@@ -3,6 +3,8 @@ package olygym.app.ui.workout
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,6 +25,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -269,6 +272,25 @@ private fun ActiveWorkout(profile: Profile) {
         mutableStateListOf(*entries.map { entry -> entry.arr("sets").count { it.asObj()?.bool("done") == true } }.toTypedArray())
     }
 
+    // The web's two "keep the acting row in view" scrolls: the cards layout brings the movement the
+    // superset flow just stepped to back on screen, and the list opens on the unit you are on rather
+    // than at the top. BringIntoViewRequester is Compose's own way to ask the enclosing scrollable
+    // for that; the alignment is the platform's BringIntoViewSpec, where the web asks for centre and
+    // for start.
+    val unitTarget = remember { BringIntoViewRequester() }
+    val rowTarget = remember { BringIntoViewRequester() }
+    LaunchedEffect(workoutView) {
+        if (listMode) unitTarget.bringIntoView()
+    }
+    LaunchedEffect(cur) {
+        if (!listMode && unit.size > 1) {
+            // A frame first: the requester has to be attached to the member the flow moved to, and
+            // the old node must have let go, before the request is answered.
+            withFrameNanos { }
+            rowTarget.bringIntoView()
+        }
+    }
+
     val actions = BlockActions(
         onToggle = { index, row -> toggle(index, row, highWater) },
         onField = { index, row, field, value -> setField(index, row, field, value) },
@@ -356,7 +378,11 @@ private fun ActiveWorkout(profile: Profile) {
 
                 listMode -> units.forEachIndexed { index, u ->
                     val isCur = u.contains(cur)
-                    Column(Modifier.padding(top = 12.dp)) {
+                    Column(
+                        Modifier
+                            .padding(top = 12.dp)
+                            .then(if (isCur) Modifier.bringIntoViewRequester(unitTarget) else Modifier),
+                    ) {
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = if (u.size > 1) {
@@ -383,7 +409,7 @@ private fun ActiveWorkout(profile: Profile) {
                                 )
                             }
                         }
-                        UnitBlocks(entries, u, dense, actions, busy = ui.state.value.work != null)
+                        UnitBlocks(entries, u, dense, actions, busy = ui.state.value.work != null, cur = cur)
                     }
                 }
 
@@ -418,7 +444,20 @@ private fun ActiveWorkout(profile: Profile) {
                             )
                         },
                     ) {
-                        UnitBlocks(entries, unit, dense, actions, busy = ui.state.value.work != null)
+                        // A Column inside the swipe surface: UnitBlocks emits the Complex card, one
+                        // block per movement and the rounds table as siblings, and a Box stacks its
+                        // children on top of each other — which is what the first cut of the swipe did.
+                        Column(Modifier.fillMaxWidth()) {
+                            UnitBlocks(
+                                entries,
+                                unit,
+                                dense,
+                                actions,
+                                busy = ui.state.value.work != null,
+                                cur = cur,
+                                scrollTarget = rowTarget,
+                            )
+                        }
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
@@ -510,6 +549,8 @@ private fun UnitBlocks(
     dense: Boolean,
     actions: BlockActions,
     busy: Boolean,
+    cur: Int,
+    scrollTarget: BringIntoViewRequester? = null,
 ) {
     val profile = currentProfile() ?: return
     // A merged complex is one table of rounds instead of a table per movement: the movements keep
@@ -564,7 +605,9 @@ private fun UnitBlocks(
             headOnly = rounds != null,
             dense = dense,
             busy = busy,
-            modifier = Modifier.padding(top = 10.dp),
+            modifier = Modifier
+                .padding(top = 10.dp)
+                .then(if (index == cur && scrollTarget != null) Modifier.bringIntoViewRequester(scrollTarget) else Modifier),
         )
     }
     if (rounds != null) {
