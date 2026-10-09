@@ -125,9 +125,12 @@ that is expected.
   which is not where the web keeps it — LineChart.jsx, Heatmap.jsx and Stats.jsx hold it inline. It
   lives in lib/ here because it is what the curves *mean*, and the porting contract puts those
   decisions where a test can reach them. The drawing is Compose and is not tested.
-- The body map (`components/BodyMap.jsx` and its ~90 KB `lib/body-paths.js`) is not ported. The
-  balance and fatigue readings it draws are shown as ranked bars with the same ramp and the same
-  state words; the silhouette needs the path blob shipped as an asset and an SVG-path renderer.
+- The body map (`ui/components/BodyMap.kt`, Phase 6b) is drawn from the geometry shipped as
+  `assets/body-paths.json` and is tappable: the muscle under the finger gets its own outline and its
+  reading replaces the ranked rows, as in `BodyMap.jsx`. Two things are missing. It is not in the
+  By-muscle explorer, which is a list of eighteen muscles you pick from. And the web gives every path
+  `role="button"` with an `aria-label` and `aria-pressed`, so a screen reader reads eighteen targets,
+  where a Compose Canvas is one node — the map reads as a picture, not as its muscles.
 - The line chart has no hover tooltip (no pointer, on a phone). Several workouts on one heatmap date
   open the calendar on that month rather than their list, which is the web's own path — the heatmap
   knows the month, the calendar knows the day.
@@ -173,6 +176,7 @@ the version comparison and the release walk). `WaveProgress` (Phase 4a) and
 implements with an SVG mask and `material3` 1.4.0 keeps `internal` — and the Emphasized type scale
 the token table pairs with each role's baseline, picked per call site. `WorkoutMedia` (Phase 5a) is
 the third: the workout header's poster chip, which is `Media.jsx` without its iframe and therefore
-without the expand that holds one. Read `WorkoutModel.kt` and
+without the expand that holds one. `BodyMap` (Phase 6b) is the fourth: the silhouette, whose geometry
+is shipped as a generated asset rather than ported. Read `WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.

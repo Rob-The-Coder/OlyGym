@@ -1,7 +1,7 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 6a**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 6b**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
@@ -23,7 +23,8 @@ design system says it should — the Emphasized weights at the web's own call si
 bars, the route fade and the Start button's press — and shows the demo poster in the exercise header
 itself, with the two Settings rows that decide what it shows and the display kept awake while a
 session runs, and shows a month at a glance — the calendar behind Home's tiles, which is also the door
-to a past day and to a day holding more than one session. **Phase 2 is complete, and phases 3 to 6 are
+to a past day and to a day holding more than one session, and draws the muscle balance and the
+fatigue view on the body silhouette rather than as bars. **Phase 2 is complete, and phases 3 to 6 are
 written**; the cutover, and the pieces each phase deliberately left out, are what remain.
 
 ## Pinned toolchain
@@ -59,7 +60,7 @@ cached under the plugin portal while their transitive dependencies were cached u
 ```bash
 cd native
 
-# unit tests — 717 of them, no emulator, about twenty seconds
+# unit tests — 718 of them, no emulator, about twenty seconds
 GRADLE_USER_HOME=$PWD/.gradle-home GRADLE_RO_DEP_CACHE=$HOME/.gradle/caches \
   ./gradlew :app:testDebugUnitTest --offline
 
@@ -110,6 +111,15 @@ the plan and the log, a row's "+" adds with the default config (a toast names th
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
 
+Phase 6b's check is the silhouette, and tapping it. The muscle balance card opens with the two figures
+— front and back, muscles on the accent ramp, the head, hands and knees in the silhouette tone, every
+outline stroked so two neighbours read as two shapes — over the Meno/Più legend and the four rows and
+missed list as before. Fatica shades the same bodies on the fatigue ramp: the back (clean & jerk and
+squat day two days back) yellow, the front quads orange, the rested muscles at the dark base. A tap on
+the back's lower back outlines that muscle in the label colour and puts "Lombari — 0,4 serie" where the
+rows were; on the fatigue view the shoulder blade gives "Dorsali — In recupero"; tapping the same muscle
+again brings the ranked rows back, and so does switching the view. The pictures in
+`oly-previews/native-phase6b/` are those steps.
 Phase 6a's check is the calendar. Home's *Streak* tile opened Ottobre 2026 with the month's own line
 ("4 allenamenti · 4h 0m · 4.000 kg"), a dot under 2, 5 and 7 (trained) and a muted one under 9
 (planned), today ringed — and every tap on a day did what the web's rule says. Day 7, which holds two
@@ -249,14 +259,15 @@ confirms the writes, including that a deleted week leaves `"weeks": []`.
 ## Generated files — do not edit by hand
 
 ```bash
-node native/tools/assets.mjs                 # -> app/src/main/assets/{i18n/it.json, exercises-data.json}
+node native/tools/assets.mjs                 # -> app/src/main/assets/{i18n/it.json, exercises-data.json, body-paths.json}
 node scripts/design/m3-scheme-kotlin.mjs     # -> app/src/main/java/olygym/app/ui/theme/Scheme.kt
 ```
 
-The first reads `frontend/src/locales/it.js` and `frontend/src/lib/exercises-data.js`; the second
-imports `scheme()` and `SEEDS` from `scripts/design/m3-scheme.mjs`, so the Kotlin palette cannot
-drift from `m3.tokens.css`. Both outputs are committed, and both are checked by tests
-(`AssetsTest`, `SchemeTest`) for exactly the drift a committed copy invites.
+The first reads `frontend/src/locales/it.js`, `frontend/src/lib/exercises-data.js` and
+`frontend/src/lib/body-paths.js`; the second imports `scheme()` and `SEEDS` from
+`scripts/design/m3-scheme.mjs`, so the Kotlin palette cannot drift from `m3.tokens.css`. Every output
+is committed, and each is checked by a test (`AssetsTest`, `SchemeTest`) for exactly the drift a
+committed copy invites.
 
 ## Layout
 
@@ -277,8 +288,8 @@ app/src/main/java/olygym/app/
                         and the week editor, the session screen, Stats, History, the Library and
                         its By-muscle explorer, Settings, the sheets, the shared controls and the
                         theme
-app/src/main/assets/    the two generated assets
-app/src/test/java/      717 JVM tests, one per ported behaviour
+app/src/main/assets/    the three generated assets
+app/src/test/java/      718 JVM tests, one per ported behaviour
 ```
 
 The helpers keep the React filenames and are one-to-one ports, so a diff against `frontend/src/lib`

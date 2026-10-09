@@ -76,10 +76,13 @@ import olygym.app.lib.weekStartOf
 import olygym.app.lib.workoutsOnDate
 import olygym.app.ui.AppScreen
 import olygym.app.ui.components.Accessory
+import olygym.app.ui.components.BodyMap
+import olygym.app.ui.components.BodyMapLegend
 import olygym.app.ui.components.Button
 import olygym.app.ui.components.ButtonSize
 import olygym.app.ui.components.ButtonVariant
 import olygym.app.ui.components.CardHead
+import olygym.app.ui.components.FatigueLegend
 import olygym.app.ui.components.ListRow
 import olygym.app.ui.components.OlyAppBar
 import olygym.app.ui.components.Overline
@@ -116,8 +119,6 @@ import olygym.app.ui.theme.levelColor
  * weight and one exercise's own curve, then the last few sessions.
  *
  * Not ported in this phase, and stated where each would show:
- * - the body silhouette on the balance and fatigue views. The numbers are here and drawn as bars;
- *   the map is ~90 KB of SVG paths plus a path renderer, which is its own piece of work.
  * - competitions (the Competitions card at the foot of the screen), and the exercise-history sheet
  *   behind the exercise detail's row.
  * - the search inside the exercise picker (the app's SelectRow has none yet); the sheet lists every
@@ -275,6 +276,9 @@ private fun MuscleBalanceCard(profile: Profile, iso: String, weekStart: Int, now
     var view by remember { mutableStateOf("balance") }
     var win by remember { mutableStateOf(7) }
     var hard by remember { mutableStateOf(false) }
+    // The tapped muscle, or null. The web drops the selection whenever the window or the scale
+    // changes, because the row under the map is then about a different reading.
+    var sel by remember { mutableStateOf<String?>(null) }
     val inWin = muscleBalanceWindow(S["workouts"], win, now, iso, weekStart)
     val rated = inWin.any { w ->
         val entries = w.asObj()?.arr("entries") ?: JsonArray(emptyList())
@@ -296,7 +300,7 @@ private fun MuscleBalanceCard(profile: Profile, iso: String, weekStart: Int, now
                 options = listOf("balance", "fatigue"),
                 labels = listOf(t("Balance"), t("Fatigue")),
                 value = view,
-                onChange = { view = it },
+                onChange = { view = it; sel = null },
                 modifier = Modifier.fillMaxWidth(0.55f),
             )
         }
@@ -305,14 +309,14 @@ private fun MuscleBalanceCard(profile: Profile, iso: String, weekStart: Int, now
                 values = listOf("7", "30", "90", "365", "0"),
                 labels = listOf(t("Week"), "1M", "3M", "1Y", t("All")),
                 value = win.toString(),
-                onChange = { win = it.toIntOrNull() ?: 7 },
+                onChange = { win = it.toIntOrNull() ?: 7; sel = null },
                 modifier = Modifier.padding(top = 10.dp),
             )
             if (rated) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     Button(
                         text = if (on) t("Hard sets") else t("All sets"),
-                        onClick = { hard = !hard },
+                        onClick = { hard = !hard; sel = null },
                         variant = ButtonVariant.GHOST,
                         size = ButtonSize.SM,
                         modifier = Modifier.padding(top = 4.dp),
@@ -326,14 +330,32 @@ private fun MuscleBalanceCard(profile: Profile, iso: String, weekStart: Int, now
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                worked.take(4).forEach { slug ->
-                    BarRow(
-                        label = t(MUSCLE_NAME[slug] ?: slug),
-                        value = load.num(slug) ?: 0.0,
-                        max = max,
-                        trailing = t("{0} sets", fmtNum(Math.round((load.num(slug) ?: 0.0) * 10) / 10.0)),
-                        accent = on,
+                // The web's card is the map first and the numbers under it: the picture answers "what
+                // did I neglect" at a glance, the rows say by how much.
+                BodyMap(
+                    load = load,
+                    body = S.str("body") ?: "male",
+                    selected = sel,
+                    onMuscle = { picked -> sel = if (sel == picked) null else picked },
+                )
+                BodyMapLegend()
+                // A tapped muscle takes the rows' place — it is the one reading that was asked for.
+                val picked = sel
+                if (picked != null) {
+                    PickedRow(
+                        name = t(MUSCLE_NAME[picked] ?: picked),
+                        reading = t("{0} sets", fmtNum(Math.round((load.num(picked) ?: 0.0) * 10) / 10.0)),
                     )
+                } else {
+                    worked.take(4).forEach { slug ->
+                        BarRow(
+                            label = t(MUSCLE_NAME[slug] ?: slug),
+                            value = load.num(slug) ?: 0.0,
+                            max = max,
+                            trailing = t("{0} sets", fmtNum(Math.round((load.num(slug) ?: 0.0) * 10) / 10.0)),
+                            accent = on,
+                        )
+                    }
                 }
                 if (missed.isNotEmpty()) {
                     Overline(
@@ -376,19 +398,35 @@ private fun MuscleBalanceCard(profile: Profile, iso: String, weekStart: Int, now
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                MUSCLES
-                    .map { it to (fatigue[it] ?: 0.0) }
-                    .sortedByDescending { it.second }
-                    .take(8)
-                    .forEach { (slug, value) ->
-                        BarRow(
-                            label = t(MUSCLE_NAME[slug] ?: slug),
-                            value = value,
-                            max = 1.0,
-                            trailing = fatigueLabel(value),
-                            level = (levels.num(slug) ?: 0.0).toInt(),
-                        )
-                    }
+                BodyMap(
+                    load = JsonObject(fatigue.mapValues { JsonPrimitive(it.value) }),
+                    body = S.str("body") ?: "male",
+                    thresholds = FATIGUE_LEVELS,
+                    selected = sel,
+                    onMuscle = { picked -> sel = if (sel == picked) null else picked },
+                )
+                FatigueLegend()
+                val picked = sel
+                if (picked != null) {
+                    PickedRow(
+                        name = t(MUSCLE_NAME[picked] ?: picked),
+                        reading = fatigueLabel(fatigue[picked] ?: 0.0),
+                    )
+                } else {
+                    MUSCLES
+                        .map { it to (fatigue[it] ?: 0.0) }
+                        .sortedByDescending { it.second }
+                        .take(8)
+                        .forEach { (slug, value) ->
+                            BarRow(
+                                label = t(MUSCLE_NAME[slug] ?: slug),
+                                value = value,
+                                max = 1.0,
+                                trailing = fatigueLabel(value),
+                                level = (levels.num(slug) ?: 0.0).toInt(),
+                            )
+                        }
+                }
             }
             Text(
                 text = t("Fatigue shows how recently each muscle was trained. High means rest."),
@@ -503,6 +541,32 @@ internal fun BarRow(
         )
     }
 }
+
+/**
+ * What a tapped muscle gets, where the ranked bars were: the web's own row, a bold name and the one
+ * reading that was asked for. It sits under the map, which is where the finger already is.
+ */
+@Composable
+private fun PickedRow(name: String, reading: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(9.dp),
+    ) {
+        Text(
+            text = name,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.W600),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = reading,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
 /**
  * How hard the training was — the half of the picture a volume chart cannot show. Every number
  * carries how much of the training it speaks for: rating is optional, so a partly rated history is
