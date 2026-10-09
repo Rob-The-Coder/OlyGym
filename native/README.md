@@ -1,7 +1,7 @@
 # native/ — the Kotlin app
 
 The React app in `frontend/` is still the shipping app. This is the port described in
-[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 7b**: the app opens on
+[../docs/PORT-TO-KOTLIN.md](../docs/PORT-TO-KOTLIN.md), and it is at **Phase 7c**: the app opens on
 Home, reads and rewrites the real `opengym-state.json`, starts the day's session through the
 weigh-in, logs it set by set with the rest timer running on the lock screen, files it into the
 training log — builds a session as well as following one, since the exercise picker, the config
@@ -26,8 +26,9 @@ itself, with the two Settings rows that decide what it shows and the display kep
 session runs, and shows a month at a glance — the calendar behind Home's tiles, which is also the door
 to a past day and to a day holding more than one session, and draws the muscle balance and the
 fatigue view on the body silhouette rather than as bars, and draws a complex as one table of rounds —
-one load and one check for the whole sequence, its movements keeping everything but their set tables.
-**Phase 2 is complete, and phases 3 to 7 are written**; the cutover, and the pieces each phase
+one load and one check for the whole sequence, its movements keeping everything but their set
+tables, and swipes the session's cards from one unit to the next. **Phase 2 is complete, and phases 3
+to 7 are written**; the cutover, and the pieces each phase
 deliberately left out, are what remain.
 
 ## Pinned toolchain
@@ -113,6 +114,13 @@ Phase 1c's check is the picker: its search field reads the catalogue's size, the
 the plan and the log, a row's "+" adds with the default config (a toast names the day), and the new
 exercise joins at the current unit. The set rows are where to look when a number goes missing — the
 cells are the tightest control in the app, and a two-digit value is what finds their width.
+
+Phase 7c's check is the session's swipe. On a seeded day holding a two-movement complex and a lone
+exercise — two units — a left drag across the card took the header from "Complex 1 / 2" to
+"Esercizio 2 / 2", and a right drag brought it back. Two drags that should do nothing did: a 34dp left
+drag left the header on "Complex 1 / 2", and a vertical drag scrolled the page without moving the unit
+(`active.cur` was still 0 in the file after both). The pictures in `oly-previews/native-phase7c/` are
+those steps.
 
 Phase 7b's check is the plan row's swipe. With a day holding a two-movement complex and a lone
 exercise open in the editor, a left drag slid the lone row 76dp and put a red "Elimina" behind it;
