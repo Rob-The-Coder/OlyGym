@@ -6,9 +6,13 @@ import olygym.app.data.Exercise
 /*
  * The demo media: every catalogue entry links the YouTube film of the lift (Catalyst Athletics
  * makes one per exercise), and the app shows the video poster frame, hotlinked from
- * img.youtube.com at runtime and never downloaded or committed. A port of frontend/src/lib/media.js,
- * with one deliberate difference: the picture is the same, but the video itself belongs to the
- * platform player rather than to an iframe (see watchUrl).
+ * img.youtube.com at runtime and never downloaded or committed. A port of frontend/src/lib/media.js
+ * and the rest of frontend/src/lib/video.js.
+ *
+ * The video itself is an embed, not a direct stream: YouTube serves no media URL an app may fetch,
+ * which is why the web uses an iframe at all. Phase 2g handed that job to the platform player
+ * (ACTION_VIEW); Phase 5b puts the same youtube-nocookie iframe into a WebView instead, which is the
+ * one route that can play it in place. See ui/components/VideoPlayer.kt.
  */
 
 // "ex" is normally a catalogue entry, but the sheets also hand over routine targets by id alone.
@@ -46,8 +50,9 @@ fun imageChain(
 fun videoMode(value: String?): String = if (value == "off" || value == "inline") value else "button"
 
 /**
- * What the demo badge opens. The web embeds a player in the page; here the video belongs to
- * whichever app the phone gives YouTube links to, which is the platform feature for it -- no
- * WebView, no player left playing behind a closed sheet, and the picture is the same poster.
+ * What the demo badge mounts. The nocookie host sets no tracking cookie before play, `autoplay`
+ * because the player only exists once someone tapped for it, `playsinline` because the page is a
+ * phone, and `rel=0` to keep the end screen on this channel. Null when there is nothing to embed.
  */
-fun watchUrl(ex: Exercise?): String? = videoIdOf(ex)?.let { "https://www.youtube.com/watch?v=$it" }
+fun embedUrl(ex: Exercise?): String? =
+    videoIdOf(ex)?.let { "https://www.youtube-nocookie.com/embed/$it?autoplay=1&playsinline=1&rel=0" }

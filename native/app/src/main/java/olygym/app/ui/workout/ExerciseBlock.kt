@@ -1,5 +1,11 @@
 package olygym.app.ui.workout
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandIn
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,6 +24,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -83,6 +93,7 @@ import olygym.app.ui.sheet.colorOf
 import olygym.app.ui.sheet.exerciseHistorySheet
 import olygym.app.ui.sheet.menuSheet
 import olygym.app.ui.theme.FullShape
+import olygym.app.ui.theme.Motion
 import olygym.app.ui.theme.extraColors
 import olygym.app.ui.ui
 
@@ -263,6 +274,9 @@ fun ExerciseBlock(
     val mode = modeOf(cfg)
     val timed = mode == "time"
     val sets = entry.arr("sets").mapNotNull { it.asObj() }
+    // Whether the demo has been opened out of the header's chip. Transient on purpose: the web starts
+    // every exercise collapsed so the header is the same shape all the way down a session.
+    var mediaOpen by remember(id) { mutableStateOf(false) }
 
     val last = lastEntryFor(raw, id)
     val standingNote = exNoteFor(raw, id)
@@ -400,13 +414,36 @@ fun ExerciseBlock(
     }
 
     Column(modifier.fillMaxWidth()) {
+        // The web's .ex-head .exmedia.open { order:-1; width:100% }: the open player leaves the header
+        // row and takes the whole width above it. That is the only way a 16:9 block fits beside a text
+        // column, and it is what pushes the first set row down for as long as it is open.
+        if (!dense && ex != null) {
+            AnimatedVisibility(
+                visible = mediaOpen,
+                enter = expandIn(
+                    expandFrom = Alignment.TopStart,
+                    animationSpec = tween(Motion.LONG, easing = Motion.emphasizedDecelerate),
+                ) + fadeIn(tween(Motion.MEDIUM)),
+                exit = shrinkOut(
+                    shrinkTowards = Alignment.TopStart,
+                    animationSpec = tween(Motion.SHORT, easing = Motion.standard),
+                ) + fadeOut(tween(Motion.SHORT)),
+            ) {
+                WorkoutMedia(
+                    ex = ex,
+                    open = true,
+                    onClose = { mediaOpen = false },
+                    modifier = Modifier.padding(bottom = 10.dp),
+                )
+            }
+        }
         // The web's .ex-head: the demo picture, the text and the row's own actions, 10px apart.
         Row(
             Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            if (!dense && ex != null) WorkoutMedia(ex)
+            if (!dense && ex != null && !mediaOpen) WorkoutMedia(ex, onOpen = { mediaOpen = true })
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (step != null) {

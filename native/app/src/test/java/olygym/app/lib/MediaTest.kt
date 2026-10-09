@@ -5,13 +5,15 @@ import kotlinx.serialization.json.Json
 import olygym.app.data.Catalogue
 import olygym.app.data.Exercise
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /*
- * The spec of frontend/src/lib/media.test.js and video.test.js (the videoMode half), one case each,
- * in the same order. The catalogue is the committed asset the app installs at startup, read here
- * where a JVM test can reach it.
+ * The spec of frontend/src/lib/media.test.js and video.test.js, one case each, in the same order.
+ * The catalogue is the committed asset the app installs at startup, read here where a JVM test can
+ * reach it.
  */
 
 private val mediaJson = Json { ignoreUnknownKeys = true; coerceInputValues = true }
@@ -118,8 +120,34 @@ class MediaTest {
     }
 
     @Test
-    fun `the platform player opens the watch page for the id, and nothing when there is none`() {
-        assertEquals("https://www.youtube.com/watch?v=T11EcgGww-M", watchUrl(ex("https://youtu.be/T11EcgGww-M")))
-        assertNull(watchUrl(Exercise(id = "custom-1")))
+    fun `the embed points at the nocookie host, with the id and the options that make it behave`() {
+        assertEquals(
+            "https://www.youtube-nocookie.com/embed/T11EcgGww-M?autoplay=1&playsinline=1&rel=0",
+            embedUrl(ex("https://www.youtube.com/watch?v=T11EcgGww-M")),
+        )
+    }
+
+    @Test
+    fun `the embed accepts the other link shapes the catalogue and the coaches use`() {
+        assertTrue(embedUrl(ex("https://youtu.be/T11EcgGww-M"))!!.contains("/embed/T11EcgGww-M"))
+        assertTrue(embedUrl(ex("https://www.youtube.com/shorts/T11EcgGww-M"))!!.contains("/embed/T11EcgGww-M"))
+    }
+
+    @Test
+    fun `there is no embed when there is no video`() {
+        assertNull(embedUrl(Exercise(id = "custom-1", n = "my lift")))
+        assertNull(embedUrl(ex("")))
+        assertNull(embedUrl(null))
+    }
+
+    @Test
+    fun `the embed never sends the reader to the watch site itself`() {
+        assertFalse(embedUrl(ex("https://www.youtube.com/watch?v=T11EcgGww-M"))!!.contains("//www.youtube.com"))
+    }
+
+    @Test
+    fun `can embed every exercise of the catalogue`() {
+        val noEmbed = EXDB.filter { embedUrl(it) == null }
+        assertEquals(emptyList<String>(), noEmbed.map { it.id })
     }
 }

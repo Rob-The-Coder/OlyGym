@@ -82,12 +82,9 @@ that is expected.
 - All four tabs are live (Home, Plan, Stats, Library) and Settings has its door on Home. What is
   still stated rather than shown is the body map.
 - The posters are hotlinked from `img.youtube.com`, which is the app's one network permission and the
-  same request the web app makes. The video itself is not embedded: the badge fires `ACTION_VIEW` and
-  the platform's player takes it, so `embedUrl` is deliberately not ported (see `lib/Media.kt`). The
-  workout card carries the poster as an 88dp chip now (`WorkoutMedia`, Phase 5a) and Settings has the
-  two rows for it, but without the web's expand-to-16:9: that exists to give the iframe somewhere to
-  live, and here the mark hands the video to the platform player instead. `video` 'inline' therefore
-  behaves as 'On tap'.
+  same request the web app makes. The video is the same embed the web uses, in a `WebView`
+  (`ui/components/VideoPlayer.kt`, Phase 5b): the chip expands to hold it, and it is mounted only while
+  it is wanted and destroyed on the way out, so nothing plays behind a closed sheet.
 - The exercise history sheet recomputes its reading on each pass instead of memoising it as the web's
   `useMemo` does: comparing two state objects to decide whether to scan costs more than the scan.
 - Competitions are their own screen, pushed the way History is, rather than the web's Plan/Competitions
@@ -158,7 +155,7 @@ and `Progress` (Phase 2b), `HistoryView` (Phase 2c) and `Settings` (Phase 2d —
 screen offers, and what a reset leaves behind), the By-muscle reads in `LibraryFilter` (Phase 2e —
 `muscleWeightOf` and `muscleCounts`, over the one `exerciseJson` that the progression, recovery and
 explorer reads now share), `ExerciseHistory` (Phase 2f), `Media` (Phase 2g — the video id, the
-poster URL and the chain, without `embedUrl`, which the platform player replaces) and `Xlsx`,
+poster URL and the chain; `embedUrl` followed in Phase 5b) and `Xlsx`,
 `CoachSheet`, `PlanAliases`, `ImportPlan` and the merging half of `PlanShare` (Phase 3a — the
 coach's workbook read, matched and reviewed), `Competition` (Phase 3b), `CoachFile` (Phase 3d —
 the CSV reader and the .csv/.xlsx dispatch), `Reminder` (Phase 3e — the date walk behind the
@@ -177,6 +174,8 @@ Compose's own axis lock in place of its hand-rolled `touchmove`. The cards layou
 units (Phase 7c) is the seventh: `Workout.jsx`'s `onSwipePointerDown` and `finishSwipe`, with
 `detectHorizontalDragGestures` supplying the axis lock the web writes out by hand as a 1.25 ratio.
 The session's two keep-it-in-view scrolls (Phase 7d) are the eighth: the web's `scrollIntoView`
-calls, asked of Compose as `BringIntoViewRequester`. Read `WorkoutModel.kt` and
+calls, asked of Compose as `BringIntoViewRequester`. `VideoPlayer` (Phase 5b) is the ninth: the demo
+player, a `WebView` around the same embed the web builds, with the expand that gives it its width.
+Read `WorkoutModel.kt` and
 `WorkoutModelTest.kt` first if you are porting another one; they are the pattern, including how the
 JS's null checks and `Number()` coercions are written.

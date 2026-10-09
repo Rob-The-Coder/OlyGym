@@ -79,7 +79,7 @@ Run graphify update . at the end of a task, per the repo instructions.
 | Catalogue | exercises-data shipped as an asset, parsed once at startup |
 | Charts | Compose Canvas ports of LineChart, Heatmap, BodyMap, MuscleExplorer |
 | xlsx | java.util.zip.ZipInputStream + XmlPullParser, no library |
-| WebView | none |
+| WebView | the demo player (Phase 5b) |
 
 ## What there is to port
 
@@ -732,10 +732,11 @@ the exercise detail sheet opens with the same picture and a badge that plays it.
 
 ### The one deliberate difference from the web
 
-The web embeds a YouTube `<iframe>` in the page. Here the badge hands the video to whichever app the
-phone gives YouTube links to (`ACTION_VIEW`), which is the platform feature for it: no WebView, no
-player to stop when a sheet closes, and the poster — the part that makes the Library browsable — is
-the same picture. `embedUrl` is therefore not ported; `watchUrl` is what the badge opens.
+The web embeds a YouTube `<iframe>` in the page. Here the badge handed the video to whichever app the
+phone gives YouTube links to (`ACTION_VIEW`) — the platform feature for it, with no player to stop
+when a sheet closes — and the poster, the part that makes the Library browsable, is the same picture.
+`embedUrl` was left unported and `watchUrl` was what the badge opened; **Phase 5b put the player
+back** and retired the hand-off, so the port and the web do the same thing again.
 
 ### Deliberately not in 2g
 
@@ -1115,54 +1116,70 @@ while a session is running.
   not false, which is the web's `useWakeLock(!!S.active && S.keepAwake !== false)`. The flag is only
   honoured while the window is in front, so the browser's own backgrounding behaviour comes free.
 
-### The expand is deliberately not ported
+### The expand waited for its player
 
 The web's chip expands to a full-width 16:9 block with a Minimize button. That exists to give the
 YouTube `<iframe>` somewhere to live — the iframe is mounted on the tap and stopping when the block
-collapses is what stops the playback. Here the mark hands the video to the platform player, the
-difference Phase 2g already records, so there is nothing to expand *for*: the chip stays a chip.
-That is also what the web's own comment on `.ex-head` wants — a full-width picture pushed the first
-set row below the fold on the one screen where the phone is in your hand.
+collapses is what stops the playback — and with the mark handing the video to the platform player
+there was nothing to expand *for*, so the chip stayed a chip. **Phase 5b put the player in** and the
+expand with it.
 
 ### Deliberately not in 5a
 
-- **`inline`.** The web's third `video` value loads the player with the exercise. There is no player
-  to load here; the row offers the value because the key is shared with the web app, and it behaves
-  as 'On tap'.
+- **`inline`.** The web's third `video` value loads the player with the exercise. There was no player
+  to load, so the row offered the value — the key is shared with the web app — and it behaved as
+  'On tap'. Phase 5b.
 - **Workout controls** and **the body diagram**: still absent from Settings, for the reasons in the
   screen's own header.
 
 ---
 
-## Phase 5b — the in-app player (planned, not built)
+## Phase 5b — the in-app player
 
-Phase 5a hands the demo video to the platform player, which is the Phase 2g decision and what the
-workout card is built on. There is one way to put a player back inside the app, and it was costed
-before being deferred:
+Phase 2g handed the demo video to the platform player and Phase 5a built the workout's chip on that,
+both because there was no player in the app. There is now: a `WebView` around the same
+youtube-nocookie embed the web builds, and the chip expands to hold it — which is what the expand was
+always for.
 
-- **A `WebView` around the same `youtube-nocookie.com/embed` URL the web builds.** It needs no
-  dependency — `android.webkit.WebView` is a platform class, and `androidx.webkit` 1.12.1 is in this
-  machine's offline cache if the modern helpers are wanted. The shipping Capacitor app *is* a
-  `WebView` running exactly that iframe
-  (`frontend/android/app/src/main/res/layout/activity_main.xml`), so it is proven on the target
-  phones rather than hoped for.
-- **The other two routes are closed.** media3/ExoPlayer cannot play YouTube — YouTube serves no media
-  URL an app may fetch, which is why the web uses an iframe at all — and it is not in the offline
-  cache. The YouTube Android Player API is deprecated, needs the YouTube app installed, and is not
-  cached either.
-- **What it costs.** One renderer process per mounted player, so the expand has to unmount and
-  `destroy()` the view or playback outlives the sheet — the web's own comment on `inline` is the
-  precedent (it refuses six live players on the workout screen). It reverses two recorded decisions:
-  `WebView | none` in the table above, and Phase 2g's hand-off. `embedUrl` comes back with them, and
-  so do the five `embedUrl` cases in `frontend/src/lib/video.test.js` — including "can embed every
-  exercise of the catalogue", which becomes a JVM test scanning the shipped 624.
-- **The animation comes with it.** With a player in the app the web's expand-to-16:9 has a reason
-  again: tap the chip, it grows to full width and plays, Minimize collapses it — the size and shape
-  change on `Motion.LONG` + `Motion.emphasizedDecelerate`, which the theme already carries. `inline`
-  becomes real in the detail sheet too, and *Always* in the Demo videos row finally means something.
-- **It cannot be device-checked on this machine.** Phase 3c's emulator WebView died with `SIGILL`
-  inside `libwebviewchromium.so` — the API 37 `ps16k` system image ships a broken Chromium — so that
-  check would have to happen on a real phone.
+**724 JVM tests** (four new: `embedUrl`'s three cases and the catalogue-wide one; the platform
+player's `watchUrl` case went with the hand-off). The device checks are in `native/README.md`; the
+pictures are in `oly-previews/native-phase5b/`.
+
+### What it adds
+
+- **`embedUrl` comes back** (`lib/Media.kt`): the port of `video.test.js`'s five cases, including
+  "can embed every exercise of the catalogue", which scans the shipped 624 rather than the web's
+  module. `watchUrl` goes: there is no hand-off left to open.
+- **`VideoPlayer`** (`ui/components/VideoPlayer.kt`): `android.webkit.WebView` through `AndroidView`
+  — no dependency, just the platform class. The caller mounts it only while it is wanted and it is
+  destroyed on the way out, which is what stops playback when the chip collapses or the sheet closes.
+- **The expand** (`WorkoutMedia`, `ExerciseBlock`): the chip is 88dp collapsed and the header's whole
+  width when the demo is open, above the text rather than beside it (the web's
+  `.exmedia.open { order:-1; width:100% }`), on `Motion.LONG` + `emphasizedDecelerate`.
+- **`inline` is real** (`ExerciseMedia`): the detail sheet mounts the player with the exercise. The
+  workout still refuses it, which is the web's own restriction — a session can have several exercises
+  on screen at once, and several live players is several videos loading at the same time.
+
+### The three things the device found
+
+- **YouTube answers "Video player configuration error / 153" when the embed URL is loaded directly.**
+  A WebView sends no `Referer` and the embed now requires one. What works is what a real embedding page
+  does: a one-iframe document loaded *as* the embed host with `loadDataWithBaseURL`, so the iframe's
+  request carries the referrer a browser would have sent.
+- **A Compose control cannot take a touch that lands on an `AndroidView`.** The WebView is a real
+  child view and wins the dispatch, so the web's overlaid Minimize button (`.giftoggle`, bottom-left
+  of the picture) was unreachable — measured twice, with the video still playing behind it. The
+  control sits under the player instead. This is the one deliberate difference in the phase.
+- **The API 37 image's WebView is not broken after all.** Phase 3c recorded a `SIGILL` inside
+  `libwebviewchromium.so` on this emulator and this phase was written off as un-checkable here; it
+  rendered, played and was measured. That earlier note is superseded.
+
+### What the pictures cannot show
+
+`screencap` does not capture the video surface: the player reads as a black 16:9 rectangle in every
+screenshot, on the emulator's software renderer. Playback is the audio stack's word for it —
+`dumpsys audio` lists a started `AAudio` track owned by the app while the player is open, and none
+once it collapses or the sheet closes.
 
 ---
 
