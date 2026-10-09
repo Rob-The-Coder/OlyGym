@@ -101,6 +101,31 @@ The extra environment is for this one, where `~/.gradle` is not writable:
 - `local.properties` must hold `sdk.dir`; it is ignored by git.
 - Delete `.gradle-home` when finished, after `pkill -f 'Gradle[D]aemon'`.
 
+## Releasing
+
+The updater reads GitHub Releases tagged `native-v*` (`lib/Update.kt`), so a release is three things:
+higher numbers, a signed APK, and a tag.
+
+1. **Bump both numbers** in `app/build.gradle`. `versionCode` must go up — Android refuses an install
+   that is not above the one already there — and `versionName` must be the semver the tag carries,
+   because it is what the updater compares against.
+2. **Build and check it**: `:app:assembleRelease` with `android-keys/` present, then
+   `apksigner verify --print-certs` for the certificate and `aapt dump badging` for the package and
+   the two numbers that just changed.
+3. **Tag and publish**, with the APK attached:
+
+   ```bash
+   gh release create native-v0.2.0 OlyGym-0.2.0.apk OlyGym-0.2.0.apk.sha256 \
+     --target "$(git rev-parse main)" \
+     --title "native-v0.2.0" --notes-file /tmp/notes.md
+   ```
+
+   Not a draft and not a pre-release: the updater ignores both. GitHub hashes the asset itself, and
+   that digest is what the app checks the download against, so the `.sha256` beside it is for people
+   who fetch the APK by hand.
+
+`native-v0.1.0` was the cutover, and the first release with an APK the updater can offer.
+
 ## On a device
 
 The debug build is `olygym.app.dev` — its own sandbox, so it can never touch the Capacitor app's

@@ -21,10 +21,10 @@ android {
         applicationId = 'olygym.app'
         minSdk = 24
         targetSdk = 35
-        // 26 is the last Capacitor build; Android refuses an update that is not above it.
-        versionCode = 27
+        // Always up: Android refuses an update that is not above the build already installed.
+        versionCode = 28
         // The native line is its own, and it is what the updater compares against native-v* tags.
-        versionName = '0.1.0'
+        versionName = '0.2.0'
     }
 
     signingConfigs {
