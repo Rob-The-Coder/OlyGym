@@ -1278,6 +1278,42 @@ which is the web's "what is seen is what is logged", preserved rather than re-de
 - **The unloaded bodyweight complex and the effort-tracked one** keep their per-movement tables by
   design — that is the gate above, not a gap.
 
+## Phase 7b — swipe-to-delete on a plan row
+
+The week editor had one way to remove a row: open its config sheet and choose "Remove from routine".
+The web's row also swipes left to reveal a Delete button, which is the same action without the sheet.
+This phase is that gesture, and nothing else.
+
+**720 JVM tests** (no new: a gesture has no pure decision to test). The device checks are in
+`native/README.md`; the pictures are in `oly-previews/native-phase7b/`.
+
+### What it adds
+
+- **`SwipeToDeleteRow`** (`ui/plan/WeekEditScreen.kt`): the port of
+  `frontend/src/components/SwipeToDelete.jsx`. A horizontal drag slides the row 76dp and a Delete
+  button shows behind it; the row's own tap closes an open row instead of opening the sheet under it.
+- **The axis lock** is Compose's own: `detectHorizontalDragGestures` claims the pointer only after it
+  has clearly gone sideways, so the week's vertical scroll is never hijacked — the web reimplements
+  the same rule by hand, with a non-passive `touchmove`, because React's synthetic handlers are
+  passive.
+- **Both row shapes**: a standalone row and a row inside a complex, each with its own opaque fill
+  (`surfaceContainerLow` and `surfaceContainer`), and the complex's step number stays outside the
+  sliding part, exactly as the web's `.cx-row` keeps it outside `SwipeToDelete`.
+
+### The trap worth writing down
+
+The button has to be absent until a swipe is going horizontal. Left mounted at rest, its red
+background bleeds a hairline arc out of the row's antialiased rounded corner — the web hit the same
+thing and fixed it the same way (its `armed` state), which is worth knowing before "simplifying" this
+back into an always-drawn background.
+
+### Deliberately not in 7b
+
+- **Swipe between units** on the session screen: the port's Prev/Next buttons are the way through, and
+  the web's `onSwipePointerDown` is the piece still missing there.
+- **The demo thumbnail** on a row, which the session's own media chip carries and the editor's row
+  does not.
+
 
 
 
