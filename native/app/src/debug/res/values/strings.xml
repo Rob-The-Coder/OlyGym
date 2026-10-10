@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- So the native app is tellable apart from the Capacitor app on the launcher. -->
-    <string name="app_name">OlyGym dev</string>
-</resources>

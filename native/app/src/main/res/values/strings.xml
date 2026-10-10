@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- The debug build overlays this with "OlyGym dev" (src/debug/res). -->
-    <string name="app_name">OlyGym</string>
-</resources>
