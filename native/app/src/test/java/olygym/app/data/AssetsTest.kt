@@ -62,7 +62,10 @@ class AssetsTest {
         // Keys are English sentences; 40 of them are the same word in Italian too (Home, Cardio,
         // Splits), so an identity mapping is not evidence of a missing translation.
         val it = json.decodeFromString<Map<String, String>>(asset("i18n/it.json").readText())
-        assertEquals(1420, it.size)
+        // 1420 when this was written; 1496 after the 76 keys that were missing were added, and 78
+        // more that only the coverage test in I18nCoverageTest could find. The number is pinned so
+        // a regeneration that drops the file cannot pass.
+        assertEquals(1496, it.size)
         assertTrue(it.containsKey("{0} exercise"))
     }
 

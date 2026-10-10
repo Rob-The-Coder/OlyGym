@@ -82,7 +82,7 @@ never named either. Trees: `oly-previews/native-m3e/ws2-before/` and `ws2/`.
 |---|---|---|
 | WS0 | The expressive theme on material3 1.5.0-alpha14 | **landed** — see the progress log |
 | WS2 | Accessibility floor, reduced motion, guard test | **landed** — see the progress log |
-| WS6 | The 64 missing Italian keys, asset regen, guard test | not started |
+| WS6 | The missing Italian keys, asset regen, guard test | **landed** — see the progress log |
 | WS1 | The shape vocabulary | not started |
 | WS3 | Checkbox, segmented, tab bar, snackbar, action stack, inert tabs | not started |
 | WS4 | Home parity | not started |
@@ -130,6 +130,20 @@ store so both apps render the identical state (`/tmp/oly-state.json`).
 "it looks right". Measurement is quoted, not asserted.
 
 ## 7. Progress log
+
+### WS6 — the missing Italian strings · landed
+
+**What changed.** 80 entries added to `frontend/src/locales/it.js`: the 78 the comparison found, plus
+`weeks` and `sessions`, which the comparison's own collation had hidden and the new guard test
+caught on its first run. `native/tools/assets.mjs` regenerated the native asset from it.
+
+The React app reads the same file, so **the web's Italian UI is fixed by the same change** — and the
+web suite was run to prove it: 107 files, 1144 tests, green.
+
+**Evidence.** `I18nCoverageTest` reads every `t("…")` literal in the Kotlin sources and asserts each
+is a key in the shipped asset, then spot-checks ten of the ones that were leaking for a value that is
+not just the key pasted back. `AssetsTest`'s pinned entry count moved 1420 to 1496 — it failed first,
+which is the guard working. 730 JVM tests, 0 failures.
 
 ### WS2 — the accessibility floor · landed
 
