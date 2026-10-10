@@ -481,47 +481,17 @@ private fun ActiveWorkout(profile: Profile) {
                 }
             }
 
+            // One primary action, one door to everything else. This used to be six buttons stacked
+            // at the end of the session — add, swap, move up, move down, note, finish — all at
+            // nearly the same weight, so the screen's own hierarchy said nothing about which one
+            // you actually press between sets. The four that act on the session as a whole moved
+            // into the header's ⋯, which already holds the layout and the rename; nothing was
+            // removed, and the exercise's own actions stay on the exercise's own ⋯.
             Button(
                 text = t("Add exercise"),
                 onClick = { addExerciseFlow() },
                 icon = Glyph.PLUS,
                 modifier = Modifier.padding(top = 14.dp),
-            )
-            Button(
-                text = t("Swap exercise"),
-                onClick = { swapActiveWorkoutExercise(cur) },
-                size = ButtonSize.SM,
-                icon = Glyph.SHUFFLE,
-                modifier = Modifier.padding(top = 8.dp),
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Button(
-                    text = t("Move up"),
-                    onClick = { moveUnit(cur, -1) },
-                    size = ButtonSize.SM,
-                    icon = Glyph.CHEVRON_UP,
-                    enabled = canMoveActiveWorkoutUnit(profileNow()?.active, cur, -1),
-                    modifier = Modifier.weight(1f),
-                )
-                Button(
-                    text = t("Move down"),
-                    onClick = { moveUnit(cur, 1) },
-                    size = ButtonSize.SM,
-                    trailingIcon = Glyph.CHEVRON_DOWN,
-                    enabled = canMoveActiveWorkoutUnit(profileNow()?.active, cur, 1),
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            Button(
-                text = if (active.str("note").isNullOrBlank()) t("Add session note") else t("Edit session note"),
-                onClick = { sessionNoteSheet() },
-                size = ButtonSize.SM,
-                variant = if (active["note"] != null) ButtonVariant.TINTED else ButtonVariant.PLAIN,
-                icon = Glyph.PENCIL,
-                modifier = Modifier.padding(top = 10.dp),
             )
             val exercisesDone = entries.count { entry ->
                 entry.arr("sets").isNotEmpty() && entry.arr("sets").all { it.asObj()?.bool("done") == true }
@@ -991,12 +961,38 @@ private fun startTimed(index: Int, row: Int) {
     }
 }
 
-/** The menu behind the header's ⋯: rename, and the three layouts. */
+/** The menu behind the header's ⋯: the session's own actions, then rename and the three layouts. */
 private val openViewMenu: () -> Unit = {
     val active = profileNow()?.active
+    val cur = active?.int("cur") ?: 0
+    val busy = ui.state.value.work != null
     val view = active?.str("workoutView") ?: "cards"
     menuSheet(
         items = listOf(
+            MenuItem(
+                label = t("Swap exercise"),
+                icon = Glyph.SHUFFLE,
+                disabled = busy,
+                onClick = { swapActiveWorkoutExercise(cur) },
+            ),
+            MenuItem(
+                label = t("Move up"),
+                icon = Glyph.CHEVRON_UP,
+                disabled = busy || !canMoveActiveWorkoutUnit(active, cur, -1),
+                onClick = { moveUnit(cur, -1) },
+            ),
+            MenuItem(
+                label = t("Move down"),
+                icon = Glyph.CHEVRON_DOWN,
+                disabled = busy || !canMoveActiveWorkoutUnit(active, cur, 1),
+                onClick = { moveUnit(cur, 1) },
+            ),
+            MenuItem(
+                label = if (active?.str("note").isNullOrBlank()) t("Add session note") else t("Edit session note"),
+                icon = Glyph.PENCIL,
+                sub = active?.str("note"),
+                onClick = { sessionNoteSheet() },
+            ),
             MenuItem(label = t("Rename workout"), icon = Glyph.PENCIL, onClick = { renameWorkoutSheet() }),
             MenuItem(
                 label = t("Layout"),

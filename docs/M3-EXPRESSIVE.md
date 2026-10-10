@@ -12,7 +12,7 @@ measured with the two apps rendering the same exported profile.
 | | |
 |---|---|
 | Landed | WS0 the expressive theme · WS2 the accessibility floor · WS6 the Italian strings · WS1 the shape vocabulary · WS4 Home's hero · WS3's inert tab bar |
-| Open | WS3's remaining three (segmented, snackbar, the session action stack) · WS4's body-weight curve and Welcome card |
+| Open | WS3's remaining two (segmented, snackbar) · WS4's body-weight curve and Welcome card |
 | Verified | 730 JVM tests and 1144 web tests, 0 failures, at every commit; the debug APK builds offline; every visual claim has a capture in `oly-previews/native-m3e/`; every accessibility claim has a uiautomator dump |
 
 ---
@@ -137,6 +137,19 @@ store so both apps render the identical state (`/tmp/oly-state.json`).
 
 ## 7. Progress log
 
+### WS3 — the session screen's action stack · landed
+
+**What changed.** The session ended in six buttons at nearly the same weight — Add exercise, Swap
+exercise, Move up, Move down, Add session note, Finish workout — so the screen's own hierarchy said
+nothing about which one you press between sets. The four that act on the *session* moved into the
+header's ⋯, which already holds Rename and Layout; Add exercise stays a full-width pill next to the
+Prev/Next pair; Finish is the one primary action. Nothing was removed and the exercise's own actions
+stay on the exercise's own ⋯.
+
+**Evidence.** `oly-previews/native-m3e/ws3-action-stack.png` — the bottom of the screen is Prev,
+Next, Add exercise, Finish. The device's tree reports **one** of those labels in the lower half where
+it used to report five; 0 unnamed of 55 clickable nodes. 730 JVM tests, 0 failures.
+
 ### WS3 — a completed set says so · landed (three items of WS3 still open)
 
 **What changed.** The web marks a done set twice: `.setrow.done .n` turns the row's number into an
@@ -159,8 +172,8 @@ table and the complex's rounds table so the two cannot drift.
 **Evidence.** `oly-previews/native-m3e/ws3-done-sets.png`; the workout screen is still 0 unnamed of
 68 clickable nodes. 730 JVM tests, 0 failures.
 
-**Still open in WS3**: the segmented control becoming the web's sliding pill, the toast becoming a
-real `Snackbar`, and the session screen's six stacked action buttons.
+**Still open in WS3**: the segmented control becoming the web's sliding pill, and the toast
+becoming a real `Snackbar`.
 
 ### WS7 — the reading-width cap · landed
 
