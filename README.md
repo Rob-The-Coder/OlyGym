@@ -213,11 +213,6 @@ change, so an evicted WebView cache cannot lose it. Settings offers one-tap JSON
 and keeps automatic backups; backups go out through the OS share sheet on Android. There is no
 server and no account, so clearing the app's data removes the data.
 
-## Roadmap
-
-[ROADMAP.md](ROADMAP.md) is upstream openGym's public roadmap, kept here for provenance only. This
-fork has no releases of its own and does not follow that plan.
-
 ## Tech
 
 React 19 + Vite (React Router, Zustand) · Capacitor (Android) · Vitest · exercise data from
@@ -245,7 +240,7 @@ without it.
 - **[opengym.duarte-santos.ch](https://opengym.duarte-santos.ch)**: upstream's site; its
   [Discord](https://discord.gg/e62jY6fwVb) and its
   [coffee button](https://buymeacoffee.com/duartesantos) are upstream's too, and belong to upstream
-- **[CONTRIBUTING.md](CONTRIBUTING.md)**, [CHANGELOG.md](CHANGELOG.md), [ROADMAP.md](ROADMAP.md): upstream's, kept as they are
+- **[CONTRIBUTING.md](CONTRIBUTING.md)**: how this fork wants changes made.
 
 This fork is personal: no releases of its own, no Discord, and issues are upstream's to answer.
 

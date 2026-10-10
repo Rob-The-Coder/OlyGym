@@ -10,7 +10,6 @@
 - [ ] `npm run build` succeeds
 - [ ] User-facing strings exist in both locale packs (`it` and `en`)
 - [ ] No new runtime dependency, or the MR explains why one is unavoidable
-- [ ] CHANGELOG.md is left alone — release notes are written at release time
 
 <!-- The only pipeline job is the Android APK build. It runs on `main` and is available as a
      manual job on merge requests if your change needs one. -->
