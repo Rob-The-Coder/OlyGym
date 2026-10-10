@@ -17,12 +17,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -156,10 +158,17 @@ fun AppNavigator() {
                 }
             },
         ) { padding ->
-            Box(Modifier.fillMaxSize().padding(padding)) {
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
                 Box(
                     Modifier
-                        .fillMaxSize()
+                        // A phone in one hand is the target. On a tablet or in landscape the same
+                        // layout stretched edge to edge reads as a phone screen photographed onto a
+                        // bigger one, with a 1,000px-wide button in it. Capping the reading width
+                        // and centring the column is the whole of the adaptive work this app needs,
+                        // and it changes nothing at all on a phone, where this box is never wider.
+                        .widthIn(max = 600.dp)
+                        .fillMaxWidth()
+                        .fillMaxHeight()
                         .graphicsLayer {
                             alpha = appear.value
                             translationY = (1f - appear.value) * 4.dp.toPx()

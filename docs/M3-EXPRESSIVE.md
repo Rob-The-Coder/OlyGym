@@ -12,7 +12,7 @@ measured with the two apps rendering the same exported profile.
 | | |
 |---|---|
 | Landed | WS0 the expressive theme · WS2 the accessibility floor · WS6 the Italian strings · WS1 the shape vocabulary · WS4 Home's hero · WS3's inert tab bar |
-| Open | WS3's remaining four (completed sets, segmented, snackbar, the session action stack) · WS4's body-weight curve and Welcome card · WS5 motion on one scheme · WS7 the reading-width cap · WS8's phase note in PORT-TO-KOTLIN.md |
+| Open | WS3's remaining four (completed sets, segmented, snackbar, the session action stack) · WS4's body-weight curve and Welcome card |
 | Verified | 730 JVM tests and 1144 web tests, 0 failures, at every commit; the debug APK builds offline; every visual claim has a capture in `oly-previews/native-m3e/`; every accessibility claim has a uiautomator dump |
 
 ---
@@ -93,7 +93,7 @@ never named either. Trees: `oly-previews/native-m3e/ws2-before/` and `ws2/`.
 | WS3 | Checkbox, segmented, tab bar, snackbar, action stack | **inert tabs fixed**; the rest open |
 | WS4 | Home parity | **hero landed**; curve and welcome card open |
 | WS5 | Motion on one scheme | **landed** — see the progress log |
-| WS7 | Adaptive-lite reading width | not started |
+| WS7 | Adaptive-lite reading width | **landed** — see the progress log |
 | WS8 | Documentation | in progress (this file) |
 
 Out of scope, deliberately: two-pane and tablet layouts, Wear OS, iOS, new features, a palette
@@ -136,6 +136,17 @@ store so both apps render the identical state (`/tmp/oly-state.json`).
 "it looks right". Measurement is quoted, not asserted.
 
 ## 7. Progress log
+
+### WS7 — the reading-width cap · landed
+
+**What changed.** The shell caps its content at 600dp and centres it, which is the whole of the
+adaptive work this app needs: a phone in one hand is the target, and on a tablet or in landscape the
+same layout stretched edge to edge reads as a phone screen photographed onto a bigger one.
+
+**Evidence — and the point is that nothing changed here.** The emulator is 411dp wide, so the cap
+cannot bind. Home captured before and after is **0 changed pixels of 2,488,320** with the status bar
+cropped out. The cap is a safety net for a window this device does not have, and it is proved not to
+touch the one it does.
 
 ### WS5 — motion on one scheme · landed
 
