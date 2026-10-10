@@ -83,7 +83,7 @@ never named either. Trees: `oly-previews/native-m3e/ws2-before/` and `ws2/`.
 | WS0 | The expressive theme on material3 1.5.0-alpha14 | **landed** — see the progress log |
 | WS2 | Accessibility floor, reduced motion, guard test | **landed** — see the progress log |
 | WS6 | The missing Italian keys, asset regen, guard test | **landed** — see the progress log |
-| WS1 | The shape vocabulary | not started |
+| WS1 | The shape vocabulary | **landed** — see the progress log |
 | WS3 | Checkbox, segmented, tab bar, snackbar, action stack, inert tabs | not started |
 | WS4 | Home parity | not started |
 | WS5 | Motion on one scheme | not started |
@@ -130,6 +130,30 @@ store so both apps render the identical state (`/tmp/oly-state.json`).
 "it looks right". Measurement is quoted, not asserted.
 
 ## 7. Progress log
+
+### WS1 — the shape vocabulary · landed
+
+**What changed.** `CardShape` 14 to 20 (what `.card`, `.sect-b` and `.tile` are drawn in);
+`SheetShape` 22 to 28 (what `.sheet` is); every `Button` size is a pill, not 12/8/7dp corners;
+`SearchField` is a pill; `Chip` is the web's filter chip — transparent with a 1px outline, a tonal
+fill and no outline when on, and the ink brightening from `onSurfaceVariant` to `onSurface` rather
+than the accent moving; and the bottom bar's Start control is a 16dp-corner FAB (`FabShape`)
+instead of a circle.
+
+**Evidence.** `oly-previews/native-m3e/ws1/` against the React captures of the same profile. The
+accessibility tree was re-read after the change because shape work moves hit targets: Home is still
+0 unnamed of 20.
+
+**Two things found and handled honestly.**
+
+- **The lift is not there.** The web takes the Start disc out of the flow and lifts it 20px above
+  the bar. The bar here is a Material `Surface`, which clips its content, so offsetting the disc
+  cut it off at the bar's own edge — visible in the first capture of this pass. The shape and size
+  landed; the lift needs the Start control drawn *outside* the Surface rather than inside its row,
+  which is a layout change of its own.
+- **The pills cost horizontal room.** `Button` keeps its padding, so a pill of the same content is
+  wider than the 12dp rectangle it replaced; the three Home tiles and the two-row button groups were
+  checked on the device for overflow and none clipped.
 
 ### WS6 — the missing Italian strings · landed
 

@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -64,6 +63,7 @@ import olygym.app.ui.library.LibraryScreen
 import olygym.app.ui.plan.PlanScreen
 import olygym.app.ui.stats.StatsScreen
 import olygym.app.ui.sheet.SheetHost
+import olygym.app.ui.theme.FabShape
 import olygym.app.ui.theme.FullShape
 import olygym.app.ui.theme.Motion
 import olygym.app.ui.theme.reduceMotion
@@ -256,6 +256,10 @@ private fun RowScope.StartButton() {
     Column(
         modifier = Modifier
             .weight(1.3f)
+            // The web lifts the disc 20px above the bar and takes it out of the flow to do it. This
+            // bar is a Material Surface, which clips its content, so an offset here is cut off at
+            // the bar's own edge; the lift is deferred to its own change, which has to draw the
+            // Start control outside the Surface rather than inside its row.
             .semantics(mergeDescendants = true) { contentDescription = actionLabel; role = Role.Button }
             .clickable(interactionSource = press, indication = LocalIndication.current) {
                 if (hasSession) {
@@ -275,7 +279,7 @@ private fun RowScope.StartButton() {
                     scaleX = disc
                     scaleY = disc
                 }
-                .clip(CircleShape)
+                .clip(FabShape)
                 .background(MaterialTheme.colorScheme.primary),
             contentAlignment = Alignment.Center,
         ) {

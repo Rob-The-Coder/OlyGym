@@ -393,11 +393,8 @@ fun Button(
         ButtonSize.SM -> Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
         ButtonSize.XS -> Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
     }
-    val shape = when (size) {
-        ButtonSize.MD -> RoundedCornerShape(12.dp)
-        ButtonSize.SM -> RoundedCornerShape(8.dp)
-        ButtonSize.XS -> RoundedCornerShape(7.dp)
-    }
+    // Every size is a pill, which is what .btn is on the web at all three sizes.
+    val shape = FullShape
     val style = when (size) {
         ButtonSize.MD -> MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.W600)
         ButtonSize.SM -> MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.W600)
@@ -785,16 +782,21 @@ fun Chip(
      */
     toggle: Boolean = true,
 ) {
+    val chipShape = MaterialTheme.shapes.small
     LayoutRow(
         modifier = modifier
-            .clip(FullShape)
+            .clip(chipShape)
+            // The web's .chip: transparent with a 1px outline, and the selected one drops the
+            // outline for a tonal fill. It used to be a filled pill at both states, which read as a
+            // button and made an off filter look like an on one at a glance.
             .background(
                 if (on) {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.26f)
                 } else {
-                    MaterialTheme.colorScheme.surfaceContainerHigh
+                    Color.Transparent
                 },
             )
+            .border(1.dp, if (on) Color.Transparent else MaterialTheme.colorScheme.outline, chipShape)
             .then(
                 if (toggle) {
                     Modifier.toggleable(value = on, role = Role.Checkbox, onValueChange = { onClick() })
@@ -812,14 +814,15 @@ fun Chip(
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = if (on) FontWeight.W600 else FontWeight.W400,
             ),
-            color = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            // --label-2 when off, --label when on: the ink brightens, the accent does not move.
+            color = if (on) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
         )
         if (trailing != null) {
             GlyphIcon(
                 trailing,
                 Modifier.size(14.dp),
-                tint = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (on) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                 stroke = 2.4f,
             )
         }
@@ -836,7 +839,7 @@ fun SearchField(
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = MaterialTheme.shapes.medium,
+        shape = FullShape,
         modifier = modifier.fillMaxWidth(),
     ) {
         LayoutRow(
