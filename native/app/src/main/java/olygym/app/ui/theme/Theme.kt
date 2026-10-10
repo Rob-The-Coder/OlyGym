@@ -2,7 +2,9 @@ package olygym.app.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialExpressiveTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -17,12 +19,18 @@ const val THEME_SYSTEM = "system"
 
 /**
  * The app theme: the generated schemes from ui/theme/Scheme.kt, the ported type scale, shape and
- * the extra roles. Plain MaterialTheme, not MaterialExpressiveTheme — expressive arrives with the
- * phase that does expressive work.
+ * the extra roles — as M3 Expressive, so every Material component moves on the expressive motion
+ * scheme instead of the baseline one.
+ *
+ * The ColorScheme, Shapes and Typography handed over are the app's own, so this changes *motion*
+ * and nothing that is painted: the palette, the geometry and the type scale are the ones the port
+ * already had. That is what lets it land before the expressive work does, as a commit that is
+ * meant not to move a pixel.
  *
  * An unknown accent falls back to the default rather than leaving the UI without a scheme, the
  * same guard the web app has.
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun OlyGymTheme(
     theme: String = THEME_DARK,
@@ -46,10 +54,11 @@ fun OlyGymTheme(
     )
 
     CompositionLocalProvider(LocalExtraColors provides extra) {
-        MaterialTheme(
+        MaterialExpressiveTheme(
             colorScheme = roles.toColorScheme(other, dark),
-            typography = OlyGymTypography,
+            motionScheme = MotionScheme.expressive(),
             shapes = OlyGymShapes,
+            typography = OlyGymTypography,
             content = content,
         )
     }

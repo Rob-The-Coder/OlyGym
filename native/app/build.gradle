@@ -72,6 +72,13 @@ dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
 
     implementation platform('androidx.compose:compose-bom:2026.06.01')
+    // An explicit version beats the BOM's constraint, which pins material3 1.4.0 — and that release
+    // keeps MaterialExpressiveTheme, MotionScheme, MaterialShapes and the expressive components
+    // Kotlin-internal (javap on the artifact shows MotionScheme.Companion.expressive$material3()),
+    // so an expressive theme cannot be reached from another module. 1.5.0-alpha14 publishes them.
+    // The BOM stays, so ui/foundation remain at the 1.11.4 this machine has cached.
+    // See docs/M3-EXPRESSIVE.md for the decision and its fallback.
+    implementation 'androidx.compose.material3:material3:1.5.0-alpha14'
     implementation 'androidx.core:core-ktx:1.18.0'
     implementation 'androidx.activity:activity-compose:1.13.0'
     implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.10.0'

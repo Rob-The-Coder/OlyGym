@@ -45,7 +45,8 @@ resolves against it.
 | Gradle | 9.3.1 (`gradle-9.3.1-bin` distribution) |
 | Android Gradle Plugin | 8.13.2 |
 | Kotlin | 2.4.0 (`kotlin-gradle-plugin`, `compose-compiler-gradle-plugin`, `kotlin-serialization`) |
-| Compose BOM | 2026.06.01 → ui/foundation 1.11.4, **material3 1.4.0** |
+| Compose BOM | 2026.06.01 → ui/foundation 1.11.4 |
+| material3 | **1.5.0-alpha14**, declared explicitly beside the BOM. The BOM pins 1.4.0, which keeps MaterialExpressiveTheme, MotionScheme, MaterialShapes and the expressive components Kotlin-internal — unreachable from another module. See [../docs/M3-EXPRESSIVE.md](../docs/M3-EXPRESSIVE.md) for the decision and its fallback. |
 | Navigation | Voyager 1.1.0-beta03 (`navigator`, `tab-navigator`, `transitions`, `screenmodel`) |
 | JSON | kotlinx-serialization-json 1.11.0 |
 | Tests | JUnit 4.13.2 |
