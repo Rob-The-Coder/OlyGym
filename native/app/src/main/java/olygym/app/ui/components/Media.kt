@@ -43,6 +43,10 @@ import olygym.app.lib.embedUrl
 import olygym.app.lib.imageChain
 import olygym.app.lib.videoMode
 import olygym.app.ui.currentProfile
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import olygym.app.ui.t
 import olygym.app.ui.theme.FullShape
 
@@ -254,8 +258,13 @@ fun WorkoutMedia(
         if (embed != null) {
             // The web draws a bare white ▶ with a drop shadow. On a poster that can be bright, a dark
             // disc is the same idea with a guaranteed contrast, and the chip is the whole tap target.
+            // The chip is the whole tap target and it was anonymous: the glyph inside is a Canvas,
+            // and the poster's own description belongs to the image, not to this button.
             Box(
-                modifier = Modifier.matchParentSize().clickable { onOpen() },
+                modifier = Modifier
+                    .matchParentSize()
+                    .semantics(mergeDescendants = true) { contentDescription = t("Play the demo") }
+                    .clickable(onClickLabel = t("Play the demo"), role = Role.Button) { onOpen() },
                 contentAlignment = Alignment.Center,
             ) {
                 Box(

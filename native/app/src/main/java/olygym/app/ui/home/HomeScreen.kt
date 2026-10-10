@@ -159,7 +159,7 @@ fun HomeScreen() {
                 title = "OlyGym",
                 scrollBehavior = scroll,
                 subtitle = fmtLongDate(iso),
-                actions = { IconButton(Glyph.GEAR, onClick = { Nav.to(SettingsScreen) }) },
+                actions = { IconButton(Glyph.GEAR, t("Settings"), onClick = { Nav.to(SettingsScreen) }) },
             )
         },
     ) { padding ->
@@ -190,8 +190,8 @@ fun HomeScreen() {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f),
                         )
-                        IconButton(Glyph.CHEVRON_LEFT, onClick = { weekOffset -= 1 }, enabled = true)
-                        IconButton(Glyph.CHEVRON_RIGHT, onClick = { weekOffset += 1 }, enabled = true)
+                        IconButton(Glyph.CHEVRON_LEFT, t("Previous week"), onClick = { weekOffset -= 1 }, enabled = true)
+                        IconButton(Glyph.CHEVRON_RIGHT, t("Next week"), onClick = { weekOffset += 1 }, enabled = true)
                     }
                     Row(
                         modifier = Modifier.padding(top = 10.dp),
@@ -246,7 +246,7 @@ fun HomeScreen() {
                             modifier = Modifier.weight(1f),
                         )
                         if (active == null) {
-                            IconButton(Glyph.RESET, onClick = { Nav.to(WorkoutScreen) })
+                            IconButton(Glyph.RESET, t("Open the workout screen"), onClick = { Nav.to(WorkoutScreen) })
                         }
                     }
                     Row(

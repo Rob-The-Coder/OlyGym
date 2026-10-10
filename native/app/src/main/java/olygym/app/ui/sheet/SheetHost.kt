@@ -22,6 +22,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.dismiss
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,7 +65,19 @@ fun SheetHost(state: UiState) {
                             .fillMaxWidth()
                             .verticalScroll(rememberScrollState())
                             .padding(start = 18.dp, end = 18.dp, bottom = 24.dp)
-                            .imePadding(),
+                            .imePadding()
+                            // A sheet has no close button by design — scrim, drag and back close it.
+                            // None of those three is available to a switch-access reader, so the
+                            // same dismissal is offered as an action. A locked sheet keeps it shut,
+                            // exactly as it already does for the other three.
+                            .semantics {
+                                if (!sheet.locked) {
+                                    dismiss {
+                                        state.closeSheet(sheet.id)
+                                        true
+                                    }
+                                }
+                            },
                     ) {
                         sheet.content { state.closeSheet(sheet.id) }
                     }
@@ -80,7 +94,16 @@ fun SheetHost(state: UiState) {
                         shape = MaterialTheme.shapes.extraLarge,
                         color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     ) {
-                        Column(Modifier.padding(24.dp)) {
+                        Column(
+                            Modifier.padding(24.dp).semantics {
+                                if (!sheet.locked) {
+                                    dismiss {
+                                        state.closeSheet(sheet.id)
+                                        true
+                                    }
+                                }
+                            },
+                        ) {
                             sheet.content { state.closeSheet(sheet.id) }
                         }
                     }

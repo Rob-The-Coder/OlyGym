@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -40,6 +41,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -50,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import olygym.app.lib.fmtNum
 import olygym.app.lib.parseNumInput
+import olygym.app.ui.t
 import olygym.app.ui.theme.CardShape
 import olygym.app.ui.theme.FullShape
 import olygym.app.ui.theme.OVERLINE_TRACK
@@ -199,7 +207,13 @@ fun Tile(
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         shape = CardShape,
-        modifier = modifier.then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        modifier = modifier.then(
+            if (onClick != null) {
+                Modifier.clickable(role = Role.Button, onClick = onClick)
+            } else {
+                Modifier
+            }
+        ),
     ) {
         Column(Modifier.padding(14.dp)) {
             LayoutRow(
@@ -270,7 +284,14 @@ fun ListRow(
         modifier = modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 46.dp)
-            .then(if (onClick != null && enabled) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(
+                if (onClick != null && enabled) {
+                    Modifier.clickable(role = Role.Button, onClick = onClick)
+                } else {
+                    Modifier
+                }
+            )
+            .semantics { if (onClick != null && !enabled) disabled() }
             .padding(horizontal = 14.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -394,7 +415,14 @@ fun Button(
             .then(if (size == ButtonSize.MD) Modifier.fillMaxWidth() else Modifier)
             .clip(shape)
             .background(background)
-            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
+            .semantics { if (!enabled) disabled() }
+            .then(
+                if (enabled) {
+                    Modifier.clickable(onClickLabel = text, role = Role.Button, onClick = onClick)
+                } else {
+                    Modifier
+                }
+            )
             .then(padding)
             .defaultMinSize(minHeight = if (size == ButtonSize.MD) 48.dp else 36.dp),
         contentAlignment = Alignment.Center,
@@ -426,11 +454,13 @@ fun Check(
     onChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    label: String? = null,
 ) {
     Box(
         modifier = modifier
             .size(44.dp)
-            .then(if (enabled) Modifier.clickable { onChange(!checked) } else Modifier),
+            .toggleable(value = checked, enabled = enabled, role = Role.Checkbox, onValueChange = onChange)
+            .semantics { if (label != null) contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
         Box(
@@ -541,7 +571,7 @@ fun Stepper(
             modifier = Modifier.width(150.dp),
         ) {
             LayoutRow(verticalAlignment = Alignment.CenterVertically) {
-                StepperButton(Glyph.MINUS, "Decrease") { set(value - step) }
+                StepperButton(Glyph.MINUS, t("Decrease")) { set(value - step) }
                 Box(
                     modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
                     contentAlignment = Alignment.Center,
@@ -566,7 +596,7 @@ fun Stepper(
                         }
                     }
                 }
-                StepperButton(Glyph.PLUS, "Increase") { set(value + step) }
+                StepperButton(Glyph.PLUS, t("Increase")) { set(value + step) }
             }
         }
     }
@@ -598,11 +628,14 @@ private fun androidx.compose.foundation.layout.RowScope.StepperButton(
     description: String,
     onClick: () -> Unit,
 ) {
+    // description used to be declared and never read, so the two arrows of every stepper were
+    // anonymous. It is the name of the control and the name of its click action now.
     Box(
         modifier = Modifier
             .width(40.dp)
             .height(44.dp)
-            .clickable(onClick = onClick),
+            .semantics { contentDescription = description; role = Role.Button }
+            .clickable(onClickLabel = description, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         GlyphIcon(glyph, Modifier.size(20.dp))
@@ -614,10 +647,15 @@ private fun androidx.compose.foundation.layout.RowScope.StepperButton(
 /**
  * The web app's .iconbtn: a 36px circle that paints the surface tone when it is filled, and the
  * app bar's transparent variant otherwise. The tap target is the 44px box, not the 36px circle.
+ *
+ * label is required, and deliberately has no default: a glyph on a Canvas names nothing, so an
+ * icon-only control without one is invisible to a screen reader. Making it required means the
+ * compiler lists every call site that still needs naming rather than letting one be forgotten.
  */
 @Composable
 fun IconButton(
     glyph: Glyph,
+    label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     tint: Color = MaterialTheme.colorScheme.onSurface,
@@ -628,7 +666,17 @@ fun IconButton(
     Box(
         modifier = modifier
             .size(44.dp)
-            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
+            .semantics(mergeDescendants = true) {
+                contentDescription = label
+                if (!enabled) disabled()
+            }
+            .then(
+                if (enabled) {
+                    Modifier.clickable(onClickLabel = label, role = Role.Button, onClick = onClick)
+                } else {
+                    Modifier
+                }
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Box(
@@ -664,6 +712,11 @@ fun Segmented(
     onChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     labels: List<String> = options,
+    /**
+     * What a screen reader hears for an option whose visible label is a bare number — a weekday, a
+     * week number. DESIGN.md 8 asks the same of the web's segmented control.
+     */
+    ariaLabels: List<String>? = null,
 ) {
     SingleChoiceSegmentedButtonRow(modifier.fillMaxWidth()) {
         options.forEachIndexed { index, option ->
@@ -671,6 +724,11 @@ fun Segmented(
                 selected = option == value,
                 onClick = { onChange(option) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                modifier = if (ariaLabels != null) {
+                    Modifier.semantics { contentDescription = ariaLabels.getOrElse(index) { option } }
+                } else {
+                    Modifier
+                },
             ) {
                 Text(
                     text = labels.getOrElse(index) { option },
@@ -721,6 +779,11 @@ fun Chip(
     modifier: Modifier = Modifier,
     on: Boolean = false,
     trailing: Glyph? = null,
+    /**
+     * A filter chip reports its own on/off state, so a screen reader says "checked"; a chip that is
+     * a one-shot action must not claim a state it does not have.
+     */
+    toggle: Boolean = true,
 ) {
     LayoutRow(
         modifier = modifier
@@ -732,7 +795,14 @@ fun Chip(
                     MaterialTheme.colorScheme.surfaceContainerHigh
                 },
             )
-            .clickable(onClick = onClick)
+            .then(
+                if (toggle) {
+                    Modifier.toggleable(value = on, role = Role.Checkbox, onValueChange = { onClick() })
+                } else {
+                    Modifier.clickable(onClickLabel = label, role = Role.Button, onClick = onClick)
+                }
+            )
+            .semantics(mergeDescendants = true) { contentDescription = label }
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -786,7 +856,9 @@ fun SearchField(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
-                        modifier = Modifier.padding(vertical = 10.dp),
+                        // Decoration: the field below carries the name, so naming this too would make
+                        // a screen reader read the search box twice.
+                        modifier = Modifier.padding(vertical = 10.dp).clearAndSetSemantics { },
                     )
                 }
                 BasicTextField(
@@ -795,15 +867,30 @@ fun SearchField(
                     singleLine = true,
                     textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                    // A BasicTextField with no placeholder argument is an unnamed EditText: the
+                    // visible placeholder is a sibling, so the name has to be put here.
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 10.dp)
+                        .semantics { contentDescription = placeholder },
                 )
             }
             if (value.isNotEmpty()) {
-                GlyphIcon(
-                    Glyph.XMARK,
-                    Modifier.size(18.dp).clickable { onChange("") },
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                // Was an 18dp glyph with the clickable on the glyph itself: the smallest target in
+                // the app, and an anonymous one. It is a 44dp labelled button now.
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .semantics(mergeDescendants = true) { contentDescription = t("Clear") }
+                        .clickable(onClickLabel = t("Clear"), role = Role.Button) { onChange("") },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    GlyphIcon(
+                        Glyph.XMARK,
+                        Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }

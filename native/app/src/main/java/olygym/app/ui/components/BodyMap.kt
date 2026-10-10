@@ -42,6 +42,8 @@ import olygym.app.data.num
 import olygym.app.lib.INERT
 import olygym.app.lib.MUSCLES
 import olygym.app.lib.levelsOf
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import olygym.app.ui.t
 import olygym.app.ui.theme.fatigueLevelColor
 import olygym.app.ui.theme.muscleLevelColor
@@ -131,8 +133,8 @@ fun BodyMap(
     val paths = parsed ?: return
 
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        BodyPanel(paths.front, levels, fatigue, selected, onMuscle, Modifier.weight(1f))
-        BodyPanel(paths.back, levels, fatigue, selected, onMuscle, Modifier.weight(1f))
+        BodyPanel(paths.front, levels, fatigue, selected, onMuscle, t("Front of the body"), Modifier.weight(1f))
+        BodyPanel(paths.back, levels, fatigue, selected, onMuscle, t("Back of the body"), Modifier.weight(1f))
     }
 }
 
@@ -143,6 +145,7 @@ private fun BodyPanel(
     fatigue: Boolean,
     selected: String?,
     onMuscle: ((String) -> Unit)?,
+    label: String,
     modifier: Modifier,
 ) {
     val silhouette = muscleSilhouette()
@@ -161,6 +164,10 @@ private fun BodyPanel(
     Canvas(
         modifier
             .aspectRatio(view.width / view.height)
+            // A Canvas is one node to a screen reader, so the figure is named as a figure. Picking
+            // an individual muscle by touch is a sighted affordance: the ranked rows under the map
+            // are the same information and are the accessible path to it.
+            .semantics { if (onMuscle != null) contentDescription = label }
             .then(
                 if (onMuscle == null) {
                     Modifier

@@ -85,7 +85,7 @@ private fun WorkoutDetail(w: JsonObject, close: () -> Unit) {
             )
             // The last full-width destructive button in the module became a menu, as on the week,
             // the day, the config and the exercise detail.
-            IconButton(Glyph.MORE, onClick = {
+            IconButton(Glyph.MORE, t("More"), onClick = {
                 menuSheet(
                     title = name,
                     items = listOf(

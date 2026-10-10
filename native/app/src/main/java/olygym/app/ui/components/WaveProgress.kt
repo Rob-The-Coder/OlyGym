@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import olygym.app.ui.theme.reduceMotion
 
 /** One full sine every 20dp — the tile the web app's mask repeats. */
 private val WAVE_LENGTH = 20.dp
@@ -50,12 +51,20 @@ fun WaveProgress(
     track: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
     height: Dp = 6.dp,
 ) {
-    val drift = rememberInfiniteTransition(label = "wave").animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(WAVE_PERIOD_MS, easing = LinearEasing)),
-        label = "wave-drift",
-    )
+    // The drift is the app's own animation, so the system's request for less motion has to be
+    // answered here: the bar still fills and still measures, it simply stops flowing.
+    val drift: Float = if (reduceMotion()) {
+        0f
+    } else {
+        val wave = rememberInfiniteTransition(label = "wave")
+        val d by wave.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(WAVE_PERIOD_MS, easing = LinearEasing)),
+            label = "wave-drift",
+        )
+        d
+    }
     val filled = fraction.coerceIn(0f, 1f)
     Box(
         modifier
@@ -70,7 +79,7 @@ fun WaveProgress(
             val middle = size.height / 2f
             // Starting a whole wavelength to the left is what makes the drift seamless: at the end
             // of the cycle the path is exactly the one it started from.
-            val start = -wavelength + drift.value * wavelength
+            val start = -wavelength + drift * wavelength
             val path = Path()
             path.moveTo(start, middle)
             var x = start

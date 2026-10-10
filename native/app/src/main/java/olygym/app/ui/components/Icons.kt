@@ -15,6 +15,8 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 /**
@@ -68,9 +70,17 @@ fun GlyphIcon(
     modifier: Modifier = Modifier.size(24.dp),
     tint: Color = LocalContentColor.current,
     stroke: Float = ICON_STROKE,
+    /**
+     * What this glyph means, when it is the only thing naming a control. Null by default: a glyph
+     * beside a label is decoration, and naming it there would make a screen reader read the control
+     * twice. A Canvas has no semantics of its own, so without this an icon-only control is silent.
+     */
+    contentDescription: String? = null,
 ) {
     val parts = GLYPHS[glyph] ?: return
-    Canvas(modifier) {
+    val cd = contentDescription
+    val described = if (cd == null) modifier else modifier.semantics { this.contentDescription = cd }
+    Canvas(described) {
         // The paths are in the web app's 24-unit space; scale the canvas to whatever size this
         // glyph was asked for, so the stroke scales with it exactly as an SVG with a viewBox does.
         val s = size.minDimension / 24f

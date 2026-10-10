@@ -151,7 +151,7 @@ private fun MuscleExplorer(profile: Profile) {
                 title = t("Explore muscles"),
                 subtitle = t("Choose a muscle to see exercises that train it."),
                 scrollBehavior = scroll,
-                leading = { IconButton(Glyph.CHEVRON_LEFT, onClick = { Nav.back() }) },
+                leading = { IconButton(Glyph.CHEVRON_LEFT, t("Back"), onClick = { Nav.back() }) },
             )
         },
     ) { padding ->

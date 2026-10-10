@@ -81,8 +81,8 @@ private fun History(profile: Profile) {
                 title = t("History"),
                 scrollBehavior = scroll,
                 subtitle = t("{0} workouts", workouts.size),
-                leading = { IconButton(Glyph.CHEVRON_LEFT, onClick = { Nav.back() }) },
-                actions = { IconButton(Glyph.PLUS, onClick = { logPastWorkoutSheet() }) },
+                leading = { IconButton(Glyph.CHEVRON_LEFT, t("Back"), onClick = { Nav.back() }) },
+                actions = { IconButton(Glyph.PLUS, t("Log a past workout"), onClick = { logPastWorkoutSheet() }) },
             )
         },
     ) { padding ->

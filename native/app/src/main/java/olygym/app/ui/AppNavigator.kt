@@ -9,6 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +40,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.Navigator
@@ -58,6 +66,7 @@ import olygym.app.ui.stats.StatsScreen
 import olygym.app.ui.sheet.SheetHost
 import olygym.app.ui.theme.FullShape
 import olygym.app.ui.theme.Motion
+import olygym.app.ui.theme.reduceMotion
 import olygym.app.ui.workout.WorkoutScreen
 import olygym.app.ui.workout.startFlow
 
@@ -99,9 +108,16 @@ fun AppNavigator() {
         // drawn — the web keys #app on the path, so React unmounts it rather than fading it out.
         val route = navigator.lastItem to tab
         val appear = remember { Animatable(0f) }
-        LaunchedEffect(route) {
-            appear.snapTo(0f)
-            appear.animateTo(1f, tween(Motion.LONG, easing = Motion.emphasizedDecelerate))
+        val reduce = reduceMotion()
+        LaunchedEffect(route, reduce) {
+            if (reduce) {
+                // Reduced motion: the screen is simply there. The fade explains a spatial change,
+                // and a reader who has asked for no animation has asked not to have it explained.
+                appear.snapTo(1f)
+            } else {
+                appear.snapTo(0f)
+                appear.animateTo(1f, tween(Motion.LONG, easing = Motion.emphasizedDecelerate))
+            }
         }
 
         val snapshot by ui.state.collectAsState()
@@ -166,7 +182,9 @@ private fun Toast(message: String, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.inverseSurface,
         contentColor = MaterialTheme.colorScheme.inverseOnSurface,
         shape = FullShape,
-        modifier = modifier,
+        // A toast is the app's "done" feedback and it used to be silent to a screen reader: the
+        // text appeared, nothing announced it, and it was gone again by the time anyone looked.
+        modifier = modifier.semantics { liveRegion = LiveRegionMode.Polite },
     ) {
         Text(
             text = message,
@@ -182,7 +200,7 @@ private fun Toast(message: String, modifier: Modifier = Modifier) {
 private fun AppTabBar(selected: Int, onTab: (Int) -> Unit) {
     Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).selectableGroup(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             TabItem(Glyph.HOUSE, t("Home"), selected == 0) { onTab(0) }
@@ -199,7 +217,7 @@ private fun RowScope.TabItem(glyph: Glyph, label: String, selected: Boolean, onC
     Column(
         modifier = Modifier
             .weight(1f)
-            .clickable(onClick = onClick)
+            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
             .padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -230,13 +248,15 @@ private fun RowScope.StartButton() {
     val held by press.collectIsPressedAsState()
     // The web's .start .cir:active: the disc compresses to .94 and springs back, on the long duration.
     val disc by animateFloatAsState(
-        targetValue = if (held) 0.94f else 1f,
+        targetValue = if (held && !reduceMotion()) 0.94f else 1f,
         animationSpec = tween(Motion.LONG, easing = Motion.spring),
         label = "start-press",
     )
+    val actionLabel = if (hasSession) t("Resume") else t("Start")
     Column(
         modifier = Modifier
             .weight(1.3f)
+            .semantics(mergeDescendants = true) { contentDescription = actionLabel; role = Role.Button }
             .clickable(interactionSource = press, indication = LocalIndication.current) {
                 if (hasSession) {
                     Nav.to(WorkoutScreen)
@@ -262,7 +282,7 @@ private fun RowScope.StartButton() {
             GlyphIcon(Glyph.DUMBBELL, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onPrimary, stroke = 1.8f)
         }
         Text(
-            text = if (hasSession) t("Resume") else t("Start"),
+            text = actionLabel,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary,
         )

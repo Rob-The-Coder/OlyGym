@@ -324,7 +324,7 @@ private fun ActiveWorkout(profile: Profile) {
                 subtitle = (if (backfill) fmtDate(active.str("d").orEmpty(), long = true) else clock) +
                     " · " + t("{0} sets", done.toString() + "/" + total),
                 leading = {
-                    IconButton(Glyph.XMARK, onClick = {
+                    IconButton(Glyph.XMARK, t("Discard workout"), onClick = {
                         confirmSheet(
                             title = t("Discard workout?"),
                             message = t("The sets you logged in this session will be lost."),
@@ -340,8 +340,8 @@ private fun ActiveWorkout(profile: Profile) {
                     })
                 },
                 actions = {
-                    IconButton(Glyph.MORE, onClick = openViewMenu)
-                    IconButton(Glyph.CHECK, onClick = { finishWorkout() }, tint = MaterialTheme.colorScheme.primary)
+                    IconButton(Glyph.MORE, t("More"), onClick = openViewMenu)
+                    IconButton(Glyph.CHECK, t("Finish workout"), onClick = { finishWorkout() }, tint = MaterialTheme.colorScheme.primary)
                 },
             )
         },

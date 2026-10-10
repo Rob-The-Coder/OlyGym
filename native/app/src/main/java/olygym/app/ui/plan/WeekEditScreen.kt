@@ -34,7 +34,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -168,7 +170,7 @@ private fun WeekEdit(profile: Profile, week: Week) {
             modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(Glyph.CHEVRON_LEFT, onClick = { Nav.back() })
+            IconButton(Glyph.CHEVRON_LEFT, t("Back"), onClick = { Nav.back() })
             LineField(
                 value = week.name,
                 onChange = { value -> editProfile { raw -> setWeekName(raw, id, value) } },
@@ -180,7 +182,7 @@ private fun WeekEdit(profile: Profile, week: Week) {
                 dashed = true,
                 modifier = Modifier.weight(1f),
             )
-            IconButton(Glyph.MORE, onClick = {
+            IconButton(Glyph.MORE, t("More"), onClick = {
                 menuSheet(
                     title = label,
                     subtitle = fmtDate(week.startIso, long = true, withYear = true),
@@ -268,7 +270,7 @@ private fun DayCard(
                         },
                     )
                 }
-                IconButton(Glyph.MORE, onClick = {
+                IconButton(Glyph.MORE, t("More"), onClick = {
                     menuSheet(
                         title = day.name.ifBlank { t(DAYN[day.dow.coerceIn(0, 6)]) },
                         items = listOf(
@@ -541,7 +543,18 @@ private fun SwipeToDeleteRow(
                 .fillMaxWidth()
                 .offset { IntOffset(offset.value.roundToInt(), 0) }
                 .background(background)
-                .clickable { if (armed) close() else onClick() },
+                .clickable { if (armed) close() else onClick() }
+                // A swipe is not available to every reader, and it is the only way to delete a row
+                // today. The same delete is offered as an action on the row itself.
+                .semantics {
+                    customActions = listOf(
+                        CustomAccessibilityAction(t("Delete")) {
+                            close()
+                            onDelete()
+                            true
+                        },
+                    )
+                },
         ) {
             content()
         }

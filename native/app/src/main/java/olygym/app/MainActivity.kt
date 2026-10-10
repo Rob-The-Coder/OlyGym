@@ -26,6 +26,7 @@ import olygym.app.platform.ReminderAlarm
 import olygym.app.platform.Updater
 import olygym.app.ui.AppNavigator
 import olygym.app.ui.theme.OlyGymTheme
+import olygym.app.ui.theme.reduceMotion
 import olygym.app.ui.theme.THEME_DARK
 import olygym.app.ui.theme.THEME_LIGHT
 
@@ -56,8 +57,11 @@ class MainActivity : ComponentActivity() {
             // a rectangle: the alert reads as the app itself flashing, and it settles back on
             // whatever scheme the profile actually has.
             var blink by remember { mutableStateOf(false) }
-            LaunchedEffect(ui.timerFlash) {
-                if (ui.timerFlash > 0) {
+            // The flash is a full-screen change in luminance, which is exactly what a
+            // reduced-motion request exists to stop; the rest notification still fires.
+            val reduce = reduceMotion()
+            LaunchedEffect(ui.timerFlash, reduce) {
+                if (ui.timerFlash > 0 && !reduce) {
                     blink = true
                     delay(2400)
                     blink = false

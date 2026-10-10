@@ -277,7 +277,7 @@ private fun MeetDetail(meet: JsonObject, close: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
             )
-            IconButton(Glyph.MORE, onClick = {
+            IconButton(Glyph.MORE, t("More"), onClick = {
                 menuSheet(
                     title = name,
                     items = listOf(
@@ -432,7 +432,7 @@ private fun WeightClasses(close: () -> Unit) {
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                     )
-                    IconButton(Glyph.TRASH, onClick = { setList { l -> l.filterIndexed { j, _ -> j != i } } })
+                    IconButton(Glyph.TRASH, t("Remove"), onClick = { setList { l -> l.filterIndexed { j, _ -> j != i } } })
                 }
             }
             if (list.isEmpty()) {

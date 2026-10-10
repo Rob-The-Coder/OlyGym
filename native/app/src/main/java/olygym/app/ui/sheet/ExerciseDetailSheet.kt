@@ -106,6 +106,7 @@ private fun ExerciseDetailSheet(ex: Exercise, close: () -> Unit) {
             )
             IconButton(
                 glyph = if (favourite) Glyph.STAR_FILLED else Glyph.STAR,
+                label = if (favourite) t("Remove from favourites") else t("Add to favourites"),
                 onClick = {
                     val next = toggledFavs(raw, ex.id)
                     editProfile { it.with("favEx", next) }
@@ -116,7 +117,7 @@ private fun ExerciseDetailSheet(ex: Exercise, close: () -> Unit) {
                 tint = if (favourite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             )
             if (actions.isNotEmpty()) {
-                IconButton(Glyph.MORE, onClick = {
+                IconButton(Glyph.MORE, t("More"), onClick = {
                     menuSheet(title = Catalogue.nameOf(ex.id), subtitle = t("Your own exercise"), items = actions)
                 })
             }

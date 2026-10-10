@@ -71,7 +71,7 @@ internal fun WeightInput(value: Double, setValue: (Double) -> Unit, unit: String
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            StepButton(Glyph.MINUS, "minus 0.1") { setValue(clampWeight(value - 0.1)) }
+            StepButton(Glyph.MINUS, t("Decrease")) { setValue(clampWeight(value - 0.1)) }
             Row(
                 modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.Bottom,
@@ -94,7 +94,7 @@ internal fun WeightInput(value: Double, setValue: (Double) -> Unit, unit: String
                     modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
                 )
             }
-            StepButton(Glyph.PLUS, "plus 0.1") { setValue(clampWeight(value + 0.1)) }
+            StepButton(Glyph.PLUS, t("Increase")) { setValue(clampWeight(value + 0.1)) }
         }
         Slider(
             value = value.toFloat().coerceIn(W_LO.toFloat(), W_HI.toFloat()),
@@ -111,7 +111,7 @@ private fun StepButton(glyph: Glyph, description: String, onClick: () -> Unit) {
         modifier = Modifier.width(44.dp).height(44.dp).padding(4.dp),
         contentAlignment = Alignment.Center,
     ) {
-        IconButton(glyph, onClick = onClick, filled = true)
+        IconButton(glyph, label = description, onClick = onClick, filled = true)
     }
 }
 
@@ -171,7 +171,7 @@ private fun WeighInSheet(required: Boolean, onDone: ((Double?) -> Unit)?, close:
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f),
                 )
-                IconButton(Glyph.XMARK, onClick = close, filled = false)
+                IconButton(Glyph.XMARK, t("Close"), onClick = close, filled = false)
             }
         } else {
             SheetTitle(t("Log body weight"))
@@ -272,7 +272,7 @@ private fun WeighInSheet(required: Boolean, onDone: ((Double?) -> Unit)?, close:
                             icon = Glyph.SCALE,
                             value = fmtNum(row.num("w") ?: 0.0) + " " + unit,
                             trailing = {
-                                IconButton(Glyph.TRASH, onClick = {
+                                IconButton(Glyph.TRASH, t("Remove"), onClick = {
                                     editProfile { raw ->
                                         raw.with(
                                             "bodyweight",

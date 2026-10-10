@@ -107,8 +107,8 @@ private fun Competitions(profile: Profile) {
                 title = t("Competitions"),
                 subtitle = subtitle,
                 scrollBehavior = scroll,
-                leading = { IconButton(Glyph.CHEVRON_LEFT, onClick = { Nav.back() }) },
-                actions = { IconButton(Glyph.PLUS, onClick = { meetSheet(null) }) },
+                leading = { IconButton(Glyph.CHEVRON_LEFT, t("Back"), onClick = { Nav.back() }) },
+                actions = { IconButton(Glyph.PLUS, t("Add a competition"), onClick = { meetSheet(null) }) },
             )
         },
     ) { padding ->

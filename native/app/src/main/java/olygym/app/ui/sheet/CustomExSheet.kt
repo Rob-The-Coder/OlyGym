@@ -129,7 +129,7 @@ private fun CustomExSheet(
                 modifier = Modifier.weight(1f),
             )
             if (actions.isNotEmpty()) {
-                IconButton(Glyph.MORE, onClick = {
+                IconButton(Glyph.MORE, t("More"), onClick = {
                     menuSheet(title = name.trim().ifEmpty { t("Exercise") }, items = actions)
                 })
             }

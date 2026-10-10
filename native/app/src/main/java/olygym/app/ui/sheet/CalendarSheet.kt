@@ -100,13 +100,13 @@ private fun Calendar(start: String?, close: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            IconButton(Glyph.CHEVRON_LEFT, onClick = { cursor = cursor.minusMonths(1) })
+            IconButton(Glyph.CHEVRON_LEFT, t("Previous month"), onClick = { cursor = cursor.minusMonths(1) })
             Text(
                 text = t(MONTHS_LONG[cursor.monthValue - 1]) + " " + cursor.year.toString(),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            IconButton(Glyph.CHEVRON_RIGHT, onClick = { cursor = cursor.plusMonths(1) })
+            IconButton(Glyph.CHEVRON_RIGHT, t("Next month"), onClick = { cursor = cursor.plusMonths(1) })
         }
         Text(
             text = if (inMonth.isEmpty()) t("No workouts this month") else monthSummary(inMonth, unit),

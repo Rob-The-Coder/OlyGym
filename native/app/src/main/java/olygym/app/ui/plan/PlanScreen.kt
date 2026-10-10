@@ -128,7 +128,7 @@ private fun Ready(profile: Profile) {
                 title = t("Plan"),
                 scrollBehavior = scroll,
                 subtitle = t("Your weeks"),
-                actions = { IconButton(Glyph.PLUS, onClick = newWeek) },
+                actions = { IconButton(Glyph.PLUS, t("New week"), onClick = newWeek) },
             )
         },
     ) { padding ->

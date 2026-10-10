@@ -55,24 +55,33 @@ entries, an active session, kg, dark, RIR).
 the React app has the same two-tier system (uppercase overline for a group, sentence-case label for
 a Settings section). Settings stays as it is.
 
-## 4. The accessibility baseline, measured on the device
+## 4. The accessibility baseline and the result, measured on the device
 
-| Screen | clickable nodes | with neither text nor content-desc |
+The first baseline was measured wrongly — it read only the clickable node's *own* attributes, and
+Compose puts a row's or a tab's label on a **child**. The corrected measurement asks whether a
+clickable node has a name anywhere in its subtree, and every number below comes from that. The
+wrong metric is recorded here because the first version of this table used it, and it over-counted
+(Home read 21/21 when it was really 3/21).
+
+| Screen | unnamed clickables, before | after WS2 |
 |---|---|---|
-| Home | 21 | 21 |
-| Stats | 15 | 15 |
-| Workout | 79 | 59 |
+| Home | 3 of 21 | **0 of 20** |
+| Stats | 9 of 15 | **0 of 14** |
+| Workout | 42 of 69 | **0 of 68** |
+| Plan | — | **0 of 12** |
+| Library | — | **0 of 15** |
 
-Distinct non-empty `content-desc` across all four screens: **0**. Structural cause: `GlyphIcon` is
-a Canvas with no semantics, `IconButton` has no label parameter at all, and the Stepper's
-`description` argument is declared and never used. 36 IconButton and 34 stepper call sites.
+Structural cause: `GlyphIcon` was a Canvas with no way to be named, `IconButton` had no label
+parameter at all, the Stepper's `description` argument was declared and never used, and the heatmap
+day cells, the body-map figures, the media chip, the search field and the sheet dismissal were
+never named either. Trees: `oly-previews/native-m3e/ws2-before/` and `ws2/`.
 
 ## 5. Workstreams
 
 | WS | What | State |
 |---|---|---|
 | WS0 | The expressive theme on material3 1.5.0-alpha14 | **landed** — see the progress log |
-| WS2 | Accessibility floor, reduced motion, guard test | not started |
+| WS2 | Accessibility floor, reduced motion, guard test | **landed** — see the progress log |
 | WS6 | The 64 missing Italian keys, asset regen, guard test | not started |
 | WS1 | The shape vocabulary | not started |
 | WS3 | Checkbox, segmented, tab bar, snackbar, action stack, inert tabs | not started |
@@ -121,6 +130,45 @@ store so both apps render the identical state (`/tmp/oly-state.json`).
 "it looks right". Measurement is quoted, not asserted.
 
 ## 7. Progress log
+
+### WS2 — the accessibility floor · landed
+
+**What changed.** A glyph on a Canvas can be named (`GlyphIcon.contentDescription`, null by
+default so decoration stays decoration). `IconButton` takes a **required** `label`, so the compiler
+lists every unnamed control instead of a reviewer hoping to spot one; all 36 call sites carry a
+translated string. `Button`, `Tile` and `ListRow` declare their role and disabled state; `Chip` is
+toggleable and says whether it is on, except where it is a one-shot action; `Check` is a checkbox
+with a state; the stepper arrows wire up the `description` argument that had been dead since the
+port, and the two arrows of every stepper are named *and translated* now. The tab bar is a
+`selectableGroup` of `Role.Tab` items, the toast is a polite live region, the centre Start button is
+named, a sheet offers a dismissal action because scrim/drag/back are not available to everyone, and
+a plan row offers Delete as an action because a swipe is not either. Five more were found only by
+reading the device's own tree: the heatmap's day cells, the body-map figures, the workout media
+chip, the search field's `BasicTextField`, and the search field's placeholder (which is now hidden
+from a screen reader so the field is not read twice).
+
+Three animations are the app's own rather than Material's, and all three now answer the system's
+reduced-motion request through `ui/theme/ReduceMotion.kt`: the wave's drift, the route fade, and the
+timer flash. The helper reads the platform's animator scales because `MotionDurationScale` is only
+reachable from a coroutine, not from a composable — which is where the decision has to be made.
+
+**Evidence.** The table in §4: Home 3 to 0, Stats 9 to 0, Workout 42 to 0, Plan 0 of 12, Library 0
+of 15. 728 JVM tests (724 plus four guards), 0 failures. `AccessibilityTest` reads the sources and
+asserts that every icon button's name is translated, that every set checkbox has one, that no
+stepper arrow is named in bare English, and that the three app-owned animations still consult
+`reduceMotion()`. It earned its keep immediately: it failed on its first run over a stepper.
+
+**Deliberate departures, recorded rather than hidden.**
+
+- **No `paneTitle` on a sheet.** The `Sheet` model carries no title, so naming a sheet would mean
+  adding one to the model and to every sheet function. The dismissal action — the half that is
+  actually blocking — is what landed.
+- **The set table's tiny arrows stay tiny.** Two 26x40dp buttons live inside one set row, and
+  DESIGN.md keeps a set row's density on purpose: a taller row costs a scroll mid-set. They are
+  named now; the geometry is an exception with a reason, not an oversight.
+- **The body map is one named figure.** Picking an individual muscle by touch is a sighted
+  affordance; the ranked rows under the map carry the same information and are the accessible path.
+
 
 ### WS0 — the expressive theme · landed
 

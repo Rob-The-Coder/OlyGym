@@ -137,7 +137,7 @@ private fun ExConfigSheet(
                 modifier = Modifier.weight(1f),
             )
             if (actions.isNotEmpty()) {
-                IconButton(Glyph.MORE, onClick = {
+                IconButton(Glyph.MORE, t("More"), onClick = {
                     menuSheet(
                         title = Catalogue.nameOf(id),
                         subtitle = t("This routine entry"),

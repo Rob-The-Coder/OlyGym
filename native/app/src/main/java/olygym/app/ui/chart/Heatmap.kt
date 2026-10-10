@@ -24,6 +24,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.serialization.json.JsonElement
@@ -32,6 +36,7 @@ import olygym.app.lib.activityGridStart
 import olygym.app.lib.activityLevel
 import olygym.app.lib.activityMonthLabels
 import olygym.app.lib.activityThresholds
+import olygym.app.lib.fmtDate
 import olygym.app.lib.weekDayOffset
 import olygym.app.ui.t
 import olygym.app.ui.theme.levelBase
@@ -137,7 +142,16 @@ fun Heatmap(
                                         )
                                         .then(
                                             if (day != null && onDay != null) {
-                                                Modifier.clickable { onDay(iso) }
+                                                // A day with training is the only tappable cell, so it
+                                                // is also the only one that has to say what it is.
+                                                val label = fmtDate(iso, long = true, withYear = true) +
+                                                    " · " + t(
+                                                    if (day.n == 1) "{0} workout" else "{0} workouts",
+                                                    day.n,
+                                                )
+                                                Modifier
+                                                    .semantics(mergeDescendants = true) { contentDescription = label }
+                                                    .clickable(onClickLabel = label, role = Role.Button) { onDay(iso) }
                                             } else {
                                                 Modifier
                                             },

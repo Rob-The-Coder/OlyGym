@@ -90,7 +90,7 @@ private fun GoalSheet(close: () -> Unit) {
                 modifier = Modifier.weight(1f),
             )
             if (saved != null) {
-                IconButton(Glyph.MORE, onClick = {
+                IconButton(Glyph.MORE, t("More"), onClick = {
                     menuSheet(
                         title = t("Target weight"),
                         items = listOf(
@@ -119,7 +119,7 @@ private fun GoalSheet(close: () -> Unit) {
                     suffix = gapText,
                     icon = Glyph.TARGET,
                     valueColor = MaterialTheme.extraColors.yellow,
-                    labelTrailing = { IconButton(Glyph.INFO, onClick = help, stroke = 1.7f) },
+                    labelTrailing = { IconButton(Glyph.INFO, t("Help"), onClick = help, stroke = 1.7f) },
                     modifier = Modifier.weight(1f),
                 )
             }

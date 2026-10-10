@@ -225,7 +225,7 @@ private fun Settings(profile: Profile) {
             OlyAppBar(
                 title = t("Settings"),
                 scrollBehavior = scroll,
-                leading = { IconButton(Glyph.CHEVRON_LEFT, onClick = { Nav.back() }) },
+                leading = { IconButton(Glyph.CHEVRON_LEFT, t("Back"), onClick = { Nav.back() }) },
             )
         },
     ) { padding ->

@@ -33,6 +33,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -125,7 +129,7 @@ private fun CellStepper(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (buttons) {
-            StepButton(Glyph.MINUS, "Decrease") { onChange(stepValue(value, -1.0, step)) }
+            StepButton(Glyph.MINUS, t("Decrease")) { onChange(stepValue(value, -1.0, step)) }
         }
         NumberField(
             value = value,
@@ -138,7 +142,7 @@ private fun CellStepper(
             modifier = Modifier.weight(1f),
         )
         if (buttons) {
-            StepButton(Glyph.PLUS, "Increase") { onChange(stepValue(value, 1.0, step)) }
+            StepButton(Glyph.PLUS, t("Increase")) { onChange(stepValue(value, 1.0, step)) }
         }
     }
 }
@@ -152,8 +156,17 @@ internal fun stepValue(current: Double?, dir: Double, step: Double = 1.0): Doubl
 
 @Composable
 private fun StepButton(glyph: Glyph, description: String, onClick: () -> Unit) {
+    // description used to be declared and never read. It names the control now.
+    //
+    // Deliberate departure from the 48dp target: these are the tightest controls in the app, two
+    // of them sit inside one set row, and DESIGN.md keeps a set row's density on purpose — a
+    // taller row costs a scroll in the middle of a set. The name is fixed here; the geometry is a
+    // recorded exception, not an oversight.
     Box(
-        modifier = Modifier.size(26.dp, 40.dp).clickable(onClick = onClick),
+        modifier = Modifier
+            .size(26.dp, 40.dp)
+            .semantics { contentDescription = description; role = Role.Button }
+            .clickable(onClickLabel = description, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         GlyphIcon(glyph, Modifier.size(16.dp))
@@ -184,7 +197,7 @@ private fun EffortCell(
             .background(color?.copy(alpha = 0.18f) ?: MaterialTheme.colorScheme.surfaceContainerHigh),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (buttons) StepButton(Glyph.MINUS, "Decrease") { onStep(-1.0) }
+        if (buttons) StepButton(Glyph.MINUS, t("Decrease")) { onStep(-1.0) }
         Box(
             modifier = Modifier.weight(1f).height(40.dp).clickable(onClick = onOpen),
             contentAlignment = Alignment.Center,
@@ -224,7 +237,7 @@ private fun EffortCell(
                 }
             }
         }
-        if (buttons) StepButton(Glyph.PLUS, "Increase") { onStep(1.0) }
+        if (buttons) StepButton(Glyph.PLUS, t("Increase")) { onStep(1.0) }
     }
 }
 
@@ -484,9 +497,9 @@ fun ExerciseBlock(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 if (entry["note"].present()) {
-                    IconButton(Glyph.PENCIL, onClick = onNote, tint = MaterialTheme.colorScheme.primary)
+                    IconButton(Glyph.PENCIL, t("Note"), onClick = onNote, tint = MaterialTheme.colorScheme.primary)
                 }
-                IconButton(Glyph.MORE, onClick = openMore)
+                IconButton(Glyph.MORE, t("More"), onClick = openMore)
             }
         }
 
@@ -626,7 +639,11 @@ fun ExerciseBlock(
                                 )
                             }
                         }
-                        Check(checked = done, onChange = { onToggle(index) })
+                        Check(
+                            checked = done,
+                            onChange = { onToggle(index) },
+                            label = t("Set {0}", phaseNumber),
+                        )
                     }
                 }
                 Button(
@@ -730,7 +747,11 @@ internal fun RoundsTable(
                     step = step,
                     modifier = Modifier.weight(1f),
                 )
-                Check(checked = done, onChange = { onToggleRound(index) })
+                Check(
+                    checked = done,
+                    onChange = { onToggleRound(index) },
+                    label = t("Set {0}", index + 1),
+                )
             }
         }
         Button(
