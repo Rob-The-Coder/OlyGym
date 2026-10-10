@@ -12,7 +12,7 @@ measured with the two apps rendering the same exported profile.
 | | |
 |---|---|
 | Landed | WS0 the expressive theme · WS2 the accessibility floor · WS6 the Italian strings · WS1 the shape vocabulary · WS4 Home's hero · WS3's inert tab bar |
-| Open | WS3's remaining four (completed sets, segmented, snackbar, the session action stack) · WS4's body-weight curve and Welcome card |
+| Open | WS3's remaining three (segmented, snackbar, the session action stack) · WS4's body-weight curve and Welcome card |
 | Verified | 730 JVM tests and 1144 web tests, 0 failures, at every commit; the debug APK builds offline; every visual claim has a capture in `oly-previews/native-m3e/`; every accessibility claim has a uiautomator dump |
 
 ---
@@ -136,6 +136,31 @@ store so both apps render the identical state (`/tmp/oly-state.json`).
 "it looks right". Measurement is quoted, not asserted.
 
 ## 7. Progress log
+
+### WS3 — a completed set says so · landed (three items of WS3 still open)
+
+**What changed.** The web marks a done set twice: `.setrow.done .n` turns the row's number into an
+accent disc, and `.setrow.done` drops the whole row to 45% opacity. The disc landed; the blanket
+opacity did not, per decision 7.
+
+**Measured, not asserted** — WCAG contrast of the set row's text on its own card:
+
+| Row treatment | Contrast |
+|---|---|
+| full opacity (now) | **13.30:1** |
+| this app's old `alpha(0.55)` | 4.87:1 |
+| the web's `opacity: .45` | **3.74:1** (3.76:1 on the web's own surface) |
+
+So the web's treatment is under the 4.5:1 floor for body text, and this app's older one only just
+cleared it. The intent is kept — the row recedes and the number becomes an accent disc — and the
+numbers you are actually reading between sets stay legible. `SetNumber` is shared by the per-movement
+table and the complex's rounds table so the two cannot drift.
+
+**Evidence.** `oly-previews/native-m3e/ws3-done-sets.png`; the workout screen is still 0 unnamed of
+68 clickable nodes. 730 JVM tests, 0 failures.
+
+**Still open in WS3**: the segmented control becoming the web's sliding pill, the toast becoming a
+real `Snackbar`, and the session screen's six stacked action buttons.
 
 ### WS7 — the reading-width cap · landed
 

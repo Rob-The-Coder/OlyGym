@@ -157,6 +157,34 @@ internal fun stepValue(current: Double?, dir: Double, step: Double = 1.0): Doubl
     return maxOf(0.0, rounded)
 }
 
+/**
+ * A set's number: a plain digit while the set is ahead of you, and an accent disc once it is done —
+ * the web's `.setrow.done .n`. It is the row's state in one mark, and it says "done" without
+ * lowering the contrast of the numbers you are actually reading.
+ */
+@Composable
+private fun SetNumber(number: Int, done: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier.size(28.dp).clickable { onClick() },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .clip(CircleShape)
+                .background(if (done) MaterialTheme.colorScheme.primary else Color.Transparent),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = number.toString(),
+                style = MaterialTheme.typography.labelMedium,
+                color = if (done) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
+    }
+}
+
 @Composable
 private fun StepButton(glyph: Glyph, description: String, onClick: () -> Unit) {
     // description used to be declared and never read. It names the control now.
@@ -569,22 +597,17 @@ fun ExerciseBlock(
                         )
                     }
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp).alpha(if (done) 0.55f else 1f),
+                        // The web fades a completed row to 45%, which puts its text well under 4.5:1
+                        // against the surface. Decided with the user: keep the intent — the row
+                        // recedes and its number becomes an accent disc — but say it with the disc
+                        // and the filled check rather than by making the set hard to read on a phone
+                        // held at arm's length between reps.
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         val phaseNumber = sets.take(index + 1).count { isWarmupRow(it) == warm }
-                        Box(
-                            modifier = Modifier.size(28.dp).clickable { openSetMenu(set, index) },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = phaseNumber.toString(),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                            )
-                        }
+                        SetNumber(phaseNumber, done) { openSetMenu(set, index) }
                         CellStepper(
                             value = set.num(col1.f),
                             onChange = { onField(index, col1.f, it) },
@@ -726,21 +749,13 @@ internal fun RoundsTable(
                 )
             }
             Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp).alpha(if (done) 0.55f else 1f),
+                // Same as the per-movement table above: full contrast, and the round's number
+                // carries the done state.
+                modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Box(
-                    modifier = Modifier.size(28.dp).clickable { openRoundMenu(index) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = num.toString(),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                }
+                SetNumber(num, done) { openRoundMenu(index) }
                 CellStepper(
                     value = sets.getOrNull(index)?.num("w"),
                     onChange = { onFieldRound(index, it) },
