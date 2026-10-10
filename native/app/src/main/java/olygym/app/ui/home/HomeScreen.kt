@@ -73,6 +73,8 @@ import olygym.app.ui.components.olyAppBarScrollBehavior
 import olygym.app.ui.currentProfile
 import olygym.app.ui.profileNow
 import olygym.app.ui.sheet.bwDeltaColor
+import olygym.app.ui.chart.ChartPoint
+import olygym.app.ui.chart.LineChart
 import olygym.app.ui.components.SectionCard
 import olygym.app.ui.sheet.calendarSheet
 import olygym.app.ui.sheet.starterPlanSheet
@@ -462,6 +464,26 @@ fun HomeScreen() {
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.extraColors.yellow,
                             modifier = Modifier.padding(top = 6.dp),
+                        )
+                    }
+                    // The web draws the same curve here that Stats does — the app's only number that
+                    // has a shape, and the reason Home is worth opening on a rest day. It is the same
+                    // LineChart and the same goal line; Home just does not offer the range strip,
+                    // because the point of it here is the trend rather than a window on it.
+                    val points = profile.bodyweight.mapNotNull { element ->
+                        val w = element.asObj() ?: return@mapNotNull null
+                        val iso = w.str("d") ?: return@mapNotNull null
+                        val at = w.num("t")?.toLong() ?: java.time.LocalDate.parse(iso)
+                            .atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+                        ChartPoint(t = at, y = w.num("w") ?: 0.0, d = iso)
+                    }
+                    if (points.size > 1) {
+                        LineChart(
+                            points = points,
+                            modifier = Modifier.padding(top = 10.dp),
+                            height = 130.dp,
+                            unit = unit,
+                            goal = profile.settings.targetW,
                         )
                     }
                 }

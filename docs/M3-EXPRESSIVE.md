@@ -12,7 +12,7 @@ measured with the two apps rendering the same exported profile.
 | | |
 |---|---|
 | Landed | WS0 the expressive theme · WS2 the accessibility floor · WS6 the Italian strings · WS1 the shape vocabulary · WS4 Home's hero · WS3's inert tab bar |
-| Open | WS4's body-weight curve on Home |
+| Open | nothing on the plan's list; the Start lift, Snackbar and segmented all landed after this table was first written |
 | Verified | 730 JVM tests and 1144 web tests, 0 failures, at every commit; the debug APK builds offline; every visual claim has a capture in `oly-previews/native-m3e/`; every accessibility claim has a uiautomator dump |
 
 ---
@@ -91,7 +91,7 @@ never named either. Trees: `oly-previews/native-m3e/ws2-before/` and `ws2/`.
 | WS6 | The missing Italian keys, asset regen, guard test | **landed** — see the progress log |
 | WS1 | The shape vocabulary | **landed** — see the progress log |
 | WS3 | Checkbox, segmented, tab bar, snackbar, action stack | **landed** except the completed-set wording recorded below |
-| WS4 | Home parity | **hero landed**; curve and welcome card open |
+| WS4 | Home parity | **landed** — hero, curve and empty state |
 | WS5 | Motion on one scheme | **landed** — see the progress log |
 | WS7 | Adaptive-lite reading width | **landed** — see the progress log |
 | WS8 | Documentation | in progress (this file) |
@@ -136,6 +136,18 @@ store so both apps render the identical state (`/tmp/oly-state.json`).
 "it looks right". Measurement is quoted, not asserted.
 
 ## 7. Progress log
+
+### WS4 — Home's body-weight curve · landed, and WS4 is complete
+
+**What changed.** Home draws the same curve Stats does — the same `LineChart`, the same goal line,
+over the whole series rather than a range window, because the point of it on Home is the trend. It
+appears once there are two entries to draw a line between.
+
+**Evidence.** `oly-previews/native-m3e/ws4-home-curve.png`. 730 JVM tests, 0 failures.
+
+With this, Home matches the React app: the primary-container hero at the xl radius, the three tiles,
+the body-weight card with its value, delta and curve, the meet row, and the Welcome card when there
+is no plan at all.
 
 ### WS3 — the segmented control · landed
 
