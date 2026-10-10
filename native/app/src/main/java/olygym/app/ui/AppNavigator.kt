@@ -25,9 +25,11 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -202,21 +204,26 @@ private fun TabContent(tab: Int) {
     }
 }
 
+/**
+ * The app's "done" feedback, as M3's own Snackbar.
+ *
+ * It was a hand-built Surface with the inverse roles on it. That looked right and said nothing: the
+ * text appeared, no screen reader announced it, and it was gone by the time anyone looked. M3's
+ * Snackbar brings its own semantics, insets and padding, and the app's inverse-surface pill is kept
+ * through its colour and shape parameters so the change is the component, not the look.
+ *
+ * It is the Snackbar rather than a SnackbarHost: the shell holds one message at a time and clears it
+ * itself, so a host's queue and its own dismiss timer would be two clocks for one job.
+ */
 @Composable
 private fun Toast(message: String, modifier: Modifier = Modifier) {
-    Surface(
-        color = MaterialTheme.colorScheme.inverseSurface,
+    Snackbar(
+        modifier = modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        containerColor = MaterialTheme.colorScheme.inverseSurface,
         contentColor = MaterialTheme.colorScheme.inverseOnSurface,
         shape = FullShape,
-        // A toast is the app's "done" feedback and it used to be silent to a screen reader: the
-        // text appeared, nothing announced it, and it was gone again by the time anyone looked.
-        modifier = modifier.semantics { liveRegion = LiveRegionMode.Polite },
     ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-        )
+        Text(text = message, style = MaterialTheme.typography.bodyMedium)
     }
 }
 
@@ -224,7 +231,10 @@ private fun Toast(message: String, modifier: Modifier = Modifier) {
 
 @Composable
 private fun AppTabBar(selected: Int, onTab: (Int) -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+    // A Box with the colour rather than a Surface: Surface clips its content to its shape, and the
+    // Start control rides 20dp above this bar — a Surface cut the disc off at its own top edge. A
+    // Box draws the same tone and lets the disc out.
+    Box(Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).selectableGroup(),
             verticalAlignment = Alignment.CenterVertically,
@@ -282,10 +292,10 @@ private fun RowScope.StartButton() {
     Column(
         modifier = Modifier
             .weight(1.3f)
-            // The web lifts the disc 20px above the bar and takes it out of the flow to do it. This
-            // bar is a Material Surface, which clips its content, so an offset here is cut off at
-            // the bar's own edge; the lift is deferred to its own change, which has to draw the
-            // Start control outside the Surface rather than inside its row.
+            // The web lifts the disc 20px above the bar and takes it out of the flow to do it;
+            // offset draws it there without making the bar taller, which is what kept the tabs'
+            // indicator misaligned before. Only the drawing moves, so the touch area moves with it.
+            .offset(y = (-20).dp)
             .semantics(mergeDescendants = true) { contentDescription = actionLabel; role = Role.Button }
             .clickable(interactionSource = press, indication = LocalIndication.current) {
                 if (hasSession) {

@@ -12,7 +12,7 @@ measured with the two apps rendering the same exported profile.
 | | |
 |---|---|
 | Landed | WS0 the expressive theme · WS2 the accessibility floor · WS6 the Italian strings · WS1 the shape vocabulary · WS4 Home's hero · WS3's inert tab bar |
-| Open | WS3's remaining two (segmented, snackbar) · WS4's body-weight curve |
+| Open | WS3's segmented control · WS4's body-weight curve |
 | Verified | 730 JVM tests and 1144 web tests, 0 failures, at every commit; the debug APK builds offline; every visual claim has a capture in `oly-previews/native-m3e/`; every accessibility claim has a uiautomator dump |
 
 ---
@@ -184,8 +184,10 @@ table and the complex's rounds table so the two cannot drift.
 **Evidence.** `oly-previews/native-m3e/ws3-done-sets.png`; the workout screen is still 0 unnamed of
 68 clickable nodes. 730 JVM tests, 0 failures.
 
-**Still open in WS3**: the segmented control becoming the web's sliding pill, and the toast
-becoming a real `Snackbar`.
+**Still open in WS3**: the segmented control becoming the web's sliding pill.
+
+**The toast is M3's Snackbar now**, and **the Start control rides 20dp above the bar**. Both are
+recorded in the two commits after this one.
 
 ### WS7 — the reading-width cap · landed
 
