@@ -98,7 +98,10 @@ import olygym.app.ui.sheet.exerciseHistorySheet
 import olygym.app.ui.sheet.menuSheet
 import olygym.app.ui.theme.FullShape
 import olygym.app.ui.theme.Motion
+import olygym.app.ui.theme.effectsSpec
 import olygym.app.ui.theme.extraColors
+import olygym.app.ui.theme.fastSpatialSpec
+import olygym.app.ui.theme.spatialSpec
 import olygym.app.ui.ui
 
 /** One column of the set table: which field, how it steps, and what it is called. */
@@ -435,12 +438,12 @@ fun ExerciseBlock(
                 visible = mediaOpen,
                 enter = expandIn(
                     expandFrom = Alignment.TopStart,
-                    animationSpec = tween(Motion.LONG, easing = Motion.emphasizedDecelerate),
-                ) + fadeIn(tween(Motion.MEDIUM)),
+                    animationSpec = spatialSpec(),
+                ) + fadeIn(effectsSpec()),
                 exit = shrinkOut(
                     shrinkTowards = Alignment.TopStart,
-                    animationSpec = tween(Motion.SHORT, easing = Motion.standard),
-                ) + fadeOut(tween(Motion.SHORT)),
+                    animationSpec = fastSpatialSpec(),
+                ) + fadeOut(effectsSpec()),
             ) {
                 WorkoutMedia(
                     ex = ex,

@@ -66,7 +66,9 @@ import olygym.app.ui.sheet.SheetHost
 import olygym.app.ui.theme.FabShape
 import olygym.app.ui.theme.FullShape
 import olygym.app.ui.theme.Motion
+import olygym.app.ui.theme.fastSpatialSpec
 import olygym.app.ui.theme.reduceMotion
+import olygym.app.ui.theme.spatialSpec
 import olygym.app.ui.workout.WorkoutScreen
 import olygym.app.ui.workout.startFlow
 
@@ -109,6 +111,9 @@ fun AppNavigator() {
         val route = navigator.lastItem to tab
         val appear = remember { Animatable(0f) }
         val reduce = reduceMotion()
+        // The scheme's own spatial spec: the same spring the sheet, the dialog and the segmented
+        // thumb move on, rather than this file's private bézier.
+        val appearSpec = spatialSpec<Float>()
         LaunchedEffect(route, reduce) {
             if (reduce) {
                 // Reduced motion: the screen is simply there. The fade explains a spatial change,
@@ -116,7 +121,7 @@ fun AppNavigator() {
                 appear.snapTo(1f)
             } else {
                 appear.snapTo(0f)
-                appear.animateTo(1f, tween(Motion.LONG, easing = Motion.emphasizedDecelerate))
+                appear.animateTo(1f, appearSpec)
             }
         }
 
@@ -261,7 +266,7 @@ private fun RowScope.StartButton() {
     // The web's .start .cir:active: the disc compresses to .94 and springs back, on the long duration.
     val disc by animateFloatAsState(
         targetValue = if (held && !reduceMotion()) 0.94f else 1f,
-        animationSpec = tween(Motion.LONG, easing = Motion.spring),
+        animationSpec = fastSpatialSpec(),
         label = "start-press",
     )
     val actionLabel = if (hasSession) t("Resume") else t("Start")

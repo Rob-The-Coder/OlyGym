@@ -92,7 +92,7 @@ never named either. Trees: `oly-previews/native-m3e/ws2-before/` and `ws2/`.
 | WS1 | The shape vocabulary | **landed** — see the progress log |
 | WS3 | Checkbox, segmented, tab bar, snackbar, action stack | **inert tabs fixed**; the rest open |
 | WS4 | Home parity | **hero landed**; curve and welcome card open |
-| WS5 | Motion on one scheme | not started |
+| WS5 | Motion on one scheme | **landed** — see the progress log |
 | WS7 | Adaptive-lite reading width | not started |
 | WS8 | Documentation | in progress (this file) |
 
@@ -136,6 +136,25 @@ store so both apps render the identical state (`/tmp/oly-state.json`).
 "it looks right". Measurement is quoted, not asserted.
 
 ## 7. Progress log
+
+### WS5 — motion on one scheme · landed
+
+**What changed.** `ui/theme/MotionSpecs.kt` exposes the scheme's own specs — `spatialSpec`,
+`fastSpatialSpec`, `effectsSpec` — and the three animations the app draws itself now use them
+instead of this codebase's private béziers: the route fade, the Start press, and the workout's media
+expand. `Motion.kt`'s curves stay as the named token table and the fallback.
+
+**The wave is Material's now.** `WaveProgress` was the app's own sine, drawn to match the web's
+masked SVG. It is a call to `LinearWavyProgressIndicator` — one fewer thing the app owns, on the
+scheme's motion — with the same 6px stroke the web settled on, and a plain `LinearProgressIndicator`
+under a reduced-motion request so the bar still fills and still measures without flowing.
+
+**The timer flash is fixed.** It held the opposite theme for 2.4s in one step, which is a
+full-screen change in luminance long enough to read as a fault. It is the web's four steps at 600ms
+now — opposite, back, opposite, back — and nothing at all under reduced motion.
+
+**Evidence.** Built and tested on the device; `oly-previews/native-m3e/ws5-workout-wave.png` shows
+the indicator's wave in the session header. 730 JVM tests, 0 failures.
 
 ### WS3 — the tab bar does something · landed (the rest of WS3 is open)
 

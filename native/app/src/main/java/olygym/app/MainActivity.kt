@@ -62,8 +62,14 @@ class MainActivity : ComponentActivity() {
             val reduce = reduceMotion()
             LaunchedEffect(ui.timerFlash, reduce) {
                 if (ui.timerFlash > 0 && !reduce) {
-                    blink = true
-                    delay(2400)
+                    // The web's TimerFlash: four steps at 600ms — opposite, back, opposite, back —
+                    // so the app blinks twice. Held for the whole 2.4s in one step, as this did, it
+                    // is a full-screen change in luminance that lasts long enough to read as a
+                    // fault rather than as an alert.
+                    repeat(4) { step ->
+                        blink = step % 2 == 0
+                        delay(600)
+                    }
                     blink = false
                 }
             }
