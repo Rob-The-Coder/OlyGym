@@ -2,8 +2,14 @@ package olygym.app.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -63,6 +69,7 @@ import olygym.app.ui.theme.FullShape
 import olygym.app.ui.theme.OVERLINE_TRACK
 import olygym.app.ui.theme.OverlineWeight
 import olygym.app.ui.theme.emphasizedWeight
+import olygym.app.ui.theme.spatialSpec
 import olygym.app.ui.theme.extraColors
 
 /*
@@ -699,8 +706,16 @@ fun IconButton(
 /* ============================ segmented ============================ */
 
 /**
- * The web app's .seg: two or three exclusive short options. Material3's own control, because it is
- * exactly this one and already themed.
+ * The web app's .seg: two or more exclusive short options in a tonal track, with an accent pill
+ * that travels to the one you picked.
+ *
+ * It used to be M3's SegmentedButton, which is a different control: it ticks the selection and
+ * outlines the group, where the web fills a pill and moves it. The roles are the same ones the web
+ * spends — surface-container-highest for the track, primary and on-primary for the pill — so an
+ * accent change carries through, and the travel is the scheme's own spatial spec.
+ *
+ * The height is fixed rather than intrinsic: the pill is laid out behind the labels and has to match
+ * the row it sits in, and a fill-height child in a wrap-content parent has no bound to fill.
  */
 @Composable
 fun Segmented(
@@ -715,23 +730,58 @@ fun Segmented(
      */
     ariaLabels: List<String>? = null,
 ) {
-    SingleChoiceSegmentedButtonRow(modifier.fillMaxWidth()) {
-        options.forEachIndexed { index, option ->
-            SegmentedButton(
-                selected = option == value,
-                onClick = { onChange(option) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                modifier = if (ariaLabels != null) {
-                    Modifier.semantics { contentDescription = ariaLabels.getOrElse(index) { option } }
-                } else {
-                    Modifier
-                },
-            ) {
-                Text(
-                    text = labels.getOrElse(index) { option },
-                    style = MaterialTheme.typography.labelLarge,
-                    maxLines = 1,
-                )
+    val selected = options.indexOf(value).let { if (it < 0) 0 else it }
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(44.dp)
+            .clip(FullShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .padding(4.dp)
+            .selectableGroup(),
+    ) {
+        val itemWidth = maxWidth / options.size.coerceAtLeast(1)
+        val travel by animateDpAsState(
+            targetValue = itemWidth * selected,
+            animationSpec = spatialSpec(),
+            label = "seg-pill",
+        )
+        Box(
+            Modifier
+                .offset(x = travel)
+                .width(itemWidth)
+                .fillMaxHeight()
+                .clip(FullShape)
+                .background(MaterialTheme.colorScheme.primary),
+        )
+        LayoutRow(Modifier.fillMaxWidth()) {
+            options.forEachIndexed { index, option ->
+                val on = index == selected
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .selectable(
+                            selected = on,
+                            role = Role.RadioButton,
+                            onClick = { onChange(option) },
+                        )
+                        .semantics {
+                            if (ariaLabels != null) contentDescription = ariaLabels.getOrElse(index) { option }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = labels.getOrElse(index) { option },
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (on) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }

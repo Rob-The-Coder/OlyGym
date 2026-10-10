@@ -12,7 +12,7 @@ measured with the two apps rendering the same exported profile.
 | | |
 |---|---|
 | Landed | WS0 the expressive theme · WS2 the accessibility floor · WS6 the Italian strings · WS1 the shape vocabulary · WS4 Home's hero · WS3's inert tab bar |
-| Open | WS3's segmented control · WS4's body-weight curve |
+| Open | WS4's body-weight curve on Home |
 | Verified | 730 JVM tests and 1144 web tests, 0 failures, at every commit; the debug APK builds offline; every visual claim has a capture in `oly-previews/native-m3e/`; every accessibility claim has a uiautomator dump |
 
 ---
@@ -90,7 +90,7 @@ never named either. Trees: `oly-previews/native-m3e/ws2-before/` and `ws2/`.
 | WS2 | Accessibility floor, reduced motion, guard test | **landed** — see the progress log |
 | WS6 | The missing Italian keys, asset regen, guard test | **landed** — see the progress log |
 | WS1 | The shape vocabulary | **landed** — see the progress log |
-| WS3 | Checkbox, segmented, tab bar, snackbar, action stack | **inert tabs fixed**; the rest open |
+| WS3 | Checkbox, segmented, tab bar, snackbar, action stack | **landed** except the completed-set wording recorded below |
 | WS4 | Home parity | **hero landed**; curve and welcome card open |
 | WS5 | Motion on one scheme | **landed** — see the progress log |
 | WS7 | Adaptive-lite reading width | **landed** — see the progress log |
@@ -136,6 +136,23 @@ store so both apps render the identical state (`/tmp/oly-state.json`).
 "it looks right". Measurement is quoted, not asserted.
 
 ## 7. Progress log
+
+### WS3 — the segmented control · landed
+
+**What changed.** It was M3's `SegmentedButton`, which is a different control: it ticks the selection
+and outlines the group, where the web fills a pill inside a tonal track and moves it. This is the
+web's `.seg` now — `surfaceContainerHighest` for the track, `primary`/`onPrimary` for the pill,
+`onSurfaceVariant` for the labels that are not chosen — and the pill travels on the scheme's own
+spatial spec. The roles are the ones the web spends, so an accent change carries through.
+
+The height is fixed at 44dp rather than intrinsic: the pill is laid out behind the labels and has to
+match the row it sits in, and a fill-height child inside a wrap-content parent has no bound to fill.
+44 is also the target floor the app holds itself to.
+
+Every one of the twelve call sites gets it — Settings, WeekEdit, Stats, the meet sheets, the exercise
+config, the coach import and the picker — because they all come through this one composable.
+
+**Evidence.** `oly-previews/native-m3e/ws3-segmented-settings.png`. 730 JVM tests, 0 failures.
 
 ### WS4 — the empty state · landed
 
