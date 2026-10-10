@@ -85,7 +85,7 @@ never named either. Trees: `oly-previews/native-m3e/ws2-before/` and `ws2/`.
 | WS6 | The missing Italian keys, asset regen, guard test | **landed** — see the progress log |
 | WS1 | The shape vocabulary | **landed** — see the progress log |
 | WS3 | Checkbox, segmented, tab bar, snackbar, action stack, inert tabs | not started |
-| WS4 | Home parity | not started |
+| WS4 | Home parity | **hero landed**; curve and welcome card open |
 | WS5 | Motion on one scheme | not started |
 | WS7 | Adaptive-lite reading width | not started |
 | WS8 | Documentation | in progress (this file) |
@@ -130,6 +130,25 @@ store so both apps render the identical state (`/tmp/oly-state.json`).
 "it looks right". Measurement is quoted, not asserted.
 
 ## 7. Progress log
+
+### WS4 — Home parity, the hero · landed (curve and welcome card still open)
+
+**What changed.** The hero is the web's `.hero`: a **primary-container** surface at the **xl**
+radius, with every child taking `on-primary-container` — the overline uppercased at 78% of it, the
+day icon in the web's 44dp disc at 14% of it, the title and subtitle at full and 82%, and the week
+strip inheriting the same ink behind the same hairlines. The chip icons (the two week arrows, the
+reset) carry that ink too. Nothing is hardcoded: the whole block follows `primaryContainer` and
+`onPrimaryContainer`, so it moves with the accent.
+
+**Evidence.** `oly-previews/native-m3e/ws1/01-home-hero.png` against the React Home of the same
+profile — the two are the same design now. Home's accessibility tree is still 0 unnamed of 20.
+
+**Still open in WS4**, and deliberately not bundled here:
+
+- The **body-weight curve** the web draws on Home. That is a real port (the LineChart exists in
+  Compose already, in Stats) rather than a treatment, and it is worth its own change.
+- The **Welcome card** for the empty state ("Set up your weekly routine — or load a ready-made
+  starter plan"), which only appears with no weeks at all.
 
 ### WS1 — the shape vocabulary · landed
 

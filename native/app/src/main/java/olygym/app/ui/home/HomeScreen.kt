@@ -171,54 +171,60 @@ fun HomeScreen() {
                 .padding(horizontal = 16.dp),
         ) {
             // The hero: one card, one action, and the week it belongs to inside it.
+            //
+            // The web draws it on --m3-primary-container at the xl radius, with every child taking
+            // the container's own on-colour, so the day you are looking at is the surface the eye
+            // lands on rather than one more neutral card among several. Shape and ink come from the
+            // container role, so an accent change moves the whole hero and nothing here is hardcoded.
+            val heroInk = MaterialTheme.colorScheme.onPrimaryContainer
             Box(
                 Modifier
                     .fillMaxWidth()
                     .padding(top = 6.dp)
-                    .clip(CardShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .clip(MaterialTheme.shapes.extraLarge)
+                    .background(MaterialTheme.colorScheme.primaryContainer)
                     .padding(16.dp),
             ) {
                 Column(Modifier.fillMaxWidth()) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = t("Today") + " · " + fmtLongDate(iso),
+                            text = (t("Today") + " · " + fmtLongDate(iso)).uppercase(),
                             style = MaterialTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.W700,
                                 letterSpacing = 0.08.em,
                             ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = heroInk.copy(alpha = 0.78f),
                             modifier = Modifier.weight(1f),
                         )
-                        IconButton(Glyph.CHEVRON_LEFT, t("Previous week"), onClick = { weekOffset -= 1 }, enabled = true)
-                        IconButton(Glyph.CHEVRON_RIGHT, t("Next week"), onClick = { weekOffset += 1 }, enabled = true)
+                        IconButton(Glyph.CHEVRON_LEFT, t("Previous week"), onClick = { weekOffset -= 1 }, tint = heroInk, enabled = true)
+                        IconButton(Glyph.CHEVRON_RIGHT, t("Next week"), onClick = { weekOffset += 1 }, tint = heroInk, enabled = true)
                     }
                     Row(
                         modifier = Modifier.padding(top = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(11.dp),
                     ) {
-                        GlyphIcon(
-                            heroGlyph,
-                            Modifier.size(26.dp),
-                            tint = if (active != null || doneToday != null) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
-                            stroke = 1.8f,
-                        )
+                        // The web's .hero-i: a 44dp disc a shade off the container's own on-colour.
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(heroInk.copy(alpha = 0.14f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            GlyphIcon(heroGlyph, Modifier.size(22.dp), tint = heroInk, stroke = 1.8f)
+                        }
                         Column(Modifier.weight(1f)) {
                             Text(
                                 text = heroTitle,
                                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.W600),
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = heroInk,
                             )
                             if (heroSub.isNotEmpty()) {
                                 Text(
                                     text = heroSub,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = heroInk.copy(alpha = 0.82f),
                                 )
                             }
                         }
@@ -246,7 +252,7 @@ fun HomeScreen() {
                             modifier = Modifier.weight(1f),
                         )
                         if (active == null) {
-                            IconButton(Glyph.RESET, t("Open the workout screen"), onClick = { Nav.to(WorkoutScreen) })
+                            IconButton(Glyph.RESET, t("Open the workout screen"), onClick = { Nav.to(WorkoutScreen) }, tint = heroInk)
                         }
                     }
                     Row(
@@ -266,13 +272,15 @@ fun HomeScreen() {
                                     .padding(vertical = 6.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                             ) {
+                                // The strip is drawn for the page ground; inside the hero it takes the
+                                // hero's own ink, which is what .hero-rail does on the web.
                                 Text(
                                     text = t(DAYS[date.dayOfWeek.value % 7]),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.W500,
                                         letterSpacing = 0.03.em,
                                     ),
-                                    color = MaterialTheme.extraColors.onSurfaceDisabled,
+                                    color = heroInk.copy(alpha = 0.72f),
                                 )
                                 Box(
                                     modifier = Modifier
@@ -292,7 +300,7 @@ fun HomeScreen() {
                                         color = if (isToday) {
                                             MaterialTheme.colorScheme.onPrimary
                                         } else {
-                                            MaterialTheme.colorScheme.onSurface
+                                            heroInk
                                         },
                                     )
                                 }
@@ -302,8 +310,8 @@ fun HomeScreen() {
                                         .clip(CircleShape)
                                         .background(
                                             when {
-                                                done -> MaterialTheme.colorScheme.primary
-                                                planned -> MaterialTheme.extraColors.onSurfaceDisabled
+                                                done -> heroInk
+                                                planned -> heroInk.copy(alpha = 0.45f)
                                                 else -> Color.Transparent
                                             }
                                         )
