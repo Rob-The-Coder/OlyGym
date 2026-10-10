@@ -6,8 +6,14 @@ finishes the expressive pass the port deliberately deferred (Phase 4a/4b in
 sibling document `DESIGN.md` is the React app's design system; this one says what the Kotlin app
 does about it and how each claim was proved.
 
-Status: **in progress**. Nothing here is speculative — every divergence below was measured with the
-two apps rendering the same exported profile.
+Status: **six commits in, and usable**. Nothing here is speculative — every divergence below was
+measured with the two apps rendering the same exported profile.
+
+| | |
+|---|---|
+| Landed | WS0 the expressive theme · WS2 the accessibility floor · WS6 the Italian strings · WS1 the shape vocabulary · WS4 Home's hero · WS3's inert tab bar |
+| Open | WS3's remaining four (completed sets, segmented, snackbar, the session action stack) · WS4's body-weight curve and Welcome card · WS5 motion on one scheme · WS7 the reading-width cap · WS8's phase note in PORT-TO-KOTLIN.md |
+| Verified | 730 JVM tests and 1144 web tests, 0 failures, at every commit; the debug APK builds offline; every visual claim has a capture in `oly-previews/native-m3e/`; every accessibility claim has a uiautomator dump |
 
 ---
 

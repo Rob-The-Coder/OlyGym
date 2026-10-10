@@ -1437,6 +1437,28 @@ pictures are in `oly-previews/native-phase7e/`.
 - **The rest of the web's `SelectRow`.** `search`, `help`, `stackedValue` and the `children` slot are
   still unported; the Stats exercise selector's missing search is the one that shows.
 
+---
+
+## Phase M3E — the expressive pass, and the parity the port never finished
+
+The port copied the React app's *tokens* faithfully and then spent them on components drawn at
+different radii, with different ink and without any of the expressive motion. Running the two apps
+side by side on one exported profile made that visible, and the work is recorded phase by phase in
+**[M3-EXPRESSIVE.md](M3-EXPRESSIVE.md)** — the divergence table there is the specification, and the
+progress log is what actually shipped at each step.
+
+Two things in that document matter to anyone reading this one:
+
+1. **material3 moved to 1.5.0-alpha14**, declared explicitly beside the Compose BOM. The BOM pins
+   1.4.0, which keeps `MaterialExpressiveTheme`, `MotionScheme`, `MaterialShapes` and the
+   expressive components Kotlin-`internal` — the block Phase 4a and 4b recorded. The BOM itself is
+   untouched, so ui/foundation stay at 1.11.4.
+2. **Phase 4a's hand-drawn wave is now redundant in principle.** M3 ships
+   `LinearWavyProgressIndicator`; swapping the app's own `WaveProgress` for it is part of WS5,
+   which is open.
+
+What is open is listed at the top of M3-EXPRESSIVE.md rather than being implied here.
+
 
 
 
