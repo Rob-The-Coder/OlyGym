@@ -12,7 +12,7 @@ measured with the two apps rendering the same exported profile.
 | | |
 |---|---|
 | Landed | WS0 the expressive theme · WS2 the accessibility floor · WS6 the Italian strings · WS1 the shape vocabulary · WS4 Home's hero · WS3's inert tab bar |
-| Open | WS3's remaining two (segmented, snackbar) · WS4's body-weight curve and Welcome card |
+| Open | WS3's remaining two (segmented, snackbar) · WS4's body-weight curve |
 | Verified | 730 JVM tests and 1144 web tests, 0 failures, at every commit; the debug APK builds offline; every visual claim has a capture in `oly-previews/native-m3e/`; every accessibility claim has a uiautomator dump |
 
 ---
@@ -137,6 +137,18 @@ store so both apps render the identical state (`/tmp/oly-state.json`).
 
 ## 7. Progress log
 
+### WS4 — the empty state · landed
+
+**What changed.** Home's Welcome card — the sparkle rail, the title, the sentence, **Load starter
+plan** and **Build my own plan** — shown when the profile has no weeks at all. That is what a first
+install sees, and it was the one screen state the port had dropped: the hero can only offer to open
+a plan that does not exist yet. Nothing new: the strings are the shared keys and the starter chooser
+is the same sheet the Plan tab and Settings already open.
+
+**Evidence.** `oly-previews/native-m3e/ws4-welcome.png`, captured against a state with `weeks: []`
+and restored afterwards. The suite passed on the first build, which also proves the three keys are in
+the Italian asset — `I18nCoverageTest` would have failed otherwise.
+
 ### WS3 — the session screen's action stack · landed
 
 **What changed.** The session ended in six buttons at nearly the same weight — Add exercise, Swap
@@ -241,8 +253,7 @@ profile — the two are the same design now. Home's accessibility tree is still 
 
 - The **body-weight curve** the web draws on Home. That is a real port (the LineChart exists in
   Compose already, in Stats) rather than a treatment, and it is worth its own change.
-- The **Welcome card** for the empty state ("Set up your weekly routine — or load a ready-made
-  starter plan"), which only appears with no weeks at all.
+- ~~The Welcome card for the empty state~~ — landed in the commit after this one.
 
 ### WS1 — the shape vocabulary · landed
 

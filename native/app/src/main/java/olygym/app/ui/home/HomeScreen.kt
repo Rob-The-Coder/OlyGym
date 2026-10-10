@@ -73,7 +73,9 @@ import olygym.app.ui.components.olyAppBarScrollBehavior
 import olygym.app.ui.currentProfile
 import olygym.app.ui.profileNow
 import olygym.app.ui.sheet.bwDeltaColor
+import olygym.app.ui.components.SectionCard
 import olygym.app.ui.sheet.calendarSheet
+import olygym.app.ui.sheet.starterPlanSheet
 import olygym.app.ui.sheet.goalSheet
 import olygym.app.ui.sheet.weighInSheet
 import olygym.app.ui.t
@@ -485,6 +487,55 @@ fun HomeScreen() {
                         },
                         accessory = Accessory.CHEVRON,
                         onClick = { Nav.to(CompetitionsScreen) },
+                    )
+                }
+            }
+            // The web's welcome card, and the one screen state the port had dropped: a profile with
+            // no weeks at all is what a first install shows, and the hero can only offer to open a
+            // plan that does not exist yet. Nothing here is new copy — the strings are the shared
+            // keys, and the starter chooser is the same sheet the Plan tab and Settings open.
+            if (profile.weeks.isEmpty()) {
+                SectionCard(modifier = Modifier.padding(top = 14.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(29.dp)
+                                .clip(RoundedCornerShape(7.dp))
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            GlyphIcon(Glyph.SPARKLES, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onPrimary)
+                        }
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = t("Welcome!"),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.W600),
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Text(
+                                text = t(
+                                    "Set up your weekly routine to get going — or load a ready-made starter plan.",
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    Button(
+                        text = t("Load starter plan"),
+                        onClick = { starterPlanSheet() },
+                        variant = ButtonVariant.PRIMARY,
+                        icon = Glyph.SPARKLES,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                    Button(
+                        text = t("Build my own plan"),
+                        onClick = { Nav.tabHost?.invoke(1) },
+                        variant = ButtonVariant.GHOST,
+                        modifier = Modifier.padding(top = 6.dp),
                     )
                 }
             }
