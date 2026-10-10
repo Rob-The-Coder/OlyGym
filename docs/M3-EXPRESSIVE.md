@@ -84,7 +84,7 @@ never named either. Trees: `oly-previews/native-m3e/ws2-before/` and `ws2/`.
 | WS2 | Accessibility floor, reduced motion, guard test | **landed** — see the progress log |
 | WS6 | The missing Italian keys, asset regen, guard test | **landed** — see the progress log |
 | WS1 | The shape vocabulary | **landed** — see the progress log |
-| WS3 | Checkbox, segmented, tab bar, snackbar, action stack, inert tabs | not started |
+| WS3 | Checkbox, segmented, tab bar, snackbar, action stack | **inert tabs fixed**; the rest open |
 | WS4 | Home parity | **hero landed**; curve and welcome card open |
 | WS5 | Motion on one scheme | not started |
 | WS7 | Adaptive-lite reading width | not started |
@@ -130,6 +130,26 @@ store so both apps render the identical state (`/tmp/oly-state.json`).
 "it looks right". Measurement is quoted, not asserted.
 
 ## 7. Progress log
+
+### WS3 — the tab bar does something · landed (the rest of WS3 is open)
+
+**The bug.** The bar is drawn over a pushed screen, and `onTab` only set the selected index —
+state nothing reads until the stack returns to the host. So with a session on screen, or any screen
+opened from a sheet, the four destinations were **inert**. It is why the first attempt at a Plan
+capture came back as a second Workout capture. On the web the same tap navigates and the session
+keeps running.
+
+**The fix.** A tab tap pops the stack back to the host before it selects, so the bar means what it
+looks like it means.
+
+**Evidence, from the device's own tree.** With the session open, the tree lists the session title
+*and* the bar's labels. After tapping Stats it lists Stats and no longer the session title. Before
+the fix the session title stayed.
+
+**Still open in WS3**: the completed-set treatment (accent number disc plus a token tone that keeps
+4.5:1, rather than the web's flat 45% opacity), the segmented control becoming the web's sliding
+pill, the toast becoming a real `Snackbar`, the session screen's six stacked action buttons
+collapsing into the ⋯ sheet the exercise rows already use, and the Complex card's near-empty header.
 
 ### WS4 — Home parity, the hero · landed (curve and welcome card still open)
 

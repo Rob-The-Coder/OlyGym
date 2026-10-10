@@ -135,7 +135,19 @@ fun AppNavigator() {
                 // navigation bar does this internally and a Surface does not.
                 Column(Modifier.fillMaxWidth().navigationBarsPadding()) {
                     RestTimerBar(snapshot)
-                    AppTabBar(selected = tab, onTab = { tab = it })
+                    AppTabBar(
+                        selected = tab,
+                        onTab = { index ->
+                            tab = index
+                            // A tab is a destination, and the bar is visible over a pushed screen, so
+                            // tapping one has to leave that screen: the web's tab bar navigates and
+                            // the session keeps running. Without this the four tabs were inert
+                            // whenever a screen was on top of the stack — a session screen, or any
+                            // sheet-opened screen — because onTab only set state nothing read until
+                            // the stack happened to return to the host.
+                            while (navigator.size > 1) navigator.pop()
+                        },
+                    )
                 }
             },
         ) { padding ->
