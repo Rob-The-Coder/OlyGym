@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API 31 and up: the launcher draws previewLayout instead of previewImage, so the widget picker
+     shows the widget itself rather than the app icon. Same layout the widget uses, so the sample
+     text and the typography are the real ones.
+
+     Everything else here is a copy of res/xml/widget_today_info.xml, which is the fallback for
+     older launchers; keep the two in step when an attribute changes. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_desc"
+    android:initialLayout="@layout/widget_today"
+    android:minHeight="110dp"
+    android:minWidth="250dp"
+    android:previewImage="@mipmap/ic_launcher"
+    android:previewLayout="@layout/widget_today"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen" />

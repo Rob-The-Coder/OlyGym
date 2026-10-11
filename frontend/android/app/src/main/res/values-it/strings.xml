@@ -12,4 +12,11 @@
     <string name="widget_desc">La sessione di oggi dal tuo piano, e se è già fatta</string>
     <string name="widget_stale">Apri OlyGym</string>
     <string name="widget_no_data">Nessuna sessione per oggi</string>
+
+    <!-- L'anteprima nel selettore dei widget; vedi values/strings.xml. I nomi degli esercizi
+         restano in inglese perché il catalogo non spedisce un pacchetto di nomi tradotti. -->
+    <string name="widget_preview_over">Domenica 11 ottobre</string>
+    <string name="widget_preview_title">Giornata di strappo</string>
+    <string name="widget_preview_body">Snatch\nBack Squat + Front Squat\nClean Pull\n+1 altro</string>
+    <string name="widget_preview_footer">In corso · 8/21 serie</string>
 </resources>

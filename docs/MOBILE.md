@@ -61,10 +61,24 @@ the app's private data directory and restores it on launch — that file is the 
   instead: `nativeSave` also calls the `TodayWidget` plugin (`TodayWidgetPlugin.java`), which
   redraws every placed instance.
 
-  Its three colours are copied by hand into `res/values/colors.xml` (light) and
-  `res/values-night/colors.xml` (dark) from `src/m3.tokens.css`: a RemoteViews layout cannot read
-  the app's CSS custom properties, and that colour block is generated, so re-copy them if
-  `scripts/design/m3-scheme.mjs` is ever run. To check a change on an emulator:
+  **Both palettes ship in one `res/values/colors.xml`,** and which one is drawn comes from the
+  APP's theme, not the phone's: someone running OlyGym dark wants the widget dark on a light phone.
+  `lib/mobile.js` reads the resolved theme off `<html data-theme>` (App.jsx is what resolves
+  `'system'`) and writes it into `widget.json`; the provider picks the background drawable and the
+  three text colours from it. That is why there is no `values-night/` for the widget. Before the
+  app has ever saved there is no theme to read, so the empty state falls back to the phone's night
+  mode. The six hexes are copies of six roles in `src/m3.tokens.css`, which is generated — re-copy
+  them if `scripts/design/m3-scheme.mjs` is ever run. There is no accent: the accent is one of
+  eight user-chosen seeds.
+
+  On API 31+ `res/xml-v31/widget_today_info.xml` sets `previewLayout` to the widget's own layout,
+  so the picker shows the widget itself rather than the app icon. The `android:text` defaults in
+  `res/layout/widget_today.xml` are that sample (and what shows for the instant before the first
+  update) — the provider overwrites all four TextViews, so they never reach a placed widget.
+  `res/xml/widget_today_info.xml` is the same file without `previewLayout`, for older launchers;
+  keep the two in step.
+
+  To check a change on an emulator:
 
   ```sh
   cd frontend && npm run build:mobile && cd android && ./gradlew assembleDebug

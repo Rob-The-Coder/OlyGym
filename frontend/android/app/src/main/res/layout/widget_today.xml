@@ -4,12 +4,17 @@
 
      The exercise list is a single TextView with newlines rather than a collection widget. A
      ListView would need a RemoteViewsService and a RemoteViewsFactory — a bound service and two
-     more classes — to show at most three lines that lib/widget-model.js has already joined. -->
+     more classes — to show at most three lines that lib/widget-model.js has already joined.
+
+     The android:text defaults are the launcher's sample: they are what the picker draws (this same
+     layout is the previewLayout on API 31+) and what shows for the instant before the first
+     onUpdate. TodayWidgetProvider overwrites all four on every build, so they never reach a placed
+     widget. The background default is the app's default theme; the provider swaps it per theme. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_bg"
+    android:background="@drawable/widget_bg_dark"
     android:orientation="vertical"
     android:padding="14dp">
 
@@ -20,8 +25,8 @@
         android:layout_height="wrap_content"
         android:ellipsize="end"
         android:maxLines="1"
-        android:text="@string/widget_label"
-        android:textColor="@color/widget_on_surface_variant"
+        android:text="@string/widget_preview_over"
+        android:textColor="@color/widget_on_surface_variant_dark"
         android:textSize="12sp" />
 
     <TextView
@@ -31,7 +36,8 @@
         android:layout_marginTop="2dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:textColor="@color/widget_on_surface"
+        android:text="@string/widget_preview_title"
+        android:textColor="@color/widget_on_surface_dark"
         android:textSize="15sp"
         android:textStyle="bold" />
 
@@ -43,7 +49,8 @@
         android:ellipsize="end"
         android:lineSpacingExtra="2dp"
         android:maxLines="4"
-        android:textColor="@color/widget_on_surface_variant"
+        android:text="@string/widget_preview_body"
+        android:textColor="@color/widget_on_surface_variant_dark"
         android:textSize="13sp" />
 
     <TextView
@@ -53,6 +60,7 @@
         android:layout_marginTop="4dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:textColor="@color/widget_on_surface_variant"
+        android:text="@string/widget_preview_footer"
+        android:textColor="@color/widget_on_surface_variant_dark"
         android:textSize="12sp" />
 </LinearLayout>

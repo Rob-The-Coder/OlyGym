@@ -29,6 +29,13 @@ describe('widget model', () => {
     expect(m.today).toBe(TODAY)
   })
 
+  it('carries the app theme, not the phone one, and defaults to the app default', () => {
+    const days = [day(TODAY, 'Snatch day', [ex('wl58')])]
+    expect(widgetModel(state(days), NOW).theme).toBe('dark')
+    expect(widgetModel(state(days), NOW, 'light').theme).toBe('light')
+    expect(widgetModel(state(days), NOW, 'nonsense').theme).toBe('dark')
+  })
+
   it('names the session and its exercises, a complex on one line', () => {
     const days = [day(TODAY, 'Snatch day', [ex('wl58'), ex('wl77', 'g1'), ex('wl78', 'g1'), ex('wl98')])]
     const today = widgetModel(state(days), NOW).days[TODAY]

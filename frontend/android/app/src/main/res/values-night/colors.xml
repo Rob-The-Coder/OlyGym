@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- The dark half of the widget's palette, applied when the system night mode is on; values/colors.xml
-     has the light one and the note on why these three are copied by hand. These are the hexes from
-     the plain :root block of frontend/src/m3.tokens.css, which is the app's dark default. -->
-<resources>
-    <color name="widget_surface">#252229</color>
-    <color name="widget_on_surface">#e4e1ea</color>
-    <color name="widget_on_surface_variant">#c8c5ce</color>
-</resources>

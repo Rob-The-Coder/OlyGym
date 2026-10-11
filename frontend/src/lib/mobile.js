@@ -57,11 +57,17 @@ export async function nativeSave(state) {
     // Its own try/catch: the mirror above is the durable copy of the training log and must not be
     // affected by a widget file failing to write.
     try {
-      await Filesystem.writeFile({ path: WIDGET_FILE, directory: Directory.Data, data: JSON.stringify(widgetModel(state)), encoding: Encoding.UTF8 })
+      await Filesystem.writeFile({ path: WIDGET_FILE, directory: Directory.Data, data: JSON.stringify(widgetModel(state, new Date(), shownTheme())), encoding: Encoding.UTF8 })
     } catch (e) { /* the widget shows its stale state */ }
   } catch (e) { /* keep the localStorage copy */ }
   refreshWidget()
 }
+
+// The theme the user is actually looking at. App.jsx resolves the profile's 'dark' | 'light' |
+// 'system' choice onto <html data-theme>, so the widget follows the app rather than the phone —
+// reading the DOM. Early in a cold start the attribute is not set yet; the answer is then the
+// app's own default, and the next save corrects it.
+const shownTheme = () => (document.documentElement.dataset.theme === 'light' ? 'light' : 'dark')
 
 // Tell the widget that widget.json changed. The launcher redraws from the file on its own every
 // thirty minutes (updatePeriodMillis), which is what keeps it right across midnight with the app

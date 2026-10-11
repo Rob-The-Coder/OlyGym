@@ -22,15 +22,22 @@ import { exOr } from './exercises.js'
 /** Exercise lines the widget body shows before it summarises the rest. */
 export const WIDGET_BODY_LINES = 3
 /** Bumped when the JSON the Java side reads changes shape. */
-export const WIDGET_VERSION = 1
+export const WIDGET_VERSION = 2
 
 /**
- * The four strings each day of the current week needs, keyed by ISO date.
+ * The four strings each day of the current week needs, keyed by ISO date, plus which of the two
+ * palettes to draw them in.
  *
  * `now` is injectable so the week boundary, the "logged" lookup and the next-training-day nudge
  * stay deterministic in tests.
+ *
+ * `theme` is the app's own choice, not the system's: someone running the app dark wants the widget
+ * dark even on a light phone. It is passed in rather than read from the DOM here so this stays
+ * pure — App.jsx has already resolved 'system' onto <html data-theme>, and that is what the caller
+ * reads. The default is the app's own default. The two palettes themselves live in Android
+ * resources (res/values/colors.xml), so no hex travels in this file.
  */
-export function widgetModel(S, now = new Date()) {
+export function widgetModel(S, now = new Date(), theme = 'dark') {
   const today = isoOf(now)
   const first = isoOf(startOfWeek(today, weekStartOf(S)))
   const days = {}
@@ -41,7 +48,7 @@ export function widgetModel(S, now = new Date()) {
     const iso = addDays(first, i)
     days[iso] = planned ? dayEntry(S, iso) : { ...emptyEntry(iso), title: t('No plan yet'), body: t('Open OlyGym to build one') }
   }
-  return { v: WIDGET_VERSION, today, days }
+  return { v: WIDGET_VERSION, today, theme: theme === 'light' ? 'light' : 'dark', days }
 }
 
 function emptyEntry(iso) {

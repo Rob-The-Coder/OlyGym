@@ -21,4 +21,12 @@
     <string name="widget_desc">Today\'s session from your plan, and whether it is done</string>
     <string name="widget_stale">Open OlyGym</string>
     <string name="widget_no_data">No session here yet</string>
+
+    <!-- What the widget picker draws, and what shows for the instant between a widget being placed
+         and its first update. TodayWidgetProvider overwrites every one of them, so they never
+         reach a placed widget's face: they are the sample, not data. -->
+    <string name="widget_preview_over">Sunday 11 October</string>
+    <string name="widget_preview_title">Snatch day</string>
+    <string name="widget_preview_body">Snatch\nBack Squat + Front Squat\nClean Pull\n+1 more</string>
+    <string name="widget_preview_footer">In progress · 8/21 sets</string>
 </resources>
