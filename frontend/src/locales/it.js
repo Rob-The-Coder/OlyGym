@@ -140,6 +140,7 @@ export default {
   // The Android home-screen widget (lib/widget-model.js writes these into widget.json for the
   // native half). Its words are built in JS, so they are localised here like any other string.
   'Next: {0}, {1}': 'Prossimo: {0}, {1}',
+  'Today · {0}': 'Oggi · {0}',
   'No plan yet': 'Ancora nessun piano',
   'Open OlyGym to build one': 'Apri OlyGym per crearne uno',
   '+{0} more': '+{0} altri',

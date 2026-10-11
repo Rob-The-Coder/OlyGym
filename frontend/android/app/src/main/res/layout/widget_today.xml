@@ -1,66 +1,138 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The widget's whole layout. RemoteViews supports a fixed handful of view types, so this is the
-     subset that works from API 24: one LinearLayout, four TextViews, one shape.
+<!-- The widget's whole layout: Home's hero, condensed. A FrameLayout so the card's fill can be a
+     bitmap the provider paints at the widget's own size and in the app's accent (see
+     TodayWidgetProvider.makeCard) — no drawable can carry a colour that follows eight seeds.
 
-     The exercise list is a single TextView with newlines rather than a collection widget. A
-     ListView would need a RemoteViewsService and a RemoteViewsFactory — a bound service and two
-     more classes — to show at most three lines that lib/widget-model.js has already joined.
+     RemoteViews supports a fixed handful of views, so this is the subset: two FrameLayouts, a few
+     LinearLayouts, four TextViews, two ImageViews. The exercise list is one TextView with newlines
+     rather than a collection widget — a ListView would need a RemoteViewsService and a factory to
+     show at most three lines lib/widget-model.js has already joined.
 
-     The android:text defaults are the launcher's sample: they are what the picker draws (this same
-     layout is the previewLayout on API 31+) and what shows for the instant before the first
-     onUpdate. TodayWidgetProvider overwrites all four on every build, so they never reach a placed
-     widget. The background default is the app's default theme; the provider swaps it per theme. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
+     The android:text / background defaults are the launcher's sample: they are what the picker draws
+     (this layout is the previewLayout on API 31+) and what shows for the instant before the first
+     onUpdate. The provider overwrites every one of them, so they never reach a placed widget. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/w_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_bg_dark"
-    android:orientation="vertical"
-    android:padding="14dp">
+    android:background="@drawable/widget_preview_bg">
 
-    <!-- The date. Lower case on purpose: it is a date, not a section label. -->
-    <TextView
-        android:id="@+id/w_over"
+    <ImageView
+        android:id="@+id/w_bg"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:text="@string/widget_preview_over"
-        android:textColor="@color/widget_on_surface_variant_dark"
-        android:textSize="12sp" />
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:scaleType="fitXY" />
 
-    <TextView
-        android:id="@+id/w_title"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:text="@string/widget_preview_title"
-        android:textColor="@color/widget_on_surface_dark"
-        android:textSize="15sp"
-        android:textStyle="bold" />
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp">
 
-    <TextView
-        android:id="@+id/w_body"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:ellipsize="end"
-        android:lineSpacingExtra="2dp"
-        android:maxLines="4"
-        android:text="@string/widget_preview_body"
-        android:textColor="@color/widget_on_surface_variant_dark"
-        android:textSize="13sp" />
+        <!-- As on Home: the date as a tracked uppercase overline, at 11sp. -->
+        <TextView
+            android:id="@+id/w_over"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:alpha="0.8"
+            android:ellipsize="end"
+            android:letterSpacing="0.08"
+            android:maxLines="1"
+            android:text="@string/widget_preview_over"
+            android:textAllCaps="true"
+            android:textColor="@color/widget_preview_on"
+            android:textSize="11sp"
+            android:textStyle="bold" />
 
-    <TextView
-        android:id="@+id/w_foot"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:ellipsize="end"
-        android:maxLines="1"
-        android:text="@string/widget_preview_footer"
-        android:textColor="@color/widget_on_surface_variant_dark"
-        android:textSize="12sp" />
-</LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- The mark: the app's 24x24 stroke glyph in a circle, the .hero-i pattern. The circle is
+                 its own view because RemoteViews can set an image but not a background bitmap. -->
+            <FrameLayout
+                android:layout_width="36dp"
+                android:layout_height="36dp">
+
+                <ImageView
+                    android:id="@+id/w_mark"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:background="@drawable/widget_preview_circle"
+                    android:contentDescription="@null"
+                    android:scaleType="fitXY" />
+
+                <ImageView
+                    android:id="@+id/w_icon"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_w_dumbbell" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="11dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/w_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:letterSpacing="-0.02"
+                    android:maxLines="1"
+                    android:text="@string/widget_preview_title"
+                    android:textColor="@color/widget_preview_on"
+                    android:textSize="21sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/w_sub"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:alpha="0.78"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/widget_preview_sub"
+                    android:textColor="@color/widget_preview_on"
+                    android:textSize="12.5sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- The body takes the slack (layout_weight below), so the status line always sits on the
+             card's floor whatever the list did or did not fill. NOT a plain <View> spacer:
+             RemoteViews inflates from a whitelist of classes and View is not on it — the host
+             answers "Can't load widget". -->
+        <TextView
+            android:id="@+id/w_body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="9dp"
+            android:alpha="0.92"
+            android:ellipsize="end"
+            android:lineSpacingExtra="2dp"
+            android:maxLines="4"
+            android:text="@string/widget_preview_body"
+            android:layout_weight="1"
+            android:textColor="@color/widget_preview_on"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/w_foot"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/widget_preview_footer"
+            android:textColor="@color/widget_preview_on"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</FrameLayout>

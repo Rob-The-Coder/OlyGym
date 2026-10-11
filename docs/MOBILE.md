@@ -41,17 +41,19 @@ the app's private data directory and restores it on launch — that file is the 
   nobody can update once the WebView is paused and the process is cached. Older Androids get the same
   card without the bar and without the extra service.
 - **Home-screen widget:** one widget, **Today's workout**, drawn by
-  `android/app/src/main/java/olygym/app/TodayWidgetProvider.java`. It shows today's weekday and
-  date, the session name, up to three exercise lines (a complex joined with `+`) and one status
-  line — `In progress · 8/21 sets`, `Done · 21 sets`, or `Next: Tuesday, Clean & jerk day` on a
-  rest day. Android only: the PWA has no equivalent.
+  `android/app/src/main/java/olygym/app/TodayWidgetProvider.java`. It is Home's hero, condensed:
+  the same tracked uppercase overline (`Today · Sunday 11 October`), the app's own 24×24 stroke
+  glyph in a 36dp circle — dumbbell for a session waiting, timer while one runs, a check when it is
+  logged, a moon on a rest day — the day's name at title proportions, its set count, up to three
+  exercise lines (a complex joined with `+`) and one status line: `In progress · 8/21 sets`,
+  `Done · 21 sets`, or `Next: Tuesday, Clean & jerk day`. Android only: the PWA has no equivalent.
 
   It decides nothing. `src/lib/widget-model.js` — a pure helper with a test beside it — turns the
-  plan into four finished strings for **every day of the current week**, and `lib/mobile.js` writes
-  them to `widget.json` in the private data directory beside `opengym-state.json` on every save.
-  The provider picks `days[today]` and sets four TextViews; all copy, date formatting and the whole
-  reading of the plan stay in JS, where they are tested, because a second implementation of
-  `lib/weeks.js` in Java would drift from the app on the first change to the week model.
+  plan into finished strings for **every day of the current week**, and `lib/mobile.js` writes them
+  to `widget.json` in the private data directory beside `opengym-state.json` on every save. The
+  provider picks `days[today]` and sets the views; all copy, date formatting and the whole reading
+  of the plan stay in JS, where they are tested, because a second implementation of `lib/weeks.js`
+  in Java would drift from the app on the first change to the week model.
 
   Carrying the week is what makes midnight work with the app closed: the system re-runs `onUpdate`
   every thirty minutes (`updatePeriodMillis`, the platform's floor) and the provider just looks up
@@ -61,22 +63,30 @@ the app's private data directory and restores it on launch — that file is the 
   instead: `nativeSave` also calls the `TodayWidget` plugin (`TodayWidgetPlugin.java`), which
   redraws every placed instance.
 
-  **Both palettes ship in one `res/values/colors.xml`,** and which one is drawn comes from the
-  APP's theme, not the phone's: someone running OlyGym dark wants the widget dark on a light phone.
-  `lib/mobile.js` reads the resolved theme off `<html data-theme>` (App.jsx is what resolves
-  `'system'`) and writes it into `widget.json`; the provider picks the background drawable and the
-  three text colours from it. That is why there is no `values-night/` for the widget. Before the
-  app has ever saved there is no theme to read, so the empty state falls back to the phone's night
-  mode. The six hexes are copies of six roles in `src/m3.tokens.css`, which is generated — re-copy
-  them if `scripts/design/m3-scheme.mjs` is ever run. There is no accent: the accent is one of
-  eight user-chosen seeds.
+  **The colours are the accent's, and they travel in the file.** The card is
+  `m3 primary-container` and its ink the matching on-colour — the two roles Home's hero is painted
+  with — so `lib/mobile.js` reads them off the DOM (a computed custom property each) and
+  `widget.json` carries them. A drawable cannot do this: the accent is one of eight user-chosen
+  seeds, so resources would mean shipping sixteen copies. The provider paints the card and the
+  mark's 14% wash as bitmaps at the widget's own size (`OPTION_APPWIDGET_MIN_*`, repainted on
+  resize) and tints the glyph with the ink.
+
+  The theme is the APP's, not the phone's: someone running OlyGym dark wants the widget dark on a
+  light phone. `lib/mobile.js` reads the resolved theme off `<html data-theme>` (App.jsx is what
+  resolves `'system'`) — which is why there is no `values-night/` for the widget. Before the app
+  has ever saved there is nothing to read, and the widget falls back to the violet pair in
+  `res/values/colors.xml`, which exist only for the picker's sample and that first instant.
 
   On API 31+ `res/xml-v31/widget_today_info.xml` sets `previewLayout` to the widget's own layout,
   so the picker shows the widget itself rather than the app icon. The `android:text` defaults in
   `res/layout/widget_today.xml` are that sample (and what shows for the instant before the first
-  update) — the provider overwrites all four TextViews, so they never reach a placed widget.
+  update) — the provider overwrites every one of them, so they never reach a placed widget.
   `res/xml/widget_today_info.xml` is the same file without `previewLayout`, for older launchers;
   keep the two in step.
+
+  One RemoteViews trap, worth knowing before editing that layout: it inflates from a whitelist of
+  classes, and a plain `<View>` is not on it — a spacer makes the host answer "Can't load widget".
+  The status line is held down by `layout_weight` on the body instead.
 
   To check a change on an emulator:
 

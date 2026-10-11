@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- The widget surface when the app is in its light theme. 16dp is the app's m3 shape-l token, so the widget sits in the same corner language as
-     the cards in the app. (Double hyphens are illegal inside an XML comment.) Android 12+ masks
-     widgets with the launcher's own radius on top of this. -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <solid android:color="@color/widget_surface_light" />
-    <corners android:radius="16dp" />
-</shape>

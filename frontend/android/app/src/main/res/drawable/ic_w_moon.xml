@@ -1,0 +1,12 @@
+<!-- moon from components/Icon.jsx: nothing to train today. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M19.4,14.2 A7.8,7.8 0 0 1 9.8,4.6 A8.2,8.2 0 1 0 19.4,14.2 Z"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.7"
+        android:strokeLineJoin="round" />
+</vector>
