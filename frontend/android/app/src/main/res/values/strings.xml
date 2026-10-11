@@ -12,4 +12,13 @@
     <string name="rest_plus15">+15s</string>
     <string name="rest_minus15">-15s</string>
     <string name="rest_skip">Skip</string>
+
+    <!-- Home-screen widget. Every word drawn on the widget itself is generated in JS and
+         localised there (lib/widget-model.js writes widget.json); only the launcher entry and the
+         state shown when there is no file to read yet live here, because those are the two cases
+         the app cannot speak for. -->
+    <string name="widget_label">Today\'s workout</string>
+    <string name="widget_desc">Today\'s session from your plan, and whether it is done</string>
+    <string name="widget_stale">Open OlyGym</string>
+    <string name="widget_no_data">No session here yet</string>
 </resources>

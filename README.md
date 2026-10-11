@@ -177,6 +177,9 @@ an in-app updater, and nothing that phones home.
 - A local workout-day reminder on Android. On days with a planned workout and nothing logged, the
   app schedules a native local notification per calendar date, so a day you already trained or
   rescheduled stays quiet. No server, no push service.
+- A home-screen widget on Android showing today's session and its exercises, how many sets you have
+  done, or the next day you train. It reads the same on-device state as the app, so there is nothing
+  to configure and nothing leaves the phone.
 - A standalone Android app that wraps the same source: data on the phone, native reminders, offline
   PWA behaviour and an in-app APK updater. See **[docs/MOBILE.md](docs/MOBILE.md)**.
 

@@ -40,6 +40,40 @@ the app's private data directory and restores it on launch — that file is the 
   for itself: SystemUI renders the countdown from a timestamp, but a progress value is just a number
   nobody can update once the WebView is paused and the process is cached. Older Androids get the same
   card without the bar and without the extra service.
+- **Home-screen widget:** one widget, **Today's workout**, drawn by
+  `android/app/src/main/java/olygym/app/TodayWidgetProvider.java`. It shows today's weekday and
+  date, the session name, up to three exercise lines (a complex joined with `+`) and one status
+  line — `In progress · 8/21 sets`, `Done · 21 sets`, or `Next: Tuesday, Clean & jerk day` on a
+  rest day. Android only: the PWA has no equivalent.
+
+  It decides nothing. `src/lib/widget-model.js` — a pure helper with a test beside it — turns the
+  plan into four finished strings for **every day of the current week**, and `lib/mobile.js` writes
+  them to `widget.json` in the private data directory beside `opengym-state.json` on every save.
+  The provider picks `days[today]` and sets four TextViews; all copy, date formatting and the whole
+  reading of the plan stay in JS, where they are tested, because a second implementation of
+  `lib/weeks.js` in Java would drift from the app on the first change to the week model.
+
+  Carrying the week is what makes midnight work with the app closed: the system re-runs `onUpdate`
+  every thirty minutes (`updatePeriodMillis`, the platform's floor) and the provider just looks up
+  today's date again. When there is nothing to read — installed but never opened, the file
+  unreadable, or the app not opened since the week rolled over — it says so rather than presenting
+  yesterday's session as today's. A change you just made reaches the home screen immediately
+  instead: `nativeSave` also calls the `TodayWidget` plugin (`TodayWidgetPlugin.java`), which
+  redraws every placed instance.
+
+  Its three colours are copied by hand into `res/values/colors.xml` (light) and
+  `res/values-night/colors.xml` (dark) from `src/m3.tokens.css`: a RemoteViews layout cannot read
+  the app's CSS custom properties, and that colour block is generated, so re-copy them if
+  `scripts/design/m3-scheme.mjs` is ever run. To check a change on an emulator:
+
+  ```sh
+  cd frontend && npm run build:mobile && cd android && ./gradlew assembleDebug
+  adb install -r app/build/outputs/apk/debug/app-debug.apk
+  adb shell am start -n olygym.app.test/olygym.app.MainActivity   # debug builds are olygym.app.test
+  adb shell run-as olygym.app.test cat files/widget.json          # what the provider will draw
+  # long-press the home screen -> Widgets -> search the app -> drag the widget out
+  adb exec-out screencap -p > /tmp/widget.png
+  ```
 - **In-app updater:** the app can check for and offer a newer signed APK without going through a
   store. Updates must be signed with the same key as the installed build or Android refuses them.
 

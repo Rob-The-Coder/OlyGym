@@ -12,6 +12,7 @@
 import { t } from './i18n-core.js'
 import { isoOf, todayISO } from './format.js'
 import { effectiveDay } from './history.js'
+import { widgetModel } from './widget-model.js'
 
 export const MOBILE = import.meta.env.VITE_MOBILE === '1'
 
@@ -32,6 +33,11 @@ export async function isAndroid() {
 }
 
 const FILE = 'opengym-state.json'
+// The Android home-screen widget's copy (TodayWidgetProvider.java reads it from the same private
+// directory with plain java.io). A second file rather than a key inside the state mirror: the
+// mirror is restored into S on boot and exported in a backup, and derived strings have no business
+// travelling in it.
+const WIDGET_FILE = 'widget.json'
 
 export async function nativeLoad() {
   try {
@@ -45,7 +51,46 @@ export async function nativeSave(state) {
   try {
     const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
     await Filesystem.writeFile({ path: FILE, directory: Directory.Data, data: JSON.stringify(state), encoding: Encoding.UTF8 })
+    // What the home-screen widget draws, as finished strings: it is a native RemoteViews surface
+    // with no React and no idea what a week is, and re-deriving "today's session" in Java would be
+    // a second implementation of lib/weeks.js (lib/widget-model.js holds the one that is tested).
+    // Its own try/catch: the mirror above is the durable copy of the training log and must not be
+    // affected by a widget file failing to write.
+    try {
+      await Filesystem.writeFile({ path: WIDGET_FILE, directory: Directory.Data, data: JSON.stringify(widgetModel(state)), encoding: Encoding.UTF8 })
+    } catch (e) { /* the widget shows its stale state */ }
   } catch (e) { /* keep the localStorage copy */ }
+  refreshWidget()
+}
+
+// Tell the widget that widget.json changed. The launcher redraws from the file on its own every
+// thirty minutes (updatePeriodMillis), which is what keeps it right across midnight with the app
+// closed — but the home screen you are looking at the second you leave the app has to be current
+// now, not within half an hour. Best effort: no plugin on the web build, and a failure here is
+// never worth surfacing.
+let widgetHandle = null
+let widgetLoading = null
+async function widgetPlugin() {
+  if (!MOBILE) return null
+  if (!widgetLoading) {
+    widgetLoading = (async () => {
+      try {
+        const { Capacitor, registerPlugin } = await import('@capacitor/core')
+        if (Capacitor.getPlatform() === 'android') widgetHandle = { p: registerPlugin('TodayWidget') }
+      } catch (e) { widgetHandle = null }
+    })()
+  }
+  await widgetLoading
+  return widgetHandle
+}
+
+// The plugin is a thenable Proxy (see lib/rest-notification.js): it only ever lives inside this
+// wrapper and is never returned as a promise's value, or Capacitor forwards a then() call to the
+// native side and rejects. Fire and forget — nothing waits on a redraw.
+function refreshWidget() {
+  widgetPlugin()
+    .then(h => { if (h) return h.p.refresh() })
+    .catch(() => {})
 }
 
 // Keep enough dates queued to cover normal app use between foregrounds without creating an

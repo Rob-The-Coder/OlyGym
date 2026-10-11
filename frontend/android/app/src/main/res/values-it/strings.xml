@@ -5,4 +5,11 @@
     <string name="rest_plus15">+15s</string>
     <string name="rest_minus15">-15s</string>
     <string name="rest_skip">Salta</string>
+
+    <!-- Il widget della schermata home; vedi values/strings.xml per il perché solo queste
+         quattro stringhe sono native. -->
+    <string name="widget_label">Allenamento di oggi</string>
+    <string name="widget_desc">La sessione di oggi dal tuo piano, e se è già fatta</string>
+    <string name="widget_stale">Apri OlyGym</string>
+    <string name="widget_no_data">Nessuna sessione per oggi</string>
 </resources>

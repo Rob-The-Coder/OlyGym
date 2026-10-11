@@ -137,6 +137,13 @@ export default {
   'Rest / skip this day': 'Riposo / salta questo giorno',
   'Rest day': 'Giorno di riposo',
   'Next session: {0}, {1}': 'Prossima sessione: {0}, {1}',
+  // The Android home-screen widget (lib/widget-model.js writes these into widget.json for the
+  // native half). Its words are built in JS, so they are localised here like any other string.
+  'Next: {0}, {1}': 'Prossimo: {0}, {1}',
+  'No plan yet': 'Ancora nessun piano',
+  'Open OlyGym to build one': 'Apri OlyGym per crearne uno',
+  '+{0} more': '+{0} altri',
+  'In progress': 'In corso',
   '{0} workout': '{0} allenamento',
   '{0} workouts': '{0} allenamenti',
   'No workouts this month': 'Nessun allenamento questo mese',

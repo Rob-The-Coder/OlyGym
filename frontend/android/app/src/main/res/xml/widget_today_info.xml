@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- updatePeriodMillis is the launcher's own tick, and 1800000 is the floor the platform enforces.
+     It is what re-reads widget.json and re-picks days[today] across midnight and a week rollover
+     with the app closed — not a recomputation, just a lookup. No work manager, no alarm, no
+     receiver for the date broadcasts. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_desc"
+    android:initialLayout="@layout/widget_today"
+    android:minHeight="110dp"
+    android:minWidth="250dp"
+    android:previewImage="@mipmap/ic_launcher"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen" />

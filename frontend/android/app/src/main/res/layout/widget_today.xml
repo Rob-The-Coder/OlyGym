@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The widget's whole layout. RemoteViews supports a fixed handful of view types, so this is the
+     subset that works from API 24: one LinearLayout, four TextViews, one shape.
+
+     The exercise list is a single TextView with newlines rather than a collection widget. A
+     ListView would need a RemoteViewsService and a RemoteViewsFactory — a bound service and two
+     more classes — to show at most three lines that lib/widget-model.js has already joined. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:orientation="vertical"
+    android:padding="14dp">
+
+    <!-- The date. Lower case on purpose: it is a date, not a section label. -->
+    <TextView
+        android:id="@+id/w_over"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="@string/widget_label"
+        android:textColor="@color/widget_on_surface_variant"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/w_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/widget_on_surface"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/w_body"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:ellipsize="end"
+        android:lineSpacingExtra="2dp"
+        android:maxLines="4"
+        android:textColor="@color/widget_on_surface_variant"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/w_foot"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/widget_on_surface_variant"
+        android:textSize="12sp" />
+</LinearLayout>
