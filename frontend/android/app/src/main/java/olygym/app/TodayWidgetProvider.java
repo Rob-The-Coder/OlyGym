@@ -10,6 +10,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -139,6 +140,7 @@ public class TodayWidgetProvider extends AppWidgetProvider {
             views.setTextViewText(R.id.w_sub, "");
             views.setTextViewText(R.id.w_now, "");
             views.setTextViewText(R.id.w_scheme, context.getString(R.string.widget_no_data));
+            views.setViewVisibility(R.id.w_prog, View.GONE);
             views.setViewVisibility(R.id.w_acts, View.GONE);
         } else {
             views.setImageViewResource(R.id.w_icon, iconOf(day.optString("icon")));
@@ -151,6 +153,7 @@ public class TodayWidgetProvider extends AppWidgetProvider {
                 // Waiting to be started, or a rest day: one line, and nothing to control yet.
                 views.setTextViewText(R.id.w_now, day.optString("now"));
                 views.setTextViewText(R.id.w_scheme, day.optString("scheme"));
+                views.setViewVisibility(R.id.w_prog, View.GONE);
                 views.setViewVisibility(R.id.w_acts, View.GONE);
             } else {
                 paintSession(context, views, session, ink, container, wash, w);
@@ -203,7 +206,22 @@ public class TodayWidgetProvider extends AppWidgetProvider {
 
         views.setTextViewText(R.id.w_now, title);
         views.setTextViewText(R.id.w_scheme, scheme);
+        views.setViewVisibility(R.id.w_prog, View.VISIBLE);
         views.setViewVisibility(R.id.w_acts, View.VISIBLE);
+
+        // The session's own progress: every set in every unit, the ticked ones counted, including
+        // whatever the controls queued. Nothing is stored twice — the units already carry both.
+        int totalSets = 0;
+        int doneSets = 0;
+        for (int i = 0; i < count; i++) {
+            JSONObject u = units.optJSONObject(i);
+            if (u == null) continue;
+            totalSets += u.optInt("sets");
+            doneSets += u.optInt("done") + extra[i];
+        }
+        float pct = totalSets == 0 ? 0f : doneSets / (float) totalSets;
+        views.setImageViewBitmap(R.id.w_prog,
+                makeWave(context, width - dp(context, PAD_DP * 2), dp(context, 6), pct, wash, ink));
 
         int c = dp(context, CONTROL_DP);
         int pill = Math.max(dp(context, 96),
@@ -250,6 +268,11 @@ public class TodayWidgetProvider extends AppWidgetProvider {
                 TypedValue.COMPLEX_UNIT_DIP, value, context.getResources().getDisplayMetrics()));
     }
 
+    private static float dp(Context context, float value) {
+        return TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, value, context.getResources().getDisplayMetrics());
+    }
+
     /** A #rrggbb from the JSON, or the given fallback when it is missing or malformed. */
     private static int color(int fallback, JSONObject colors, String key) {
         try {
@@ -273,6 +296,47 @@ public class TodayWidgetProvider extends AppWidgetProvider {
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         paint.setColor(color);
         new Canvas(bitmap).drawRoundRect(new RectF(0, 0, w, h), radius, radius, paint);
+        return bitmap;
+    }
+
+    /**
+     * The app's wavy progress indicator, stroked instead of masked.
+     *
+     * m3.components.css masks the fill with a 20x6 sine stroked at 3.4px and drifts it; RemoteViews
+     * has neither a mask nor an animation, so the same sine is drawn here — same period, same
+     * stroke, same amplitude (half the bar's height) — and repainted on each save. Still rather
+     * than flowing, which is the one thing this cannot borrow.
+     */
+    private static Bitmap makeWave(Context context, int w, int h, float pct, int track, int fill) {
+        int width = Math.max(1, w);
+        Bitmap bitmap = Bitmap.createBitmap(width, h, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setColor(track);
+        float r = h / 2f;
+        canvas.drawRoundRect(new RectF(0, 0, width, h), r, r, paint);
+
+        int filled = Math.round(width * Math.max(0f, Math.min(1f, pct)));
+        if (filled <= 0) return bitmap;
+
+        float period = dp(context, 20f);
+        float amp = h / 2f;
+        Path path = new Path();
+        path.moveTo(0, h / 2f - amp);
+        for (float x = 1; x <= filled + 1; x += 1f) {
+            path.lineTo(Math.min(x, filled), h / 2f + amp * (float) Math.sin(2 * Math.PI * x / period - Math.PI / 2));
+        }
+        Paint wave = new Paint(Paint.ANTI_ALIAS_FLAG);
+        wave.setStyle(Paint.Style.STROKE);
+        wave.setStrokeWidth(dp(context, 3.4f));
+        wave.setStrokeCap(Paint.Cap.ROUND);
+        wave.setStrokeJoin(Paint.Join.ROUND);
+        wave.setColor(fill);
+        canvas.save();
+        // The app's mask clips the wave to the bar's own 6px; so does this, or the crests bleed out.
+        canvas.clipRect(0, 0, filled, h);
+        canvas.drawPath(path, wave);
+        canvas.restore();
         return bitmap;
     }
 

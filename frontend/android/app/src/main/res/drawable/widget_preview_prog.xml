@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The picker's sample of the wavy indicator: the app's own sine (m3.components.css, the #timer
+     and .wprog mask) over a track, at 60%. The provider paints the real one as a bitmap, because
+     its fill follows the user's accent and a vector cannot carry that. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="268dp" android:height="6dp"
+    android:viewportWidth="268" android:viewportHeight="6">
+    <path
+        android:pathData="M3,0 L157,0 A3,3 0 0 1 157,6 L3,6 A3,3 0 0 1 3,0 Z"
+        android:fillColor="@color/widget_preview_circle" />
+    <path
+        android:pathData="M-5,3 Q0,0 5,3 T15,3 T25,3 T35,3 T45,3 T55,3 T65,3 T75,3 T85,3 T95,3 T105,3 T115,3 T125,3 T135,3 T145,3 T155,3 T165,3"
+        android:strokeColor="@color/widget_preview_on" android:strokeWidth="3.4"
+        android:strokeLineCap="round" />
+</vector>

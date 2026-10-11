@@ -95,6 +95,12 @@ the app's private data directory and restores it on launch — that file is the 
   The same shape as the rest timer's -15s/+15s/Skip, which is the one other place this app acts with
   no JS listening.
 
+  Above the controls is the app's wavy progress indicator — the same 20dp period, 3.4dp stroke and
+  half-the-bar amplitude as the mask in `m3.components.css`, stroked into a bitmap because
+  RemoteViews has neither a mask nor an animation. It measures the whole session (every set of every
+  unit, including whatever the controls have queued) and is repainted on each save. It is still
+  rather than drifting, which is the one thing it cannot borrow from the app's version.
+
   On API 31+ `res/xml-v31/widget_today_info.xml` sets `previewLayout` to the widget's own layout,
   so the picker shows the widget itself rather than the app icon. The `android:text` defaults in
   `res/layout/widget_today.xml` are that sample (and what shows for the instant before the first

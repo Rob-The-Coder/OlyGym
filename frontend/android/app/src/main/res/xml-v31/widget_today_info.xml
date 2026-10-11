@@ -4,15 +4,15 @@
      with the app closed — not a recomputation, just a lookup. No work manager, no alarm, no
      receiver for the date broadcasts.
 
-     minHeight is 190dp because that is what the hero layout needs: the overline, the marked title
-     with its set count, three exercise lines and the status line. The widget this replaces asked
-     for 110dp and left the bottom third of that empty.
+     minHeight is 210dp because that is what the card needs: the overline, the marked title, the
+     exercise you are on with the set in front of you, the progress bar and the three controls. The
+     widget this replaces asked for 110dp and left the bottom third of that empty.
 
      API 31 and up: previewLayout, so the picker draws the widget itself instead of the app icon. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/widget_desc"
     android:initialLayout="@layout/widget_today"
-    android:minHeight="190dp"
+    android:minHeight="210dp"
     android:minWidth="250dp"
     android:previewImage="@mipmap/ic_launcher"
     android:previewLayout="@layout/widget_today"

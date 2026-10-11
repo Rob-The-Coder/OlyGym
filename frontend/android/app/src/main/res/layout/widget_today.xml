@@ -111,7 +111,7 @@
             android:id="@+id/w_now"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="6dp"
             android:ellipsize="end"
             android:maxLines="2"
             android:text="@string/widget_preview_now"
@@ -122,9 +122,9 @@
         <TextView
             android:id="@+id/w_scheme"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="0dp"
             android:alpha="0.85"
             android:ellipsize="end"
             android:maxLines="2"
@@ -132,11 +132,23 @@
             android:textColor="@color/widget_preview_on"
             android:textSize="12.5sp" />
 
+        <!-- The app's wavy progress indicator: the session's sets done, in the card's ink. A
+             bitmap, not a drawable, and still rather than drifting — RemoteViews has no mask and no
+             animation, so it is repainted on each save instead of flowing. -->
+        <ImageView
+            android:id="@+id/w_prog"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:layout_marginTop="6dp"
+            android:contentDescription="@null"
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_preview_prog" />
+
         <LinearLayout
             android:id="@+id/w_acts"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="6dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
