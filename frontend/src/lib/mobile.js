@@ -102,6 +102,24 @@ async function widgetPlugin() {
   return widgetHandle
 }
 
+// The widget's three controls queue their taps natively (WidgetActionReceiver), because the widget
+// is looked at while this WebView is asleep. These two are how the app collects that queue: read
+// them, apply them, clear them. Anything that fails reads as "nothing was queued".
+export async function readWidgetActions() {
+  const h = await widgetPlugin()
+  if (!h) return []
+  try {
+    const r = await h.p.pending()
+    return r && Array.isArray(r.actions) ? r.actions : []
+  } catch (e) { return [] }
+}
+
+export async function clearWidgetActions() {
+  const h = await widgetPlugin()
+  if (!h) return
+  try { await h.p.clear() } catch (e) { /* the queue is cleared again on the next adoption */ }
+}
+
 // The plugin is a thenable Proxy (see lib/rest-notification.js): it only ever lives inside this
 // wrapper and is never returned as a promise's value, or Capacitor forwards a then() call to the
 // native side and rejects. Fire and forget — nothing waits on a redraw.

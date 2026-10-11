@@ -22,11 +22,9 @@
 import { dateLocale, exerciseNameFor, t } from './i18n-core.js'
 import { capWords, DAYN, isoOf, startOfWeek, weekStartOf } from './format.js'
 import { addDays } from './weeks.js'
-import { effectiveDay, nextTrainingDay, setsDone, setsDoneActive, setUnitsTotal } from './history.js'
+import { effectiveDay, exLine, nextTrainingDay, setLabel, setsDone, supersetUnits } from './history.js'
 import { exOr } from './exercises.js'
 
-/** Exercise lines the widget body shows before it summarises the rest. */
-export const WIDGET_BODY_LINES = 3
 /** Bumped when the JSON the Java side reads changes shape. */
 export const WIDGET_VERSION = 3
 
@@ -59,7 +57,7 @@ export function widgetModel(S, now = new Date(), view = {}) {
     const iso = addDays(first, i)
     days[iso] = planned
       ? dayEntry(S, iso)
-      : { ...emptyEntry(iso), icon: 'moon', title: t('No plan yet'), body: t('Open OlyGym to build one') }
+      : { ...emptyEntry(iso), icon: 'moon', title: t('No plan yet'), scheme: t('Open OlyGym to build one') }
   }
   return {
     v: WIDGET_VERSION,
@@ -78,10 +76,17 @@ function emptyEntry(iso) {
     icon: 'moon',
     title: '',
     subtitle: '',
-    body: '',
-    footer: '',
+    // The one exercise the card names and its scheme. Empty unless there is something to name.
+    now: '',
+    scheme: '',
   }
 }
+
+/** A routine exercise as the card writes it: a complex reads as one thing, joined with " + ". */
+const lineOf = cfg => capWords(exerciseNameFor(exOr(cfg.id)))
+
+/** The unit the profile weighs in — never a constant. */
+const unitOf = S => (S && S.unit) || 'kg'
 
 /** One day of the plan, as the widget draws it. */
 function dayEntry(S, iso) {
@@ -98,10 +103,23 @@ function dayEntry(S, iso) {
     const sets = day.ex.reduce((n, e) => n + Math.max(1, e.sets || 1), 0)
     out.icon = active ? 'timer' : logged ? 'check' : 'dumbbell'
     out.title = day.name || t('Workout')
-    out.subtitle = t('{0} sets', sets)
-    out.body = bodyLines(day.ex)
-    if (active) out.footer = t('In progress') + ' · ' + t('{0} sets', setsDoneActive(active) + '/' + setUnitsTotal(active.entries))
-    else if (logged) out.footer = t('Done') + ' · ' + t('{0} sets', setsDone(logged))
+    if (active) {
+      // Mid-session the card carries the session itself: the widget is what you look at between
+      // sets, and it is also where the three controls act from. now/scheme stay empty — the
+      // provider draws those out of \`session\`, which it re-derives after the queued taps.
+      out.session = sessionView(active)
+      out.subtitle = out.session.position
+      return out
+    }
+    // Waiting to be started: the one exercise you are about to do, and its scheme. The whole list
+    // used to live here and read as a wall of names; one line is what the card is for.
+    const first = (day.ex || [])[0]
+    if (first) {
+      out.now = lineOf(first)
+      out.scheme = exLine(first, unitOf(S))
+    }
+    out.subtitle = t('{0} exercises', day.ex.length) + ' · ' + t('{0} sets', sets)
+    if (logged) out.scheme = t('Done') + ' · ' + t('{0} sets', setsDone(logged))
     return out
   }
 
@@ -109,34 +127,51 @@ function dayEntry(S, iso) {
     // A freestyle session on a rest day still happened; naming it beats calling the day empty.
     out.icon = 'check'
     out.title = t('Workout done')
-    out.footer = t('{0} sets', setsDone(logged))
+    out.scheme = t('{0} sets', setsDone(logged))
     return out
   }
 
   out.title = t('Rest day')
   const next = nextTrainingDay(S, iso)
-  if (next) out.footer = t('Next: {0}, {1}', t(DAYN[next.weekday]), next.day.name || t('Workout'))
+  if (next) out.scheme = t('Next: {0}, {1}', t(DAYN[next.weekday]), next.day.name || t('Workout'))
   return out
 }
 
 /**
- * The exercise names, one movement per line, a complex joined with " + " (the coach writes
- * "Snatch + Clean" as one thing and the widget reads it as one line).
+ * The running session, as the widget draws it and as its three controls act on it.
  *
- * Names are stored lower-case and shown through CSS `capitalize` everywhere else in the app;
- * a RemoteViews TextView has no CSS, so the capitalisation has to happen here.
+ * Every string is finished here, including one per set: the widget has to redraw the instant you
+ * tick something with the app closed, which means the native side applies the queued taps to this
+ * structure and repaints. If it had to compose `Set 3 of 4 · 100 kg × 5` itself there would be a
+ * second copy of the app's wording and numbering in Java.
+ *
+ * A complex is one unit — its members share the round, so a tick marks set i on all of them, and
+ * the first member's rows are what the round is counted from.
  */
-function bodyLines(ex) {
-  const units = []
-  for (const e of ex) {
-    const last = units[units.length - 1]
-    if (e.sg && last && last.sg === e.sg) last.names.push(e.id)
-    else units.push({ sg: e.sg, names: [e.id] })
+function sessionView(active) {
+  const entries = active.entries || []
+  const units = supersetUnits(entries)
+  const found = units.findIndex(u => u.includes(active.cur))
+  const index = found < 0 ? 0 : found
+  return {
+    d: active.d || null,
+    index,
+    count: units.length,
+    position: t('Exercise {0} of {1}', index + 1, units.length),
+    units: units.map(u => {
+      const e = entries[u[0]]
+      const sets = (e && e.sets) || []
+      const cfg = { ...(e && e.target) || {}, id: e && e.id }
+      return {
+        title: u.map(i => capWords(exerciseNameFor(exOr(entries[i].id)))).join(' + '),
+        schemes: sets.map((s, i) => t('Set {0} of {1}', i + 1, sets.length) + ' · ' + setLabel(e.id, s, cfg)),
+        sets: sets.length,
+        done: sets.filter(s => s.done).length,
+      }
+    }),
   }
-  const lines = units.map(u => u.names.map(id => capWords(exerciseNameFor(exOr(id)))).join(' + '))
-  if (lines.length <= WIDGET_BODY_LINES) return lines.join('\n')
-  return [...lines.slice(0, WIDGET_BODY_LINES), t('+{0} more', lines.length - WIDGET_BODY_LINES)].join('\n')
 }
+
 
 /* ---------------------------------------------------------------- colour --
    Two small helpers so the one derived colour (the mark's wash) can be computed here, where it

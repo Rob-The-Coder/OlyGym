@@ -17,7 +17,11 @@
          restano in inglese perché il catalogo non spedisce un pacchetto di nomi tradotti. -->
     <string name="widget_preview_over">Oggi · domenica 11 ottobre</string>
     <string name="widget_preview_title">Giornata di strappo</string>
-    <string name="widget_preview_sub">21 serie</string>
-    <string name="widget_preview_body">Snatch\nBack Squat + Front Squat\nClean Pull\n+1 altro</string>
-    <string name="widget_preview_footer">In corso · 8/21 serie</string>
+    <string name="widget_preview_sub">Esercizio 2 di 5</string>
+    <string name="widget_preview_now">Back Squat + Front Squat</string>
+    <string name="widget_preview_scheme">Serie 3 di 4 · 100 kg × 5</string>
+
+    <string name="widget_prev">Esercizio precedente</string>
+    <string name="widget_check">Serie fatta</string>
+    <string name="widget_next">Esercizio successivo</string>
 </resources>

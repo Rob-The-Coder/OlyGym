@@ -27,7 +27,12 @@
          reach a placed widget's face: they are the sample, not data. -->
     <string name="widget_preview_over">Today · Sunday 11 October</string>
     <string name="widget_preview_title">Snatch day</string>
-    <string name="widget_preview_sub">21 sets</string>
-    <string name="widget_preview_body">Snatch\nBack Squat + Front Squat\nClean Pull\n+1 more</string>
-    <string name="widget_preview_footer">In progress · 8/21 sets</string>
+    <string name="widget_preview_sub">Exercise 2 of 5</string>
+    <string name="widget_preview_now">Back Squat + Front Squat</string>
+    <string name="widget_preview_scheme">Set 3 of 4 · 100 kg × 5</string>
+
+    <!-- The three controls are icons, so these are what a screen reader announces. -->
+    <string name="widget_prev">Previous exercise</string>
+    <string name="widget_check">Set done</string>
+    <string name="widget_next">Next exercise</string>
 </resources>

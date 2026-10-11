@@ -36,6 +36,13 @@
             android:exported="false"
             android:foregroundServiceType="shortService" />
 
+        <!-- The widget's three controls. Explicit intents only (the PendingIntents name this
+             class), so nothing else can reach it and no intent-filter is needed. It records the tap
+             and repaints; the app applies the queue the next time it runs. -->
+        <receiver
+            android:name=".WidgetActionReceiver"
+            android:exported="false" />
+
         <!-- The home-screen widget. It draws widget.json, which lib/mobile.js writes beside the
              state mirror in the private data directory; nothing here is exported, because every
              update arrives as an explicit broadcast to this component (or a direct call from

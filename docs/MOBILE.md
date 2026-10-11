@@ -77,6 +77,24 @@ the app's private data directory and restores it on launch — that file is the 
   has ever saved there is nothing to read, and the widget falls back to the violet pair in
   `res/values/colors.xml`, which exist only for the picker's sample and that first instant.
 
+  **Its three controls post a queue, and the app drains it.** The widget cannot touch a running
+  session — the state is in the WebView, and the widget is looked at when the app is closed — so a
+  tap goes to `WidgetActionReceiver`, which appends it to `WidgetActions` (a SharedPreferences
+  array, in order) and repaints. The provider applies that queue *on top of the snapshot* when it
+  draws, which is what lets the card show the tick the instant you make it; `lib/mobile.js` reads
+  the queue when the app returns and `lib/widget-actions.js` — a pure helper with a test beside it —
+  applies the same taps to the real session, in the same order, to the same list. Both sides agree
+  because neither recomputes the plan: they walk the unit list `widget-model.js` already wrote,
+  where every set is a finished line of text.
+
+  Two things it deliberately does not do. A tap made with the app closed does **not** start the rest
+  timer — the rest belongs to the moment you tapped, and by the time the app returns that moment has
+  passed, so a tick from the widget changes the log and not the clock. And a tap is stamped with the
+  session's date, so a queue that outlived its session is dropped rather than ticking the next one.
+
+  The same shape as the rest timer's -15s/+15s/Skip, which is the one other place this app acts with
+  no JS listening.
+
   On API 31+ `res/xml-v31/widget_today_info.xml` sets `previewLayout` to the widget's own layout,
   so the picker shows the widget itself rather than the app icon. The `android:text` defaults in
   `res/layout/widget_today.xml` are that sample (and what shows for the instant before the first

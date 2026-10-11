@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { WIDGET_BODY_LINES, mix, widgetModel } from './widget-model.js'
+import { mix, widgetModel } from './widget-model.js'
 import { DAYN, isoOf, startOfWeek } from './format.js'
 import { addDays } from './weeks.js'
 
@@ -14,7 +14,7 @@ const ex = (id, sg) => ({ id, sets: 3, reps: 3, weight: 60, ...(sg ? { sg } : {}
 const day = (iso, name, list) => ({ dow: dowOf(iso), name, ex: list })
 const state = (days, extra = {}) => ({
   weeks: [{ id: 'w1', startIso: WEEK_START, name: 'Week', days }],
-  workouts: [], active: null, customEx: [], ...extra,
+  workouts: [], active: null, customEx: [], unit: 'kg', ...extra,
 })
 const worked = sets => ({ id: 'wl58', sets: sets.map(done => ({ w: 60, r: 3, done })) })
 const today = (S, view) => widgetModel(S, NOW, view).days[TODAY]
@@ -31,25 +31,24 @@ describe('widget model', () => {
   })
 
   it('leads with the same overline the Home hero carries', () => {
-    expect(widgetModel(state([]), NOW).days[TODAY].overline)
+    expect(today(state([])).overline)
       .toBe('Today · ' + new Date(TODAY + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }))
   })
 
-  it('names the session, its set count and its exercises, a complex on one line', () => {
+  it('names the session, its size, and the one exercise it starts with', () => {
     const days = [day(TODAY, 'Snatch day', [ex('wl58'), ex('wl77', 'g1'), ex('wl78', 'g1'), ex('wl98')])]
     const t = today(state(days))
     expect(t.icon).toBe('dumbbell')
     expect(t.title).toBe('Snatch day')
-    expect(t.subtitle).toBe('12 sets')
-    expect(t.body).toBe('Snatch\nBack Squat + Front Squat\nClean Pull')
-    expect(t.footer).toBe('')
+    expect(t.subtitle).toBe('4 exercises · 12 sets')
+    expect(t.now).toBe('Snatch')
+    expect(t.scheme).toBe('3 × 3 · 60 kg')
+    expect(t.session).toBeUndefined()
   })
 
-  it('caps the body and says how many lines it dropped', () => {
-    const days = [day(TODAY, 'A', ['wl58', 'wl77', 'wl78', 'wl98', 'wl163'].map(id => ex(id)))]
-    const body = today(state(days)).body.split('\n')
-    expect(body).toHaveLength(WIDGET_BODY_LINES + 1)
-    expect(body[WIDGET_BODY_LINES]).toBe('+2 more')
+  it('names the complex first when that is what starts the day', () => {
+    const days = [day(TODAY, 'A', [ex('wl77', 'g1'), ex('wl78', 'g1')])]
+    expect(today(state(days)).now).toBe('Back Squat')
   })
 
   it('nudges the next session on a rest day, under a moon', () => {
@@ -59,27 +58,38 @@ describe('widget model', () => {
     expect(t.icon).toBe('moon')
     expect(t.title).toBe('Rest day')
     expect(t.subtitle).toBe('')
-    expect(t.body).toBe('')
-    expect(t.footer).toBe('Next: ' + DAYN[dowOf(tomorrow)] + ', Clean day')
+    expect(t.now).toBe('')
+    expect(t.scheme).toBe('Next: ' + DAYN[dowOf(tomorrow)] + ', Clean day')
   })
 
-  it('ticks a logged session off', () => {
+  it('says what a finished day totalled instead of naming an exercise', () => {
     const days = [day(TODAY, 'Snatch day', [ex('wl58')])]
     const S = state(days, { workouts: [{ d: TODAY, name: 'Snatch day', entries: [worked([true, true])] }] })
     const t = today(S)
     expect(t.icon).toBe('check')
-    expect(t.footer).toBe('Done · 2 sets')
+    expect(t.scheme).toBe('Done · 2 sets')
+    expect(t.session).toBeUndefined()
   })
 
-  it('runs the clock when the session is in progress, ahead of a logged one', () => {
-    const days = [day(TODAY, 'Snatch day', [ex('wl58')])]
-    const extra = {
-      active: { d: TODAY, name: 'Snatch day', entries: [worked([true, false])] },
-      workouts: [{ d: TODAY, name: 'Snatch day', entries: [worked([true, true])] }],
-    }
-    const t = today(state(days, extra))
+  it('carries the running session, with a line per set and the position', () => {
+    const days = [day(TODAY, 'Snatch day', [ex('wl58'), ex('wl77', 'g1'), ex('wl78', 'g1')])]
+    const entries = [
+      { id: 'wl58', target: { id: 'wl58' }, sets: [{ w: 70, r: 2, done: true }, { w: 70, r: 2, done: false }] },
+      { id: 'wl77', sg: 'g1', target: { id: 'wl77' }, sets: [{ w: 100, r: 5, done: false }] },
+      { id: 'wl78', sg: 'g1', target: { id: 'wl78' }, sets: [{ w: 80, r: 5, done: false }] },
+    ]
+    const S = state(days, { active: { d: TODAY, name: 'Snatch day', cur: 1, entries } })
+    const t = today(S)
     expect(t.icon).toBe('timer')
-    expect(t.footer).toBe('In progress · 1/2 sets')
+    expect(t.subtitle).toBe('Exercise 2 of 2')
+    expect(t.session.index).toBe(1)
+    expect(t.session.count).toBe(2)
+    expect(t.session.d).toBe(TODAY)
+    expect(t.session.units[0]).toEqual({
+      title: 'Snatch', schemes: ['Set 1 of 2 · 70×2', 'Set 2 of 2 · 70×2'], sets: 2, done: 1,
+    })
+    // a complex is one unit, and its members' names are joined the way the card shows them
+    expect(t.session.units[1].title).toBe('Back Squat + Front Squat')
   })
 
   it('names a freestyle session trained on a rest day', () => {
@@ -87,13 +97,13 @@ describe('widget model', () => {
     const t = today(S)
     expect(t.icon).toBe('check')
     expect(t.title).toBe('Workout done')
-    expect(t.footer).toBe('1 sets')
+    expect(t.scheme).toBe('1 sets')
   })
 
   it('offers the one action when the profile has no plan at all', () => {
     const t = today({ weeks: [], workouts: [], active: null })
     expect(t.title).toBe('No plan yet')
-    expect(t.body).toBe('Open OlyGym to build one')
+    expect(t.scheme).toBe('Open OlyGym to build one')
     expect(t.overline).not.toBe('')
   })
 

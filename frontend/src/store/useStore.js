@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { localTZ } from '../lib/format.js'
 import { registerCustom } from '../lib/exercises.js'
-import { MOBILE, initReminderSync, nativeLoad, nativeSave, syncReminder, writeAutoBackup } from '../lib/mobile.js'
+import { MOBILE, initReminderSync, nativeLoad, nativeSave, syncReminder, writeAutoBackup, onAppActive, readWidgetActions, clearWidgetActions } from '../lib/mobile.js'
+import { applyWidgetActions } from '../lib/widget-actions.js'
 
 import { WC_DEFAULT } from '../lib/workout-controls.js'
 import { migrateToWeeks, needsWeekMigration } from '../lib/migrate-weeks.js'
@@ -102,6 +103,20 @@ export const useStore = create((set, get) => {
 
   initReminderSync(() => get().S)
 
+  // The home-screen widget's controls queue their taps natively while this WebView is asleep; this
+  // is what turns them into real session state. Runs on every return to the foreground and once at
+  // boot, because a queue collected with the app closed is only ever read here.
+  const adoptWidgetActions = async () => {
+    if (!MOBILE) return
+    const actions = await readWidgetActions()
+    if (!actions.length) return
+    const cur = get().S
+    const next = applyWidgetActions(cur.active, actions)
+    if (next !== cur.active) get().update(s => { s.active = next })
+    await clearWidgetActions()
+  }
+  onAppActive(() => { adoptWidgetActions().catch(() => {}) })
+
   // Mobile build: mirror the state into a file in the app's data directory (survives WebView
   // storage eviction) and keep the native reminder schedule in step with the weekly plan.
   const nativePersist = () => {
@@ -165,6 +180,7 @@ export const useStore = create((set, get) => {
           nativeSave(S)   // first run after an update from a file-less version: seed the mirror
         }
         syncReminder(get().S)
+        await adoptWidgetActions().catch(() => {})
         set({ ready: true })
         return
       }
