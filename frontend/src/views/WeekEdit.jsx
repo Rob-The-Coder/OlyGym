@@ -110,10 +110,13 @@ function DayExercises({ weekId, day, index, unit, editEx, toast }) {
     return <SwipeToDelete className={'item' + (sh ? ' cx-item' : '')}
       deleteLabel={t('Remove')}
       onDelete={() => remove(i)}
-      onClick={() => exConfigSheet(exOrId, entry, cfg => editEx(index, list => { list[i] = { id: list[i].id, sg: list[i].sg, ...cfg } }), () => remove(i), day)}>
+      onClick={() => exConfigSheet(exOrId, entry, cfg => editEx(index, list => { list[i] = { id: list[i].id, sg: list[i].sg, src: list[i].src, ...cfg } }), () => remove(i), day)}>
       <Thumb ex={exOrId} />
       <div className="grow"><div className="tt capitalize">{exerciseNameFor(exOrId)}</div>
         {ownLine && <div className="ss">{exLine(entry, unit)}</div>}
+        {/* What the coach wrote for this movement, kept from the import: the note below is what he
+            asked for, this is the row it was read out of. */}
+        {entry.src && <div className="coach-src">{entry.src}</div>}
         {ownNote && <div className="small dim" style={{ marginTop: 2 }}>{entry.note}</div>}</div>
       {sh ? <>
         {!ownLine && <span className="cx-reps">×{repsOnly(entry)}</span>}

@@ -100,11 +100,22 @@ export function schemesFor(repsText, count) {
 const joinNote = parts => parts.filter(Boolean).join(' · ').slice(0, NOTE_MAX)
 
 /**
+ * The coach's own row, as he wrote it: "Strappo sosp alta · 4.0 × 1+2 · 50kg".
+ *
+ * One string with two readers: the review prints it under what it read, and `bundleFromWeek` keeps
+ * it on the exercise so the week editor can show it after the review sheet is gone. Display only —
+ * nothing reads it back as data.
+ */
+export function coachSource({ raw, setsText, reps, load }) {
+  return [raw, [setsText, reps].filter(Boolean).join(' × '), load].filter(Boolean).join(' · ')
+}
+
+/**
  * Read one week and propose, for every row, an exercise and how to train it.
  *
  *   { name, label, days: [{ n, name, entries: [...] }], skipped, stats }
  *
- * Every entry carries the coach's own row (`raw`, `row`) next to what was understood (`tier`,
+ * Every entry carries the coach's own row (`raw`, `row`, `src`) next to what was understood (`tier`,
  * `exact`, `warns`), because this is what the review screen shows and what the user corrects.
  */
 export function reviewWeek(sheet, { aliases = {} } = {}) {
@@ -138,6 +149,16 @@ export function reviewWeek(sheet, { aliases = {} } = {}) {
           row: row.row,
           raw: row.name,
           part: item.raw,
+          // His row, minus whatever this row already prints: his own words are the title when the
+          // catalogue had nothing for them and are in the note when the matcher kept them, and the load
+          // sentence is the note when it could not become a number. What is left is what he wrote that
+          // is not on screen yet, and printing it twice in one row is what the review is not for.
+          src: coachSource({
+            raw: item.tier === 3 || String(item.note || '').includes(item.raw) ? '' : item.raw,
+            setsText: row.setsText,
+            reps: row.reps,
+            load: loadNote ? '' : row.load
+          }),
           tier: item.tier,
           exact: item.exact,
           id: item.id,
@@ -193,6 +214,9 @@ export function bundleFromWeek(review, { unit = 'kg', name = '', days = null } =
       if (entry.side) cfg.side = true
       if (entry.sg) cfg.sg = entry.sg
       if (entry.note) cfg.note = entry.note
+      // The note is what he asked for; this is the row it was read out of, kept so the week editor
+      // can still show it once the review sheet is gone.
+      if (entry.src) cfg.src = entry.src
       return convertedExercise(cfg, 'kg', unit)
     })
     return { dow: dows[i] ?? WEEK_PLAN[i % WEEK_PLAN.length], name: day.name, ex }

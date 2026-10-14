@@ -307,3 +307,8 @@ A short record, so a future feature does not relitigate them. Ordered by when th
 18. **The four floating surfaces** sit on the shadow scale (dialog 3; timer, snackbar, wide tab bar
     2).
 19. **No native date/time input remains.** The reminder time opens the app's own time picker.
+20. **The coach's review shows his own row.** A ruled line under each reading carries his words and
+    his numbers, minus whatever that row already prints (his phrase in the note, his name as the
+    title, the load sentence in the note). A trailing checkbox ticks a row off and the summary
+    counts what is left — it replaced the "to check" chip, whose signal is on the rows themselves —
+    and the same line travels onto the exercise, so the week editor shows it once the review is gone.

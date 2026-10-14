@@ -77,7 +77,39 @@ describe('the coach’s plan review', () => {
     const host = renderTop()
     expect(host.querySelectorAll('.tile')).toHaveLength(0)
     expect(host.textContent).toContain('2 days · 5 exercises · 1 new')
-    expect(host.textContent).toContain('1 to check')
+    expect(host.textContent).toContain('0 of 5 checked')
+  })
+
+  it('prints the coach’s own row under every exercise it read', () => {
+    coachPlanSheet([week])
+    const host = renderTop()
+    // Day 1: the two halves of his complex, each with the row he wrote around it, and the load
+    // exactly as he wrote it — not the 50 kg the app took out of it.
+    expect([...host.querySelectorAll('.coach-src')].map(e => e.textContent)).toEqual([
+      'Strappo · 4.0 × 1+2 · 50kg',
+      'strappo sosp alta · 4.0 × 1+2 · 50kg',
+      'Strappo no piedi · 4.0 × 3.0'
+    ])
+  })
+
+  it('ticks a row off and counts what is left to read', () => {
+    coachPlanSheet([week])
+    const host = renderTop()
+    const row = () => host.querySelectorAll('.list .item')[0]
+    expect(row().querySelector('.chk').getAttribute('aria-checked')).toBe('false')
+    // The checkbox has no visible label of its own, so it is named after the exercise it ticks.
+    expect(row().querySelector('.chk').getAttribute('aria-label')).toBe(row().querySelector('.tt').textContent)
+    expect(host.textContent).toContain('0 of 5 checked')
+
+    act(() => row().querySelector('.chk').click())
+    expect(row().querySelector('.chk').getAttribute('aria-checked')).toBe('true')
+    expect(row().hasAttribute('data-checked')).toBe(true)
+    expect(host.textContent).toContain('1 of 5 checked')
+
+    act(() => row().querySelector('.chk').click())
+    expect(host.textContent).toContain('0 of 5 checked')
+    // Ticking is not tapping the row: the correction sheet never opened.
+    expect(useUI.getState().sheets).toHaveLength(1)
   })
 
   it('numbers the days and names the open one above its rows', () => {
@@ -165,5 +197,7 @@ describe('correcting a row', () => {
     expect(useStore.getState().S.planAliases[normName('Strappo no piedi')]).toBe(idOf('2 position snatch'))
     expect(useUI.getState().sheets).toHaveLength(1)
     expect(review.textContent).toContain('2 position snatch')
+    // And that row is marked as read: correcting it is what having looked at it meant.
+    expect(review.textContent).toContain('1 of 5 checked')
   })
 })
