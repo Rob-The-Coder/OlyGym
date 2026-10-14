@@ -224,26 +224,26 @@ describe('WeekEdit', () => {
   it('shows the coach’s own row on the exercise it was read as', () => {
     const S = useStore.getState().S
     S.weeks[0].days[0].ex = [
-      { id: '0025', sets: 3, reps: 10, weight: 40, mode: 'reps', src: 'Strappo sosp alta · 4.0 × 1+2', note: 'sotto il ginocchio' },
+      { id: '0025', sets: 3, reps: 10, weight: 40, mode: 'reps', src: 'Strappo sosp alta · 4 × 1+2', note: 'sotto il ginocchio' },
     ]
     useStore.setState({ S })
     mount()
     act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
     const row = host.querySelector('[data-day="0"] .item')
-    expect(row.querySelector('.coach-src').textContent).toBe('Strappo sosp alta · 4.0 × 1+2')
+    expect(row.querySelector('.coach-src').textContent).toBe('Strappo sosp alta · 4 × 1+2')
     expect(row.querySelector('.dim').textContent).toBe('sotto il ginocchio')
   })
 
   it('keeps the coach’s row when the exercise is edited', () => {
     const S = useStore.getState().S
-    S.weeks[0].days[0].ex = [{ id: '0025', sets: 3, reps: 10, weight: 40, mode: 'reps', src: 'Strappo · 4.0 × 1+2' }]
+    S.weeks[0].days[0].ex = [{ id: '0025', sets: 3, reps: 10, weight: 40, mode: 'reps', src: 'Strappo · 4 × 1+2' }]
     useStore.setState({ S })
     mount()
     act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
     act(() => { host.querySelector('[data-day="0"] .item').click() })
     const onSave = exConfigSheet.mock.calls[0][2]
     act(() => onSave({ sets: 5, reps: 5, weight: 45, mode: 'reps' }))
-    expect(week().days[0].ex[0]).toMatchObject({ sets: 5, reps: 5, weight: 45, src: 'Strappo · 4.0 × 1+2' })
+    expect(week().days[0].ex[0]).toMatchObject({ sets: 5, reps: 5, weight: 45, src: 'Strappo · 4 × 1+2' })
   })
 
   it('marks the day open for a reader as well as for the eye', () => {

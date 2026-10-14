@@ -596,6 +596,9 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
    label-medium, the shared sets and load take the reading weight. The unit's own controls live here
    once — on a member row the up/down pair moved the whole complex, so every row repeated them. */
 .cx-head{display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:12px 14px 10px;cursor:pointer}
+/* ...unless the card only labels. The coach's review draws a complex to read it, not to open it, and
+   a heading that looks tappable and is not is worse than a quiet one. */
+.cx-head.is-static{cursor:default}
 .cx-head .cx-ico{font-size:14px;color:var(--acc)}
 .cx-head .cx-title{
   flex:none;font-size:13px;font-weight:var(--m3-type-label-m-weight);

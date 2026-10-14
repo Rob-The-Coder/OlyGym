@@ -86,10 +86,29 @@ describe('the coach’s plan review', () => {
     // Day 1: the two halves of his complex, each with the row he wrote around it, and the load
     // exactly as he wrote it — not the 50 kg the app took out of it.
     expect([...host.querySelectorAll('.coach-src')].map(e => e.textContent)).toEqual([
-      'Strappo · 4.0 × 1+2 · 50kg',
-      'strappo sosp alta · 4.0 × 1+2 · 50kg',
-      'Strappo no piedi · 4.0 × 3.0'
+      'Strappo · 4 × 1+2 · 50kg',
+      'strappo sosp alta · 4 × 1+2 · 50kg',
+      'Strappo no piedi · 4 × 3'
     ])
+  })
+
+  // "Strappo + strappo sosp alta" is one thing the coach wrote on one row. Drawn as two loose rows it
+  // read as two independent exercises, so it takes the app's own complex card: his numbers once in the
+  // head, the movements numbered inside, each keeping the reps that are its own.
+  it('draws his complex as one card, not two exercises', () => {
+    coachPlanSheet([week])
+    const host = renderTop()
+    const card = host.querySelector('.list .cx-card')
+    expect(card).toBeTruthy()
+    expect(card.querySelector('.cx-title').textContent).toBe('Complex')
+    expect(card.querySelector('.cx-load').textContent).toBe('4 sets · 50 kg')
+    expect([...card.querySelectorAll('.cx-row .cx-step')].map(e => e.textContent)).toEqual(['1', '2'])
+    expect([...card.querySelectorAll('.cx-item .tt')].map(e => e.textContent)).toEqual(['snatch', 'hang snatch'])
+    // The movement keeps its own reps, and the sets and load are the card's, not repeated on the row.
+    expect([...card.querySelectorAll('.cx-reps')].map(e => e.textContent)).toEqual(['×1', '×2'])
+    // The day's third row is a plain exercise: it is not in the card, and it keeps its own line.
+    expect(host.querySelectorAll('.list > .item')).toHaveLength(1)
+    expect(host.querySelector('.list > .item .ss').textContent).toBe('4 × 3')
   })
 
   it('ticks a row off and counts what is left to read', () => {

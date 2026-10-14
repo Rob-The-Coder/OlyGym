@@ -107,7 +107,13 @@ const joinNote = parts => parts.filter(Boolean).join(' · ').slice(0, NOTE_MAX)
  * nothing reads it back as data.
  */
 export function coachSource({ raw, setsText, reps, load }) {
-  return [raw, [setsText, reps].filter(Boolean).join(' × '), load].filter(Boolean).join(' · ')
+  // Excel hands a whole number back as "4.0" when the column is formatted that way. It is the same
+  // four, and the review is not showing the workbook back — it is showing the coach his plan. Only a
+  // cell that is nothing but a number with a zero fraction is touched: "1+2", "1 minuto", "100kg"
+  // and "80,95 95" stay exactly as he wrote them.
+  const n = text => String(text == null ? '' : text).trim().replace(/^(\d+)[.,]0+$/, '$1')
+  const scheme = [setsText, reps].map(n).filter(Boolean).join(' × ')
+  return [raw, scheme, n(load)].filter(Boolean).join(' · ')
 }
 
 /**
