@@ -201,6 +201,8 @@ describe('WeekEdit', () => {
     act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
     const card = host.querySelector('[data-day="0"] .cx-card')
     expect([...card.querySelectorAll('.cx-note')].map(n => n.textContent)).toEqual(['Pause in the bottom'])
+    // …wearing the same ruled row his tip wears in the review, so it is never the quietest thing here.
+    expect(card.querySelector('.cx-note').className).toContain('coach-note')
     expect(card.querySelectorAll('.cx-item .dim')).toHaveLength(0)
   })
 
@@ -216,7 +218,7 @@ describe('WeekEdit', () => {
     act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
     const row = host.querySelector('[data-day="0"] .item')
     expect(row.querySelector('.ss').textContent).toBe('3 × 5 · 40 kg')
-    expect(row.querySelector('.dim').textContent).toBe('Bar only, then a plate a side')
+    expect(row.querySelector('.coach-note').textContent).toBe('Bar only, then a plate a side')
   })
 
   // What the coach wrote for the movement, kept from the import: the row says what it is now, his
@@ -231,7 +233,7 @@ describe('WeekEdit', () => {
     act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
     const row = host.querySelector('[data-day="0"] .item')
     expect(row.querySelector('.coach-src').textContent).toBe('Strappo sosp alta · 4 × 1+2')
-    expect(row.querySelector('.dim').textContent).toBe('sotto il ginocchio')
+    expect(row.querySelector('.coach-note').textContent).toBe('sotto il ginocchio')
   })
 
   it('keeps the coach’s row when the exercise is edited', () => {
