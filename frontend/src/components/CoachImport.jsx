@@ -91,21 +91,22 @@ export default function CoachImport({ sheets, close, pick, menu }) {
 
   // One row of the list: what it was read as, then his own row, then what he asked for in words.
   // `sh` is the complex this row belongs to, or nothing when it stands alone: inside one the card
-  // above already carries the sets and load the whole row shares and the tip, so a movement prints
-  // those only when it disagrees with the rest — the same rule the week editor draws by.
+  // above carries the sets and the load every movement shares, so a movement prints those numbers
+  // only when it disagrees with the rest. His tip is printed on every movement rather than once at
+  // the top of the card — this screen is read movement by movement, and on a long day a line in the
+  // head is a scroll away from the row it explains.
   const entryRow = (entry, sh) => {
     const cfg = { id: entry.id, sets: entry.sets, reps: entry.reps, mode: entry.mode, sec: entry.sec, side: entry.side, weight: shown(entry.weight) }
     const on = checked.has(keyOf(entry))
     const name = entry.custom ? entry.name : exerciseNameFor(exOr(entry.id))
     const ownLine = !sh || (!sh.load && ((entry.sets || 0) !== sh.sets || (entry.weight || 0) !== sh.weight))
-    const ownNote = entry.note && (!sh || entry.note !== sh.note)
     return <div key={entry.key} className={'item' + (sh ? ' cx-item' : '')} data-checked={on ? '' : undefined} {...tappable(() => rowMenu(entry))}>
       <div className="grow">
         <div className="tt">{name}</div>
         {ownLine && <div className="ss">{exLine(cfg, unit)}</div>}
         {/* His row, as he wrote it: the one thing that says whether the line above is right. */}
         {entry.src && <div className="coach-src">{entry.src}</div>}
-        {ownNote && <div className="ss dim" style={{ marginTop: 2 }}>{entry.note}</div>}
+        {entry.note && <div className="ss dim" style={{ marginTop: 2 }}>{entry.note}</div>}
         <div className="mchips" style={{ marginTop: 4 }}>
           {entry.tier === 3 && <span className="mchip">{t('New exercise')}</span>}
           {entry.tier === 2 && <span className="mchip">{t('His words in the note')}</span>}
@@ -176,8 +177,6 @@ export default function CoachImport({ sheets, close, pick, menu }) {
             <span className="cx-title">{t('Complex')}</span>
             {sh.load && <span className="cx-load">{[t(sh.sets === 1 ? '{0} set' : '{0} sets', sh.sets), sh.weight ? fmtNum(shown(sh.weight)) + ' ' + unit : null].filter(Boolean).join(' · ')}</span>}
           </div>
-          {/* The tip he wrote once for the whole thing is read once, under the numbers it belongs to. */}
-          {sh.note && <div className="cx-note small dim">{sh.note}</div>}
           {rows.map((entry, k) => <div className="cx-row" key={entry.key}>
             <span className="cx-step">{k + 1}</span>
             {entryRow(entry, sh)}
