@@ -106,7 +106,7 @@ export default function CoachImport({ sheets, close, pick, menu }) {
         {ownLine && <div className="ss">{exLine(cfg, unit)}</div>}
         {/* His row, as he wrote it: the one thing that says whether the line above is right. */}
         {entry.src && <div className="coach-src">{entry.src}</div>}
-        {entry.note && <div className="ss dim" style={{ marginTop: 2 }}>{entry.note}</div>}
+        {entry.note && <div className="coach-note">{entry.note}</div>}
         <div className="mchips" style={{ marginTop: 4 }}>
           {entry.tier === 3 && <span className="mchip">{t('New exercise')}</span>}
           {entry.tier === 2 && <span className="mchip">{t('His words in the note')}</span>}
