@@ -5,7 +5,7 @@ import { useUI } from '../store/useUI.js'
 import { DAYS, DAYN, fmtDate, fmtNum, uid, exCount, weekOrder, weekStartOf } from '../lib/format.js'
 import { t, exerciseNameFor } from '../lib/i18n.js'
 import { exOr } from '../lib/exercises.js'
-import { supersetUnits, moveSupersetUnit, cleanupSg, exLine, defaultConfig } from '../lib/history.js'
+import { supersetUnits, moveSupersetUnit, unitCount, complexShared, repsOnly, cleanupSg, exLine, defaultConfig } from '../lib/history.js'
 import { exercisePicker, exConfigSheet, complexConfigSheet, confirmSheet, menuSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import TopAppBar from '../components/TopAppBar.jsx'
@@ -49,6 +49,23 @@ function DayExercises({ weekId, day, index, unit, editEx, toast }) {
 
   const remove = i => editEx(index, list => { list.splice(i, 1); cleanupSg(list) })
 
+  // Unlinking and removing belong to the whole complex, so they live on the card's own line: on a
+  // member row they read as that movement's controls while acting on every movement at once.
+  const removeUnit = group => confirmSheet({
+    title: t('Remove this complex?'),
+    message: t('“{0}” and its exercises will be removed.', t('Complex')),
+    confirmText: t('Remove'), danger: true,
+    onConfirm: () => editEx(index, list => { group.slice().reverse().forEach(i => list.splice(i, 1)); cleanupSg(list) }),
+  })
+  const unitMenu = group => menuSheet({
+    title: t('Complex'),
+    subtitle: group.map(i => exerciseNameFor(exOr(ex[i].id))).join(' + '),
+    items: [
+      { icon: 'link', label: t('Unpair'), onClick: () => editEx(index, list => { group.forEach(i => delete list[i].sg); cleanupSg(list) }) },
+      { icon: 'trash', label: t('Remove complex'), danger: true, onClick: () => removeUnit(group) },
+    ],
+  })
+
   const toggleLink = i => editEx(index, list => {
     if (i < 1) return
     const cur = list[i], prev = list[i - 1]
@@ -67,12 +84,11 @@ function DayExercises({ weekId, day, index, unit, editEx, toast }) {
     }
   })
 
-  // The three actions stay on the row: this is the screen where order is worked out, so a reorder
-  // is one tap here. They are the app's own 36px .iconbtn rather than the 32x28 / 28x24 the inline
-  // sizes had them at, and one horizontal group rather than a stacked column — the group is flush
-  // right, so the first row, which has no link above it, keeps its up and down in the same place.
+  // An exercise that stands alone keeps all three actions: this is the screen where order is worked
+  // out, so a reorder is one tap here. (Inside a complex they were repeated on every movement, and
+  // the link state they drew could not occur: two entries sharing a group are one card, never a row.)
   const acts = (entry, i) => <div className="ex-acts">
-    {i > 0 && <button className={'iconbtn' + (entry.sg && ex[i - 1].sg === entry.sg ? ' on-ss' : '')}
+    {i > 0 && <button className="iconbtn"
       aria-label={t('Complex with exercise above')} title={t('Complex with exercise above')}
       onClick={ev => { ev.stopPropagation(); toggleLink(i) }}><Icon name="link" /></button>}
     <button className="iconbtn" aria-label={t('Move up')} title={t('Move up')} disabled={unitIndex.get(i) === 0}
@@ -81,40 +97,62 @@ function DayExercises({ weekId, day, index, unit, editEx, toast }) {
       onClick={ev => { ev.stopPropagation(); move(i, 1) }}><Icon name="chevronDown" /></button>
   </div>
 
-  const row = (entry, i, inside) => {
+  // `sh` is the complex this row belongs to, or nothing when it stands alone. Under a complex the
+  // card already carries the sets, the load and the shared tip, so a member prints a line of its own
+  // only when it disagrees with the rest — which is what makes the odd one findable.
+  const row = (entry, i, sh) => {
     // An unresolvable id is shown rather than skipped, the way the routine editor shows it.
     const exOrId = exOr(entry.id)
-    return <SwipeToDelete className={'item' + (inside ? ' cx-item' : '')}
+    // Outside a complex nothing is shared, so the line and the note both stay on the row; inside one
+    // they are printed only by the movement that disagrees with the rest.
+    const ownLine = !sh || (!sh.load && ((entry.sets || 0) !== sh.sets || (entry.weight || 0) !== sh.weight))
+    const ownNote = entry.note && (!sh || entry.note !== sh.note)
+    return <SwipeToDelete className={'item' + (sh ? ' cx-item' : '')}
       deleteLabel={t('Remove')}
       onDelete={() => remove(i)}
       onClick={() => exConfigSheet(exOrId, entry, cfg => editEx(index, list => { list[i] = { id: list[i].id, sg: list[i].sg, ...cfg } }), () => remove(i), day)}>
       <Thumb ex={exOrId} />
       <div className="grow"><div className="tt capitalize">{exerciseNameFor(exOrId)}</div>
-        <div className="ss">{exLine(entry, unit)}</div>
-        {entry.note && <div className="small dim" style={{ marginTop: 2 }}>{entry.note}</div>}</div>
-      {acts(entry, i)}
+        {ownLine && <div className="ss">{exLine(entry, unit)}</div>}
+        {ownNote && <div className="small dim" style={{ marginTop: 2 }}>{entry.note}</div>}</div>
+      {sh ? <>
+        {!ownLine && <span className="cx-reps">×{repsOnly(entry)}</span>}
+        <Icon name="chevronRight" className="cx-go" />
+      </> : acts(entry, i)}
     </SwipeToDelete>
   }
 
+  // The card leads with what the coach wrote — the word, then the sets and the load the whole thing
+  // shares — and carries the unit's own controls once, beside it.
+  const head = (group, gi, sh) => <>
+    <div className="cx-head" {...tappable(() => complexConfigSheet({ weekId, dayIndex: index }, gi))}>
+      <Icon name="link" className="cx-ico" />
+      <span className="cx-title">{t('Complex')}</span>
+      {/* The numbers the coach wrote for the complex. A movement that disagrees keeps those
+          numbers in place and prints its own line below, rather than erasing the prescription. */}
+      <span className="cx-load">{[t(sh.sets === 1 ? '{0} set' : '{0} sets', sh.sets), sh.weight ? fmtNum(sh.weight) + ' ' + unit : null].filter(Boolean).join(' · ')}</span>
+      <div className="ex-acts">
+        <button className="iconbtn" aria-label={t('Move up')} title={t('Move up')} disabled={gi === 0}
+          onClick={ev => { ev.stopPropagation(); move(group[0], -1) }}><Icon name="chevronUp" /></button>
+        <button className="iconbtn" aria-label={t('Move down')} title={t('Move down')} disabled={gi === units.length - 1}
+          onClick={ev => { ev.stopPropagation(); move(group[0], 1) }}><Icon name="chevronDown" /></button>
+        <button className="iconbtn" aria-label={t('Complex options')} title={t('Complex options')}
+          onClick={ev => { ev.stopPropagation(); unitMenu(group) }}><Icon name="more" /></button>
+      </div>
+    </div>
+    {sh.note && <div className="cx-note small dim">{sh.note}</div>}
+  </>
+
   return <div className="day-ex">
     {ex.length ? <div className="list">{units.map((group, gi) => {
-      const head = ex[group[0]]
-      // A complex is one card; its sets and load belong to the whole thing.
-      const shared = group.every(i => ex[i].sets === head.sets && (ex[i].weight || 0) === (head.weight || 0))
-      if (group.length === 1) return <div key={group[0]}>{row(ex[group[0]], group[0], false)}</div>
+      if (group.length === 1) return <div key={group[0]}>{row(ex[group[0]], group[0])}</div>
+      // A complex is one card; its sets, load and tip belong to the whole thing.
+      const sh = complexShared(group, ex)
       return <div key={group[0]} className="cx-card">
-        {/* The heading writes the two numbers the whole complex shares, into this day's own ex —
-            a day is what a session is built from, so this is the live plan. */}
-        <div className="cx-head" {...tappable(() => complexConfigSheet({ weekId, dayIndex: index }, gi))}>
-          <Icon name="link" className="cx-ico" />
-          <span className="cx-title">{t('Complex')}</span>
-          <span className="cx-load">{shared
-            ? [t((head.sets || 1) === 1 ? '{0} set' : '{0} sets', head.sets || 1), head.weight ? fmtNum(head.weight) + ' ' + unit : null].filter(Boolean).join(' · ')
-            : t('{0} exercises', group.length)}</span>
-        </div>
+        {head(group, gi, sh)}
         {group.map((i, k) => <div key={i} className="cx-row">
           <span className="cx-step">{k + 1}</span>
-          {row(ex[i], i, true)}
+          {row(ex[i], i, sh)}
         </div>)}
       </div>
     })}</div> : <div className="small dim" style={{ margin: '8px 2px' }}>{t('No exercises yet — add your first one.')}</div>}
@@ -185,7 +223,7 @@ export default function WeekEdit() {
       subtitle={[
         fmtDate(week.startIso, true, true),
         (week.days || []).length ? dayCount((week.days || []).length) : null,
-        (week.days || []).length ? exCount((week.days || []).reduce((n, d) => n + (d.ex || []).length, 0)) : null,
+        (week.days || []).length ? exCount((week.days || []).reduce((n, d) => n + unitCount(d.ex || []), 0)) : null,
       ].filter(Boolean).join(' · ')}
       title={<TextField className="ab-title" value={week.name || ''} placeholder={fallback}
         aria-label={fallback} onChange={e => edit(w => { w.name = e.target.value })} />}
@@ -214,9 +252,17 @@ export default function WeekEdit() {
         </div>}
         {/* The day's body is this row: it opens the exercise editor for that weekday. */}
         <button className="btn ghost sm day-add" aria-expanded={open === index} onClick={() => setOpen(open === index ? null : index)}>
-          {exCount((day.ex || []).length)} <Icon name={open === index ? 'chevronUp' : 'chevronDown'} />
+          {exCount(unitCount(day.ex || []))} <Icon name="chevronDown" />
         </button>
-        {open === index && <DayExercises weekId={id} day={day} index={index} unit={S.unit} editEx={editEx} toast={toast} />}
+        {/* The body is rendered open or shut. A grid row can be animated from nothing to the
+            content's own height, which `height:auto` cannot — that is what lets a day close as
+            smoothly as it opens. `inert` keeps the shut body out of the tab order and away from a
+            reader, since it is only clipped, not removed. */}
+        <div className="day-reveal" data-open={open === index || undefined} inert={open !== index}>
+          <div className="day-reveal-in">
+            <DayExercises weekId={id} day={day} index={index} unit={S.unit} editEx={editEx} toast={toast} />
+          </div>
+        </div>
       </div>)}
     </div>
 
