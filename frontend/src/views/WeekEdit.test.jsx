@@ -189,6 +189,40 @@ describe('WeekEdit', () => {
     expect(card.querySelectorAll('.cx-item .dim')).toHaveLength(0)
   })
 
+  // A note belongs to the exercise it was written on. Outside a complex nothing is shared, so the
+  // line and the note both stay on the row.
+  it('keeps a note on a row that is not part of a complex', () => {
+    const S = useStore.getState().S
+    S.weeks[0].days[0].ex = [
+      { id: '0025', sets: 3, reps: 5, weight: 40, mode: 'reps', note: 'Bar only, then a plate a side' },
+    ]
+    useStore.setState({ S })
+    mount()
+    act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
+    const row = host.querySelector('[data-day="0"] .item')
+    expect(row.querySelector('.ss').textContent).toBe('3 × 5 · 40 kg')
+    expect(row.querySelector('.dim').textContent).toBe('Bar only, then a plate a side')
+  })
+
+  it('marks the day open for a reader as well as for the eye', () => {
+    mount()
+    const state = () => host.querySelector('[data-day="0"] button[aria-expanded]').getAttribute('aria-expanded')
+    expect(state()).toBe('false')
+    act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
+    expect(state()).toBe('true')
+  })
+
+  // The expander is one glyph turned by its own state rather than two icons swapped, and the body
+  // settles in on the expressive curve. Both live in the sheet, so they are read from it.
+  it('turns the expander chevron and eases the body in', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/m3.components.css'), 'utf8')
+    expect(css).toMatch(/\.day-add\[aria-expanded="true"\] \.icn\{transform:rotate\(180deg\)\}/)
+    expect(css).toMatch(/\.day-add \.icn\{transition:transform var\(--m3-dur-long\) var\(--m3-ease-spring\)\}/)
+    expect(css).toMatch(/@keyframes dayopen\{/)
+    expect(css).toMatch(/\.day-ex\{animation:dayopen var\(--m3-dur-long\) var\(--m3-ease-emphasized\)\}/)
+    expect(css).toMatch(/@keyframes dayopen\{from\{opacity:0;transform:translateY\(-14px\)\}/)
+  })
+
   // The card is the prescription: a movement loading differently gets its own line rather than
   // erasing the numbers the coach wrote for the whole thing.
   it('keeps the shared numbers when one movement disagrees', () => {

@@ -103,15 +103,17 @@ function DayExercises({ weekId, day, index, unit, editEx, toast }) {
   const row = (entry, i, sh) => {
     // An unresolvable id is shown rather than skipped, the way the routine editor shows it.
     const exOrId = exOr(entry.id)
-    const ownLine = sh && (!sh.load && ((entry.sets || 0) !== sh.sets || (entry.weight || 0) !== sh.weight))
-    const ownNote = sh && entry.note && entry.note !== sh.note
+    // Outside a complex nothing is shared, so the line and the note both stay on the row; inside one
+    // they are printed only by the movement that disagrees with the rest.
+    const ownLine = !sh || (!sh.load && ((entry.sets || 0) !== sh.sets || (entry.weight || 0) !== sh.weight))
+    const ownNote = entry.note && (!sh || entry.note !== sh.note)
     return <SwipeToDelete className={'item' + (sh ? ' cx-item' : '')}
       deleteLabel={t('Remove')}
       onDelete={() => remove(i)}
       onClick={() => exConfigSheet(exOrId, entry, cfg => editEx(index, list => { list[i] = { id: list[i].id, sg: list[i].sg, ...cfg } }), () => remove(i), day)}>
       <Thumb ex={exOrId} />
       <div className="grow"><div className="tt capitalize">{exerciseNameFor(exOrId)}</div>
-        {(!sh || ownLine) && <div className="ss">{exLine(entry, unit)}</div>}
+        {ownLine && <div className="ss">{exLine(entry, unit)}</div>}
         {ownNote && <div className="small dim" style={{ marginTop: 2 }}>{entry.note}</div>}</div>
       {sh ? <>
         {!ownLine && <span className="cx-reps">×{repsOnly(entry)}</span>}
@@ -250,7 +252,7 @@ export default function WeekEdit() {
         </div>}
         {/* The day's body is this row: it opens the exercise editor for that weekday. */}
         <button className="btn ghost sm day-add" aria-expanded={open === index} onClick={() => setOpen(open === index ? null : index)}>
-          {exCount(unitCount(day.ex || []))} <Icon name={open === index ? 'chevronUp' : 'chevronDown'} />
+          {exCount(unitCount(day.ex || []))} <Icon name="chevronDown" />
         </button>
         {open === index && <DayExercises weekId={id} day={day} index={index} unit={S.unit} editEx={editEx} toast={toast} />}
       </div>)}
