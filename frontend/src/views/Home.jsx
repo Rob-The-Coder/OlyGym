@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
-import { effectiveDay, nextTrainingDay, streakWeeks, lastBW, setsDoneActive } from '../lib/history.js'
+import { effectiveDay, nextTrainingDay, streakWeeks, lastBW, setsDoneActive, unitCount } from '../lib/history.js'
 import { weekFor } from '../lib/weeks.js'
 import { fmtNum, fmtDate, exCount, todayISO, isoOf, weekKey, weekStartOf, weekDayOffset, DAYS, DAYN } from '../lib/format.js'
 import { t, dateLocale } from '../lib/i18n.js'
@@ -71,7 +71,7 @@ export default function Home() {
 
   // What the hero says under the title: the one useful thing about the state we are in, or
   // nothing at all — a finished workout does not need a caption repeating that it is finished.
-  const heroSub = todaySession ? exCount(todaySession.ex.length)
+  const heroSub = todaySession ? exCount(unitCount(todaySession.ex))
     : next ? t('Next session: {0}, {1}', t(DAYN[next.weekday]), next.day.name)
     : (S.active || doneToday) ? '' : wkLabel
 

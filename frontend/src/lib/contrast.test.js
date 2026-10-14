@@ -91,7 +91,6 @@ describe('the component sheet', () => {
     for (const sel of ['.dim', '.helpbtn', '.wday .lbl', '.field::placeholder', '.searchf .lead', '.searchf .clear', '.search>svg', '.exmedia-x', '.sethead', '.setph', '.sidetag', '.subrow .subn', '.hm-months span', '.hm-legend', '.cal-h', '.cal-legend', '.today-row .lbl2', '.steps-list::marker']) {
       expect(block, sel + ' is no longer re-pointed to --label-2').toContain(sel)
     }
-    expect(components).toMatch(/\.cx-plus\{[^}]*color:var\(--label-2\)/)
     expect(components).toMatch(/\.ss-amp \.ss-plus\{[^}]*color:var\(--label-2\)/)
   })
 })

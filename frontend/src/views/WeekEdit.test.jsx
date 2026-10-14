@@ -153,21 +153,107 @@ describe('WeekEdit', () => {
     expect(rows[1].querySelector('[aria-label="Move down"]').disabled).toBe(true)
   })
 
-  it('marks the link when the pair above is already a complex', () => {
+  // A complex is one card: the sets and load its movements share are written once, the unit's own
+  // controls sit on that line, and a movement keeps only the reps that are its own.
+  it('draws a complex as one card, with its shared numbers and its controls once', () => {
     const S = useStore.getState().S
     S.weeks[0].days[0].ex = [
-      { id: '0025', sets: 3, reps: 3, weight: 30, sg: 'g1' },
-      { id: '0031', sets: 3, reps: 1, weight: 30, sg: 'g1' },
+      { id: '0025', sets: 3, reps: 3, weight: 30, mode: 'reps', sg: 'g1' },
+      { id: '0031', sets: 3, reps: 1, weight: 30, mode: 'reps', sg: 'g1' },
     ]
     useStore.setState({ S })
     mount()
     act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
-    const rows = [...host.querySelectorAll('[data-day="0"] .item')]
-    expect(rows[1].querySelector('[aria-label="Complex with exercise above"]').className).toContain('on-ss')
+    const card = host.querySelector('[data-day="0"] .cx-card')
+    expect(card.querySelector('.cx-load').textContent).toBe('3 sets · 30 kg')
+    // the unit's own controls: its order, and the menu holding unpair and remove
+    expect(card.querySelectorAll('.cx-head .ex-acts button')).toHaveLength(3)
+    // never repeated on a movement row, where they acted on the whole complex anyway
+    expect(card.querySelectorAll('.cx-item .ex-acts')).toHaveLength(0)
+    expect([...card.querySelectorAll('.cx-reps')].map(r => r.textContent)).toEqual(['×3', '×1'])
   })
 
-  // The control moved; linking still works, both ways.
-  it('still links and unlinks from the row', () => {
+  // The coach writes the tip once for the complex. Repeating it on every movement is noise that
+  // pushes the reps off the row.
+  it('reads a shared tip once, under the numbers, and not on every movement', () => {
+    const S = useStore.getState().S
+    S.weeks[0].days[0].ex = [
+      { id: '0025', sets: 3, reps: 3, weight: 30, mode: 'reps', sg: 'g1', note: 'Pause in the bottom' },
+      { id: '0031', sets: 3, reps: 1, weight: 30, mode: 'reps', sg: 'g1', note: 'Pause in the bottom' },
+    ]
+    useStore.setState({ S })
+    mount()
+    act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
+    const card = host.querySelector('[data-day="0"] .cx-card')
+    expect([...card.querySelectorAll('.cx-note')].map(n => n.textContent)).toEqual(['Pause in the bottom'])
+    expect(card.querySelectorAll('.cx-item .dim')).toHaveLength(0)
+  })
+
+  // The card is the prescription: a movement loading differently gets its own line rather than
+  // erasing the numbers the coach wrote for the whole thing.
+  it('keeps the shared numbers when one movement disagrees', () => {
+    const S = useStore.getState().S
+    S.weeks[0].days[0].ex = [
+      { id: '0025', sets: 3, reps: 3, weight: 30, mode: 'reps', sg: 'g1' },
+      { id: '0031', sets: 3, reps: 1, weight: 40, mode: 'reps', sg: 'g1' },
+    ]
+    useStore.setState({ S })
+    mount()
+    act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
+    const card = host.querySelector('[data-day="0"] .cx-card')
+    expect(card.querySelector('.cx-load').textContent).toBe('3 sets · 30 kg')
+    const rows = [...card.querySelectorAll('.cx-item')]
+    expect(rows[0].querySelector('.ss')).toBeNull()
+    expect(rows[1].querySelector('.ss').textContent).toBe('3 × 1 · 40 kg')
+    // that line already carries the reps, so the row drops the chip beside it
+    expect(rows[1].querySelector('.cx-reps')).toBeNull()
+  })
+
+  // Unpairing acts on the whole complex, so it is one control on the card rather than a link button
+  // repeated on every movement — where it read as that movement's and unlinked all of them.
+  it('unpairs the whole complex from the card menu', () => {
+    const S = useStore.getState().S
+    S.weeks[0].days[0].ex = [
+      { id: '0025', sets: 3, reps: 3, weight: 30, mode: 'reps', sg: 'g1' },
+      { id: '0031', sets: 3, reps: 1, weight: 30, mode: 'reps', sg: 'g1' },
+    ]
+    useStore.setState({ S })
+    mount()
+    act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
+    act(() => { host.querySelector('[data-day="0"] [aria-label="Complex options"]').click() })
+    const menu = mocks.menuSheet.mock.calls[0][0]
+    expect(menu.title).toBe('Complex')
+    expect(menu.items.map(i => i.label)).toEqual(['Unpair', 'Remove complex'])
+
+    act(() => { menu.items[0].onClick() })
+    expect(week().days[0].ex.map(e => e.sg)).toEqual([undefined, undefined])
+  })
+
+  // Removing a complex is removing several exercises at once, so it asks first.
+  it('asks before removing the whole complex', () => {
+    const S = useStore.getState().S
+    S.weeks[0].days[0].ex = [
+      { id: '0025', sets: 3, reps: 3, weight: 30, mode: 'reps', sg: 'g1' },
+      { id: '0031', sets: 3, reps: 1, weight: 30, mode: 'reps', sg: 'g1' },
+    ]
+    useStore.setState({ S })
+    mount()
+    act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
+    act(() => { host.querySelector('[data-day="0"] [aria-label="Complex options"]').click() })
+    const menu = mocks.menuSheet.mock.calls[0][0]
+    expect(menu.items[1].danger).toBe(true)
+
+    act(() => { menu.items[1].onClick() })
+    expect(mocks.confirmSheet).toHaveBeenCalledTimes(1)
+    const dialog = mocks.confirmSheet.mock.calls[0][0]
+    expect(dialog.title).toBe('Remove this complex?')
+    act(() => { dialog.onConfirm() })
+    expect(week().days[0].ex).toEqual([])
+  })
+
+  // Linking still starts from the row — it is the only way to make a complex — and the pair it
+  // makes is a card, so taking it apart moves to that card's menu.
+  it('links from the row and unpairs the pair it made', () => {
     const S = useStore.getState().S
     S.weeks[0].days[0].ex = [
       { id: '0025', sets: 3, reps: 3, weight: 30, mode: 'reps' },
@@ -176,13 +262,14 @@ describe('WeekEdit', () => {
     useStore.setState({ S })
     mount()
     act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
-    const link = () => [...host.querySelectorAll('[data-day="0"] .item')][1]
-      .querySelector('[aria-label="Complex with exercise above"]')
-    act(() => { link().click() })
+    act(() => { [...host.querySelectorAll('[data-day="0"] .item')][1]
+      .querySelector('[aria-label="Complex with exercise above"]').click() })
     const after = week().days[0].ex.map(e => e.sg)
     expect(after[0]).toBeTruthy()
     expect(after[1]).toBe(after[0])
-    act(() => { link().click() })
+
+    act(() => { host.querySelector('[data-day="0"] [aria-label="Complex options"]').click() })
+    act(() => { mocks.menuSheet.mock.calls[0][0].items[0].onClick() })
     expect(week().days[0].ex.map(e => e.sg)).toEqual([undefined, undefined])
   })
 
