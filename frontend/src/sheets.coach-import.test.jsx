@@ -111,6 +111,21 @@ describe('the coach’s plan review', () => {
     expect(host.querySelector('.list > .item .ss').textContent).toBe('4 × 3')
   })
 
+  // The tip the coach wrote once for the whole row is read on every movement: this screen is read
+  // movement by movement, and the head is a scroll away once the day is long.
+  it('prints his tip on each movement of the complex', () => {
+    coachPlanSheet([{ name: 'Settimana', grid: grid([
+      { day: 'Giorno 1', name: 'Strappo + strappo sosp alta', reps: '1+2', sets: '4.0', load: '50kg , se leggeri le ultime due a 55kg' }
+    ]) }])
+    const host = renderTop()
+    const card = host.querySelector('.cx-card')
+    expect([...card.querySelectorAll('.cx-item .dim')].map(e => e.textContent))
+      .toEqual(['50kg , se leggeri le ultime due a 55kg', '50kg , se leggeri le ultime due a 55kg'])
+    // The head keeps his numbers only; the tip is not left up there as a second copy.
+    expect(card.querySelector('.cx-note')).toBeNull()
+    expect(card.querySelector('.cx-load').textContent).toBe('4 sets · 50 kg')
+  })
+
   it('ticks a row off and counts what is left to read', () => {
     coachPlanSheet([week])
     const host = renderTop()
