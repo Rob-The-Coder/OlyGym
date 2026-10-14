@@ -308,7 +308,12 @@ A short record, so a future feature does not relitigate them. Ordered by when th
     2).
 19. **No native date/time input remains.** The reminder time opens the app's own time picker.
 20. **The coach's review shows his own row.** A ruled line under each reading carries his words and
-    his numbers, minus whatever that row already prints (his phrase in the note, his name as the
-    title, the load sentence in the note). A trailing checkbox ticks a row off and the summary
-    counts what is left — it replaced the "to check" chip, whose signal is on the rows themselves —
-    and the same line travels onto the exercise, so the week editor shows it once the review is gone.
+    his numbers — minus whatever that row already prints (his phrase in the note, his name as the
+    title, the load sentence in the note), and minus Excel's trailing zero, so `4.0 × 10.0` reads
+    `4 × 10`. A trailing checkbox ticks a row off and the summary counts what is left — it replaced
+    the "to check" chip, whose signal is on the rows themselves — and the same line travels onto the
+    exercise, so the week editor shows it once the review is gone.
+21. **A complex is the app's own card, in the review too.** What he wrote on one row with a `+` is
+    drawn as one card — his sets, load and tip in the head, the movements numbered inside, each
+    keeping only the reps that are its own — never as two loose rows that read as two exercises. The
+    head there only labels, so it drops the pointer cursor the week editor's head needs.

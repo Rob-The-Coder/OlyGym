@@ -163,13 +163,13 @@ describe('reviewWeek', () => {
   // his reps as written, so "was this ported right?" is a question the screen can answer.
   it('keeps the coach’s own row', () => {
     expect(review.days[0].entries.map(e => e.src)).toEqual([
-      'Strappo · 4.0 × 1+2',
-      'strappo sosp alta · 4.0 × 1+2',
-      'Piegamenti alle parallele · 3.0 × 10.0'
+      'Strappo · 4 × 1+2',
+      'strappo sosp alta · 4 × 1+2',
+      'Piegamenti alle parallele · 3 × 10'
     ])
     expect(review.days[1].entries.map(e => e.src)).toEqual([
-      'Strappo no piedi · 4.0 × 3.0',
-      'Plank · 3.0 × 1 minuto',
+      'Strappo no piedi · 4 × 3',
+      'Plank · 3 × 1 minuto',
       // His own name is the row's title (the catalogue had nothing for it) and he wrote no numbers,
       // so there is nothing left to print.
       ''
@@ -187,7 +187,7 @@ describe('reviewWeek', () => {
     ]) })
     const e = r.days[0].entries[0]
     expect(e.note).toContain('Gambe avanti prima stop in buca')
-    expect(e.src).toBe('5.0 × 3.0 · 100kg')
+    expect(e.src).toBe('5 × 3 · 100kg')
   })
 })
 
@@ -226,11 +226,11 @@ describe('bundleFromWeek', () => {
   })
 
   it('carries his own row onto the exercise, in either unit', () => {
-    expect(wk.days[0].ex[0].src).toBe('Strappo · 4.0 × 1+2')
-    expect(bundleFromWeek(review, { unit: 'lb' }).days[0].ex[0].src).toBe('Strappo · 4.0 × 1+2')
+    expect(wk.days[0].ex[0].src).toBe('Strappo · 4 × 1+2')
+    expect(bundleFromWeek(review, { unit: 'lb' }).days[0].ex[0].src).toBe('Strappo · 4 × 1+2')
     const s = { weeks: [], customEx: [] }
     mergeWeek(s, wk)
-    expect(s.weeks[0].days[0].ex[0].src).toBe('Strappo · 4.0 × 1+2')
+    expect(s.weeks[0].days[0].ex[0].src).toBe('Strappo · 4 × 1+2')
   })
 
   it('hands its numbers over in the account’s own unit', () => {

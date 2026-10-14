@@ -22,8 +22,8 @@ import { Button, Check, Segmented } from './ui.jsx'
 import Icon from './Icon.jsx'
 import { t, exerciseNameFor } from '../lib/i18n.js'
 import { exOr } from '../lib/exercises.js'
-import { exLine } from '../lib/history.js'
-import { DAYS } from '../lib/format.js'
+import { exLine, repsOnly, supersetUnits, complexShared } from '../lib/history.js'
+import { DAYS, fmtNum } from '../lib/format.js'
 import { normName } from '../lib/plan-aliases.js'
 import { WEEK_PLAN, bundleFromWeek, reviewWeek } from '../lib/import-plan.js'
 import { mergeWeek } from '../lib/plan-share.js'
@@ -89,6 +89,42 @@ export default function CoachImport({ sheets, close, pick, menu }) {
     nav('/plan')
   }
 
+  // One row of the list: what it was read as, then his own row, then what he asked for in words.
+  // `sh` is the complex this row belongs to, or nothing when it stands alone: inside one the card
+  // above already carries the sets and load the whole row shares and the tip, so a movement prints
+  // those only when it disagrees with the rest — the same rule the week editor draws by.
+  const entryRow = (entry, sh) => {
+    const cfg = { id: entry.id, sets: entry.sets, reps: entry.reps, mode: entry.mode, sec: entry.sec, side: entry.side, weight: shown(entry.weight) }
+    const on = checked.has(keyOf(entry))
+    const name = entry.custom ? entry.name : exerciseNameFor(exOr(entry.id))
+    const ownLine = !sh || (!sh.load && ((entry.sets || 0) !== sh.sets || (entry.weight || 0) !== sh.weight))
+    const ownNote = entry.note && (!sh || entry.note !== sh.note)
+    return <div key={entry.key} className={'item' + (sh ? ' cx-item' : '')} data-checked={on ? '' : undefined} {...tappable(() => rowMenu(entry))}>
+      <div className="grow">
+        <div className="tt">{name}</div>
+        {ownLine && <div className="ss">{exLine(cfg, unit)}</div>}
+        {/* His row, as he wrote it: the one thing that says whether the line above is right. */}
+        {entry.src && <div className="coach-src">{entry.src}</div>}
+        {ownNote && <div className="ss dim" style={{ marginTop: 2 }}>{entry.note}</div>}
+        <div className="mchips" style={{ marginTop: 4 }}>
+          {entry.tier === 3 && <span className="mchip">{t('New exercise')}</span>}
+          {entry.tier === 2 && <span className="mchip">{t('His words in the note')}</span>}
+          {entry.tier === 1 && !entry.exact && <span className="mchip">{t('Check')}</span>}
+          {entry.warns.includes('sets') && <span className="mchip miss">{t('no sets given')}</span>}
+          {entry.warns.includes('reps') && <span className="mchip miss">{t('no reps given')}</span>}
+        </div>
+      </div>
+      {!ownLine && <span className="cx-reps">×{repsOnly(entry)}</span>}
+      {/* The row itself opens the correction; this only marks the row as read. The wrapper stops
+          the tap before the row sees it — the same way every nested control in a tappable row does. */}
+      <span className="coach-check" onClick={ev => ev.stopPropagation()}>
+        <Check checked={on} label={name} onChange={() => tickOf(entry)} />
+      </span>
+    </div>
+  }
+
+  const units = supersetUnits(day?.entries || [])
+
   return <>
     <h3>{t('The coach’s plan')}</h3>
     <div className="muted small" style={{ marginBottom: 12 }}>
@@ -126,30 +162,26 @@ export default function CoachImport({ sheets, close, pick, menu }) {
 
     {day && <div className="sech">{day.name}</div>}
     <div className="list">
-      {day?.entries.map(entry => {
-        const cfg = { id: entry.id, sets: entry.sets, reps: entry.reps, mode: entry.mode, sec: entry.sec, side: entry.side, weight: shown(entry.weight) }
-        const on = checked.has(keyOf(entry))
-        const name = entry.custom ? entry.name : exerciseNameFor(exOr(entry.id))
-        return <div key={entry.key} className="item" data-checked={on ? '' : undefined} {...tappable(() => rowMenu(entry))}>
-          <div className="grow">
-            <div className="tt">{name}</div>
-            <div className="ss">{exLine(cfg, unit)}{entry.sg ? ' · ' + t('Complex') : ''}</div>
-            {/* His row, as he wrote it: the one thing that says whether the line above is right. */}
-            {entry.src && <div className="coach-src">{entry.src}</div>}
-            {entry.note && <div className="ss dim" style={{ marginTop: 2 }}>{entry.note}</div>}
-            <div className="mchips" style={{ marginTop: 4 }}>
-              {entry.tier === 3 && <span className="mchip">{t('New exercise')}</span>}
-              {entry.tier === 2 && <span className="mchip">{t('His words in the note')}</span>}
-              {entry.tier === 1 && !entry.exact && <span className="mchip">{t('Check')}</span>}
-              {entry.warns.includes('sets') && <span className="mchip miss">{t('no sets given')}</span>}
-              {entry.warns.includes('reps') && <span className="mchip miss">{t('no reps given')}</span>}
-            </div>
+      {units.map(group => {
+        const rows = group.map(i => day.entries[i])
+        if (rows.length === 1) return entryRow(rows[0])
+        // A complex is one card, the way the week editor and the workout draw one: the numbers he
+        // wrote once for the whole row head it, its movements are numbered inside, and a movement
+        // keeps only the reps that are its own. Two rows the coach wrote as one movement are never
+        // two exercises on this screen.
+        const sh = complexShared(group, day.entries)
+        return <div className="cx-card" key={rows[0].key}>
+          <div className="cx-head is-static">
+            <Icon name="link" className="cx-ico" />
+            <span className="cx-title">{t('Complex')}</span>
+            {sh.load && <span className="cx-load">{[t(sh.sets === 1 ? '{0} set' : '{0} sets', sh.sets), sh.weight ? fmtNum(shown(sh.weight)) + ' ' + unit : null].filter(Boolean).join(' · ')}</span>}
           </div>
-          {/* The row itself opens the correction; this only marks the row as read. The wrapper stops
-              the tap before the row sees it — the same way every nested control in a tappable row does. */}
-          <span className="coach-check" onClick={ev => ev.stopPropagation()}>
-            <Check checked={on} label={name} onChange={() => tickOf(entry)} />
-          </span>
+          {/* The tip he wrote once for the whole thing is read once, under the numbers it belongs to. */}
+          {sh.note && <div className="cx-note small dim">{sh.note}</div>}
+          {rows.map((entry, k) => <div className="cx-row" key={entry.key}>
+            <span className="cx-step">{k + 1}</span>
+            {entryRow(entry, sh)}
+          </div>)}
         </div>
       })}
       {!day?.entries.length && <div className="empty">{t('Nothing in this day.')}</div>}
