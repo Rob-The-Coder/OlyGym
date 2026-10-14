@@ -117,7 +117,7 @@ function DayExercises({ weekId, day, index, unit, editEx, toast }) {
         {/* What the coach wrote for this movement, kept from the import: the note below is what he
             asked for, this is the row it was read out of. */}
         {entry.src && <div className="coach-src">{entry.src}</div>}
-        {ownNote && <div className="small dim" style={{ marginTop: 2 }}>{entry.note}</div>}</div>
+        {ownNote && <div className="coach-note">{entry.note}</div>}</div>
       {sh ? <>
         {!ownLine && <span className="cx-reps">×{repsOnly(entry)}</span>}
         <Icon name="chevronRight" className="cx-go" />
@@ -143,7 +143,7 @@ function DayExercises({ weekId, day, index, unit, editEx, toast }) {
           onClick={ev => { ev.stopPropagation(); unitMenu(group) }}><Icon name="more" /></button>
       </div>
     </div>
-    {sh.note && <div className="cx-note small dim">{sh.note}</div>}
+    {sh.note && <div className="coach-note cx-note">{sh.note}</div>}
   </>
 
   return <div className="day-ex">

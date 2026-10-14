@@ -607,8 +607,9 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
 .cx-card .cx-reps{flex:none;font-size:14px;font-weight:600;color:var(--label)}
 .cx-card .cx-go{flex:none;color:var(--label-2);font-size:16px;margin-right:14px}
 .cx-card .thumb{width:40px;height:40px;border-radius:10px}
-/* The coach's tip, written once for the whole complex and read under the numbers it belongs to. */
-.cx-note{padding:0 14px 10px}
+/* The same tip, read once for the whole complex: same ruled row, spaced under the card's head
+   instead of sitting on a movement. */
+.cx-note{margin:0 14px 10px}
 /* Two columns of unrelated rows used to shuffle a complex across page rows: it is one thing, it
    gets one line. (index.css turns every #app .list into a grid at this width.) */
 @media (min-width:1000px){
