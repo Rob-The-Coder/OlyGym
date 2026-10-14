@@ -119,7 +119,7 @@ describe('the coach’s plan review', () => {
     ]) }])
     const host = renderTop()
     const card = host.querySelector('.cx-card')
-    expect([...card.querySelectorAll('.cx-item .dim')].map(e => e.textContent))
+    expect([...card.querySelectorAll('.cx-item .coach-note')].map(e => e.textContent))
       .toEqual(['50kg , se leggeri le ultime due a 55kg', '50kg , se leggeri le ultime due a 55kg'])
     // The head keeps his numbers only; the tip is not left up there as a second copy.
     expect(card.querySelector('.cx-note')).toBeNull()

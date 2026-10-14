@@ -360,10 +360,11 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
    outlined treatment instead of a filled pill. */
 .mchip{border-radius:var(--m3-shape-s);background:transparent;box-shadow:inset 0 0 0 1px var(--m3-outline-variant)}
 
-/* The coach's own row, under what it was read as. A rule down its left edge — the way the printed
-   plan already marks a block — so it reads as quoted from his sheet rather than as a second
-   instruction sitting above the note. */
-.coach-src{
+/* The coach's own row and his tip, under what they were read as. A rule down the left edge — the way
+   the printed plan already marks a block — so they read as quoted from his sheet rather than as text
+   that belongs to the app's own line above. The tip was a plain dim line and read as the quietest
+   thing on the row, when it is the thing he actually wants done; it now wears what his row wears. */
+.coach-src,.coach-note{
   border-left:2px solid var(--m3-outline-variant);padding-left:8px;margin-top:3px;
   font-size:12px;color:var(--label-2);
 }
