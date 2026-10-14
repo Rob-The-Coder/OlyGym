@@ -7,13 +7,18 @@
 // in S.planAliases under the coach's own words: the next week's sheet repeats the same phrases, so
 // it arrives already corrected.
 //
+// Every row also prints his own row under the reading (import-plan.js's `coachSource`): the only way
+// to answer "was this ported right?" is to read the two next to each other. The trailing checkbox is
+// the mark that a row has been looked at, and the summary line counts what is left — session state
+// only, because the review is derived and re-read on every correction.
+//
 // The picker and the row menu are passed in rather than imported: they are the sheets.jsx flows,
 // and this file stays a screen.
 
 import { useMemo, useState } from 'react'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
-import { Button, Segmented } from './ui.jsx'
+import { Button, Check, Segmented } from './ui.jsx'
 import Icon from './Icon.jsx'
 import { t, exerciseNameFor } from '../lib/i18n.js'
 import { exOr } from '../lib/exercises.js'
@@ -31,6 +36,9 @@ export default function CoachImport({ sheets, close, pick, menu }) {
   const update = useStore(s => s.update)
   const [week, setWeek] = useState(0)
   const [dayIdx, setDayIdx] = useState(0)
+  // Which rows have been read over. Keyed by sheet and row rather than stored anywhere: the review
+  // itself is derived, and a tick is about this sitting, not about the plan.
+  const [checked, setChecked] = useState(() => new Set())
   // The review is derived, never stored: correcting a row rewrites S.planAliases and the whole
   // week is read again, so one fix covers every row that repeats those words.
   const aliases = st.planAliases || {}
@@ -39,12 +47,27 @@ export default function CoachImport({ sheets, close, pick, menu }) {
   const unit = st.unit || 'kg'
   const shown = w => (!w || unit === 'kg' ? w : convertWeight(w, 'kg', unit))
 
-  const correct = (entry, id) => update(s => {
-    const key = normName(entry.part)
-    s.planAliases = { ...(s.planAliases || {}) }
-    if (id) s.planAliases[key] = id
-    else delete s.planAliases[key]
+  const keyOf = entry => `${week}:${entry.key}`
+  const tickOf = entry => setChecked(prev => {
+    const next = new Set(prev)
+    if (next.has(keyOf(entry))) next.delete(keyOf(entry))
+    else next.add(keyOf(entry))
+    return next
   })
+
+  const correct = (entry, id) => {
+    update(s => {
+      const key = normName(entry.part)
+      s.planAliases = { ...(s.planAliases || {}) }
+      if (id) s.planAliases[key] = id
+      else delete s.planAliases[key]
+    })
+    // Picking a different exercise is this row looked at; there is nothing to undo, it is a reading aid.
+    setChecked(prev => new Set(prev).add(keyOf(entry)))
+  }
+
+  const entries = review.days.flatMap(d => d.entries)
+  const done = entries.filter(e => checked.has(keyOf(e))).length
 
   const chosen = entry => t('Read as “{0}”', entry.custom ? entry.name : exerciseNameFor(exOr(entry.id)))
 
@@ -70,6 +93,8 @@ export default function CoachImport({ sheets, close, pick, menu }) {
     <h3>{t('The coach’s plan')}</h3>
     <div className="muted small" style={{ marginBottom: 12 }}>
       {t('Read out of his spreadsheet, one week at a time. Nothing reaches your plan until you say so.')}
+      {' '}
+      {t('Tap a row to change what it was read as.')}
     </div>
 
     {sheets.length > 1 && <div className="item" {...tappable(() => menu({
@@ -88,7 +113,9 @@ export default function CoachImport({ sheets, close, pick, menu }) {
         supporting text they stop outranking the rows this screen exists to show. */}
     <div className="muted small" style={{ margin: '12px 0' }}>
       {t('{0} days · {1} exercises · {2} new', review.days.length, review.stats.exercises, review.stats.custom)}
-      {review.stats.fuzzy > 0 && <span style={{ color: 'var(--yellow)', fontWeight: 600 }}> · {t('{0} to check', review.stats.fuzzy)}</span>}
+      {/* What is left to look at. The rows the matcher guessed carry their own chips; this counts the
+          sitting, and goes quiet (accent) the moment there is nothing left. */}
+      {entries.length > 0 && <span className={done === entries.length ? 'coach-count-done' : undefined}> · {t('{0} of {1} checked', done, entries.length)}</span>}
     </div>
 
     {/* One cell per day the coach wrote, so the labels are numbers: six "Giorno N" cells wrap onto
@@ -101,10 +128,14 @@ export default function CoachImport({ sheets, close, pick, menu }) {
     <div className="list">
       {day?.entries.map(entry => {
         const cfg = { id: entry.id, sets: entry.sets, reps: entry.reps, mode: entry.mode, sec: entry.sec, side: entry.side, weight: shown(entry.weight) }
-        return <div key={entry.key} className="item" {...tappable(() => rowMenu(entry))}>
+        const on = checked.has(keyOf(entry))
+        const name = entry.custom ? entry.name : exerciseNameFor(exOr(entry.id))
+        return <div key={entry.key} className="item" data-checked={on ? '' : undefined} {...tappable(() => rowMenu(entry))}>
           <div className="grow">
-            <div className="tt">{entry.custom ? entry.name : exerciseNameFor(exOr(entry.id))}</div>
+            <div className="tt">{name}</div>
             <div className="ss">{exLine(cfg, unit)}{entry.sg ? ' · ' + t('Complex') : ''}</div>
+            {/* His row, as he wrote it: the one thing that says whether the line above is right. */}
+            {entry.src && <div className="coach-src">{entry.src}</div>}
             {entry.note && <div className="ss dim" style={{ marginTop: 2 }}>{entry.note}</div>}
             <div className="mchips" style={{ marginTop: 4 }}>
               {entry.tier === 3 && <span className="mchip">{t('New exercise')}</span>}
@@ -114,7 +145,11 @@ export default function CoachImport({ sheets, close, pick, menu }) {
               {entry.warns.includes('reps') && <span className="mchip miss">{t('no reps given')}</span>}
             </div>
           </div>
-          <Icon name="shuffle" className="dim" />
+          {/* The row itself opens the correction; this only marks the row as read. The wrapper stops
+              the tap before the row sees it — the same way every nested control in a tappable row does. */}
+          <span className="coach-check" onClick={ev => ev.stopPropagation()}>
+            <Check checked={on} label={name} onChange={() => tickOf(entry)} />
+          </span>
         </div>
       })}
       {!day?.entries.length && <div className="empty">{t('Nothing in this day.')}</div>}

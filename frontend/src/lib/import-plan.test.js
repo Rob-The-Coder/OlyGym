@@ -158,6 +158,37 @@ describe('reviewWeek', () => {
   it('counts what it understood', () => {
     expect(review.stats).toMatchObject({ rows: 5, exercises: 6, custom: 1 })
   })
+
+  // What the review screen prints under the reading, and what the week keeps: his words, his sets and
+  // his reps as written, so "was this ported right?" is a question the screen can answer.
+  it('keeps the coach’s own row', () => {
+    expect(review.days[0].entries.map(e => e.src)).toEqual([
+      'Strappo · 4.0 × 1+2',
+      'strappo sosp alta · 4.0 × 1+2',
+      'Piegamenti alle parallele · 3.0 × 10.0'
+    ])
+    expect(review.days[1].entries.map(e => e.src)).toEqual([
+      'Strappo no piedi · 4.0 × 3.0',
+      'Plank · 3.0 × 1 minuto',
+      // His own name is the row's title (the catalogue had nothing for it) and he wrote no numbers,
+      // so there is nothing left to print.
+      ''
+    ])
+    // A load written as a sentence stays the note and is not printed twice in the same row.
+    expect(review.days[0].entries[0].src).not.toContain('se leggeri')
+    expect(review.days[0].entries[0].note).toContain('se leggeri le ultime due a 55kg')
+  })
+
+  it('leaves out the words the note already shows', () => {
+    // "Gambe avanti prima stop in buca" is a front squat with a pause: the catalogue has the lift, the
+    // matcher keeps his phrase in the note, and the line under it is the rest of his row.
+    const r = reviewWeek({ name: 'Settimana', grid: grid([
+      { day: 'Giorno 1', name: 'Gambe avanti prima stop in buca', reps: '3.0', sets: '5.0', load: '100kg', cue: 'discesa controllata' }
+    ]) })
+    const e = r.days[0].entries[0]
+    expect(e.note).toContain('Gambe avanti prima stop in buca')
+    expect(e.src).toBe('5.0 × 3.0 · 100kg')
+  })
 })
 
 describe('bundleFromWeek', () => {
@@ -192,6 +223,14 @@ describe('bundleFromWeek', () => {
     mergeWeek(s, bundleFromWeek(other, { unit: 'kg' }))
     expect(s.customEx.filter(c => c.n === 'Pogo jump')).toHaveLength(1)
     expect(s.weeks).toHaveLength(2)
+  })
+
+  it('carries his own row onto the exercise, in either unit', () => {
+    expect(wk.days[0].ex[0].src).toBe('Strappo · 4.0 × 1+2')
+    expect(bundleFromWeek(review, { unit: 'lb' }).days[0].ex[0].src).toBe('Strappo · 4.0 × 1+2')
+    const s = { weeks: [], customEx: [] }
+    mergeWeek(s, wk)
+    expect(s.weeks[0].days[0].ex[0].src).toBe('Strappo · 4.0 × 1+2')
   })
 
   it('hands its numbers over in the account’s own unit', () => {

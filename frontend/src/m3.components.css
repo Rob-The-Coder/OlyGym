@@ -360,6 +360,19 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
    outlined treatment instead of a filled pill. */
 .mchip{border-radius:var(--m3-shape-s);background:transparent;box-shadow:inset 0 0 0 1px var(--m3-outline-variant)}
 
+/* The coach's own row, under what it was read as. A rule down its left edge — the way the printed
+   plan already marks a block — so it reads as quoted from his sheet rather than as a second
+   instruction sitting above the note. */
+.coach-src{
+  border-left:2px solid var(--m3-outline-variant);padding-left:8px;margin-top:3px;
+  font-size:12px;color:var(--label-2);
+}
+/* A row that has been read over recedes. The checkbox carries the state; the tone only makes what is
+   left to look at scannable, and colour is never the only signal. */
+.item[data-checked] .tt{color:var(--label-2)}
+/* Every row read over is the one moment the count is worth the accent. */
+.coach-count-done{color:var(--m3-primary)}
+
 /* The week schedule's day cards. The sub-rows used to be laid out with inline
    styles in Plan.jsx, which a stylesheet cannot override — they are classes now,
    and this is the density the user picked on 2026-09-29 (variant B of three drawn
@@ -474,7 +487,7 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
                                      color-mix(in srgb,var(--m3-on-primary) var(--m3-state-hover),transparent));
   }
 }
-.btn:focus-visible,.iconbtn:focus-visible,.chip:focus-visible,
+.btn:focus-visible,.iconbtn:focus-visible,.chip:focus-visible,.chk:focus-visible,
 .lrow.tap:focus-visible,.item:focus-visible,.note-edit:focus-visible{
   background-image:linear-gradient(color-mix(in srgb,var(--label) var(--m3-state-focus),transparent),
                                    color-mix(in srgb,var(--label) var(--m3-state-focus),transparent));

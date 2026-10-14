@@ -13,9 +13,12 @@ The app can read the coach's programme directly from `.xlsx`:
 3. His Italian gym shorthand (*strappo*, *girata*, *spinta in piedi*, `1+2`, and so on) is matched
    against the Catalyst catalogue. Movements he writes with `+` become a single **complex**.
 4. Nothing is saved until you review it: every row is shown with the exercise the app matched it
-   to, and anything the catalogue has no word for is kept as a note, in his words.
-5. Routines are added to your plans when you confirm. A correction you make once — an alias for a
-   name the matcher didn't know — is remembered for the next week's import.
+   to, **his own row underneath it** — his words and his sets, reps and load as written — and
+   anything the catalogue has no word for is kept as a note, in his words. Ticking a row marks it
+   read, and the summary counts what is left.
+5. Routines are added to your plans when you confirm; each exercise keeps the coach's row it was
+   read out of, so the week editor still shows it afterwards. A correction you make once — an alias
+   for a name the matcher didn't know — is remembered for the next week's import.
 
 The matcher only reads the workbook; it never modifies it. Reading `.xlsx` uses the platform's own
 `DecompressionStream` and `DOMParser`, so no spreadsheet library is involved and no file leaves the

@@ -37,7 +37,7 @@ export function setsOf(text) {
 /**
  * Split a sheet grid into its days and their entries.
  *
- *   { days: [{ n, entries: [{ row, name, reps, sets, load, cue, comment }] }],
+ *   { days: [{ n, entries: [{ row, name, reps, sets, setsText, load, cue, comment }] }],
  *     skipped: [{ row, text }] }
  *
  * `row` is 1-based, so it points at the line in the sheet the reader can go and look at.
@@ -81,6 +81,9 @@ export function readCoachSheet(grid) {
       name,
       reps: cell(COACH_COLUMNS.reps),
       sets: setsOf(cell(COACH_COLUMNS.sets)),
+      // The cell as written, beside the parse: the review shows the coach his own number, and a
+      // column holding a date serial says so instead of looking like a silent default of three sets.
+      setsText: cell(COACH_COLUMNS.sets),
       load: cell(COACH_COLUMNS.load),
       cue: cell(COACH_COLUMNS.cue),
       comment: cell(COACH_COLUMNS.comment)

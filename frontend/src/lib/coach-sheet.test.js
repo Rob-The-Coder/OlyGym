@@ -45,9 +45,20 @@ describe('readCoachSheet', () => {
     ]))
     expect(days.map(d => d.n)).toEqual([1, 2])
     expect(days[0].entries.map(e => e.name)).toEqual(['Strappo + strappo sosp alta', 'Gambe avanti'])
-    expect(days[0].entries[0]).toMatchObject({ row: 1, reps: '1+2', sets: 4, load: '50kg' })
+    expect(days[0].entries[0]).toMatchObject({ row: 1, reps: '1+2', sets: 4, setsText: '4.0', load: '50kg' })
     expect(days[1].entries.map(e => e.name)).toEqual(['Girata'])
     expect(skipped).toEqual([])
+  })
+
+  it('keeps the sets cell as written beside the number it read', () => {
+    // The review shows the coach his own cell: "4.0" stays "4.0", and the date serial that is not a
+    // set count is visible as the reason for the "no sets given" chip instead of disappearing.
+    const { days } = readCoachSheet(grid([
+      { name: 'Strappo', reps: '2.0', sets: '4.0' },
+      { name: 'Girata', reps: '2.0', sets: '46115.0' },
+      { name: 'Strappo no piedi', reps: '2.0' }
+    ]))
+    expect(days[0].entries.map(e => [e.sets, e.setsText])).toEqual([[4, '4.0'], [null, '46115.0'], [null, '']])
   })
 
   it('keeps the exercise written on the day marker row', () => {
@@ -92,7 +103,7 @@ describe('readCoachSheet', () => {
 
   it('survives a sheet with no markers, blank rows and short rows', () => {
     const { days } = readCoachSheet([[], ['', 'Strappo', '', '', '', '', '2.0', '4.0']])
-    expect(days).toEqual([{ n: 1, entries: [{ row: 2, name: 'Strappo', reps: '2.0', sets: 4, load: '', cue: '', comment: '' }] }])
+    expect(days).toEqual([{ n: 1, entries: [{ row: 2, name: 'Strappo', reps: '2.0', sets: 4, setsText: '4.0', load: '', cue: '', comment: '' }] }])
   })
 
   it('continues a day instead of shadowing it when a marker repeats', () => {
