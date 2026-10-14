@@ -7,7 +7,7 @@
 // trusted (the coach's reviewed sheet) lands in the plan through `mergeWeek`.
 
 import { EXIDX } from './exercises.js'
-import { modeOf, fmtSec, isBw } from './history.js'
+import { modeOf, fmtSec, isBw, unitCount } from './history.js'
 import { uid, todayISO, isoOf, startOfWeek, fmtDate, DAYN, MONDAY, fmtNum, exCount } from './format.js'
 import { t, exerciseNameFor } from './i18n-core.js'
 import { convertWeight } from './units.js'
@@ -144,7 +144,7 @@ function dayHTML(day, unit) {
       ? `<div class="ss"><div class="ss-tag">${esc(t('Complex'))}</div><div class="ss-items">${items}</div></div>`
       : items
   }).join('')
-  const count = exCount((day.ex || []).length)
+  const count = exCount(unitCount(day.ex || []))
   const title = day.name || t(DAYN[day.dow] ?? '')
   return `<section class="routine">
     <div class="r-head"><h2>${esc(title)}</h2><span class="r-count">${esc(count)}</span></div>
