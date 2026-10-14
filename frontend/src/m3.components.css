@@ -376,17 +376,30 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
 .day-add{margin-top:8px}
 /* What a collapsed day holds, one line and clipped rather than wrapped: the card is a glance. */
 .day-preview{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
-/* Opening a day: its body settles in under the button that asked for it, and the chevron springs
-   round in the same beat. One glyph turned rather than two icons swapped, so it is the state change
-   that moves. `prefers-reduced-motion` still wins — index.css turns every animation off for those
-   readers. Closing is instant: the body is unmounted with the click, and animating the reverse
-   would mean keeping every day's rows in the DOM to interpolate a height CSS cannot. */
-/* `emphasized` rather than `emphasized-decelerate`, chosen by measuring the two curves over this
+/* Opening and shutting a day, both on the same beat: the body grows and shrinks with the arrow on
+   the button that asked for it, which springs round rather than being swapped for a second glyph, so
+   it is the state change that moves. A height of `auto` cannot be transitioned, but a grid row can —
+   `0fr` is nothing and `1fr` is the content's own height — so the body stays in the DOM and is
+   clipped to zero when the day is shut rather than unmounted.
+   `emphasized` rather than `emphasized-decelerate`, chosen by measuring the two curves over this
    400ms: decelerate is already 68% of the way in at 50ms, so the fall is over before the eye catches
    it, while this curve is at 11% and reaches half way at 100ms. Every curve in the scale is ~90% done
-   by 200ms, so the distance is the other lever — 14px is enough to be the thing you see. */
-.day-ex{animation:dayopen var(--m3-dur-long) var(--m3-ease-emphasized)}
-@keyframes dayopen{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+   by 200ms, so the distance is the other lever — 14px is enough to be the thing you see. Both
+   directions share the curve: the scale has no exit curve, and a bespoke one here would be exactly
+   the exception DESIGN.md §5 forbids. `prefers-reduced-motion` still wins — index.css turns every
+   transition off for those readers. */
+.day-reveal{display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--m3-dur-long) var(--m3-ease-emphasized)}
+.day-reveal[data-open]{grid-template-rows:1fr}
+/* The clip box is 5px wider and 5px taller than what it holds and pulled back level with it, so the
+   shared focus ring — 2.5px at a 2px offset — is not cut off along the edges of the day. Level
+   matters: the row still measures the content, and nothing leaks while the day is shut. */
+.day-reveal-in{overflow:hidden;min-height:0;margin:0 -5px -5px;padding:0 5px 5px}
+.day-reveal .day-ex{
+  opacity:0;transform:translateY(-14px);
+  transition:opacity var(--m3-dur-long) var(--m3-ease-emphasized),
+             transform var(--m3-dur-long) var(--m3-ease-emphasized);
+}
+.day-reveal[data-open] .day-ex{opacity:1;transform:none}
 .day-add .icn{transition:transform var(--m3-dur-long) var(--m3-ease-spring)}
 .day-add[aria-expanded="true"] .icn{transform:rotate(180deg)}
 /* The week editor's row actions: the app's own 36px icon button, flat, as one group at the end of

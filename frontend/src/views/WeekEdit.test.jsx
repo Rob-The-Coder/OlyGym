@@ -104,12 +104,27 @@ describe('WeekEdit', () => {
     expect(mocks.confirmSheet.mock.calls[0][0].title).toBe('Delete week?')
   })
 
-  it('opens a day into its exercise editor', () => {
+  // The body is in the DOM either way, so it can be animated shut rather than unmounted: what says
+  // which state it is in is the reveal's own attribute, and `inert` is what keeps a shut day's rows
+  // out of the tab order.
+  it('opens a day into its exercise editor, and shuts it again', () => {
     mount()
-    const body = host.querySelector('[data-day="0"] button[aria-expanded]')
-    act(() => { body.click() })
+    const body = () => host.querySelector('[data-day="0"] button[aria-expanded]')
+    const reveal = () => host.querySelector('[data-day="0"] .day-reveal')
+    expect(reveal().hasAttribute('data-open')).toBe(false)
+    expect(reveal().hasAttribute('inert')).toBe(true)
+
+    act(() => { body().click() })
+    expect(reveal().hasAttribute('data-open')).toBe(true)
+    expect(reveal().hasAttribute('inert')).toBe(false)
+    expect(body().getAttribute('aria-expanded')).toBe('true')
     expect(button('Add exercise')).toBeTruthy()
     expect(host.querySelector('[data-day="0"]').textContent).toContain('No exercises yet — add your first one.')
+
+    act(() => { body().click() })
+    expect(reveal().hasAttribute('data-open')).toBe(false)
+    expect(reveal().hasAttribute('inert')).toBe(true)
+    expect(body().getAttribute('aria-expanded')).toBe('false')
   })
 
   // The day editor is RoutineEdit's flow: the picker adds, and a row opens the exercise config.
@@ -213,14 +228,17 @@ describe('WeekEdit', () => {
   })
 
   // The expander is one glyph turned by its own state rather than two icons swapped, and the body
-  // settles in on the expressive curve. Both live in the sheet, so they are read from it.
-  it('turns the expander chevron and eases the body in', () => {
+  // grows into the space it needs and back out of it. Both live in the sheet, so they are read from
+  // it — a grid row is the only height here that can be animated, since `auto` cannot be.
+  it('turns the expander chevron, and animates the body shut as well as open', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/m3.components.css'), 'utf8')
     expect(css).toMatch(/\.day-add\[aria-expanded="true"\] \.icn\{transform:rotate\(180deg\)\}/)
     expect(css).toMatch(/\.day-add \.icn\{transition:transform var\(--m3-dur-long\) var\(--m3-ease-spring\)\}/)
-    expect(css).toMatch(/@keyframes dayopen\{/)
-    expect(css).toMatch(/\.day-ex\{animation:dayopen var\(--m3-dur-long\) var\(--m3-ease-emphasized\)\}/)
-    expect(css).toMatch(/@keyframes dayopen\{from\{opacity:0;transform:translateY\(-14px\)\}/)
+    // one transition on the row covers both directions; the attribute is the whole state
+    expect(css).toMatch(/\.day-reveal\{display:grid;grid-template-rows:0fr;transition:grid-template-rows var\(--m3-dur-long\) var\(--m3-ease-emphasized\)\}/)
+    expect(css).toMatch(/\.day-reveal\[data-open\]\{grid-template-rows:1fr\}/)
+    expect(css).toMatch(/\.day-reveal \.day-ex\{[^}]*opacity:0;transform:translateY\(-14px\)/)
+    expect(css).toMatch(/\.day-reveal\[data-open\] \.day-ex\{opacity:1;transform:none\}/)
   })
 
   // The card is the prescription: a movement loading differently gets its own line rather than

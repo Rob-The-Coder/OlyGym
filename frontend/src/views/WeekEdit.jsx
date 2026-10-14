@@ -254,7 +254,15 @@ export default function WeekEdit() {
         <button className="btn ghost sm day-add" aria-expanded={open === index} onClick={() => setOpen(open === index ? null : index)}>
           {exCount(unitCount(day.ex || []))} <Icon name="chevronDown" />
         </button>
-        {open === index && <DayExercises weekId={id} day={day} index={index} unit={S.unit} editEx={editEx} toast={toast} />}
+        {/* The body is rendered open or shut. A grid row can be animated from nothing to the
+            content's own height, which `height:auto` cannot — that is what lets a day close as
+            smoothly as it opens. `inert` keeps the shut body out of the tab order and away from a
+            reader, since it is only clipped, not removed. */}
+        <div className="day-reveal" data-open={open === index || undefined} inert={open !== index}>
+          <div className="day-reveal-in">
+            <DayExercises weekId={id} day={day} index={index} unit={S.unit} editEx={editEx} toast={toast} />
+          </div>
+        </div>
       </div>)}
     </div>
 
