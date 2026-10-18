@@ -32,14 +32,15 @@
       "id": "005-show-best-lift-pr-badges",
       "feature": "Show best-lift PR badges on the History list",
       "branch": "factory/005-show-best-lift-pr-badges",
-      "stage": "decision",
+      "stage": "merged",
       "round": 1,
       "reviews": {
         "security": "PASS",
         "ux": "PASS",
         "ui": "PASS",
         "code": "PASS"
-      }
+      },
+      "decision": "APPROVE"
     }
   ]
 }
