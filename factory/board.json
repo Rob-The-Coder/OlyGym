@@ -46,14 +46,15 @@
       "id": "006-export-history-csv",
       "feature": "Export session history as CSV from the History screen",
       "branch": "factory/006-export-history-csv",
-      "stage": "build",
-      "round": 0,
+      "stage": "merged",
+      "round": 1,
       "reviews": {
-        "security": "pending",
-        "ux": "pending",
-        "ui": "pending",
-        "code": "pending"
-      }
+        "security": "PASS",
+        "ux": "PASS",
+        "ui": "PASS",
+        "code": "PASS"
+      },
+      "decision": "APPROVE"
     }
   ]
 }

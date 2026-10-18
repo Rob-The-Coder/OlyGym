@@ -1,0 +1,33 @@
+VERDICT: PASS
+
+Reviewed the product diff `git diff f126cb3..0a91b0f` (8 files, all under `frontend/src`), the spec, build.md, `CLAUDE.md`, `CONTRIBUTING.md`, `DESIGN.md`, `SECURITY.md`, and the existing Plan / Settings / TopAppBar / Toast patterns. I inspected the five real captures in `oly-previews/`. I re-ran the checks independently:
+
+- `npx vitest run src/lib/csv.test.js src/lib/history-csv.test.js src/views/History.export.test.jsx` — 3 files, 28 tests passed.
+- `npm test` — 113 files, 1210 tests passed.
+- `npm run build` — clean.
+- `node scripts/check-source-strings.mjs --strict` — 622 translated strings, the same 10 pre-existing "defined in no locale pack" keys as build.md, none of the three new keys missing.
+
+## What I verified
+
+**Workflow.** The export is one screen-level action in History's app bar, after the plus, in a fragment exactly like `Plan.jsx:116-119` (`History.jsx:73-76`). It is one tap from History on web; on the native build the second step is the OS share sheet. It reads `S.workouts` directly (`History.jsx:57`), so the search field does not filter it — the spec explicitly scopes a filtered export out, the action sits in the screen bar rather than beside the search field, and its name is "Export history as CSV". I consider that clear enough and acceptable; the residual ambiguity is noted below.
+
+**Discoverability and one-hand use at 360px.** The dark, light, exported, empty and 1200px captures confirm two distinct 48×48 targets at the right of the bar: plus, then the down-arrow-into-tray glyph. They do not crowd the "History" title at 360px, and at 1200px they stay together at the right in the same order. The download glyph is the same one Settings uses for "Export backup (JSON)", so "download = export" carries over; it reads as an export, not as a second "add". `title` is there for mouse/long-press and `aria-label` for assistive tech.
+
+**States and feedback.** Empty log: the export button is the only thing hidden (`History.jsx:75`); the captures and the screen test show the plus action, "No workouts yet." and its "Log a past workout" button intact. Success: the existing M3 snackbar is reused ("History exported" in `factory-006-history-360-dark-exported.png`), and `Toast.jsx` is already `role="status" aria-live="polite"`. A dismissed native share sheet is silent with no error toast and no unhandled rejection (`History.jsx:60`, asserted by test). Web failure toasts `Could not export the history` (`History.jsx:67`). Long notes with commas, quotes and newlines stay one cell on one logical row (tested with `parseCSV(toCSV(...))`); the CSV is built synchronously in one pass, which is fine for a personal log.
+
+**Output usability.** Header is the frozen 20 English snake_case columns in spec order (`history-csv.js:11`), header first; oldest first on a copy; only `done === true` sets; a done warm-up with `phase=warmup`; reps vs timed rows separated by which of `reps`/`seconds` is filled; `weight` + `unit`; `bodyweight`; `rir`/`rpe`; `pr`; both notes; ISO UTC `start`/`end`; BOM for Excel; CRLF and a trailing CRLF; quote-only-when-needed with the formula guard (`csv.js:33-53`). I generated a sample through the real helpers and read it back: one row per completed set is the useful shape in a spreadsheet, and there is no duplicate column — `workout`/`workout_id`, `exercise`/`exercise_id` and `date` vs `start` are label vs identifier, not repeats.
+
+**Copy, locale and consistency.** Exactly three new keys, at `it.js:344-346`; the Italian uses the app's own vocabulary ("Cronologia" as in `it.js:33`, "Esporta" as in the backup row) and reads naturally. `Backup exported` is untouched and still belongs to the JSON backup. No emoji. Same toast/snackbar pattern as `Settings.doExport`, with `opengym-history-<date>.csv` beside `opengym-backup-<date>.json`: the two exports are coherent and distinguished by filename and label.
+
+**Accessibility.** Both app-bar controls are native `<button>`, named and titled; `Icon` is `aria-hidden="true"` and `focusable="false"`, so the name comes from the label, not the glyph. The 48dp target comes from `.ab-ico` and the shared `.iconbtn:focus-visible` rule (`m3.components.css:495`) still paints the focus state layer. The snackbar is announced through the existing live region. `shareExport(json→text)` is a parameter/comment rename only (`mobile.js:139`).
+
+## Non-blocking notes
+
+1. **Filter vs whole log.** With a search query active, nothing visible says the file contains the whole log; the app-bar placement and the "history" wording are the only cues. This is the spec's explicit decision (and a new hint string would exceed the three copy keys), so it is acceptable for this job, but it is the one place a user could expect "export what I see". Keep it in mind if filtered export is ever picked up.
+2. **Silent native rejection.** `History.jsx:60` swallows every rejection as "share sheet dismissed", so a genuine share/write failure looks exactly like a deliberate cancel. The spec pins this, and the failure toast exists only on the web path; worth a follow-up only if native failures ever surface.
+3. **Untested web failure branch.** `Could not export the history` is only reachable if `Blob`/`createObjectURL` throws, and `History.export.test.jsx` exercises only the mobile path. The key is correct and the branch is simple, but nothing guards it against regression.
+4. **`pr` is per exercise entry, not per set.** Every set of an entry in `w.prs`, including its warm-ups, gets `pr=true`. That follows the spec's mapping, but someone filtering on `pr` will also get the warm-ups; the header cannot explain that without changing the pinned format.
+5. **`bodyweight=true` changes the meaning of `weight`.** On those rows `weight` is the added load, not the athlete's body weight; the 20-column header does not say "added". This is the app's own convention and the spec fixes the columns, so it is a note for the format's documentation, not a fix here.
+6. **Local date vs UTC times.** `date` is the stored `YYYY-MM-DD` (local training day) while `start`/`end` are UTC ISO; a session logged around local midnight west of UTC can therefore show two adjacent calendar days in the same row. Spec-mandated and rare for training, but it is a property of the file a reader should know.
+
+I could not exercise the real Capacitor share sheet on a device from this review; the native path is verified through the mocked screen test, the code path and build.md's evidence, not a device run. All product claims in the build report that I could re-run (tests, full suite, build, locale scan, captures) held.
