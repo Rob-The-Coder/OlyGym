@@ -6,8 +6,27 @@
       "branch": "factory/003-rate-limiting",
       "stage": "merged",
       "round": 1,
-      "reviews": { "security": "PASS", "ux": "PASS", "ui": "PASS", "code": "PASS" },
+      "reviews": {
+        "security": "PASS",
+        "ux": "PASS",
+        "ui": "PASS",
+        "code": "PASS"
+      },
       "decision": "APPROVE"
+    },
+    {
+      "id": "004-undo-delete-workout",
+      "feature": "Undo deleting a logged workout (confirm, then restore from a small undo stack)",
+      "branch": "factory/004-undo-delete-workout",
+      "stage": "decision",
+      "round": 2,
+      "reviews": {
+        "security": "PASS",
+        "ux": "PASS",
+        "ui": "PASS",
+        "code": "PASS"
+      },
+      "decision": null
     }
   ]
 }
