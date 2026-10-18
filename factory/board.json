@@ -1,0 +1,13 @@
+{
+  "jobs": [
+    {
+      "id": "003-rate-limiting",
+      "feature": "Rate-limit the autosave",
+      "branch": "factory/003-rate-limiting",
+      "stage": "merged",
+      "round": 1,
+      "reviews": { "security": "PASS", "ux": "PASS", "ui": "PASS", "code": "PASS" },
+      "decision": "APPROVE"
+    }
+  ]
+}
