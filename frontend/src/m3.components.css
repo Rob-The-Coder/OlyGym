@@ -465,7 +465,7 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
    composites over whatever background the control already has: that is the one way
    to light up a list row without replacing the surface underneath it. */
 @media (hover:hover) and (pointer:fine){
-  .btn:hover,.iconbtn:hover,.chip:hover,.lrow.tap:hover,.item:hover,.tile.tappable:hover{
+  .btn:hover,.iconbtn:hover,.chip:hover,.lrow.tap:hover,.item:hover,.tile.tappable:hover,.toast-act:hover{
     background-image:linear-gradient(color-mix(in srgb,var(--label) var(--m3-state-hover),transparent),
                                      color-mix(in srgb,var(--label) var(--m3-state-hover),transparent));
   }
@@ -962,18 +962,21 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
   display:flex;align-items:center;gap:12px;
   background:var(--m3-surface-container-highest);color:var(--m3-on-surface);
   -webkit-backdrop-filter:none;backdrop-filter:none;
-  border-radius:var(--m3-shape-xs);padding:13px 16px;
+  border-radius:var(--m3-shape-xs);min-height:48px;padding:6px 16px;
   font-size:14px;font-weight:400;text-align:left;line-height:1.35;
   transform:translateX(-50%) translateY(6px);
 }
 #toast.show{transform:translateX(-50%)}
 #toast span{flex:1;min-width:0}
-/* The one snackbar action (Undo): an M3 text button — primary label on the surface, with the
-   press state layered in the surface's own on-colour, never a second hue. */
+/* The one snackbar action (Undo): an M3 text button. The label is --m3-on-surface, not the
+   accent — primary on the 10% on-surface press layer was 4.11:1 in light, under AA 4.5, while
+   on-surface stays >=8:1 in both themes. pointer-events:auto re-enables the taps that
+   index.css's pass-through #toast{pointer-events:none} otherwise swallows. */
 #toast .toast-act{
-  border:0;background-color:transparent;color:var(--m3-primary);font-family:inherit;
+  border:0;background-color:transparent;color:var(--m3-on-surface);font-family:inherit;
   font-size:14px;font-weight:var(--m3-type-label-l-weight);letter-spacing:var(--m3-type-label-l-track);
-  padding:9px 12px;border-radius:var(--m3-shape-full);
+  min-height:44px;padding:12px 14px;border-radius:var(--m3-shape-full);
+  pointer-events:auto;
 }
 #toast .toast-act:active{background-color:color-mix(in srgb,var(--m3-on-surface) var(--m3-state-press),transparent)}
 

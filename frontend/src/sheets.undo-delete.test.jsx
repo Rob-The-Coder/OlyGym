@@ -32,6 +32,23 @@ function renderToast() {
   return host
 }
 
+const type = (el, value) => {
+  Object.getOwnPropertyDescriptor(el.constructor.prototype, 'value').set.call(el, value)
+  el.dispatchEvent(new Event('input', { bubbles: true }))
+}
+const blur = el => el.dispatchEvent(new Event('focusout', { bubbles: true }))
+
+// Drive the full ⋯ → Delete workout → confirm sequence; leaves the Undo action in useUI.
+function deleteViaUi(w) {
+  workoutDetailSheet(w)
+  const detail = renderTop()
+  act(() => { detail.querySelector('.ab-ico').click() })
+  const menu = renderTop()
+  act(() => { [...menu.querySelectorAll('.menu-item')].find(e => e.textContent.includes('Delete workout')).click() })
+  const confirm = renderTop()
+  act(() => { [...confirm.querySelectorAll('.dlg-btn')].find(b => b.textContent.trim() === 'Delete').click() })
+}
+
 const EX = Object.keys(EXIDX).find(id => (EXIDX[id].bp || '') !== 'cardio' && !EXIDX[id].custom)
 const DAY = 86400000
 const T0 = Date.UTC(2026, 2, 1, 9)
@@ -98,6 +115,52 @@ describe('undo delete workout', () => {
     expect(restored.note).toBe('felt strong')
     expect(useUI.getState().toastMsg).toBe('Workout restored')
     expect(useUI.getState().toastAction).toBeNull()
+  })
+
+  it('restores the note as edited before deleting, not the stale snapshot', () => {
+    const w2 = mk(2)
+    useStore.setState(s => ({ S: { ...s.S, workouts: [w2] } }))
+
+    workoutDetailSheet(w2)
+    const detail = renderTop()
+    const ta = detail.querySelector('textarea')
+    act(() => { type(ta, 'NEW note typed before delete') })
+    // saveNote writes into a deep-cloned S, so the `w` prop is now a stale snapshot.
+    act(() => { blur(ta) })
+    expect(useStore.getState().S.workouts[0].note).toBe('NEW note typed before delete')
+    expect(w2.note).toBe('felt strong')
+
+    // Delete through the real flow, then undo.
+    act(() => { detail.querySelector('.ab-ico').click() })
+    const menu = renderTop()
+    act(() => { [...menu.querySelectorAll('.menu-item')].find(e => e.textContent.includes('Delete workout')).click() })
+    const confirm = renderTop()
+    act(() => { [...confirm.querySelectorAll('.dlg-btn')].find(b => b.textContent.trim() === 'Delete').click() })
+    expect(useStore.getState().S.workouts).toEqual([])
+
+    const toastHost = renderToast()
+    act(() => { toastHost.querySelector('.toast-act').click() })
+
+    const restored = useStore.getState().S.workouts.find(x => x.id === 'w2')
+    expect(restored).toBeTruthy()
+    expect(restored.note).toBe('NEW note typed before delete')
+  })
+
+  it('a double-fired undo restores its own workout, not an older deletion', () => {
+    const w1 = mk(1), w2 = mk(2), w3 = mk(3)
+    useStore.setState(s => ({ S: { ...s.S, workouts: [w1, w2, w3] } }))
+
+    deleteViaUi(w2)                 // stack [w2]
+    deleteViaUi(w3)                 // stack [w2, w3]; the Undo action now belongs to w3
+    const action = useUI.getState().toastAction.onClick
+
+    act(() => { action() })         // restores w3
+    expect(useStore.getState().S.workouts.map(x => x.id)).toEqual(['w1', 'w3'])
+    expect(useUI.getState().undo.map(x => x.id)).toEqual(['w2'])
+
+    act(() => { action() })         // double-fire: top is w2, not w3 — must not restore w2
+    expect(useStore.getState().S.workouts.map(x => x.id)).toEqual(['w1', 'w3'])
+    expect(useUI.getState().undo.map(x => x.id)).toEqual(['w2'])
   })
 
   it('caps the stack at UNDO_MAX without mutating the stored workouts', () => {

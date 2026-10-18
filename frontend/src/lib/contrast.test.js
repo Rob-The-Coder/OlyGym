@@ -8,7 +8,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { contrastOn, readCustomProperties, resolveCustomProperties } from './contrast.js'
+import { contrastOn, parseColor, composite, contrastRatio, readCustomProperties, resolveCustomProperties } from './contrast.js'
 
 const read = f => readFileSync(resolve(process.cwd(), 'src/' + f), 'utf8')
 const tokens = read('m3.tokens.css')
@@ -94,3 +94,20 @@ describe('the component sheet', () => {
     expect(components).toMatch(/\.ss-amp \.ss-plus\{[^}]*color:var\(--label-2\)/)
   })
 })
+
+describe('the snackbar action label', () => {
+  it('keeps --m3-on-surface >= 4.5:1 over the 10% press layer on the snackbar surface', () => {
+    // The action label is --m3-on-surface, not the accent: primary over the 10% on-surface
+    // layer on surface-container-highest was 4.11:1 in light, under AA 4.5 for a 14px label.
+    for (const [name, vars] of schemes) {
+      const t = resolveCustomProperties(vars)
+      const surface = parseColor(t['--m3-surface-container-highest'])
+      const on = parseColor(t['--m3-on-surface'])
+      const press = parseFloat(t['--m3-state-press']) / 100
+      const pressed = composite(on.slice(0, 3).concat(press), surface.slice(0, 3))
+      const ratio = contrastRatio(on.slice(0, 3), pressed)
+      expect(ratio, name + ': --m3-on-surface on the pressed layer (' + ratio.toFixed(2) + ':1)').toBeGreaterThanOrEqual(4.5)
+    }
+  })
+})
+

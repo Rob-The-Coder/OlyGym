@@ -158,3 +158,24 @@ describe('the component sheet', () => {
     expect((css.match(/\{/g) || []).length).toBe((css.match(/\}/g) || []).length)
   })
 })
+
+describe('the snackbar action', () => {
+  it('re-enables taps on the action without making the bar itself swallow them', () => {
+    const body = decls(components, '#toast .toast-act')
+    expect(body).toContain('pointer-events:auto')
+    expect(body).not.toContain('pointer-events:none')
+    // The 520px bar must keep passing taps through to the list underneath it.
+    expect(decls(components, '#toast')).not.toContain('pointer-events')
+  })
+
+  it('sizes the action at the 44px thumb floor and paints the label on-surface', () => {
+    const body = decls(components, '#toast .toast-act')
+    expect(body).toMatch(/min-height:\s*44px/)
+    expect(body).toContain('color:var(--m3-on-surface)')
+    expect(body).not.toContain('color:var(--m3-primary)')
+  })
+
+  it('sits in the hover-layer block so wide layouts get pointer feedback', () => {
+    expect(components).toMatch(/\.toast-act:hover/)
+  })
+})

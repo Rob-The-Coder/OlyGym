@@ -1358,13 +1358,19 @@ function WorkoutDetail({ w, close }) {
   // Undo pops the most recent deleted workout back into chronological order. The stack lives in
   // useUI, not S — a reload forgets it, exactly like the snackbar that offered the action.
   const undoDelete = () => {
-    const { stack, workout } = takeUndo(useUI.getState().undo)
+    // Bind to the workout this action was created for: a stale or double-fired action must not
+    // restore a different, older deletion that has since come to the top of the stack.
+    const workout = useUI.getState().undo.at(-1)
+    if (!workout || workout.id !== w.id) return
+    const { stack } = takeUndo(useUI.getState().undo)
     useUI.setState({ undo: stack })
-    if (!workout) return
-    update(s => { s.workouts = restoreWorkout(s.workouts, workout) })
+    update(s => {
+      if (s.workouts.some(x => x.id === workout.id)) return   // already back (re-import) — never a duplicate
+      s.workouts = restoreWorkout(s.workouts, workout)
+    })
     toast(t('Workout restored'))
   }
-  const del = () => confirmSheet({ title: t('Delete workout?'), message: t('This removes it from your history.'), confirmText: t('Delete'), danger: true, onConfirm: () => { update(s => { s.workouts = s.workouts.filter(x => x.id !== w.id) }); useUI.setState({ undo: pushUndo(useUI.getState().undo, w) }); close(); toast(t('Workout deleted'), { action: { label: t('Undo'), onClick: undoDelete }, duration: UNDO_TOAST_MS }) } })
+  const del = () => confirmSheet({ title: t('Delete workout?'), message: t('This removes it from your history.'), confirmText: t('Delete'), danger: true, onConfirm: () => { const current = S().workouts.find(x => x.id === w.id) || w; update(s => { s.workouts = s.workouts.filter(x => x.id !== w.id) }); useUI.setState({ undo: pushUndo(useUI.getState().undo, current) }); close(); toast(t('Workout deleted'), { action: { label: t('Undo'), onClick: undoDelete }, duration: UNDO_TOAST_MS }) } })
   return <>
     <div className="row between" style={{ gap: 8, alignItems: 'flex-start' }}>
       <h3 style={{ margin: 0 }}>{w.name}</h3>
