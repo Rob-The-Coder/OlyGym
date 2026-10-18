@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { DAYS, DAYN, weekOrder, weekStartOf, startOfWeek, isoOf, todayISO, fmtDate, uid, exCount, weekDayOffset } from '../lib/format.js'
 import { addDays, weeksInOrder, weekFor } from '../lib/weeks.js'
+import { unitCount } from '../lib/history.js'
 import { t, dateLocale } from '../lib/i18n.js'
 import { planToolsSheet, starterPlanSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
@@ -52,7 +53,7 @@ export default function Plan() {
     const days = daysInOrder(w.days, ws)
     return {
       days,
-      ex: days.reduce((n, d) => n + (d.ex || []).length, 0),
+      ex: days.reduce((n, d) => n + unitCount(d.ex || []), 0),
       done: days.filter(d => done.has(addDays(w.startIso, weekDayOffset(d.dow, ws)))).length,
     }
   }
@@ -99,7 +100,7 @@ export default function Plan() {
             <span className="ddow">{t(DAYS[d.dow])}</span>
             <div className="grow">
               <div className="tt">{d.name || t(DAYN[d.dow])}</div>
-              <div className="ss">{exCount((d.ex || []).length)}</div>
+              <div className="ss">{exCount(unitCount(d.ex || []))}</div>
             </div>
             {done.has(addDays(cur.startIso, weekDayOffset(d.dow, ws))) && <span className="dtick"><Icon name="check" /></span>}
             <Icon name="chevronRight" className="chev" />

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { nextTrainingDay, modeOf, isTimed, fmtSec, setLabel, defaultConfig, buildSets, freestyleConfig, exLine, workoutVolume, bestWeightFor, bestWeightForEntry, effortOf, stepEffort, capEffort, isBw, cascadeWeight, insertWarmupRow, removeRowAt, workSetsDone, setsDone, setsDoneActive, setUnitsTotal, doneUnits, pairAdjacent, unpairSuperset, supersetUnits, pinnedNoteFor, exNoteFor, effectiveDay, lastEntryFor, entryExcluded } from './history.js'
+import { nextTrainingDay, modeOf, isTimed, fmtSec, setLabel, defaultConfig, buildSets, freestyleConfig, exLine, workoutVolume, bestWeightFor, bestWeightForEntry, effortOf, stepEffort, capEffort, isBw, cascadeWeight, insertWarmupRow, removeRowAt, workSetsDone, setsDone, setsDoneActive, setUnitsTotal, doneUnits, pairAdjacent, unpairSuperset, supersetUnits, unitCount, complexShared, repsOnly, pinnedNoteFor, exNoteFor, effectiveDay, lastEntryFor, entryExcluded } from './history.js'
 import { EXDB } from './exercises.js'
 
 // A *loaded* lift: a barbell movement, so every label test takes the ordinary path instead of
@@ -894,3 +894,49 @@ describe('legacy timed sets', () => {
     expect(setLabel('0025', { w: 60, r: 10, done: true })).toBe('60×10')
   })
 })
+
+// A complex is one thing you do, however many movements it holds, and the card that draws it has to
+// carry what the movements share — otherwise every row repeats the same sets, load and tip.
+describe('a complex as one unit', () => {
+  const members = (patch = {}) => [
+    { id: 'a', sets: 4, reps: 1, weight: 50, mode: 'reps', sg: 'g1', note: 'Pause in the bottom', ...patch },
+    { id: 'b', sets: 4, reps: 2, weight: 50, mode: 'reps', sg: 'g1', note: 'Pause in the bottom' },
+    { id: 'c', sets: 4, reps: 1, weight: 50, mode: 'reps', sg: 'g1' }
+  ]
+
+  it('counts a complex once, not once per movement', () => {
+    expect(unitCount(members())).toBe(1)
+    expect(unitCount([{ id: 'a' }, { id: 'b', sg: 'g1' }, { id: 'c', sg: 'g1' }, { id: 'd' }])).toBe(3)
+    expect(unitCount([])).toBe(0)
+  })
+
+  it('reads the sets, the load and the tip the movements share', () => {
+    const ex = members()
+    const shared = complexShared([0, 1, 2], ex)
+
+    expect(shared).toEqual({ sets: 4, weight: 50, load: true, note: '' })
+    // only two of the three carry the tip, so it stays on the rows that have it
+    expect(complexShared([0, 1], ex).note).toBe('Pause in the bottom')
+  })
+
+  it('reports the load as unshared the moment one movement differs', () => {
+    const ex = members()
+    ex[2].weight = 60
+
+    expect(complexShared([0, 1, 2], ex).load).toBe(false)
+    // the numbers the card shows are still the ones the coach wrote for the complex
+    expect(complexShared([0, 1, 2], ex).sets).toBe(4)
+    expect(complexShared([0, 1, 2], ex).weight).toBe(50)
+  })
+
+  it('has nothing to share for an empty unit', () => {
+    expect(complexShared([0], [])).toBeNull()
+  })
+
+  it('prints a movement its own reps, without the sets and load the card already carries', () => {
+    expect(repsOnly({ reps: 2, sets: 4, weight: 50 })).toBe('2')
+    expect(repsOnly({ mode: 'time', sec: 45 })).toBe('0:45')
+    expect(repsOnly({})).toBe('0')
+  })
+})
+

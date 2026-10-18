@@ -123,6 +123,11 @@ export function exLine(cfg, unit) {
   if (mode === 'time') return `${n} × ${fmtSec(cfg.sec || 45)}${load}`
   return `${n} × ${cfg.reps}${load}`
 }
+// The reps half of that line, for a row that already sits under the sets and load its complex
+// shares: what the movement keeps for itself is the one number the card does not carry.
+export function repsOnly(cfg) {
+  return modeOf(cfg) === 'time' ? fmtSec(cfg.sec || 45) : String(cfg.reps ?? 0)
+}
 
 // Drop superset ids that no longer have an adjacent partner (after unlink/reorder/remove).
 export function cleanupSg(ex) {
@@ -407,6 +412,10 @@ export function supersetUnits(items) {
   return units
 }
 
+/** How many things a day asks you to do. A complex is one of them, not one per movement — the
+ *  workout already counts this way ("Exercise 2 of 3"). */
+export const unitCount = items => supersetUnits(items).length
+
 // Move the selected occurrence's complete display unit by one neighbouring unit. Returning a
 // new array keeps this helper pure; the caller decides how to persist it. Index identity matters
 // here because the same exercise id may appear more than once with different setup.
@@ -423,6 +432,22 @@ export function moveSupersetUnit(items, index, direction) {
   return reordered.flat().map(i => items[i])
 }
 export function unitOf(units, idx) { return units.find(u => u.includes(idx)) || [idx] }
+
+/** What a whole complex shares. The coach writes "3+3 @ 30 kg" once, so the card carries the sets,
+ *  the load and the tip once, and only a member that disagrees needs a line of its own.
+ *  `load` is false as soon as one member's sets or weight differs; `note` is '' unless every
+ *  member carries the same non-empty one. */
+export function complexShared(unit, ex) {
+  const head = ex[unit[0]]
+  if (!head) return null
+  const same = (a, b) => (a || 0) === (b || 0)
+  return {
+    sets: head.sets || 1,
+    weight: head.weight || 0,
+    load: unit.every(i => same(ex[i].sets, head.sets) && same(ex[i].weight, head.weight)),
+    note: unit.every(i => (ex[i].note || '') === (head.note || '')) ? (head.note || '') : '',
+  }
+}
 
 export function streakWeeks(S) {
   if (!S.workouts.length) return 0

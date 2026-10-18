@@ -5,7 +5,7 @@ import { workoutControls } from '../lib/workout-controls.js'
 import { useUI } from '../store/useUI.js'
 import { exOr } from '../lib/exercises.js'
 import { usesBar, barWeightFor, plateSplit } from '../lib/bar.js'
-import { effectiveDay, lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, freestyleConfig, defaultConfig, setsDoneActive, setUnitsTotal, supersetUnits, unitOf, setLabel, modeOf, isBw, EFFORT, effortOf, stepEffort, capEffort, cascadeWeight, insertWarmupRow, removeRowAt, pairAdjacent, unpairSuperset, cleanupSg, pinnedNoteFor, exNoteFor } from '../lib/history.js'
+import { effectiveDay, lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, freestyleConfig, defaultConfig, setsDoneActive, setUnitsTotal, supersetUnits, unitCount, unitOf, setLabel, modeOf, isBw, EFFORT, effortOf, stepEffort, capEffort, cascadeWeight, insertWarmupRow, removeRowAt, pairAdjacent, unpairSuperset, cleanupSg, pinnedNoteFor, exNoteFor } from '../lib/history.js'
 import { weekFor } from '../lib/weeks.js'
 import { fmtNum, capWords, fmtDate, todayISO, exCount, DAYN } from '../lib/format.js'
 import { beep, vibrate, unlock } from '../lib/sound.js'
@@ -42,7 +42,7 @@ function StartChooser() {
     {todayDay && (todayDay.ex || []).length > 0 && <div className="card" style={{ borderColor: 'var(--acc)' }}>
       <h2 className="accent">{t("Today's plan")}</h2>
       <div className="row between" style={{ marginBottom: 12 }}>
-        <div><div className="big">{todayName}</div><div className="muted small">{exCount((todayDay.ex || []).length)}</div></div>
+        <div><div className="big">{todayName}</div><div className="muted small">{exCount(unitCount(todayDay.ex || []))}</div></div>
         <span className="lrow-i" style={{ width: 38, height: 38, borderRadius: 9, fontSize: 22 }}><Icon name="dumbbell" /></span>
       </div>
       <Button variant="primary" icon="play" onClick={() => startFlow(todayDay)}>{t('Start {0}', todayName)}</Button>
@@ -50,7 +50,7 @@ function StartChooser() {
     {others.length > 0 && <><div className="sech">{t('This week')}</div>
       <div className="list">{others.map((d, i) => <div key={i} className="item" onClick={() => startFlow(d)}>
         <span className="lrow-i"><Icon name="dumbbell" /></span>
-        <div className="grow"><div className="tt">{d.name}</div><div className="ss">{exCount((d.ex || []).length)}</div></div>
+        <div className="grow"><div className="tt">{d.name}</div><div className="ss">{exCount(unitCount(d.ex || []))}</div></div>
         <span className="tag acc">{t('Start')}</span></div>)}</div></>}
     <div style={{ height: 14 }} />
     <Button icon="shuffle" onClick={() => startFlow(null)}>{t('Freestyle workout (pick as you go)')}</Button>
