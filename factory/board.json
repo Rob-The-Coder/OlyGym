@@ -46,7 +46,7 @@
       "id": "006-export-history-csv",
       "feature": "Export session history as CSV from the History screen",
       "branch": "factory/006-export-history-csv",
-      "stage": "spec",
+      "stage": "build",
       "round": 0,
       "reviews": {
         "security": "pending",
