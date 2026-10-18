@@ -475,7 +475,7 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
   }
 }
 .btn:focus-visible,.iconbtn:focus-visible,.chip:focus-visible,
-.lrow.tap:focus-visible,.item:focus-visible,.note-edit:focus-visible{
+.lrow.tap:focus-visible,.item:focus-visible,.note-edit:focus-visible,.toast-act:focus-visible{
   background-image:linear-gradient(color-mix(in srgb,var(--label) var(--m3-state-focus),transparent),
                                    color-mix(in srgb,var(--label) var(--m3-state-focus),transparent));
 }
@@ -968,6 +968,14 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
 }
 #toast.show{transform:translateX(-50%)}
 #toast span{flex:1;min-width:0}
+/* The one snackbar action (Undo): an M3 text button — primary label on the surface, with the
+   press state layered in the surface's own on-colour, never a second hue. */
+#toast .toast-act{
+  border:0;background-color:transparent;color:var(--m3-primary);font-family:inherit;
+  font-size:14px;font-weight:var(--m3-type-label-l-weight);letter-spacing:var(--m3-type-label-l-track);
+  padding:9px 12px;border-radius:var(--m3-shape-full);
+}
+#toast .toast-act:active{background-color:color-mix(in srgb,var(--m3-on-surface) var(--m3-state-press),transparent)}
 
 /* The four surfaces that were still carrying a hand-written shadow sit on the scale now: the
    dialog floats over everything at 3, and the rest timer, the snackbar and the wide tab bar float

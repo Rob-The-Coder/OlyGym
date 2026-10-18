@@ -81,6 +81,8 @@ export const useUI = create((set, get) => {
   return {
   sheets: [],          // { id, render:(close)=>JSX, kind:'sheet'|'center', locked }
   toastMsg: '',
+  toastAction: null,   // { label, onClick } — the one optional snackbar action (Undo)
+  undo: [],            // deleted-workout undo stack — ephemeral, never persisted
   timer: null,         // rest countdown between sets — { left, total, endsAt, forIdx }
                        // forIdx: index of the active entry whose set started the rest (undefined when unknown)
   work: null,          // work countdown DURING a timed set (issue #16) — { left, total, endsAt, label }
@@ -100,10 +102,17 @@ export const useUI = create((set, get) => {
   closeSheet(id) { set(s => ({ sheets: s.sheets.filter(x => x.id !== id) })) },
   closeAll() { set({ sheets: [] }) },
 
-  toast(msg) {
-    set({ toastMsg: msg })
+  // `action` is the optional snackbar action on the right ({ label, onClick }); `duration`
+  // keeps a message with an action on screen longer than the 2200ms message-only window.
+  toast(msg, opts) {
+    const { action = null, duration = 2200 } = opts || {}
+    set({ toastMsg: msg, toastAction: action })
     clearTimeout(toastTm)
-    toastTm = setTimeout(() => set({ toastMsg: '' }), 2200)
+    toastTm = setTimeout(() => set({ toastMsg: '', toastAction: null }), duration)
+  },
+  dismissToast() {
+    clearTimeout(toastTm)
+    set({ toastMsg: '', toastAction: null })
   },
 
   startRest(sec, forIdx, label) {

@@ -40,11 +40,15 @@ import { isFav, toggleFav, sortFavouritesFirst } from './lib/favourites.js'
 import { buildDayEntries } from './lib/session-merge.js'
 import { weekFor } from './lib/weeks.js'
 import { workoutsOn, backfillStart, backfillEnd, completeBackfill } from './lib/backfill.js'
+import { pushUndo, takeUndo, restoreWorkout } from './lib/undo.js'
 
 const S = () => useStore.getState().S
 const update = (...a) => useStore.getState().update(...a)
 const ui = () => useUI.getState()
-const toast = m => ui().toast(m)
+const toast = (m, opts) => opts ? ui().toast(m, opts) : ui().toast(m)
+// An undo snackbar has to stay up long enough to actually tap Undo — M3 keeps an action
+// visible far longer than the 2200ms message-only window.
+const UNDO_TOAST_MS = 10000
 const snd = () => S().sound
 
 /* ============================ custom confirm dialog ============================ */
@@ -1351,7 +1355,16 @@ function WorkoutDetail({ w, close }) {
     g.items.push([e, i])
   })
   const grouped = groups.length > 1 || (groups[0] && groups[0].rid && (w.routineIds || []).length > 1)
-  const del = () => confirmSheet({ title: t('Delete workout?'), message: t('This removes it from your history for good.'), confirmText: t('Delete'), danger: true, onConfirm: () => { update(s => { s.workouts = s.workouts.filter(x => x.id !== w.id) }); close(); toast(t('Workout deleted')) } })
+  // Undo pops the most recent deleted workout back into chronological order. The stack lives in
+  // useUI, not S — a reload forgets it, exactly like the snackbar that offered the action.
+  const undoDelete = () => {
+    const { stack, workout } = takeUndo(useUI.getState().undo)
+    useUI.setState({ undo: stack })
+    if (!workout) return
+    update(s => { s.workouts = restoreWorkout(s.workouts, workout) })
+    toast(t('Workout restored'))
+  }
+  const del = () => confirmSheet({ title: t('Delete workout?'), message: t('This removes it from your history.'), confirmText: t('Delete'), danger: true, onConfirm: () => { update(s => { s.workouts = s.workouts.filter(x => x.id !== w.id) }); useUI.setState({ undo: pushUndo(useUI.getState().undo, w) }); close(); toast(t('Workout deleted'), { action: { label: t('Undo'), onClick: undoDelete }, duration: UNDO_TOAST_MS }) } })
   return <>
     <div className="row between" style={{ gap: 8, alignItems: 'flex-start' }}>
       <h3 style={{ margin: 0 }}>{w.name}</h3>
