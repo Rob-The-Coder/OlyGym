@@ -41,6 +41,19 @@
         "code": "PASS"
       },
       "decision": "APPROVE"
+    },
+    {
+      "id": "006-export-history-csv",
+      "feature": "Export session history as CSV from the History screen",
+      "branch": "factory/006-export-history-csv",
+      "stage": "spec",
+      "round": 0,
+      "reviews": {
+        "security": "pending",
+        "ux": "pending",
+        "ui": "pending",
+        "code": "pending"
+      }
     }
   ]
 }
