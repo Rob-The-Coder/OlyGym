@@ -32,7 +32,7 @@
       "id": "005-show-best-lift-pr-badges",
       "feature": "Show best-lift PR badges on the History list",
       "branch": "factory/005-show-best-lift-pr-badges",
-      "stage": "spec",
+      "stage": "build",
       "round": 0,
       "reviews": {
         "security": "pending",
