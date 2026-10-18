@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Factory — OlyGym</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#161a21; --panel2:#1b2029; --line:#2a2f3b;
+    --text:#e7e9f0; --muted:#9aa1b2; --faint:#6b7280;
+    --pass:#4ade80; --changes:#fbbf24; --pending:#333947; --human:#f87171;
+    --accent:#f6c177;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{padding:20px 24px 12px;border-bottom:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;justify-content:space-between}
+  h1{font-size:18px;margin:0;font-weight:600;letter-spacing:.2px}
+  h1 .rule{color:var(--accent)}
+  .sub{color:var(--muted);font-size:13px}
+  .live{color:var(--muted);font-size:12px}
+  .live .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--pass);margin-right:6px;vertical-align:1px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+  .legend b{font-weight:600}
+  .swatch{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+  main{padding:20px 24px 48px}
+  #board{display:flex;gap:14px;align-items:flex-start;overflow-x:auto;padding-bottom:8px}
+  .col{flex:1 1 0;min-width:180px}
+  .col-head{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--faint);margin:0 0 8px;font-weight:600}
+  .col-body{display:flex;flex-direction:column;gap:10px}
+
+  .card{display:block;width:100%;text-align:left;background:var(--panel);
+    border:1px solid var(--line);border-radius:6px;padding:12px;color:var(--text);cursor:pointer;font:inherit}
+  .card:hover{border-color:#3a4150;background:var(--panel2)}
+  .card.needs-human{border-color:var(--human);background:#2a1517}
+  .card.merged{border-color:#1f3a2a}
+  .card .id{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--muted)}
+  .card .feat{font-weight:600;margin:4px 0 2px}
+  .card .branch{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--faint);word-break:break-all}
+  .card .meta{margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11px}
+  .tag{border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--muted)}
+  .tag.approve{color:var(--pass);border-color:#1f3a2a}
+  .tag.escalate{color:var(--human);border-color:#5a2326}
+  .chips{display:flex;gap:4px;margin-top:8px}
+  .chip{flex:1;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.5px;
+    padding:3px 0;border-radius:4px;color:var(--muted);background:var(--pending)}
+  .chip.PASS{background:#12331e;color:var(--pass)}
+  .chip.CHANGES{background:#3a2c0d;color:var(--changes)}
+
+  #detail{margin-top:20px;background:var(--panel);border:1px solid var(--line);border-radius:6px;display:none}
+  #detail.open{display:block}
+  #detail .dhead{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}
+  #detail .dhead button{background:none;border:1px solid var(--line);color:var(--muted);border-radius:4px;padding:2px 10px;cursor:pointer;font:inherit}
+  #detail .dhead button:hover{color:var(--text);border-color:#3a4150}
+  .file{border-bottom:1px solid var(--line);padding:14px 16px}
+  .file:last-child{border-bottom:none}
+  .file .fname{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--accent);margin-bottom:6px}
+  .file h2,.file h3,.file h4{margin:8px 0 4px;font-weight:600}
+  .file h2{font-size:15px}.file h3{font-size:14px}.file h4{font-size:13px;color:var(--muted)}
+  .file p{margin:4px 0}
+  .file ul,.file ol{margin:4px 0;padding-left:20px}
+  .file code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;background:var(--panel2);padding:1px 5px;border-radius:3px}
+
+  .empty,.error{margin-top:20px;color:var(--muted)}
+  .error{color:var(--human)}
+  .error code,.empty code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:var(--panel2);padding:1px 5px;border-radius:3px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Factory <span class="rule">/</span> OlyGym</h1>
+    <div class="sub">spec &rarr; build &rarr; review &rarr; decision &rarr; merged</div>
+  </div>
+  <div class="legend">
+    <span><span class="swatch" style="background:var(--pass)"></span><b>PASS</b></span>
+    <span><span class="swatch" style="background:var(--changes)"></span><b>CHANGES</b></span>
+    <span><span class="swatch" style="background:var(--pending)"></span>pending</span>
+    <span><span class="swatch" style="background:var(--human)"></span>needs-human</span>
+  </div>
+  <div class="live" id="live">&nbsp;</div>
+</header>
+
+<main>
+  <div id="board"></div>
+  <div id="detail" aria-live="polite"></div>
+</main>
+
+<script>
+var STAGES = ["spec","build","review","decision","merged","needs-human"];
+var REVIEWERS = ["security","ux","ui","code"];
+var REVIEW_LABEL = {security:"SEC",ux:"UX",ui:"UI",code:"CODE"};
+
+var board = document.getElementById("board");
+var detail = document.getElementById("detail");
+var live = document.getElementById("live");
+var state = { jobs: [] };
+var selected = null;
+
+function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function inline(t){
+  return esc(t)
+    .replace(/`([^`]+)`/g,"<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");
+}
+function md(src){
+  var lines = src.split("\n");
+  var html = "", list = null;
+  function close(){ if(list){ html += "</" + list + ">"; list = null; } }
+  for(var i=0;i<lines.length;i++){
+    var line = lines[i].replace(/\s+$/,"");
+    if(/^###\s/.test(line)){ close(); html += "<h4>" + inline(line.slice(4)) + "</h4>"; }
+    else if(/^##\s/.test(line)){ close(); html += "<h3>" + inline(line.slice(3)) + "</h3>"; }
+    else if(/^#\s/.test(line)){ close(); html += "<h2>" + inline(line.slice(2)) + "</h2>"; }
+    else if(/^\s*[-*]\s+/.test(line)){ if(list!=="ul"){ close(); html+="<ul>"; list="ul"; } html += "<li>" + inline(line.replace(/^\s*[-*]\s+/,"")) + "</li>"; }
+    else if(/^\s*\d+\.\s+/.test(line)){ if(list!=="ol"){ close(); html+="<ol>"; list="ol"; } html += "<li>" + inline(line.replace(/^\s*\d+\.\s+/,"")) + "</li>"; }
+    else if(line.trim()===""){ close(); }
+    else { close(); html += "<p>" + inline(line) + "</p>"; }
+  }
+  close();
+  return html;
+}
+
+function card(job){
+  var b = document.createElement("button");
+  b.type = "button";
+  b.className = "card";
+  if(job.stage==="needs-human") b.className += " needs-human";
+  if(job.stage==="merged") b.className += " merged";
+  b.setAttribute("aria-expanded", selected===job.id ? "true" : "false");
+
+  var chips = "";
+  if(job.reviews){
+    var parts = [];
+    for(var k=0;k<REVIEWERS.length;k++){
+      var key = REVIEWERS[k], v = job.reviews[key] || "pending";
+      parts.push('<span class="chip ' + v + '">' + REVIEW_LABEL[key] + " " + (v==="pending" ? "·" : v) + "</span>");
+    }
+    chips = '<div class="chips">' + parts.join("") + "</div>";
+  }
+  var meta = [];
+  if(job.round) meta.push('<span class="tag">round ' + job.round + "/2</span>");
+  if(job.decision==="APPROVE") meta.push('<span class="tag approve">APPROVE</span>');
+  if(job.decision==="ESCALATE") meta.push('<span class="tag escalate">ESCALATE</span>');
+
+  b.innerHTML =
+    '<div class="id">' + esc(job.id) + "</div>" +
+    '<div class="feat">' + esc(job.feature || job.id) + "</div>" +
+    '<div class="branch">' + esc(job.branch || "") + "</div>" +
+    chips +
+    (meta.length ? '<div class="meta">' + meta.join("") + "</div>" : "");
+
+  b.addEventListener("click", function(){ openJob(job.id); });
+  return b;
+}
+
+function render(){
+  var extra = [];
+  for(var i=0;i<state.jobs.length;i++){
+    var s = state.jobs[i].stage;
+    if(s && STAGES.indexOf(s) === -1) extra.push(s);
+  }
+  var cols = STAGES.concat(extra);
+
+  if(!state.jobs.length){
+    board.innerHTML = '<div class="empty">No jobs yet. Run <code>/factory &lt;feature&gt;</code> in a DeepSeek harness session to start one.</div>';
+    return;
+  }
+  var html = "";
+  for(var c=0;c<cols.length;c++){
+    var stage = cols[c];
+    var jobs = [];
+    for(var j=0;j<state.jobs.length;j++){ if((state.jobs[j].stage||"")===stage) jobs.push(state.jobs[j]); }
+    html += '<section class="col"><div class="col-head">' + stage + (jobs.length ? " · " + jobs.length : "") + "</div><div class='col-body'>";
+    for(var q=0;q<jobs.length;q++){ html += card(jobs[q]).outerHTML; }
+    html += "</div></section>";
+  }
+  board.innerHTML = html;
+  // re-attach listeners (innerHTML via outerHTML loses them)
+  var buttons = board.querySelectorAll("button.card");
+  for(var bi=0;bi<buttons.length;bi++){
+    (function(b){
+      var id = b.querySelector(".id").textContent;
+      b.addEventListener("click", function(){ openJob(id); });
+    })(buttons[bi]);
+  }
+}
+
+async function openJob(id){
+  selected = id;
+  render();
+  var job = null;
+  for(var i=0;i<state.jobs.length;i++){ if(state.jobs[i].id===id) job = state.jobs[i]; }
+  if(!job) return;
+  detail.className = "open";
+  detail.innerHTML = '<div class="dhead"><strong>' + esc(job.feature || job.id) + '</strong><button type="button" id="close">close</button></div><div id="files"><p class="empty">Loading files…</p></div>';
+  document.getElementById("close").addEventListener("click", function(){
+    selected = null; detail.className = ""; detail.innerHTML = ""; render();
+  });
+
+  var files = ["spec.md","build.md"];
+  var rounds = Math.max(1, job.round || 1);
+  for(var r=1;r<=rounds;r++){ for(var k=0;k<REVIEWERS.length;k++){ files.push("round-" + r + "/review-" + REVIEWERS[k] + ".md"); } }
+  files.push("decision.md");
+
+  var out = [];
+  for(var f=0;f<files.length;f++){
+    var res = await fetch("jobs/" + encodeURIComponent(id) + "/" + files[f]);
+    if(res.ok){
+      var text = await res.text();
+      out.push('<div class="file"><div class="fname">' + esc(files[f]) + "</div>" + md(text) + "</div>");
+    }
+  }
+  document.getElementById("files").innerHTML = out.length ? out.join("") : '<p class="empty">No files found for this job.</p>';
+}
+
+async function poll(){
+  try{
+    var res = await fetch("board.json", { cache: "no-store" });
+    if(!res.ok) throw new Error(String(res.status));
+    var data = await res.json();
+    state.jobs = Array.isArray(data.jobs) ? data.jobs : [];
+    render();
+    live.innerHTML = '<span class="dot"></span>Live · updated ' + new Date().toLocaleTimeString();
+  }catch(err){
+    live.innerHTML = "";
+    board.innerHTML = '<div class="error">Could not read <code>board.json</code>. Serve this folder with <code>python3 -m http.server</code> and open <code>/dashboard.html</code>.</div>';
+  }
+}
+
+poll();
+setInterval(poll, 2000);
+</script>
+</body>
+</html>
