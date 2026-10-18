@@ -134,12 +134,12 @@ export function onAppActive(cb) {
   }).catch(() => {})
 }
 
-// WKWebView can't do blob-URL downloads, so the backup goes out through the OS share sheet
-// (Files, AirDrop, mail, …) from a temp file instead.
-export async function shareExport(json, filename) {
+// WKWebView can't do blob-URL downloads, so an export — the JSON backup or the History CSV —
+// goes out through the OS share sheet (Files, AirDrop, mail, …) from a temp file instead.
+export async function shareExport(text, filename) {
   const { Filesystem, Directory, Encoding } = await import('@capacitor/filesystem')
   const { Share } = await import('@capacitor/share')
-  const w = await Filesystem.writeFile({ path: filename, directory: Directory.Cache, data: json, encoding: Encoding.UTF8 })
+  const w = await Filesystem.writeFile({ path: filename, directory: Directory.Cache, data: text, encoding: Encoding.UTF8 })
   await Share.share({ title: filename, url: w.uri })
 }
 

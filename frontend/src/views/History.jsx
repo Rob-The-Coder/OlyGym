@@ -1,9 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
+import { useUI } from '../store/useUI.js'
 import { EXIDX } from '../lib/exercises.js'
 import { setsDone, workoutVolume } from '../lib/history.js'
-import { fmtVol } from '../lib/format.js'
+import { fmtVol, todayISO } from '../lib/format.js'
+import { toCSV } from '../lib/csv.js'
+import { historyRows, historyFilename } from '../lib/history-csv.js'
+import { MOBILE, shareExport } from '../lib/mobile.js'
 import { t, dateLocale, exerciseNameFor } from '../lib/i18n.js'
 import { WorkoutRow, workoutDetailSheet, logPastWorkoutSheet } from '../sheets.jsx'
 import { Button, CardHead } from '../components/ui.jsx'
@@ -17,6 +21,7 @@ import TopAppBar from '../components/TopAppBar.jsx'
 export default function History() {
   const nav = useNavigate()
   const S = useStore(s => s.S)
+  const toast = useUI(s => s.toast)
   const [q, setQ] = useState('')
   const list = [...S.workouts].reverse()
   const query = q.trim().toLowerCase()
@@ -44,10 +49,31 @@ export default function History() {
   const totalVol = S.workouts.reduce((n, w) => n + workoutVolume(w), 0)
   const totalPrs = S.workouts.reduce((n, w) => n + ((w.prs || []).length), 0)
 
+  // The whole log, never the current search: History is the one place the training data leaves
+  // the app, and a filtered file would be a surprising subset of "my history". On the phone the
+  // WebView cannot download a blob, so the same text goes out through the OS share sheet — a
+  // dismissed sheet is a user choice, not an error.
+  const doExport = async () => {
+    const csv = toCSV(historyRows(S.workouts, S.unit), { bom: true })
+    const name = historyFilename(todayISO())
+    if (MOBILE) {
+      try { await shareExport(csv, name); toast(t('History exported')) } catch (e) { /* share sheet dismissed */ }
+      return
+    }
+    try {
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); URL.revokeObjectURL(a.href)
+      toast(t('History exported'))
+    } catch (e) { toast(t('Could not export the history')) }
+  }
+
   return <>
     <TopAppBar title={t('History')} subtitle={t('{0} workouts', S.workouts.length)}
       leading={<button className="iconbtn ab-ico" onClick={() => nav('/stats')} aria-label={t('Stats')}><Icon name="chevronLeft" /></button>}
-      actions={<button className="iconbtn ab-ico" onClick={logPastWorkoutSheet} aria-label={t('Log a past workout')} title={t('Log a past workout')}><Icon name="plus" /></button>} />
+      actions={<>
+        <button className="iconbtn ab-ico" onClick={logPastWorkoutSheet} aria-label={t('Log a past workout')} title={t('Log a past workout')}><Icon name="plus" /></button>
+        {S.workouts.length > 0 && <button className="iconbtn ab-ico" onClick={doExport} aria-label={t('Export history as CSV')} title={t('Export history as CSV')}><Icon name="download" /></button>}
+      </>} />
 
     {S.workouts.length > 0 && <>
       <div className="tiles hist-tiles">
