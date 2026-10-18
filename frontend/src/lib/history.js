@@ -626,3 +626,34 @@ export function bestWeightForEntry(entry = {}) {
     && (best <= 0 || topWeight > best)) best = topWeight
   return best
 }
+
+/**
+ * The session's best-lift PRs, ordered heaviest first: one `{ id, weight }` per lift recorded
+ * in `w.prs`, which stores exercise ids only (the finish flow writes it; nothing here derives a
+ * PR, and the stored shape is unchanged).
+ *
+ * `weight` is the session's own best for that entry (`bestWeightForEntry`, the reader Stats and
+ * the exercise-history sheet already use) — never the lifetime best, and never a re-run of the
+ * PR test. An id with no entry, and a lift whose best load is 0, contributes no badge; a
+ * duplicate id counts once. An equal load keeps the order `w.prs` stored, so the row does not
+ * reshuffle between renders.
+ */
+export function prLifts(workout) {
+  const w = objectOf(workout)
+  const prs = Array.isArray(w.prs) ? w.prs : []
+  if (!prs.length || !Array.isArray(w.entries)) return []
+  const out = []
+  const seen = new Set()
+  prs.forEach(id => {
+    if (seen.has(id)) return
+    const entry = w.entries.find(e => e?.id === id)
+    if (!entry) return
+    const weight = bestWeightForEntry(entry)
+    // `> 0` drops both a zero load and a NaN/undefined one from a malformed entry.
+    if (!(weight > 0)) return
+    seen.add(id)
+    out.push({ id, weight })
+  })
+  // Array.prototype.sort is stable (ES2019), so equal loads keep their `w.prs` order.
+  return out.sort((a, b) => b.weight - a.weight)
+}

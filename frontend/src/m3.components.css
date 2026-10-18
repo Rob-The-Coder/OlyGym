@@ -235,6 +235,24 @@
    round the edge — the "strange coloured outlines" (QA WS5). One radius, from one token. */
 .list .thumb{width:56px;height:56px;border-radius:12px}
 
+/* The row's best-lift PRs: one badge per lift, naming it and the load it hit. It replaced the
+   "2 PR" count, so the badge carries a visible word, not colour alone. The fill is the primary
+   container pair — opaque, so the row under it cannot change the text's contrast; the pair is
+   AA at 12px in every generated scheme (contrast.test.js asserts >= 4.5:1, worst 7.19:1, lime).
+   `.pr` is also the WorkoutDetail and exercise-history marker, which inherit this one look
+   rather than the app growing a second PR look. */
+.pr{
+  max-width:100%;
+  background:var(--m3-primary-container);
+  color:var(--m3-on-primary-container);
+  border-radius:var(--m3-shape-s);
+  white-space:nowrap;
+}
+/* Long names clip inside the badge instead of pushing the chevron off the row. The badge wraps
+   as a whole; the name is the piece that gives up its width. */
+.prs{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.pr-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
 /* M3 search bar: pill on the tonal surface, leading icon centred in it. */
 .search .input{
   background:var(--m3-surface-container-high);

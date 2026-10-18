@@ -4,7 +4,7 @@ import { useUI } from './store/useUI.js'
 import { EXDB, EXIDX, BODYPARTS, isBodyweightEq, allExercises, smOf, exOr } from './lib/exercises.js'
 import { activeProfile, exAvailable, ALL_EQUIPMENT, newProfile } from './lib/equipment.js'
 import { fmtDate, fmtNum, fmtVol, fmtDur, durPart, todayISO, isoOf, uid, DAYN, DAYS, weekOrder, weekStartOf, weekDayOffset, MONTHS_LONG, ACCENTS, capWords } from './lib/format.js'
-import { lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, effectiveDay, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, EFFORT, capEffort, stepEffort, isBw, workSetsDone, MAX_PLANNED_WARMUPS, NOTE_MAX } from './lib/history.js'
+import { lastEntryFor, bestWeightFor, bestWeightForEntry, prLifts, buildSets, effectiveDay, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, EFFORT, capEffort, stepEffort, isBw, workSetsDone, MAX_PLANNED_WARMUPS, NOTE_MAX } from './lib/history.js'
 import { usesBar, barWeightFor, defaultBarWeight, hasBarOverride, isNoBar } from './lib/bar.js'
 import { toScale, rirOf, EFFORT_PRESETS, effortColor } from './lib/effort.js'
 import { beep, vibrate } from './lib/sound.js'
@@ -1567,11 +1567,21 @@ export function WorkoutRow({ w, onClick }) {
   // A workout filed under a legacy routine has no name to look up any more — it shows its own
   // stored name and the default glyph, like a session logged since the dated weeks.
   const glyph = DEFAULT_GLYPH
+  // One badge per lift the session recorded a PR for, naming it and the load it hit — the row
+  // used to say only "2 PR", which told you how many and nothing else. `w.prs` is read, never
+  // extended: the ids stay the stored shape and the load comes from the session's own entries.
+  const prs = prLifts(w)
   return <div className="item" {...tappable(onClick)}>
     <span className="lrow-i" style={{ width: 34, height: 34, borderRadius: 8, fontSize: 19 }}><Icon name={glyph} /></span>
     <div className="grow"><div className="tt">{w.name}</div>
-      <div className="ss">{[fmtDate(w.d, true), ...durPart(w.end - w.start), t('{0} sets', setsDone(w)), fmtVol(w.vol, st.unit)].join(' · ')}</div></div>
-    {w.prs && w.prs.length > 0 && <span className="pr"><Icon name="trophy" />{w.prs.length} PR</span>}
+      <div className="ss">{[fmtDate(w.d, true), ...durPart(w.end - w.start), t('{0} sets', setsDone(w)), fmtVol(w.vol, st.unit)].join(' · ')}</div>
+      {prs.length > 0 && <div className="prs">
+        {prs.map(p => <span key={p.id} className="pr">
+          <Icon name="trophy" /><span className="pr-name capitalize">{EXIDX[p.id] ? exerciseNameFor(EXIDX[p.id]) : p.id}</span>{' '}
+          {t('PR')} {fmtNum(p.weight) + ' ' + st.unit}
+        </span>)}
+      </div>}
+    </div>
     <Icon name="chevronRight" className="chev" />
   </div>
 }

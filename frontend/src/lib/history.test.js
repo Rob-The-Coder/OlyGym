@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { nextTrainingDay, modeOf, isTimed, fmtSec, setLabel, defaultConfig, buildSets, freestyleConfig, exLine, workoutVolume, bestWeightFor, bestWeightForEntry, effortOf, stepEffort, capEffort, isBw, cascadeWeight, insertWarmupRow, removeRowAt, workSetsDone, setsDone, setsDoneActive, setUnitsTotal, doneUnits, pairAdjacent, unpairSuperset, supersetUnits, unitCount, complexShared, repsOnly, pinnedNoteFor, exNoteFor, effectiveDay, lastEntryFor, entryExcluded } from './history.js'
+import { nextTrainingDay, modeOf, isTimed, fmtSec, setLabel, defaultConfig, buildSets, freestyleConfig, exLine, workoutVolume, bestWeightFor, bestWeightForEntry, prLifts, effortOf, stepEffort, capEffort, isBw, cascadeWeight, insertWarmupRow, removeRowAt, workSetsDone, setsDone, setsDoneActive, setUnitsTotal, doneUnits, pairAdjacent, unpairSuperset, supersetUnits, unitCount, complexShared, repsOnly, pinnedNoteFor, exNoteFor, effectiveDay, lastEntryFor, entryExcluded } from './history.js'
 import { EXDB } from './exercises.js'
 
 // A *loaded* lift: a barbell movement, so every label test takes the ordinary path instead of
@@ -937,6 +937,89 @@ describe('a complex as one unit', () => {
     expect(repsOnly({ reps: 2, sets: 4, weight: 50 })).toBe('2')
     expect(repsOnly({ mode: 'time', sec: 45 })).toBe('0:45')
     expect(repsOnly({})).toBe('0')
+  })
+})
+
+// The History row used to say only "2 PR" — how many, not which lift and not the load. `w.prs`
+// stores exercise ids, so the badge's load has to be read back from the session's own entries.
+describe('prLifts', () => {
+  const entry = (id, sets, extra = {}) => ({
+    id, target: { mode: 'reps', bodyweight: false }, sets, ...extra,
+  })
+  const done = (w, extra = {}) => ({ w, r: 5, done: true, ...extra })
+
+  it('orders the session PRs heaviest first, and keeps w.prs order on a tie', () => {
+    const workout = {
+      prs: ['snatch', 'clean', 'jerk'],
+      entries: [
+        entry('snatch', [done(80)]),
+        entry('clean', [done(102)]),
+        entry('jerk', [done(90)]),
+      ],
+    }
+    expect(prLifts(workout)).toEqual([
+      { id: 'clean', weight: 102 },
+      { id: 'jerk', weight: 90 },
+      { id: 'snatch', weight: 80 },
+    ])
+
+    // A tie follows the stored prs order, not the order the entries happen to sit in.
+    const tie = {
+      prs: ['jerk', 'clean'],
+      entries: [entry('clean', [done(90)]), entry('jerk', [done(90)])],
+    }
+    expect(prLifts(tie)).toEqual([
+      { id: 'jerk', weight: 90 },
+      { id: 'clean', weight: 90 },
+    ])
+  })
+
+  it('reads the best completed work set, excluding warm-ups and unchecked rows', () => {
+    const workout = {
+      prs: ['snatch'],
+      entries: [entry('snatch', [
+        done(120, { phase: 'warmup' }),
+        { w: 90, r: 2, done: false },
+        done(102),
+        done(100),
+      ])],
+    }
+    expect(prLifts(workout)).toEqual([{ id: 'snatch', weight: 102 }])
+  })
+
+  it('skips an id with no entry, a zero best load and a duplicate id', () => {
+    const workout = {
+      prs: ['ghost', 'pullup', 'snatch', 'snatch'],
+      entries: [
+        entry('pullup', [done(0)]),
+        entry('snatch', [done(101)]),
+      ],
+    }
+    expect(prLifts(workout)).toEqual([{ id: 'snatch', weight: 101 }])
+  })
+
+  it('has nothing to show without a usable prs array or entries', () => {
+    const entries = [entry('snatch', [done(101)])]
+    expect(prLifts({ entries })).toEqual([])
+    expect(prLifts({ prs: 'snatch', entries })).toEqual([])
+    expect(prLifts({ prs: [], entries })).toEqual([])
+    expect(prLifts({ prs: ['snatch'] })).toEqual([])
+    expect(prLifts(null)).toEqual([])
+    expect(prLifts()).toEqual([])
+  })
+
+  it('does not mutate the workout, its entries or the stored prs order', () => {
+    const workout = {
+      prs: ['snatch', 'clean'],
+      entries: [entry('snatch', [done(80)]), entry('clean', [done(102)])],
+    }
+    const before = structuredClone(workout)
+    const lifts = prLifts(workout)
+    expect(workout).toEqual(before)
+    expect(workout.entries).toEqual(before.entries)
+    expect(workout.prs).toEqual(['snatch', 'clean'])
+    // a fresh array, so sorting the result can never reorder the stored ids
+    expect(lifts).not.toBe(workout.prs)
   })
 })
 
