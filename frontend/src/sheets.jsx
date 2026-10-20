@@ -4,6 +4,7 @@ import { useUI } from './store/useUI.js'
 import { EXDB, EXIDX, BODYPARTS, isBodyweightEq, allExercises, smOf, exOr } from './lib/exercises.js'
 import { activeProfile, exAvailable, ALL_EQUIPMENT, newProfile } from './lib/equipment.js'
 import { fmtDate, fmtNum, fmtVol, fmtDur, durPart, todayISO, isoOf, uid, DAYN, DAYS, weekOrder, weekStartOf, weekDayOffset, MONTHS_LONG, ACCENTS, capWords } from './lib/format.js'
+import { convertWeight } from './lib/units.js'
 import { lastEntryFor, bestWeightFor, bestWeightForEntry, prLifts, buildSets, effectiveDay, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, EFFORT, capEffort, stepEffort, isBw, workSetsDone, MAX_PLANNED_WARMUPS, NOTE_MAX } from './lib/history.js'
 import { usesBar, barWeightFor, defaultBarWeight, hasBarOverride, isNoBar } from './lib/bar.js'
 import { toScale, rirOf, EFFORT_PRESETS, effortColor } from './lib/effort.js'
@@ -1221,10 +1222,64 @@ function ComplexConfig({ target, unitIndex, close }) {
   </>
 }
 
+/* ============================ the coach's numbers ============================ */
+// A review row carries the numbers the reading took out of his row, and they are as much a guess
+// as the exercise is: the sets of a "1+1" complex, a load written "80,95 95". This sheet corrects
+// the prescription only — his own row is printed above the fields as the reference, and which
+// exercise it is stays the picker's job. The corrections are kept by the review screen for this
+// import only (see CoachImport), so nothing is written here: `onSave` hands the numbers back and
+// the sheet closes, and dismissing it changes nothing.
+//
+// A complex writes its sets and load once for the whole row, so the sheet says so: the review
+// screen applies those two numbers to every movement, while the reps stay the tapped one's own.
+export const coachEntrySheet = (entry, onSave) =>
+  ui().openSheet(close => <CoachEntry entry={entry} onSave={onSave} close={close} />)
+
+function CoachEntry({ entry, onSave, close }) {
+  const st = useStore(s => s.S)
+  const unit = st.unit || 'kg'
+  // The review keeps kilos. Show the account's unit, but keep the kilogram value itself when the
+  // weight is not touched: a kg → lb → kg round trip moves the number, and it was already right.
+  const shownWeight = entry.weight != null ? (unit === 'kg' ? entry.weight : convertWeight(entry.weight, 'kg', unit)) : 0
+  const [sets, setSets] = useState(Math.max(1, Math.round(entry.sets || 1)))
+  const [reps, setReps] = useState(Math.max(1, Math.round(entry.reps || 1)))
+  const [sec, setSec] = useState(Math.max(1, Math.round(entry.sec || 1)))
+  const [weight, setWeight] = useState(shownWeight)
+  const name = entry.custom ? entry.name : exerciseNameFor(exOr(entry.id))
+  const timed = entry.mode === 'time'
+  const save = () => {
+    const patch = {
+      sets: Math.max(1, Math.round(sets) || 1),
+      // Untouched keeps the kilogram value exactly; touched is what the field says, in kilos.
+      weight: weight === shownWeight ? entry.weight : convertWeight(weight, unit, 'kg')
+    }
+    if (timed) patch.sec = Math.max(1, Math.round(sec) || 1)
+    else patch.reps = Math.max(1, Math.round(reps) || 1)
+    close()
+    onSave(patch)
+  }
+  return <>
+    <h3 className="capitalize">{name}</h3>
+    {entry.src && <div className="coach-src" style={{ marginBottom: 10 }}>{entry.src}</div>}
+    {entry.sg && <div className="muted small" style={{ marginBottom: 14 }}>{t('Sets and load are the same for every exercise in the complex — each one keeps its own reps.')}</div>}
+    <div className="row cfgrow" style={{ marginBottom: 12 }}>
+      <Stepper label={t('Sets')} value={sets} step={1} decimal={false} onChange={setSets} />
+      {timed
+        ? <Stepper label={t('Seconds')} value={sec} step={5} decimal={false} onChange={setSec} />
+        : <Stepper label={t('Reps')} value={reps} step={1} decimal={false} onChange={setReps} />}
+      <Stepper label={t('Weight ({0})', unit)} value={weight} step={2.5} onChange={setWeight} />
+    </div>
+    <div className="small dim" style={{ marginBottom: 16 }}>{t('Applies to this import only.')}</div>
+    <Button variant="primary" onClick={save}>{t('Save')}</Button>
+  </>
+}
+
 /* ============================ the coach's spreadsheet ============================ */
 // The reading lives in lib/plan-aliases.js and lib/import-plan.js; this is the way in. The review
-// screen is where a wrong guess gets fixed, and the fix is remembered in S.planAliases — the same
-// Italian phrases come back every week, so the second week arrives already corrected.
+// screen is where a wrong guess gets fixed: the exercise is remembered in S.planAliases — the same
+// Italian phrases come back every week, so the second week arrives already corrected — while the
+// sets, reps and load are corrected for this import only (coachEntrySheet), because the same phrase
+// comes back with different numbers.
 export function coachPlanSheet(sheets) {
   // The picker stacks on top of the review (that is how the add-to-routine flow wants it); a
   // correction pops whatever was opened for it, so the review comes back into view.
@@ -1232,7 +1287,7 @@ export function coachPlanSheet(sheets) {
     const before = ui().sheets.length
     exercisePicker(ex => { onPick(ex); ui().sheets.slice(before).forEach(s => ui().closeSheet(s.id)) })
   }
-  ui().openSheet(close => <CoachImport sheets={sheets} close={close} pick={pick} menu={menuSheet} />)
+  ui().openSheet(close => <CoachImport sheets={sheets} close={close} pick={pick} menu={menuSheet} editNumbers={coachEntrySheet} />)
 }
 
 /** Read a coach's workbook (one sheet per week) or a CSV, then show the review. The file comes

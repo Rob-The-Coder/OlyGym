@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { bundleFromWeek, loadWeight, reviewWeek, schemesFor, sheetLabel } from './import-plan.js'
+import { applyEntryCorrection, bundleFromWeek, loadWeight, reviewWeek, schemesFor, sheetLabel } from './import-plan.js'
 import { mergeWeek } from './plan-share.js'
 import { EXDB } from './exercises-data.js'
 import { COACH_COLUMNS } from './coach-sheet.js'
@@ -239,5 +239,110 @@ describe('bundleFromWeek', () => {
     const first = inLb.days[0].ex[0]
     expect(first.weight).toBe(convertWeight(50, 'kg', 'lb'))
     expect(first.sets).toBe(4)
+  })
+})
+
+// The review screen lets the user fix the numbers a row was read as. These pin the pure merge the
+// screen and the import share: what a correction may touch, what it answers, and what it may not
+// quietly rewrite.
+describe('applyEntryCorrection', () => {
+  const base = reviewWeek(week).days[1].entries.find(e => e.custom)
+
+  it('merges only the prescription keys and returns a new entry', () => {
+    const out = applyEntryCorrection(base, { sets: 4, reps: 6, weight: 40, note: 'x', src: 'y', tier: 9, id: 'nope', mode: 'time' })
+    expect(out).not.toBe(base)
+    expect(out).toMatchObject({ sets: 4, reps: 6, weight: 40 })
+    // The rest of the row — what a number correction is not about — is untouched.
+    expect(out.key).toBe(base.key)
+    expect(out.name).toBe(base.name)
+    expect(out.note).toBe(base.note)
+    expect(out.src).toBe(base.src)
+    expect(out.tier).toBe(base.tier)
+    expect(out.custom).toBe(base.custom)
+    expect(out.mode).toBe(base.mode)
+    expect(out.sg).toBe(base.sg)
+    // The entry it was given was not touched.
+    expect(base.sets).toBe(3)
+    expect(base.reps).toBe(10)
+  })
+
+  it('normalises what the fields hand it and ignores what is not a number', () => {
+    expect(applyEntryCorrection(base, { sets: 0 }).sets).toBe(1)
+    expect(applyEntryCorrection(base, { sets: -2 }).sets).toBe(1)
+    expect(applyEntryCorrection(base, { reps: 4.6 }).reps).toBe(5)
+    expect(applyEntryCorrection(base, { weight: -5 }).weight).toBe(0)
+    const ignored = applyEntryCorrection(base, { sets: NaN, reps: Infinity, weight: NaN, bogus: 3 })
+    expect(ignored.sets).toBe(base.sets)
+    expect(ignored.reps).toBe(base.reps)
+    expect(ignored.weight).toBe(base.weight)
+    expect(ignored.bogus).toBeUndefined()
+  })
+
+  it('leaves a frozen entry and its warns array alone', () => {
+    const frozen = Object.freeze({ ...base, warns: Object.freeze([...base.warns]) })
+    const out = applyEntryCorrection(frozen, { sets: 5, reps: 5 })
+    expect(out.sets).toBe(5)
+    expect(out.reps).toBe(5)
+    expect(frozen.sets).toBe(3)
+    expect([...frozen.warns]).toEqual(['sets', 'reps'])
+  })
+
+  it('answers the warning about the number it corrected and leaves the others', () => {
+    const warned = { ...base, warns: ['sets', 'reps', 'other'] }
+    expect(applyEntryCorrection(warned, { sets: 3 }).warns).toEqual(['reps', 'other'])
+    expect(applyEntryCorrection(warned, { reps: 5 }).warns).toEqual(['sets', 'other'])
+    expect(applyEntryCorrection(warned, { sec: 45 }).warns).toEqual(['sets', 'other'])
+    expect(applyEntryCorrection(warned, { weight: 40 }).warns).toEqual(['sets', 'reps', 'other'])
+    // A non-finite value is not a correction, so it answers nothing.
+    expect(applyEntryCorrection(warned, { sets: NaN }).warns).toEqual(['sets', 'reps', 'other'])
+  })
+})
+
+describe('reviewWeek with corrections', () => {
+  const plain = reviewWeek(week)
+
+  it('corrects exactly the entry the key names', () => {
+    const target = plain.days[0].entries[0]
+    const r = reviewWeek(week, { corrections: { [target.key]: { sets: 5, reps: 2 } } })
+    expect(r.days[0].entries[0]).toMatchObject({ sets: 5, reps: 2 })
+    // The other movement of the same complex, the rest of the day and every other day are as
+    // they were: one key is one correction.
+    expect(r.days[0].entries[1]).toEqual(plain.days[0].entries[1])
+    expect(r.days[0].entries[2]).toEqual(plain.days[0].entries[2])
+    expect(r.days[1].entries).toEqual(plain.days[1].entries)
+  })
+
+  it('changes nothing for an unknown key and mutates nothing it is given', () => {
+    const corrections = { nope: { sets: 9 } }
+    expect(reviewWeek(week, { corrections }).days).toEqual(plain.days)
+    expect(corrections).toEqual({ nope: { sets: 9 } })
+    expect(plain.days[0].entries[0].sets).toBe(4)
+  })
+
+  it('reads a frozen corrections map without writing to it', () => {
+    const target = plain.days[1].entries[0]
+    const r = reviewWeek(week, { corrections: Object.freeze({ [target.key]: Object.freeze({ weight: 70 }) }) })
+    expect(r.days[1].entries[0].weight).toBe(70)
+  })
+})
+
+describe('bundleFromWeek with a corrected review', () => {
+  const plain = reviewWeek(week)
+  const firstKey = plain.days[0].entries[0].key
+  const corrected = reviewWeek(week, { corrections: { [firstKey]: { sets: 2, reps: 5, weight: 55 } } })
+
+  it('carries the corrected numbers into the week and keeps his own row', () => {
+    expect(bundleFromWeek(corrected, { unit: 'kg' }).days[0].ex[0]).toMatchObject({ sets: 2, reps: 5, weight: 55, src: 'Strappo · 4 × 1+2' })
+  })
+
+  it('still converts the corrected load into the account’s unit', () => {
+    expect(bundleFromWeek(corrected, { unit: 'lb' }).days[0].ex[0].weight).toBe(convertWeight(55, 'kg', 'lb'))
+  })
+
+  it('carries corrected seconds for a timed row', () => {
+    const plank = plain.days[1].entries.find(e => e.name === 'plank')
+    const r = reviewWeek(week, { corrections: { [plank.key]: { sets: 4, sec: 45 } } })
+    const cfg = bundleFromWeek(r, { unit: 'kg' }).days[1].ex.find(e => e.id === idOf('plank'))
+    expect(cfg).toMatchObject({ sets: 4, mode: 'time', sec: 45 })
   })
 })
