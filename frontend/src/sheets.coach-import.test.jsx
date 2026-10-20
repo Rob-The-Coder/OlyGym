@@ -360,6 +360,116 @@ describe('correcting a row’s numbers', () => {
     expect(review.textContent).toContain('1 of 5 checked')
   })
 
+  // Resetting must offer only what it can actually remove. A reps-only fix is the tapped
+  // movement's own, so it must not put "Back to the coach's numbers" on a sibling, and the item
+  // must disappear once resetting the row leaves it nothing (round-1 review, ux/code finding 1).
+  describe('resetting across a complex', () => {
+    const setup = () => {
+      coachPlanSheet([week])
+      const review = renderTop()
+      return {
+        review,
+        items: () => [...review.querySelectorAll('.cx-card .cx-item')],
+        reps: () => [...review.querySelectorAll('.cx-card .cx-reps')].map(e => e.textContent),
+        head: () => review.querySelector('.cx-load').textContent,
+        openMenu: row => { act(() => row.click()); return renderTop() },
+        closeMenu: () => act(() => useUI.getState().closeSheet(useUI.getState().sheets.at(-1).id))
+      }
+    }
+
+    it('keeps the item off a sibling when only the tapped movement’s reps were fixed', () => {
+      const { review, items, reps, openMenu, closeMenu } = setup()
+      // His sets/load are untouched; only the second movement's reps change.
+      const sheet = openCorrection(review, items()[1])
+      type(field(sheet, 'Reps'), '6')
+      save(sheet)
+      expect(reps()).toEqual(['×1', '×6'])
+
+      // The first movement has nothing of its own to reset, so the item is not offered there.
+      expect(menuItem(openMenu(items()[0]), /Back to the coach's numbers/)).toBeUndefined()
+      closeMenu()
+
+      // The corrected movement has, and resetting it clears the fix and the item.
+      const own = openMenu(items()[1])
+      expect(menuItem(own, /Back to the coach's numbers/)).toBeTruthy()
+      act(() => menuItem(own, /Back to the coach's numbers/).click())
+      expect(reps()).toEqual(['×1', '×2'])
+      expect(menuItem(openMenu(items()[1]), /Back to the coach's numbers/)).toBeUndefined()
+    })
+
+    it('resets the shared sets from any movement and leaves a sibling’s own reps fix', () => {
+      const { review, items, reps, head, openMenu, closeMenu } = setup()
+      // reps on the first movement, then the complex's shared sets.
+      let sheet = openCorrection(review, items()[0])
+      type(field(sheet, 'Reps'), '3')
+      save(sheet)
+      sheet = openCorrection(review, items()[0])
+      type(field(sheet, 'Sets'), '2')
+      save(sheet)
+      expect(head()).toBe('2 sets · 50 kg')
+      expect(reps()).toEqual(['×3', '×2'])
+
+      // The second movement can reset the shared sets (they are the complex's) but not the
+      // first movement's reps; once it does, it has nothing left to reset.
+      const second = openMenu(items()[1])
+      expect(menuItem(second, /Back to the coach's numbers/)).toBeTruthy()
+      act(() => menuItem(second, /Back to the coach's numbers/).click())
+      expect(head()).toBe('4 sets · 50 kg')
+      expect(reps()).toEqual(['×3', '×2'])
+      expect(menuItem(openMenu(items()[1]), /Back to the coach's numbers/)).toBeUndefined()
+      closeMenu()
+
+      // The first movement still owns its reps fix; resetting there clears it too.
+      const first = openMenu(items()[0])
+      expect(menuItem(first, /Back to the coach's numbers/)).toBeTruthy()
+      act(() => menuItem(first, /Back to the coach's numbers/).click())
+      expect(reps()).toEqual(['×1', '×2'])
+      expect(menuItem(openMenu(items()[0]), /Back to the coach's numbers/)).toBeUndefined()
+    })
+  })
+
+  it('does not claim a correction when Save changed nothing', () => {
+    coachPlanSheet([plainWeek])
+    const review = renderTop()
+    const row = () => review.querySelector('.list .item')
+    const sheet = openCorrection(review, row())
+    save(sheet)
+    expect(row().querySelector('.ss').textContent).toBe('4 × 3 · 50 kg')
+    act(() => row().click())
+    expect(menuItem(renderTop(), /Back to the coach's numbers/)).toBeUndefined()
+    // Saving is still looking the row over, even when the numbers were already right.
+    expect(review.textContent).toContain('1 of 1 checked')
+  })
+
+  // Requirement 3: the numbers live for the sitting, per week — switching weeks and days must not
+  // drop them, and they must not leak into the next week's sheet.
+  it('keeps each week’s corrections when switching weeks and back', () => {
+    const secondWeek = { name: 'Settimana 2', grid: grid([{ day: 'Giorno 1', name: 'Strappo', reps: '1.0', sets: '3.0' }]) }
+    coachPlanSheet([plainWeek, secondWeek])
+    const review = renderTop()
+    const row = () => review.querySelector('.list .item')
+    const weekCard = () => [...review.querySelectorAll('.item')].find(x => !x.closest('.list'))
+    const pickWeek = name => {
+      act(() => weekCard().click())
+      const menu = renderTop()
+      act(() => [...menu.querySelectorAll('.menu-item')].find(x => x.textContent.trim() === name).click())
+    }
+
+    const sheet = openCorrection(review, row())
+    type(field(sheet, 'Sets'), '2')
+    type(field(sheet, 'Weight (kg)'), '55')
+    save(sheet)
+    expect(row().querySelector('.ss').textContent).toBe('2 × 3 · 55 kg')
+
+    pickWeek('Settimana 2')
+    // The other sheet keeps its own reading: this week's numbers do not leak into it.
+    expect(row().querySelector('.ss').textContent).toBe('3 × 1')
+    pickWeek('Settimana')
+    // …and the first week's correction is still there, tick included.
+    expect(row().querySelector('.ss').textContent).toBe('2 × 3 · 55 kg')
+    expect(review.textContent).toContain('1 of 1 checked')
+  })
+
   it('puts the coach’s numbers back and then takes the item away', () => {
     coachPlanSheet([plainWeek])
     const review = renderTop()

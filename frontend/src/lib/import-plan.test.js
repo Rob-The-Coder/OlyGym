@@ -278,6 +278,17 @@ describe('applyEntryCorrection', () => {
     expect(ignored.bogus).toBeUndefined()
   })
 
+  it('accepts a number as a count and nothing else', () => {
+    // Number() would turn these into 1/7/60; a correction is numbers only, and Number(Symbol())
+    // throws, so the helper must ignore it rather than crash.
+    const out = applyEntryCorrection(base, { sets: true, reps: [7], sec: '45', weight: '60' })
+    expect(out.sets).toBe(base.sets)
+    expect(out.reps).toBe(base.reps)
+    expect(out.sec).toBe(base.sec)
+    expect(out.weight).toBe(base.weight)
+    expect(() => applyEntryCorrection(base, { sets: Symbol('n') })).not.toThrow()
+  })
+
   it('leaves a frozen entry and its warns array alone', () => {
     const frozen = Object.freeze({ ...base, warns: Object.freeze([...base.warns]) })
     const out = applyEntryCorrection(frozen, { sets: 5, reps: 5 })

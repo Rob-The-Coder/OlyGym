@@ -79,22 +79,40 @@ export default function CoachImport({ sheets, close, pick, menu, editNumbers }) 
     return group ? group.map(i => list[i]) : [entry]
   }
 
-  // Whether the row — or any movement of its complex, since the sets and the load are one number
-  // he wrote once — carries a correction that "Back to the coach's numbers" can remove.
+  // Whether "Back to the coach's numbers" would actually remove something from this row: a
+  // sets/load correction on the complex (his numbers there are one prescription), or a reps/second
+  // correction on the movement itself. Asking the whole complex "has anything?" was wrong: a
+  // reps-only fix on a sibling left the reset item on a row it could do nothing for.
   const hasNumbers = entry => {
     const byKey = corrections[week] || {}
-    return groupOf(entry).some(e => byKey[e.key] && Object.keys(byKey[e.key]).length)
+    const own = byKey[entry.key] || {}
+    if (own.reps != null || own.sec != null) return true
+    return groupOf(entry).some(e => {
+      const patch = byKey[e.key]
+      return patch && (patch.sets != null || patch.weight != null)
+    })
   }
 
-  // Saving from a movement goes through the derived read like every other correction. Sets and
-  // load were written once for the whole complex, so every movement takes them; reps/seconds are
-  // the tapped movement's own and go nowhere else.
+  // Saving from a movement goes through the derived read like every other correction. Only the
+  // fields that actually differ are recorded: an untouched one must not claim a correction on the
+  // siblings of a complex (a reps-only fix would otherwise show a reset item there that does
+  // nothing). A changed sets/load goes to every movement — he wrote it once for the whole row —
+  // while reps/seconds belong to the tapped movement alone.
   const saveNumbers = (entry, patch) => {
     const group = groupOf(entry)
     setCorrections(prev => {
       const byKey = { ...(prev[week] || {}) }
-      group.forEach(e => { byKey[e.key] = { ...(byKey[e.key] || {}), sets: patch.sets, weight: patch.weight } })
-      byKey[entry.key] = { ...(byKey[entry.key] || {}), ...patch }
+      group.forEach(e => {
+        const next = { ...(byKey[e.key] || {}) }
+        if (patch.sets != null && patch.sets !== e.sets) next.sets = patch.sets
+        if (patch.weight != null && patch.weight !== e.weight) next.weight = patch.weight
+        if (e.key === entry.key) {
+          if (patch.reps != null && patch.reps !== e.reps) next.reps = patch.reps
+          if (patch.sec != null && patch.sec !== e.sec) next.sec = patch.sec
+        }
+        if (Object.keys(next).length) byKey[e.key] = next
+        else delete byKey[e.key]
+      })
       return { ...prev, [week]: byKey }
     })
     // Fixing the numbers is looking the row over, exactly like picking its exercise is.

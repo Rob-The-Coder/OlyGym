@@ -127,7 +127,9 @@ const CORRECTION_NUMBERS = ['sets', 'reps', 'sec']
  * The review screen lets the user fix the sets, reps, seconds and load a row was read as; this is
  * the one place that merge happens, so the screen and `bundleFromWeek` cannot disagree about what
  * a correction means. The entry is derived, never stored: the one given is not mutated (nor its
- * `warns` array), an unknown key is ignored, and so is a number that is not finite.
+ * `warns` array), an unknown key is ignored, and so is any value that is not a finite number (a
+ * string, a boolean, an array, a Symbol — `Number()` would accept or throw on those, and they are
+ * not counts).
  *
  * A correction answers the warning about it — once a set count has been typed, "no sets given" is
  * no longer true and a chip saying otherwise would contradict the number right above it.
@@ -139,18 +141,14 @@ export function applyEntryCorrection(entry, patch) {
   const merged = {}
   for (const key of CORRECTION_NUMBERS) {
     const raw = patch[key]
-    // null/undefined are "not sent" — Number(null) is 0, which is not what an absent value means.
-    if (raw == null || raw === '') continue
-    const n = Number(raw)
-    if (!Number.isFinite(n)) continue
+    // Only a finite number is a correction. Coercing is wrong: Number(null) is 0, Number(true) is
+    // 1, Number([7]) is 7, and Number(Symbol()) throws.
+    if (typeof raw !== 'number' || !Number.isFinite(raw)) continue
     // A set/reps/second count is a whole number of at least one, whatever the field handed over.
-    merged[key] = Math.max(1, Math.round(n))
+    merged[key] = Math.max(1, Math.round(raw))
   }
   const weight = patch.weight
-  if (weight != null && weight !== '') {
-    const w = Number(weight)
-    if (Number.isFinite(w)) merged.weight = Math.max(0, w)
-  }
+  if (typeof weight === 'number' && Number.isFinite(weight)) merged.weight = Math.max(0, weight)
   Object.assign(out, merged)
   if (merged.sets != null) out.warns = out.warns.filter(w => w !== 'sets')
   if (merged.reps != null || merged.sec != null) out.warns = out.warns.filter(w => w !== 'reps')

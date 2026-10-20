@@ -1262,11 +1262,16 @@ function CoachEntry({ entry, onSave, close }) {
     <h3 className="capitalize">{name}</h3>
     {entry.src && <div className="coach-src" style={{ marginBottom: 10 }}>{entry.src}</div>}
     {entry.sg && <div className="muted small" style={{ marginBottom: 14 }}>{t('Sets and load are the same for every exercise in the complex — each one keeps its own reps.')}</div>}
-    <div className="row cfgrow" style={{ marginBottom: 12 }}>
+    <div className="row cfgrow" style={{ marginBottom: 8 }}>
       <Stepper label={t('Sets')} value={sets} step={1} decimal={false} onChange={setSets} />
       {timed
         ? <Stepper label={t('Seconds')} value={sec} step={5} decimal={false} onChange={setSec} />
         : <Stepper label={t('Reps')} value={reps} step={1} decimal={false} onChange={setReps} />}
+    </div>
+    {/* The load gets its own row (DESIGN: a stepper alone on its line is a row, as in
+        complexConfigSheet). Three in one .cfgrow leave the value 39px at 360px, and a normal
+        training load like 102.5 clips its last digit. */}
+    <div className="row cfgrow" style={{ marginBottom: 12 }}>
       <Stepper label={t('Weight ({0})', unit)} value={weight} step={2.5} onChange={setWeight} />
     </div>
     <div className="small dim" style={{ marginBottom: 16 }}>{t('Applies to this import only.')}</div>
