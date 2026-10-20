@@ -116,6 +116,45 @@ export function coachSource({ raw, setsText, reps, load }) {
   return [raw, scheme, n(load)].filter(Boolean).join(' · ')
 }
 
+// The prescription keys a number correction may touch. The rest of an entry is what the
+// correction is not about: his words, the exercise it was read as, the note and the warnings that
+// are not about a number.
+const CORRECTION_NUMBERS = ['sets', 'reps', 'sec']
+
+/**
+ * One review entry with a numeric correction merged in, as a new object.
+ *
+ * The review screen lets the user fix the sets, reps, seconds and load a row was read as; this is
+ * the one place that merge happens, so the screen and `bundleFromWeek` cannot disagree about what
+ * a correction means. The entry is derived, never stored: the one given is not mutated (nor its
+ * `warns` array), an unknown key is ignored, and so is any value that is not a finite number (a
+ * string, a boolean, an array, a Symbol — `Number()` would accept or throw on those, and they are
+ * not counts).
+ *
+ * A correction answers the warning about it — once a set count has been typed, "no sets given" is
+ * no longer true and a chip saying otherwise would contradict the number right above it.
+ */
+export function applyEntryCorrection(entry, patch) {
+  if (!entry || typeof entry !== 'object') return entry
+  const out = { ...entry, warns: Array.isArray(entry.warns) ? [...entry.warns] : [] }
+  if (!patch || typeof patch !== 'object') return out
+  const merged = {}
+  for (const key of CORRECTION_NUMBERS) {
+    const raw = patch[key]
+    // Only a finite number is a correction. Coercing is wrong: Number(null) is 0, Number(true) is
+    // 1, Number([7]) is 7, and Number(Symbol()) throws.
+    if (typeof raw !== 'number' || !Number.isFinite(raw)) continue
+    // A set/reps/second count is a whole number of at least one, whatever the field handed over.
+    merged[key] = Math.max(1, Math.round(raw))
+  }
+  const weight = patch.weight
+  if (typeof weight === 'number' && Number.isFinite(weight)) merged.weight = Math.max(0, weight)
+  Object.assign(out, merged)
+  if (merged.sets != null) out.warns = out.warns.filter(w => w !== 'sets')
+  if (merged.reps != null || merged.sec != null) out.warns = out.warns.filter(w => w !== 'reps')
+  return out
+}
+
 /**
  * Read one week and propose, for every row, an exercise and how to train it.
  *
@@ -123,8 +162,13 @@ export function coachSource({ raw, setsText, reps, load }) {
  *
  * Every entry carries the coach's own row (`raw`, `row`, `src`) next to what was understood (`tier`,
  * `exact`, `warns`), because this is what the review screen shows and what the user corrects.
+ *
+ * `corrections` maps an entry's `key` to a numeric patch (`sets`, `reps`/`sec`, `weight`) applied
+ * through `applyEntryCorrection` before the entry is returned: the review is derived on every read,
+ * so a corrected number is re-derived exactly like a corrected exercise name. Nothing in `sheet`
+ * or `corrections` is mutated.
  */
-export function reviewWeek(sheet, { aliases = {} } = {}) {
+export function reviewWeek(sheet, { aliases = {}, corrections = {} } = {}) {
   const { days, skipped } = readCoachSheet(sheet.grid)
   const label = sheetLabel(sheet.name)
   const stats = { rows: 0, exercises: 0, custom: 0, fuzzy: 0, warned: 0 }
@@ -150,7 +194,7 @@ export function reviewWeek(sheet, { aliases = {} } = {}) {
         if (item.tier === 3) stats.custom++
         if (!item.exact) stats.fuzzy++
         if (warns.length) stats.warned++
-        entries.push({
+        const entry = {
           key: `${day.n}:${row.row}:${i}`,
           row: row.row,
           raw: row.name,
@@ -180,7 +224,10 @@ export function reviewWeek(sheet, { aliases = {} } = {}) {
           sg: items.length > 1 ? `coach-${day.n}-${row.row}` : null,
           note: joinNote([item.note, schemeNote, loadNote, row.cue, row.comment]),
           warns
-        })
+        }
+        // A number the user fixed is applied here, on the same derived entry the screen draws:
+        // the row above his own row then shows what will actually be imported.
+        entries.push(corrections[entry.key] ? applyEntryCorrection(entry, corrections[entry.key]) : entry)
       })
     }
     if (entries.length) out.push({ n: day.n, name: `Giorno ${day.n}${label ? ' · ' + label : ''}`, entries })

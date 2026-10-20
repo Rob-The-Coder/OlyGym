@@ -3,17 +3,18 @@
 // The reading is a guess in places — an Italian gym phrase the catalogue has no word for, a load
 // written as a sentence, a "1+1" that is one clean and jerk and not two exercises — so every row
 // of his sheet is on screen with the exercise it was read as, and the rows where something stayed
-// in the note are marked. Tapping a row picks a different exercise, and the choice is remembered
-// in S.planAliases under the coach's own words: the next week's sheet repeats the same phrases, so
-// it arrives already corrected.
+// in the note are marked. Tapping a row opens the correction menu: the exercise can be swapped,
+// and it is remembered in S.planAliases under the coach's own words because the next week's sheet
+// repeats the same phrases; the sets, reps and load can be corrected too, but only for this import
+// (local state below), because the same phrase comes back with different numbers.
 //
 // Every row also prints his own row under the reading (import-plan.js's `coachSource`): the only way
 // to answer "was this ported right?" is to read the two next to each other. The trailing checkbox is
 // the mark that a row has been looked at, and the summary line counts what is left — session state
 // only, because the review is derived and re-read on every correction.
 //
-// The picker and the row menu are passed in rather than imported: they are the sheets.jsx flows,
-// and this file stays a screen.
+// The picker, the row menu and the number-correction sheet are passed in rather than imported:
+// they are the sheets.jsx flows, and this file stays a screen.
 
 import { useMemo, useState } from 'react'
 import { useStore } from '../store/useStore.js'
@@ -31,7 +32,7 @@ import { convertWeight } from '../lib/units.js'
 import { nav } from '../lib/nav.js'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 
-export default function CoachImport({ sheets, close, pick, menu }) {
+export default function CoachImport({ sheets, close, pick, menu, editNumbers }) {
   const st = useStore(s => s.S)
   const update = useStore(s => s.update)
   const [week, setWeek] = useState(0)
@@ -39,10 +40,15 @@ export default function CoachImport({ sheets, close, pick, menu }) {
   // Which rows have been read over. Keyed by sheet and row rather than stored anywhere: the review
   // itself is derived, and a tick is about this sitting, not about the plan.
   const [checked, setChecked] = useState(() => new Set())
-  // The review is derived, never stored: correcting a row rewrites S.planAliases and the whole
-  // week is read again, so one fix covers every row that repeats those words.
+  // Numbers fixed in the review, keyed by week and then by the entry's key. Local state on
+  // purpose: a set count is not remembered for the next sheet the way an exercise name is, but it
+  // has to survive switching weeks and days in this sitting. Never written to S or localStorage.
+  const [corrections, setCorrections] = useState({})
+  // The review is derived, never stored: correcting a row rewrites S.planAliases or these local
+  // numbers and the whole week is read again, so one fix covers every row that repeats those words.
   const aliases = st.planAliases || {}
-  const review = useMemo(() => reviewWeek(sheets[week], { aliases }), [sheets, week, aliases])
+  const weekCorrections = corrections[week]
+  const review = useMemo(() => reviewWeek(sheets[week], { aliases, corrections: weekCorrections }), [sheets, week, aliases, weekCorrections])
   const day = review.days[Math.min(dayIdx, review.days.length - 1)]
   const unit = st.unit || 'kg'
   const shown = w => (!w || unit === 'kg' ? w : convertWeight(w, 'kg', unit))
@@ -66,6 +72,72 @@ export default function CoachImport({ sheets, close, pick, menu }) {
     setChecked(prev => new Set(prev).add(keyOf(entry)))
   }
 
+  // The movements a tapped row shares its sets and load with: its complex, or just itself.
+  const groupOf = entry => {
+    const list = day?.entries || []
+    const group = supersetUnits(list).find(g => g.some(i => list[i].key === entry.key))
+    return group ? group.map(i => list[i]) : [entry]
+  }
+
+  // Whether "Back to the coach's numbers" would actually remove something from this row: a
+  // sets/load correction on the complex (his numbers there are one prescription), or a reps/second
+  // correction on the movement itself. Asking the whole complex "has anything?" was wrong: a
+  // reps-only fix on a sibling left the reset item on a row it could do nothing for.
+  const hasNumbers = entry => {
+    const byKey = corrections[week] || {}
+    const own = byKey[entry.key] || {}
+    if (own.reps != null || own.sec != null) return true
+    return groupOf(entry).some(e => {
+      const patch = byKey[e.key]
+      return patch && (patch.sets != null || patch.weight != null)
+    })
+  }
+
+  // Saving from a movement goes through the derived read like every other correction. Only the
+  // fields that actually differ are recorded: an untouched one must not claim a correction on the
+  // siblings of a complex (a reps-only fix would otherwise show a reset item there that does
+  // nothing). A changed sets/load goes to every movement — he wrote it once for the whole row —
+  // while reps/seconds belong to the tapped movement alone.
+  const saveNumbers = (entry, patch) => {
+    const group = groupOf(entry)
+    setCorrections(prev => {
+      const byKey = { ...(prev[week] || {}) }
+      group.forEach(e => {
+        const next = { ...(byKey[e.key] || {}) }
+        if (patch.sets != null && patch.sets !== e.sets) next.sets = patch.sets
+        if (patch.weight != null && patch.weight !== e.weight) next.weight = patch.weight
+        if (e.key === entry.key) {
+          if (patch.reps != null && patch.reps !== e.reps) next.reps = patch.reps
+          if (patch.sec != null && patch.sec !== e.sec) next.sec = patch.sec
+        }
+        if (Object.keys(next).length) byKey[e.key] = next
+        else delete byKey[e.key]
+      })
+      return { ...prev, [week]: byKey }
+    })
+    // Fixing the numbers is looking the row over, exactly like picking its exercise is.
+    setChecked(prev => new Set(prev).add(keyOf(entry)))
+  }
+
+  // Back to the coach's numbers: the shared sets and load on every movement, plus the tapped
+  // movement's own reps (or seconds). It does not un-tick the row — it was still read.
+  const resetNumbers = entry => {
+    const group = groupOf(entry)
+    setCorrections(prev => {
+      const byKey = { ...(prev[week] || {}) }
+      if (group.length === 1) delete byKey[entry.key]
+      else group.forEach(e => {
+        const patch = { ...(byKey[e.key] || {}) }
+        delete patch.sets
+        delete patch.weight
+        if (e.key === entry.key) { delete patch.reps; delete patch.sec }
+        if (Object.keys(patch).length) byKey[e.key] = patch
+        else delete byKey[e.key]
+      })
+      return { ...prev, [week]: byKey }
+    })
+  }
+
   const entries = review.days.flatMap(d => d.entries)
   const done = entries.filter(e => checked.has(keyOf(e))).length
 
@@ -75,8 +147,11 @@ export default function CoachImport({ sheets, close, pick, menu }) {
     title: entry.part,
     subtitle: chosen(entry),
     items: [
+      { label: t('Edit sets, reps and weight'), icon: 'pencil', onClick: () => editNumbers(entry, patch => saveNumbers(entry, patch)) },
       { label: t('Pick a different exercise'), icon: 'shuffle', onClick: () => pick(ex => correct(entry, ex.id)) },
-      aliases[normName(entry.part)] && { label: t('Back to what it read'), icon: 'reset', onClick: () => correct(entry, null) }
+      aliases[normName(entry.part)] && { label: t('Back to what it read'), icon: 'reset', onClick: () => correct(entry, null) },
+      // Only where there is a number to go back to: after a save, and gone once reset.
+      hasNumbers(entry) && { label: t("Back to the coach's numbers"), icon: 'reset', onClick: () => resetNumbers(entry) }
     ]
   })
 
@@ -131,7 +206,7 @@ export default function CoachImport({ sheets, close, pick, menu }) {
     <div className="muted small" style={{ marginBottom: 12 }}>
       {t('Read out of his spreadsheet, one week at a time. Nothing reaches your plan until you say so.')}
       {' '}
-      {t('Tap a row to change what it was read as.')}
+      {t('Tap a row to change the exercise it was read as, or fix its sets, reps and weight.')}
     </div>
 
     {sheets.length > 1 && <div className="item" {...tappable(() => menu({
