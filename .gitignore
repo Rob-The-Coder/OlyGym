@@ -29,6 +29,10 @@ node_modules
 .claude/
 .agents/
 
+# Factory job state: one folder per live job, driven by its job.json and never committed.
+# Finished jobs are archived (and committed) in factory/old_jobs/.
+factory/jobs/
+
 # graphify's local knowledge graph and its ignore file (regenerated on every run, never published)
 graphify-out/
 .graphifyignore
