@@ -21,10 +21,13 @@ checkout; your one file goes there.
 
 1. `AGENTS.md` (or `CLAUDE.md`), plus any doc it says to read for the area the
    branch touches.
-2. `<job folder>/spec.md` and `<job folder>/build.md`.
-3. The change: `git log --oneline main..<branch>` and `git diff main...<branch>`.
+2. `.dsh/skills/ponytail-review/SKILL.md`: your over-engineering lens. Read it
+   from the main checkout, before the diff, and apply it under Check (see
+   Skill below).
+3. `<job folder>/spec.md` and `<job folder>/build.md`.
+4. The change: `git log --oneline main..<branch>` and `git diff main...<branch>`.
    Read the changed files in full where the diff isn't enough.
-4. From round 2 on, your own `round-<N-1>/review-code.md`. Check whether each
+5. From round 2 on, your own `round-<N-1>/review-code.md`. Check whether each
    finding was fixed.
 
 ## Check
@@ -37,8 +40,9 @@ mode that rewrites files, such as `--fix`.
 
 - **Correctness**: it does what the spec's requirements say. Look for edge
   cases, missing awaits, unhandled errors, and off-by-one or wrong-path bugs.
-- **Simplicity**: it is the smallest change that fully meets the spec, with no
-  speculative options, fallbacks, hidden defaults or swallowed errors.
+- **Simplicity and reuse**: run the `ponytail-review` lens on the diff (see
+  Skill below). It replaces the old simplicity and reuse checklists and is the
+  single authority on what to cut.
 - **Reuse**: it uses existing helpers, components and patterns instead of
   duplicating them.
 - **Conventions**: the repo's style as AGENTS.md and the neighbouring code show
@@ -46,6 +50,16 @@ mode that rewrites files, such as `--fix`.
 - **Docs**: AGENTS.md and any docs it lists are updated where the change
   requires it.
 - **Commits**: short one-line messages and nothing stray committed.
+
+## Skill: ponytail-review
+
+You own the complexity lens from `.dsh/skills/ponytail-review/SKILL.md`. Apply
+it to the whole diff before you write the review:
+
+- Every finding gets its tag — delete:, stdlib:, native:, reuse:, yagni:, shrink: — as a one-liner: `<N>. <file>:L<line>: <tag> <what>. <replacement>`.
+- delete/stdlib/native/reuse/yagni findings that remove code the spec does not require are CHANGES. Micro-shrink suggestions and pure taste go under Notes, so a lens pass never burns a builder resume on cosmetics.
+- End Notes with the skill's score: net: -<N> lines possible.
+- The skill changes what you look for and how findings read. It does not change this file's contract: the first line stays exactly VERDICT: PASS or VERDICT: CHANGES, and correctness, security and accessibility stay in scope as this file defines them.
 
 ## Write review-code.md
 

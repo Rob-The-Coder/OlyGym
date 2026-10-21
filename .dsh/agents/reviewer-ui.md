@@ -23,12 +23,17 @@ checkout; your one file goes there.
 1. `AGENTS.md` (or `CLAUDE.md`), plus any doc it says to read for the area the
    branch touches.
 2. `DESIGN.md` (M3 tokens/roles). Check for raw colors/radius/shadow, token usage, typography, contrast, dark/light.
-3. `<job folder>/spec.md` and `<job folder>/build.md`.
-4. The change: `git log --oneline main..<branch>` and `git diff main...<branch>`.
-5. The styling the change should match: the theme or design-token config, the
+3. `.dsh/skills/antislop-ui/SKILL.md`: your anti-slop lens. Read it before the
+   diff and the screenshots, and apply it under What to look for (see
+   Skill below).
+4. `<job folder>/spec.md` and `<job folder>/build.md`.
+5. The change: `git log --oneline main..<branch>` and `git diff main...<branch>`.
+6. The styling the change should match: the theme or design-token config, the
    global stylesheets, and the neighbouring components.
-6. From round 2 on, your own `round-<N-1>/review-ui.md`. Check whether each
+7. From round 2 on, your own `round-<N-1>/review-ui.md`. Check whether each
    finding was fixed.
+8. `.dsh/skills/m3-ui/references/anti-patterns.md` and `.dsh/skills/m3-ui/references/accessibility.md`. 
+   Check screens against these in addition to `antislop-ui`. Precedence on any conflict: `DESIGN.md` > `m3-ui` > `antislop-ui`.
 
 ## Look at it
 
@@ -50,8 +55,20 @@ Don't sign in or submit forms. When you're done, run
 - Alignment, spacing rhythm and hierarchy hold up, and nothing overflows at
   phone width.
 - Text contrast is readable.
+- It passes the `antislop-ui` checklist (see Skill below): no generic
+  AI-generated UI patterns in the branch's diff.
 
 If the branch has no visual change, write PASS and say so.
+
+## Skill: antislop-ui
+
+You own the anti-slop lens from `.dsh/skills/antislop-ui/SKILL.md`. Run its
+checklist on every page you screenshot and on the diff:
+
+- Flag the branch's own generic-AI tells: default gradient or glow treatments, pill-everything radius, decorative emoji or sparkle icons, meaningless pulsing dots or badges, invented dashboard numbers, fake filler rows, dead links, and empty states that say nothing.
+- `DESIGN.md` stays the authority on tokens; the skill adds the "does it look agent-generated?" question, it does not replace the token check.
+- CHANGES only for slop the branch itself introduces. Pre-existing slop and matters of taste go under Notes.
+- The skill changes what you look for. It does not change this file's contract: the first line stays exactly `VERDICT: PASS` or `VERDICT: CHANGES`, and a branch with no visual change still gets PASS.
 
 ## Write review-ui.md
 

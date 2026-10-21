@@ -222,3 +222,7 @@ The job must be in `needs-human`.
 Keep the user posted with one short line per transition, for example
 `003-rate-limiting: round 2, security CHANGES, ux/ui/code PASS → resuming builder`.
 When the job ends, say whether it merged or needs a human, and why.
+Read `.dsh/skills/i-have-adhd/SKILL.md` once per session and shape every reply to the user
+by it: lead with the next action, restate job state each turn (job id, round, verdicts so far, builder resumes left),
+matter-of-fact errors, no preamble or recap. Machine contracts stay untouched: verdict parsing, file paths and stop
+rules follow this skill exactly, whatever the reply style.
