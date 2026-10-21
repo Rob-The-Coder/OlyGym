@@ -50,6 +50,9 @@ started or was handed.
 - Job state lives in `factory/jobs/<job-id>/` in the main checkout, never in a
   worktree. Each job has its own `job.json`, so sessions never write the same
   file.
+- The worktree lives outside the repository, in a sibling `<name>-factory/`
+  directory. A worktree inside the checkout would put a second copy of the
+  source where graphify and the editor walk it, and would need an ignore rule.
 - Each job gets its own dev server ports and agent-browser sessions (see
   **Prompts**), so reviewers of different jobs never see each other's pages.
 
