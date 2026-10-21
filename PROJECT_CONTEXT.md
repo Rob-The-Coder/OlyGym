@@ -1,8 +1,9 @@
 # PROJECT_CONTEXT.md
 
 Notes for whoever picks this up next. Not a spec — a map of what the project is and why, kept next
-to the code it describes. See `CLAUDE.md` for architecture and commands; this file covers the
-project's shape after it became local-only.
+to the code it describes. See `AGENTS.md` for commands and project rules, and `CLAUDE.md` for
+the architecture; this file covers the project's shape after it became local-only.- `AGENTS.md` — setup, dev server (and agent-browser), tests, build, lint, CI, project rules.
+- `CLAUDE.md` — the architecture deep-dive (imports `AGENTS.md`).
 
 ## What this is now
 

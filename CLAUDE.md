@@ -1,6 +1,12 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+@AGENTS.md
+
+The `@AGENTS.md` line above imports the operational file into Claude Code sessions:
+fresh-checkout setup, the dev server (including agent-browser for viewing the app), tests,
+build, lint, CI, the project's hard rules, the factory workflow and graphify all live there —
+do not duplicate them in this file. This file only carries what AGENTS.md points to: what the
+app is, and how the code is structured.
 
 ## What this is
 
@@ -9,41 +15,6 @@ the Catalyst Athletics weightlifting catalogue and pared back to a single-user a
 to a server. There is no account, no login, no multi-device sync, no push and no telemetry: all
 state lives on the device. It ships as an Android app (Capacitor) and as an installable PWA built
 from the same source. License: AGPL-3.0-or-later.
-
-## Project layout
-
-```
-frontend/  React 19 + Vite app (src/views, src/components, src/store, src/lib). Builds to static files.
-           android/ is the Capacitor shell for the standalone Android app (docs/MOBILE.md).
-docs/      MOBILE.md, DATA_IMPORTS.md, COMBINE_ROUTINES.md, LIST_VIEW.md.
-scripts/   oly-catalogue/ — generator for the Catalyst catalogue.
-```
-
-There is no backend, no Docker, no `web/`, no `mcp/`, no marketing site and no iOS target. Nothing
-here is deployed as a server.
-
-## Commands
-
-```bash
-# Frontend dev server (hot reload)
-cd frontend && npm install && npm run dev
-
-# Frontend tests (domain logic: session read-back, recovery, coach-plan import, models)
-cd frontend && npm test            # vitest run
-cd frontend && npm run test:watch
-npx vitest run src/lib/history.test.js   # single file
-npx vitest run -t "some test name"        # single test by name
-
-# Production build
-cd frontend && npm run build
-cd frontend && npm run build:mobile   # VITE_MOBILE build + cap sync android
-```
-
-There is no linter/formatter configured (no ESLint/Prettier config in the repo) and no
-TypeScript — match the existing style by hand.
-
-The only CI job is `.gitlab-ci.yml`'s `build:apk`, which builds and signs the Android APK on
-GitLab. There are no test, image, Pages or MCP jobs any more.
 
 ## Architecture
 
@@ -70,7 +41,7 @@ GitLab. There are no test, image, Pages or MCP jobs any more.
     training numbers mean, is a pure helper here with a unit test beside it** — not verifiable by
     clicking.
 - **`views/`** — one file per screen (Home, Plan, WeekEdit, Workout, Stats, History, Library,
-  Muscles, Settings), routed by `react-router-dom` from `App.jsx`.
+  Muscles, Competitions, Settings), routed by `react-router-dom` from `App.jsx`.
 - **`components/`** — shared UI (charts, modals, timers); `locales/` is the i18n string
   catalogue (`lib/i18n.js` / `i18n-core.js`).
   Two locales ship: **Italian and English**.
@@ -78,14 +49,3 @@ GitLab. There are no test, image, Pages or MCP jobs any more.
   (Android only; there is no iOS target — see `docs/MOBILE.md`). `mobile.js` in `lib/` gates
   native-only behavior (file persistence, local notifications, wake lock, in-app APK update) behind
   a `MOBILE` flag.
-
-## Guidelines from CONTRIBUTING.md worth knowing before changing code
-
-- **Dependency-light is a hard constraint, not a preference.** Runtime dependencies are React, React
-  Router, Zustand and the `@capacitor/*` plugins. New dependencies are a hard sell; the coach's
-  `.xlsx` is read with the platform's own `DecompressionStream` and `DOMParser`, not a library.
-- **No server calls.** Nothing in `frontend/` should fetch application data from a backend; the app
-  is offline-first and device-local.
-- Don't commit build output (`frontend/dist`), the Android build tree, or user backup files.
-- Session-read-back and training-logic changes need a unit test in `src/lib` beside the code, not
-  just manual clicking-through.
