@@ -357,3 +357,59 @@ describe('bundleFromWeek with a corrected review', () => {
     expect(cfg).toMatchObject({ sets: 4, mode: 'time', sec: 45 })
   })
 })
+// Progressive sets in the review: a ladder correction is one prescription like the weight, so it
+// sets the first load as the uniform weight and is resized whenever the set count changes.
+describe('per-set loads in the review', () => {
+  const entry = reviewWeek(week).days[0].entries[0]
+
+  it('applies a ladder, with the first load as the single weight', () => {
+    const out = applyEntryCorrection(entry, { setWeights: [60, 60, 65, 65] })
+    expect(out.setWeights).toEqual([60, 60, 65, 65])
+    expect(out.weight).toBe(60)
+  })
+
+  it('resizes an existing ladder when the set count is corrected', () => {
+    const had = applyEntryCorrection(entry, { setWeights: [60, 60, 65, 65] })
+    expect(applyEntryCorrection(had, { sets: 3 }).setWeights).toEqual([60, 60, 65])
+    // and repeats the last load when the count grows
+    expect(applyEntryCorrection(had, { sets: 6 }).setWeights).toEqual([60, 60, 65, 65, 65, 65])
+  })
+
+  it('collapses all-equal values back to the single weight', () => {
+    const out = applyEntryCorrection(entry, { setWeights: [60, 60, 60, 60] })
+    expect(out.setWeights).toBeUndefined()
+    expect(out.weight).toBe(60)
+    const had = applyEntryCorrection(entry, { setWeights: [60, 60, 65, 65] })
+    const collapsed = applyEntryCorrection(had, { setWeights: [70, 70, 70, 70] })
+    expect(collapsed.setWeights).toBeUndefined()
+    expect(collapsed.weight).toBe(70)
+  })
+
+  it('clears the ladder when the single weight is corrected', () => {
+    const had = applyEntryCorrection(entry, { setWeights: [60, 60, 65, 65] })
+    const out = applyEntryCorrection(had, { weight: 70 })
+    expect(out.setWeights).toBeUndefined()
+    expect(out.weight).toBe(70)
+  })
+
+  it('never stores a ladder of junk, an empty one, or an unnormalised length', () => {
+    expect(applyEntryCorrection(entry, { setWeights: ['60', null] }).setWeights).toBeUndefined()
+    expect(applyEntryCorrection(entry, { setWeights: [] }).setWeights).toBeUndefined()
+    expect(applyEntryCorrection(entry, { setWeights: [60, -5, 65] }).setWeights).toEqual([60, 0, 65, 65])
+    // the entry it was given was not touched
+    expect(entry.setWeights).toBeUndefined()
+  })
+
+  it('writes the ladder into the week, converted to the account unit', () => {
+    const key = reviewWeek(week).days[0].entries[0].key
+    const corrected = reviewWeek(week, { corrections: { [key]: { setWeights: [60, 60, 65, 65] } } })
+    const kg = bundleFromWeek(corrected, { unit: 'kg' }).days[0].ex[0]
+    expect(kg.setWeights).toEqual([60, 60, 65, 65])
+    expect(kg.weight).toBe(kg.setWeights[0])
+
+    const lb = bundleFromWeek(corrected, { unit: 'lb' }).days[0].ex[0]
+    expect(lb.setWeights).toEqual([60, 60, 65, 65].map(w => convertWeight(w, 'kg', 'lb')))
+    expect(lb.weight).toBe(lb.setWeights[0])
+  })
+})
+

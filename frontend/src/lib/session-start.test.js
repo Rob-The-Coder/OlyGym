@@ -77,4 +77,26 @@ describe('buildSessionEntries', () => {
     expect(buildSessionEntries(stWithHistory(false), plannedDay('linear'))[0].plan.kind).toBe('up')
     expect(buildSessionEntries(stWithHistory(true), plannedDay('off'))[0].plan.kind).toBe('off')
   })
+
+  // Per-set loads: with the plan owning the load, the ladder builds the rows and rides on the
+  // target for later edits; when a rule decides the load, the rule decides every row and the
+  // target carries no ladder.
+  const ladderDay = prog => ({
+    id: 'r', ex: [{ id: '0025', sets: 4, reps: 10, weight: 60, setWeights: [60, 60, 65, 65], ...(prog ? { prog } : {}) }],
+  })
+  const ladder = { unit: 'kg', workouts: [], exWeights: {}, routines: [] }
+
+  it('builds the planned ladder and stamps it on the target when progression is off', () => {
+    const entries = buildSessionEntries(ladder, ladderDay())
+    expect(entries[0].plan).toEqual({ policy: 'off', kind: 'off' })
+    expect(workWeights(entries)).toEqual([60, 60, 65, 65])
+    expect(entries[0].target.setWeights).toEqual([60, 60, 65, 65])
+  })
+
+  it('lets the rule own the load: uniform rows and no ladder on the target', () => {
+    const entries = buildSessionEntries({ ...ladder, autoProg: true }, ladderDay())
+    expect(entries[0].plan.kind).toBe('first')
+    expect(workWeights(entries)).toEqual([60, 60, 60, 60])
+    expect(entries[0].target.setWeights).toBeUndefined()
+  })
 })

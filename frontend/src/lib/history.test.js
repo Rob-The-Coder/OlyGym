@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { nextTrainingDay, modeOf, isTimed, fmtSec, setLabel, defaultConfig, buildSets, freestyleConfig, exLine, workoutVolume, bestWeightFor, bestWeightForEntry, prLifts, effortOf, stepEffort, capEffort, isBw, cascadeWeight, insertWarmupRow, removeRowAt, workSetsDone, setsDone, setsDoneActive, setUnitsTotal, doneUnits, pairAdjacent, unpairSuperset, supersetUnits, unitCount, complexShared, repsOnly, pinnedNoteFor, exNoteFor, effectiveDay, lastEntryFor, entryExcluded } from './history.js'
+import { nextTrainingDay, modeOf, isTimed, fmtSec, setLabel, defaultConfig, buildSets, freestyleConfig, exLine, workoutVolume, bestWeightFor, bestWeightForEntry, prLifts, effortOf, stepEffort, capEffort, isBw, cascadeWeight, insertWarmupRow, removeRowAt, workSetsDone, setsDone, setsDoneActive, setUnitsTotal, doneUnits, pairAdjacent, unpairSuperset, supersetUnits, unitCount, complexShared, repsOnly, pinnedNoteFor, exNoteFor, effectiveDay, lastEntryFor, entryExcluded, setWeightAt, normalizeSetWeights, sameSetWeights, weightsLabel } from './history.js'
 import { EXDB } from './exercises.js'
 
 // A *loaded* lift: a barbell movement, so every label test takes the ordinary path instead of
@@ -1022,4 +1022,98 @@ describe('prLifts', () => {
     expect(lifts).not.toBe(workout.prs)
   })
 })
+// Per-set loads (progressive sets): a plan config normally carries one weight for every set; a
+// ladder carries one per set, with setWeights[0] === weight. A config without one reads as before.
+describe('per-set loads', () => {
+  it('reads set i from the ladder and falls back to the uniform weight', () => {
+    const cfg = { id: LIFT, sets: 4, weight: 60, setWeights: [60, 60, 65, 65] }
+    expect([0, 1, 2, 3].map(i => setWeightAt(cfg, i))).toEqual([60, 60, 65, 65])
+    expect(setWeightAt({ id: LIFT, sets: 4, weight: 60 }, 2)).toBe(60)
+    // a plan that asks for an empty first set gets it, rather than the uniform fallback
+    expect(setWeightAt({ id: LIFT, weight: 0, setWeights: [0, 10] }, 0)).toBe(0)
+  })
+
+  it('resizes a ladder to the set count, repeating the last value and cutting the tail', () => {
+    expect(normalizeSetWeights([60, 60, 65], 5, 60)).toEqual([60, 60, 65, 65, 65])
+    expect(normalizeSetWeights([60, 65, 70], 2, 60)).toEqual([60, 65])
+    expect(normalizeSetWeights([60, 60, 65, 65], 4, 60)).toEqual([60, 60, 65, 65])
+  })
+
+  it('collapses all-equal values to the uniform weight, so a plan stays byte-identical', () => {
+    expect(normalizeSetWeights([60, 60, 60, 60], 4, 60)).toBeUndefined()
+    expect(normalizeSetWeights([], 3, 60)).toBeUndefined()
+    expect(normalizeSetWeights([60, 60], 3, 60)).toBeUndefined()
+  })
+
+  it('compares ladders, treating absent and empty as "no ladder"', () => {
+    expect(sameSetWeights([60, 60, 65, 65], [60, 60, 65, 65])).toBe(true)
+    expect(sameSetWeights([60, 60, 65, 65], [60, 60, 65, 70])).toBe(false)
+    expect(sameSetWeights(undefined, [])).toBe(true)
+    expect(sameSetWeights(undefined, [60, 60])).toBe(false)
+  })
+
+  it('labels a uniform load, a ladder, no load and added weight', () => {
+    expect(weightsLabel({ id: LIFT, weight: 60 }, 'kg')).toBe('60 kg')
+    expect(weightsLabel({ id: LIFT, weight: 60, setWeights: [60, 60, 65, 65] }, 'kg')).toBe('60/60/65/65 kg')
+    expect(weightsLabel({ id: LIFT, weight: 0 }, 'kg')).toBe('')
+    expect(weightsLabel({ id: BW, weight: 10 }, 'kg')).toBe('+10 kg')
+    expect(weightsLabel({ id: BW, weight: 10, setWeights: [10, 10, 15, 15] }, 'kg')).toBe('+10/10/15/15 kg')
+    expect(exLine({ id: LIFT, sets: 4, reps: 10, weight: 60, setWeights: [60, 60, 65, 65] }, 'kg')).toBe('4 × 10 · 60/60/65/65 kg')
+  })
+
+  it('reads and returns the whole ladder a complex shares', () => {
+    const members = () => [
+      { id: 'a', sets: 4, reps: 1, weight: 60, setWeights: [60, 60, 65, 65], sg: 'g1', note: 'Pause' },
+      { id: 'b', sets: 4, reps: 2, weight: 60, setWeights: [60, 60, 65, 65], sg: 'g1', note: 'Pause' },
+    ]
+    const shared = complexShared([0, 1], members())
+    expect(shared.load).toBe(true)
+    expect(shared.setWeights).toEqual([60, 60, 65, 65])
+
+    const ex = members()
+    ex[1].setWeights = [60, 60, 65, 70]
+    const disagree = complexShared([0, 1], ex)
+    expect(disagree.load).toBe(false)
+    // the card still heads with what the head movement carries
+    expect(disagree.weight).toBe(60)
+    expect(disagree.setWeights).toEqual([60, 60, 65, 65])
+  })
+
+  it('builds a planned ladder row by row when the plan owns the load', () => {
+    const cfg = { id: '0025', sets: 4, reps: 10, weight: 60, setWeights: [60, 60, 65, 65], warmupSets: 3 }
+    const rows = buildSets(emptyS, cfg, { step: 2.5, useTarget: true })
+    const warm = rows.slice(0, 3)
+    const work = rows.slice(3)
+    expect(work.map(r => r.w)).toEqual([60, 60, 65, 65])
+    expect(warm.every(r => r.phase === 'warmup')).toBe(true)
+    // the ramp closes the gap toward the FIRST work set, not toward the heaviest one
+    expect(warm.map(r => r.w)).toEqual([30, 45, 52.5])
+  })
+
+  it('keeps a planned 0 in a ladder instead of falling back to last time', () => {
+    const S = { exWeights: {}, workouts: [{ d: '2026-01-01', entries: [{ id: LIFT, sets: [{ w: 40, r: 5, done: true }] }] }] }
+    // A uniform 0 still means "no prescribed load" and falls back to what you last lifted…
+    expect(buildSets(S, { id: LIFT, sets: 2, reps: 5, weight: 0 }, { useTarget: true }).map(r => r.w)).toEqual([40, 40])
+    // …while a ladder's own 0 is a load the plan asked for.
+    expect(buildSets(S, { id: LIFT, sets: 2, reps: 5, weight: 0, setWeights: [0, 10] }, { useTarget: true }).map(r => r.w)).toEqual([0, 10])
+  })
+
+  it('drops a ladder freestyle would otherwise copy from a past target', () => {
+    const S = {
+      exWeights: {},
+      workouts: [{
+        d: '2026-01-01',
+        entries: [{
+          id: LIFT,
+          target: { mode: 'reps', sets: 4, reps: 8, weight: 60, setWeights: [60, 60, 65, 65] },
+          sets: [{ w: 60, r: 8, done: true }],
+        }],
+      }],
+    }
+    const cfg = freestyleConfig(S, { id: LIFT, mode: 'reps', sets: 3, reps: 10, weight: 0 })
+    expect(cfg.weight).toBe(60)
+    expect(cfg.setWeights).toBeUndefined()
+  })
+})
+
 

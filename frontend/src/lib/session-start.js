@@ -25,6 +25,9 @@ export function buildSessionEntries(st, day) {
     const step = modeOf(cfg) === 'reps' ? weightIncrement(cfg, st.unit) : defaultIncrement(cfg.id, st.unit)
     const sets = applyPrescription(buildSets(st, cfg, { step, useTarget: plan.kind === 'off' }), plan, step)
     const target = { ...cfg }
+    // The plan's per-set ladder is what built the rows only while the plan owns the load; when
+    // a prescription decides the weight, the target carries no ladder for later edits to trip on.
+    if (plan.kind !== 'off') delete target.setWeights
     if (plan.weight != null) target.weight = plan.weight
     if (plan.reps != null) target.reps = plan.reps
     if (plan.sec != null) target.sec = plan.sec

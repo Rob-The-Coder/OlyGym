@@ -7,8 +7,8 @@
 // trusted (the coach's reviewed sheet) lands in the plan through `mergeWeek`.
 
 import { EXIDX } from './exercises.js'
-import { modeOf, fmtSec, isBw, unitCount } from './history.js'
-import { uid, todayISO, isoOf, startOfWeek, fmtDate, DAYN, MONDAY, fmtNum, exCount } from './format.js'
+import { modeOf, fmtSec, unitCount, weightsLabel } from './history.js'
+import { uid, todayISO, isoOf, startOfWeek, fmtDate, DAYN, MONDAY, exCount } from './format.js'
 import { t, exerciseNameFor } from './i18n-core.js'
 import { convertWeight } from './units.js'
 import { MUSCLES, inMuscleOrder } from './muscles.js'
@@ -27,6 +27,7 @@ export function convertedExercise(e, sourceUnit, destinationUnit) {
   if (!sourceUnit || sourceUnit === destinationUnit) return e
   const out = { ...e }
   if (out.weight != null) out.weight = convertWeight(out.weight, sourceUnit, destinationUnit)
+  if (Array.isArray(out.setWeights)) out.setWeights = out.setWeights.map(w => convertWeight(w, sourceUnit, destinationUnit))
   // A timed increment is seconds, not a load. Rep-mode increments are load overrides.
   if (modeOf(out) === 'reps' && out.inc > 0) out.inc = convertWeight(out.inc, sourceUnit, destinationUnit)
   return out
@@ -112,11 +113,13 @@ export function mergeWeek(s, week) {
 const esc = str => String(str == null ? '' : str)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-// One exercise's scheme, e.g. "3 × 10 · 60 kg" or "3 × 0:45".
+// One exercise's scheme, e.g. "3 × 10 · 60 kg" or "3 × 0:45" — a progressive load prints its
+// whole ladder, "4 × 10 · 60/60/65/65 kg", from the same helper the screens use.
 function scheme(e, unit) {
   const sets = e.sets || 1
   let s = modeOf(e) === 'time' ? `${sets} × ${fmtSec(e.sec || 45)}` : `${sets} × ${e.reps ?? 10}`
-  if (e.weight) s += ` · ${isBw(e) ? '+' : ''}${fmtNum(e.weight)} ${unit}`
+  const load = weightsLabel(e, unit)
+  if (load) s += ` · ${load}`
   return s
 }
 
