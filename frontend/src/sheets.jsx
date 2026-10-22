@@ -1296,14 +1296,16 @@ function ComplexConfig({ target, unitIndex, close }) {
     members.forEach(i => { list[i] = fn({ ...list[i] }) })
   })
   // The head carries the prescription; its ladder resized is what every movement gets — the Sets
-  // stepper moves them all to the same count, so one ladder fits them all.
+  // stepper moves them all to the same count, so one ladder fits them all. The ladder's first load
+  // is the movement's `weight`, so a member whose own weight was edited on its own row keeps the
+  // `setWeights[0] === weight` invariant when the card's ladder reaches it.
   const setSets = v => {
     const ladder = Array.isArray(first.setWeights) && first.setWeights.length
       ? normalizeSetWeights(first.setWeights, v, first.weight || 0)
       : undefined
     writeMembers(row => {
       const out = { ...row, sets: v }
-      if (ladder) out.setWeights = ladder.slice()
+      if (ladder) Object.assign(out, { weight: ladder[0], setWeights: ladder.slice() })
       else delete out.setWeights
       return out
     })

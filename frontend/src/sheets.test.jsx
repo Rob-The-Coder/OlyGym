@@ -264,5 +264,20 @@ describe('complex config — weights per set', () => {
     expect(members()[0].setWeights).toEqual([60, 60, 65])
     expect(members()[1].setWeights).toEqual([60, 60, 65, 65])
   })
+
+  // A movement's own row edits its weight alone, which clears its ladder. When the card's ladder
+  // reaches it again through the Sets stepper, its first load comes along: `weight` and
+  // `setWeights[0]` never disagree, so every older reader of `weight` sees the same plan.
+  it('writes the ladder’s first load as the movement’s weight', () => {
+    useStore.setState(s => ({ S: { ...s.S, weeks: [{ id: 'w1', startIso: '2026-02-09', name: 'Block 1', days: [{ dow: 1, name: 'Push', ex: [
+      { id: '0025', sets: 4, reps: 3, weight: 60, setWeights: [60, 60, 65, 65], mode: 'reps', sg: 'g1' },
+      { id: '0031', sets: 4, reps: 1, weight: 70, mode: 'reps', sg: 'g1' },
+    ] }] }] } }))
+    const host = open()
+    act(() => type(fieldOf(host, 'Sets'), '5'))
+
+    expect(members().map(e => e.setWeights)).toEqual([[60, 60, 65, 65, 65], [60, 60, 65, 65, 65]])
+    expect(members().map(e => e.weight)).toEqual([60, 60])
+  })
 })
 
