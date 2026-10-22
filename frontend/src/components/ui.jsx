@@ -126,7 +126,7 @@ export function Segmented({ options, value, onChange, className = '' }) {
 
 /* ============================ stepper ============================ */
 
-export function Stepper({ value, step = 1, onChange, decimal = true, className = '', label, unit, invalid = false }) {
+export function Stepper({ value, step = 1, onChange, decimal = true, className = '', label, unit, invalid = false, ariaLabel }) {
   const set = v => onChange(Math.max(0, Math.round((v || 0) * 100) / 100))
   // Holding a button repeats the step; the latest value/step live in a ref so
   // the interval doesn't keep stepping from the value it was started with.
@@ -166,12 +166,13 @@ export function Stepper({ value, step = 1, onChange, decimal = true, className =
   })
   const inner = (
     <div className={'stp ' + className}>
-      <button {...holdProps(-1)} aria-label="Decrease"><Icon name="minus" /></button>
+      <button {...holdProps(-1)} aria-label={ariaLabel ? `Decrease ${ariaLabel}` : 'Decrease'}><Icon name="minus" /></button>
       <span className="val">
-        <NumberField value={value} decimal={decimal} onChange={onChange} aria-invalid={invalid ? 'true' : undefined} />
+        <NumberField value={value} decimal={decimal} onChange={onChange} aria-invalid={invalid ? 'true' : undefined}
+          aria-label={ariaLabel} />
         {unit && <i>{unit}</i>}
       </span>
-      <button {...holdProps(1)} aria-label="Increase"><Icon name="plus" /></button>
+      <button {...holdProps(1)} aria-label={ariaLabel ? `Increase ${ariaLabel}` : 'Increase'}><Icon name="plus" /></button>
     </div>
   )
   if (!label) return inner

@@ -23,8 +23,8 @@ import { Button, Check, Segmented } from './ui.jsx'
 import Icon from './Icon.jsx'
 import { t, exerciseNameFor } from '../lib/i18n.js'
 import { exOr } from '../lib/exercises.js'
-import { exLine, repsOnly, supersetUnits, complexShared } from '../lib/history.js'
-import { DAYS, fmtNum } from '../lib/format.js'
+import { exLine, repsOnly, supersetUnits, complexShared, sameSetWeights, weightsLabel } from '../lib/history.js'
+import { DAYS } from '../lib/format.js'
 import { normName } from '../lib/plan-aliases.js'
 import { WEEK_PLAN, bundleFromWeek, reviewWeek } from '../lib/import-plan.js'
 import { mergeWeek } from '../lib/plan-share.js'
@@ -89,7 +89,7 @@ export default function CoachImport({ sheets, close, pick, menu, editNumbers }) 
     if (own.reps != null || own.sec != null) return true
     return groupOf(entry).some(e => {
       const patch = byKey[e.key]
-      return patch && (patch.sets != null || patch.weight != null)
+      return patch && (patch.sets != null || patch.weight != null || patch.setWeights != null)
     })
   }
 
@@ -106,6 +106,8 @@ export default function CoachImport({ sheets, close, pick, menu, editNumbers }) 
         const next = { ...(byKey[e.key] || {}) }
         if (patch.sets != null && patch.sets !== e.sets) next.sets = patch.sets
         if (patch.weight != null && patch.weight !== e.weight) next.weight = patch.weight
+        // A ladder is the complex's, like the sets and the load: he wrote it once for the row.
+        if (patch.setWeights != null && !sameSetWeights(patch.setWeights, e.setWeights)) next.setWeights = patch.setWeights
         if (e.key === entry.key) {
           if (patch.reps != null && patch.reps !== e.reps) next.reps = patch.reps
           if (patch.sec != null && patch.sec !== e.sec) next.sec = patch.sec
@@ -130,6 +132,7 @@ export default function CoachImport({ sheets, close, pick, menu, editNumbers }) 
         const patch = { ...(byKey[e.key] || {}) }
         delete patch.sets
         delete patch.weight
+        delete patch.setWeights
         if (e.key === entry.key) { delete patch.reps; delete patch.sec }
         if (Object.keys(patch).length) byKey[e.key] = patch
         else delete byKey[e.key]
@@ -170,11 +173,20 @@ export default function CoachImport({ sheets, close, pick, menu, editNumbers }) 
   // only when it disagrees with the rest. His tip is printed on every movement rather than once at
   // the top of the card — this screen is read movement by movement, and on a long day a line in the
   // head is a scroll away from the row it explains.
+  // What a row prints, in the account's unit. The review keeps kilos, so a per-set ladder is
+  // converted the way the single weight is.
+  const cfgOf = entry => ({
+    id: entry.id, sets: entry.sets, reps: entry.reps, mode: entry.mode, sec: entry.sec, side: entry.side,
+    weight: shown(entry.weight),
+    ...(Array.isArray(entry.setWeights) && entry.setWeights.length ? { setWeights: entry.setWeights.map(shown) } : {}),
+  })
   const entryRow = (entry, sh) => {
-    const cfg = { id: entry.id, sets: entry.sets, reps: entry.reps, mode: entry.mode, sec: entry.sec, side: entry.side, weight: shown(entry.weight) }
+    const cfg = cfgOf(entry)
     const on = checked.has(keyOf(entry))
     const name = entry.custom ? entry.name : exerciseNameFor(exOr(entry.id))
-    const ownLine = !sh || (!sh.load && ((entry.sets || 0) !== sh.sets || (entry.weight || 0) !== sh.weight))
+    // A movement that loads differently from the card keeps its own line — the ladder included.
+    const ownLine = !sh || (entry.sets || 0) !== sh.sets || (entry.weight || 0) !== sh.weight
+      || !sameSetWeights(entry.setWeights, sh.setWeights)
     return <div key={entry.key} className={'item' + (sh ? ' cx-item' : '')} data-checked={on ? '' : undefined} {...tappable(() => rowMenu(entry))}>
       <div className="grow">
         <div className="tt">{name}</div>
@@ -250,7 +262,7 @@ export default function CoachImport({ sheets, close, pick, menu, editNumbers }) 
           <div className="cx-head is-static">
             <Icon name="link" className="cx-ico" />
             <span className="cx-title">{t('Complex')}</span>
-            {sh.load && <span className="cx-load">{[t(sh.sets === 1 ? '{0} set' : '{0} sets', sh.sets), sh.weight ? fmtNum(shown(sh.weight)) + ' ' + unit : null].filter(Boolean).join(' · ')}</span>}
+            {sh.load && <span className="cx-load">{[t(sh.sets === 1 ? '{0} set' : '{0} sets', sh.sets), weightsLabel(cfgOf(rows[0]), unit) || null].filter(Boolean).join(' · ')}</span>}
           </div>
           {rows.map((entry, k) => <div className="cx-row" key={entry.key}>
             <span className="cx-step">{k + 1}</span>

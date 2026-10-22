@@ -5,7 +5,7 @@ import { EXDB, EXIDX, BODYPARTS, isBodyweightEq, allExercises, smOf, exOr } from
 import { activeProfile, exAvailable, ALL_EQUIPMENT, newProfile } from './lib/equipment.js'
 import { fmtDate, fmtNum, fmtVol, fmtDur, durPart, todayISO, isoOf, uid, DAYN, DAYS, weekOrder, weekStartOf, weekDayOffset, MONTHS_LONG, ACCENTS, capWords } from './lib/format.js'
 import { convertWeight } from './lib/units.js'
-import { lastEntryFor, bestWeightFor, bestWeightForEntry, prLifts, buildSets, effectiveDay, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, EFFORT, capEffort, stepEffort, isBw, workSetsDone, MAX_PLANNED_WARMUPS, NOTE_MAX } from './lib/history.js'
+import { lastEntryFor, bestWeightFor, bestWeightForEntry, prLifts, buildSets, effectiveDay, workoutVolume, setsDone, setsDoneActive, setUnitsTotal, lastBW, supersetUnits, unitOf, setLabel, defaultConfig, cleanupSg, modeOf, effortOf, EFFORT, capEffort, stepEffort, isBw, workSetsDone, MAX_PLANNED_WARMUPS, NOTE_MAX, weightsLabel, normalizeSetWeights, sameSetWeights } from './lib/history.js'
 import { usesBar, barWeightFor, defaultBarWeight, hasBarOverride, isNoBar } from './lib/bar.js'
 import { toScale, rirOf, EFFORT_PRESETS, effortColor } from './lib/effort.js'
 import { beep, vibrate } from './lib/sound.js'
@@ -794,7 +794,7 @@ export function swapActiveWorkoutExercise(index) {
 
   // The "+" on a picker row commits with the default config, exactly as it does in the add
   // flows; tapping the row still opens the config sheet first.
-  const picker = exercisePicker((ex, quick) => quick ? swapTo(ex, defaultConfig(ex.id)) : exConfigSheet(ex, null, cfg => swapTo(ex, cfg), null, day))
+  const picker = exercisePicker((ex, quick) => quick ? swapTo(ex, defaultConfig(ex.id)) : exConfigSheet(ex, null, cfg => swapTo(ex, cfg), null, day, null, { hideSetWeights: true }))
   function swapTo(ex, cfg) {
     // The picker is a chooser here, not a stack you keep adding from: one swap, then back to
     // the workout. (The add flow deliberately leaves it open.)
@@ -938,7 +938,32 @@ function ProgressionFields({ ex, mode, c, setC, routine, unit, fallback }) {
   </>
 }
 
-function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, initial }) {
+/* ---------------------------- weights per set ---------------------------- */
+// A plan normally carries one load for every set; a progressive one ("two at 60, two at 65")
+// carries a ladder instead. This is the one control the exercise config, the complex config and
+// the coach's review all open: one Stepper per set, seeded from the ladder when there is one and
+// from the uniform weight when there is not. The callers decide what "Done" writes.
+function SetWeightsSheet({ values, unit, onSave, close }) {
+  const [v, setV] = useState(() => values.slice())
+  const setAt = (i, n) => setV(list => list.map((x, k) => (k === i ? n : x)))
+  const done = () => { close(); onSave(v) }
+  return <>
+    <h3>{t('Weights per set')}</h3>
+    <div style={{ height: 10 }} />
+    {/* One capture per set, so the number and its unit say which set they belong to — the visible
+        caption is a span, not a label, so the input carries the set name too. */}
+    {v.map((x, i) => <div key={i} style={{ marginBottom: 8 }}>
+      <Stepper label={t('Set {0}', i + 1)} ariaLabel={t('Set {0}', i + 1)} unit={unit}
+        value={x} step={2.5} onChange={n => setAt(i, n)} />
+    </div>)}
+    <div style={{ height: 10 }} />
+    <Button variant="primary" onClick={done}>{t('Done')}</Button>
+  </>
+}
+const setWeightsSheet = (values, unit, onSave) =>
+  ui().openSheet(close => <SetWeightsSheet values={values} unit={unit} onSave={onSave} close={close} />)
+
+function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, initial, hideSetWeights }) {
   const st = useStore(s => s.S)
   // A caller can hand us an id the catalogue no longer resolves — a plan written against another
   // dataset, an exercise deleted on another device. exOr keeps the sheet usable.
@@ -952,10 +977,53 @@ function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, init
   const progressionStepInvalid = !progressionStepIsValid(progressionStepOf(c, mode, ex, st.unit), progressionPolicy)
   // Keep whatever the other mode already had (sets, weight) and fill only what is missing.
   const setMode = m => setC(x => ({ ...defaultConfig(ex.id, m), ...x, mode: m }))
+  // One load per set: a plan can prescribe "two at 60, two at 65" instead of one weight for
+  // every set. The row only exists when more than one set could carry a load — and never inside
+  // a running session, where each set row already carries its own.
+  const setsCount = Math.max(1, Math.round(c.sets) || 3)
+  const uniformWeight = Math.max(0, c.weight || 0)
+  const openSetWeights = () => setWeightsSheet(
+    Array.isArray(c.setWeights) && c.setWeights.length
+      ? c.setWeights.slice()
+      : Array.from({ length: setsCount }, () => uniformWeight),
+    st.unit,
+    values => {
+      // Done commits the ladder to this draft; the first set is the config's uniform weight.
+      const first = Math.max(0, values[0] || 0)
+      const ladder = normalizeSetWeights(values, setsCount, first)
+      setC(x => {
+        const out = { ...x, weight: first }
+        if (ladder) out.setWeights = ladder
+        else delete out.setWeights
+        return out
+      })
+    })
+  // A ladder resized when the set count changes is the least surprising edit: the last load
+  // repeats (or the tail is cut), never reset to the uniform weight.
+  const setSets = v => setC(x => {
+    const sets = Math.max(1, Math.round(v) || 1)
+    const out = { ...x, sets }
+    if (Array.isArray(x.setWeights) && x.setWeights.length) {
+      const ladder = normalizeSetWeights(x.setWeights, sets, Math.max(0, x.weight || 0))
+      if (ladder) out.setWeights = ladder
+      else delete out.setWeights
+    }
+    return out
+  })
+  // The single Weight stepper means "the same for every set", so touching it clears the ladder —
+  // and so does switching a bodyweight config on, which zeroes the added weight.
+  const setUniform = v => setC(x => { const out = { ...x, weight: v }; delete out.setWeights; return out })
   const save = () => {
     if (progressionStepInvalid) return
     close()
     const sets = Math.max(1, Math.round(c.sets) || 3)
+    // The ladder is only written when the sets are not all the same; otherwise the one uniform
+    // weight carries the plan and the config stays byte-for-byte what it was before.
+    const ladder = Array.isArray(c.setWeights) && c.setWeights.length
+      ? normalizeSetWeights(c.setWeights, sets, uniformWeight)
+      : undefined
+    const weight = ladder ? ladder[0] : uniformWeight
+    const withWeights = ladder ? { setWeights: ladder } : {}
     // Only carry progression settings that differ from the inherited default, so a plan file
     // stays readable and "follow the routine" keeps meaning exactly that.
     const prog = {}
@@ -970,8 +1038,8 @@ function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, init
     const withWarmups = warmupSets ? { warmupSets } : {}
     const restSec = Math.max(0, Math.round(c.restSec) || 0)
     const withRest = restSec ? { restSec } : {}
-    if (mode === 'time') onSave({ sets, mode: 'time', sec: Math.max(1, Math.round(c.sec) || 45), weight: Math.max(0, c.weight || 0), ...flags, ...prog, ...withNote, ...withWarmups, ...withRest })
-    else onSave({ sets, mode: 'reps', reps: Math.max(1, Math.round(c.reps) || 10), weight: Math.max(0, c.weight || 0), ...flags, ...prog, ...withNote, ...withWarmups, ...withRest })
+    if (mode === 'time') onSave({ sets, mode: 'time', sec: Math.max(1, Math.round(c.sec) || 45), weight, ...flags, ...prog, ...withWeights, ...withNote, ...withWarmups, ...withRest })
+    else onSave({ sets, mode: 'reps', reps: Math.max(1, Math.round(c.reps) || 10), weight, ...flags, ...prog, ...withWeights, ...withNote, ...withWarmups, ...withRest })
   }
   // Two actions that were full-width buttons at the end of the form, under the primary one, where
   // a thumb reaches them on the way to Save. They are the week editor's and the day card's
@@ -1015,17 +1083,24 @@ function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, init
     </div>
     <div className="row cfgrow" style={{ marginBottom: 12 }}>
       {mode === 'time' ? <>
-        <Stepper label={t('Sets')} value={c.sets} step={1} decimal={false} onChange={v => setC(x => ({ ...x, sets: v }))} />
+        <Stepper label={t('Sets')} value={c.sets} step={1} decimal={false} onChange={setSets} />
         <Stepper label={t('Seconds')} value={c.sec} step={5} decimal={false} onChange={v => setC(x => ({ ...x, sec: v }))} />
-        <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={2.5} onChange={v => setC(x => ({ ...x, weight: v }))} />
+        <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={2.5} onChange={setUniform} />
       </> : <>
-        <Stepper label={t('Sets')} value={c.sets} step={1} decimal={false} onChange={v => setC(x => ({ ...x, sets: v }))} />
+        <Stepper label={t('Sets')} value={c.sets} step={1} decimal={false} onChange={setSets} />
         <Stepper label={t('Reps')} value={c.reps} step={1} decimal={false} onChange={v => setC(x => ({ ...x, reps: v }))} />
         {/* On bodyweight work the weight stepper is the click #32 is about, so it is not here
             until there is a belt to describe — see the added-weight row below. */}
-        {!bw && <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={2.5} onChange={v => setC(x => ({ ...x, weight: v }))} />}
+        {!bw && <Stepper label={t('Weight ({0})', st.unit)} value={c.weight} step={2.5} onChange={setUniform} />}
       </>}
     </div>
+    {/* The same weight on every set is the normal plan; a progressive one is a row of its own,
+        opened into a sheet of one stepper per set. Hidden in a running session, where each set
+        row already owns its own load — the draft still keeps and resizes whatever ladder came in. */}
+    {setsCount > 1 && !hideSetWeights && <div className="sect-b" style={{ marginBottom: 12 }}>
+      <Row icon="dumbbell" title={t('Weights per set')} value={weightsLabel({ ...c, id: ex.id }, st.unit)}
+        onClick={openSetWeights} accessory="chevron" />
+    </div>}
     {/* Planned warm-ups (the session used to start at the work weight and you added every warm-up
         by hand) and per-exercise rest (issue #10). One row of two, the same control as the three
         above: they were full width with a two-line paragraph under each. */}
@@ -1051,13 +1126,17 @@ function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, init
     <div className="sect-b" style={{ marginBottom: 8 }}>
       <Row icon="figureStrength" title={t('Bodyweight')}
         subtitle={bw ? t('No weight to enter — just log the reps.') : t('Ask for a weight on every set.')}>
-        <Switch checked={bw} onChange={v => setC(x => ({ ...x, bodyweight: v, weight: v ? 0 : x.weight }))} />
+        <Switch checked={bw} onChange={v => setC(x => {
+          const out = { ...x, bodyweight: v, weight: v ? 0 : x.weight }
+          if (v) delete out.setWeights
+          return out
+        })} />
       </Row>
     </div>
     {bw && <>
       <div className="row cfgrow" style={{ marginBottom: 8 }}>
         <Stepper label={t('Added ({0})', st.unit)} value={c.weight || 0} step={2.5}
-          onChange={v => setC(x => ({ ...x, weight: v }))} />
+          onChange={setUniform} />
       </div>
       <div className="small dim" style={{ marginBottom: 8 }}>
         {t('For dips or pull-ups with a belt. Progression then follows the weight.')}
@@ -1077,7 +1156,9 @@ function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, init
   </>
 }
 
-export const exConfigSheet = (ex, existing, onSave, onDelete, routine, initial) => ui().openSheet(close => <ExConfig ex={ex} existing={existing} initial={initial} onSave={onSave} onDelete={onDelete} routine={routine} close={close} />)
+export const exConfigSheet = (ex, existing, onSave, onDelete, routine, initial, options = {}) =>
+  ui().openSheet(close => <ExConfig ex={ex} existing={existing} initial={initial} onSave={onSave} onDelete={onDelete}
+    routine={routine} hideSetWeights={!!options.hideSetWeights} close={close} />)
 
 
 
@@ -1205,18 +1286,59 @@ function ComplexConfig({ target, unitIndex, close }) {
   const unit = ex ? (supersetUnits(ex)[unitIndex] || []) : []
   const first = unit.length ? ex[unit[0]] : null
   if (!first) return <><h3>{t('Complex')}</h3><Button variant="primary" onClick={close}>{t('Done')}</Button></>
-  const apply = patch => update(s => {
+  const sets = first.sets || 1
+  // What the complex writes is what every movement carries: its sets, its one load, and — when
+  // the loads are not all equal — its per-set ladder. The members stay equal to each other.
+  const writeMembers = fn => update(s => {
     const list = locate(s)
     if (!list) return
     const members = supersetUnits(list)[unitIndex] || []
-    members.forEach(i => { list[i] = { ...list[i], ...patch } })
+    members.forEach(i => { list[i] = fn({ ...list[i] }) })
   })
+  // The head carries the prescription; its ladder resized is what every movement gets — the Sets
+  // stepper moves them all to the same count, so one ladder fits them all. The ladder's first load
+  // is the movement's `weight`, so a member whose own weight was edited on its own row keeps the
+  // `setWeights[0] === weight` invariant when the card's ladder reaches it.
+  const setSets = v => {
+    const ladder = Array.isArray(first.setWeights) && first.setWeights.length
+      ? normalizeSetWeights(first.setWeights, v, first.weight || 0)
+      : undefined
+    writeMembers(row => {
+      const out = { ...row, sets: v }
+      if (ladder) Object.assign(out, { weight: ladder[0], setWeights: ladder.slice() })
+      else delete out.setWeights
+      return out
+    })
+  }
+  // One Weight control, one meaning: it says "the same load on every set", so it clears the ladder.
+  const setWeight = v => writeMembers(row => { const out = { ...row, weight: v }; delete out.setWeights; return out })
+  const openSetWeights = () => setWeightsSheet(
+    Array.isArray(first.setWeights) && first.setWeights.length
+      ? first.setWeights.slice()
+      : Array.from({ length: sets }, () => first.weight || 0),
+    st.unit,
+    values => {
+      const firstLoad = Math.max(0, values[0] || 0)
+      // Pairing two configs does not unify their set counts, so the ladder is written against
+      // each movement's own count: a 4-set line always prints four loads.
+      writeMembers(row => {
+        const ladder = normalizeSetWeights(values, Math.max(1, Math.round(row.sets) || sets), firstLoad)
+        const out = { ...row, weight: firstLoad }
+        if (ladder) out.setWeights = ladder.slice()
+        else delete out.setWeights
+        return out
+      })
+    })
   return <>
     <h3>{t('Complex')}</h3>
     <div className="muted small" style={{ marginBottom: 14 }}>{t('Sets and load are the same for every exercise in the complex — each one keeps its own reps.')}</div>
-    <Stepper label={t('Sets')} value={first.sets || 1} step={1} decimal={false} onChange={v => apply({ sets: v })} />
+    <Stepper label={t('Sets')} value={first.sets || 1} step={1} decimal={false} onChange={setSets} />
     <div style={{ height: 8 }} />
-    <Stepper label={t('Weight ({0})', st.unit)} value={first.weight || 0} step={2.5} onChange={v => apply({ weight: v })} />
+    <Stepper label={t('Weight ({0})', st.unit)} value={first.weight || 0} step={2.5} onChange={setWeight} />
+    {sets > 1 && <div className="sect-b" style={{ marginTop: 12, marginBottom: 4 }}>
+      <Row icon="dumbbell" title={t('Weights per set')} value={weightsLabel(first, st.unit)}
+        onClick={openSetWeights} accessory="chevron" />
+    </div>}
     <div style={{ height: 10 }} />
     <Button variant="primary" onClick={close}>{t('Done')}</Button>
   </>
@@ -1238,23 +1360,54 @@ export const coachEntrySheet = (entry, onSave) =>
 function CoachEntry({ entry, onSave, close }) {
   const st = useStore(s => s.S)
   const unit = st.unit || 'kg'
+  const shown = w => (!w || unit === 'kg' ? w : convertWeight(w, 'kg', unit))
   // The review keeps kilos. Show the account's unit, but keep the kilogram value itself when the
   // weight is not touched: a kg → lb → kg round trip moves the number, and it was already right.
-  const shownWeight = entry.weight != null ? (unit === 'kg' ? entry.weight : convertWeight(entry.weight, 'kg', unit)) : 0
+  const shownWeight = entry.weight != null ? shown(entry.weight) : 0
+  const shownLadder = Array.isArray(entry.setWeights) && entry.setWeights.length ? entry.setWeights.map(shown) : null
   const [sets, setSets] = useState(Math.max(1, Math.round(entry.sets || 1)))
   const [reps, setReps] = useState(Math.max(1, Math.round(entry.reps || 1)))
   const [sec, setSec] = useState(Math.max(1, Math.round(entry.sec || 1)))
   const [weight, setWeight] = useState(shownWeight)
+  const [ladder, setLadder] = useState(() => (shownLadder ? shownLadder.slice() : null))
   const name = entry.custom ? entry.name : exerciseNameFor(exOr(entry.id))
   const timed = entry.mode === 'time'
+  const setsCount = Math.max(1, Math.round(sets) || 1)
+  // The ladder is resized with the set count, the same way the exercise config does it — the
+  // correction is normalized once more when it is applied (see applyEntryCorrection).
+  const changeSets = v => {
+    const n = Math.max(1, Math.round(v) || 1)
+    setSets(n)
+    if (ladder) setLadder(normalizeSetWeights(ladder, n, weight) || null)
+  }
+  // One Weight control, one meaning: "the same load on every set" clears the ladder.
+  const changeWeight = v => { setWeight(v); setLadder(null) }
+  const openSetWeights = () => setWeightsSheet(
+    ladder ? ladder.slice() : Array.from({ length: setsCount }, () => weight || 0),
+    unit,
+    values => {
+      const first = Math.max(0, values[0] || 0)
+      setWeight(first)
+      setLadder(normalizeSetWeights(values, setsCount, first) || null)
+    })
   const save = () => {
+    const n = Math.max(1, Math.round(sets) || 1)
     const patch = {
-      sets: Math.max(1, Math.round(sets) || 1),
+      sets: n,
       // Untouched keeps the kilogram value exactly; touched is what the field says, in kilos.
       weight: weight === shownWeight ? entry.weight : convertWeight(weight, unit, 'kg')
     }
     if (timed) patch.sec = Math.max(1, Math.round(sec) || 1)
     else patch.reps = Math.max(1, Math.round(reps) || 1)
+    // An untouched ladder hands the coach's exact kilos back, as the weight does; one that was
+    // edited is what the fields say, converted to kilos. Flattening every set to the same load
+    // is a real correction too: the empty ladder is what tells applyEntryCorrection to drop it,
+    // otherwise nothing differs from the entry and the old ladder would survive the save.
+    if (ladder) {
+      patch.setWeights = sameSetWeights(ladder, shownLadder)
+        ? entry.setWeights.slice()
+        : ladder.map(v => convertWeight(v, unit, 'kg'))
+    } else if (shownLadder) patch.setWeights = []
     close()
     onSave(patch)
   }
@@ -1263,7 +1416,7 @@ function CoachEntry({ entry, onSave, close }) {
     {entry.src && <div className="coach-src" style={{ marginBottom: 10 }}>{entry.src}</div>}
     {entry.sg && <div className="muted small" style={{ marginBottom: 14 }}>{t('Sets and load are the same for every exercise in the complex — each one keeps its own reps.')}</div>}
     <div className="row cfgrow" style={{ marginBottom: 8 }}>
-      <Stepper label={t('Sets')} value={sets} step={1} decimal={false} onChange={setSets} />
+      <Stepper label={t('Sets')} value={sets} step={1} decimal={false} onChange={changeSets} />
       {timed
         ? <Stepper label={t('Seconds')} value={sec} step={5} decimal={false} onChange={setSec} />
         : <Stepper label={t('Reps')} value={reps} step={1} decimal={false} onChange={setReps} />}
@@ -1272,8 +1425,15 @@ function CoachEntry({ entry, onSave, close }) {
         complexConfigSheet). Three in one .cfgrow leave the value 39px at 360px, and a normal
         training load like 102.5 clips its last digit. */}
     <div className="row cfgrow" style={{ marginBottom: 12 }}>
-      <Stepper label={t('Weight ({0})', unit)} value={weight} step={2.5} onChange={setWeight} />
+      <Stepper label={t('Weight ({0})', unit)} value={weight} step={2.5} onChange={changeWeight} />
     </div>
+    {/* The per-set loads of a progressive row, corrected the same way as the single weight —
+        in the account's unit, and converted back to kilos on the way out. */}
+    {setsCount > 1 && <div className="sect-b" style={{ marginBottom: 12 }}>
+      <Row icon="dumbbell" title={t('Weights per set')}
+        value={weightsLabel({ id: entry.id, weight, setWeights: ladder }, unit)}
+        onClick={openSetWeights} accessory="chevron" />
+    </div>}
     <div className="small dim" style={{ marginBottom: 16 }}>{t('Applies to this import only.')}</div>
     <Button variant="primary" onClick={save}>{t('Save')}</Button>
   </>

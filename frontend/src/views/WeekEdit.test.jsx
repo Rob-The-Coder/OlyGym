@@ -395,5 +395,50 @@ describe('WeekEdit', () => {
     act(() => { host.querySelector('.cx-head').click() })
     expect(mocks.complexConfigSheet).toHaveBeenCalledWith({ weekId: 'w1', dayIndex: 0 }, 0)
   })
+
+  // Progressive sets: the row line carries the whole ladder through exLine, so the week editor
+  // needed no extra surface for it.
+  it('prints a progressive load as its ladder on the row', () => {
+    const S = useStore.getState().S
+    S.weeks[0].days[0].ex = [
+      { id: '0025', sets: 4, reps: 10, weight: 60, mode: 'reps', setWeights: [60, 60, 65, 65] },
+    ]
+    useStore.setState({ S })
+    mount()
+    act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
+    expect(host.querySelector('[data-day="0"] .item .ss').textContent).toBe('4 × 10 · 60/60/65/65\u00a0kg')
+  })
+
+  // The card carries the shared numbers once: a ladder is part of them, and a movement whose
+  // ladder differs still prints its own line.
+  it('heads a complex with the ladder every movement shares', () => {
+    const S = useStore.getState().S
+    S.weeks[0].days[0].ex = [
+      { id: '0025', sets: 4, reps: 3, weight: 60, mode: 'reps', sg: 'g1', setWeights: [60, 60, 65, 65] },
+      { id: '0031', sets: 4, reps: 1, weight: 60, mode: 'reps', sg: 'g1', setWeights: [60, 60, 65, 65] },
+    ]
+    useStore.setState({ S })
+    mount()
+    act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
+    const card = host.querySelector('[data-day="0"] .cx-card')
+    expect(card.querySelector('.cx-load').textContent).toBe('4 sets · 60/60/65/65\u00a0kg')
+    expect(card.querySelectorAll('.cx-item .ss')).toHaveLength(0)
+  })
+
+  it('keeps the card’s ladder and prints the movement whose ladder differs', () => {
+    const S = useStore.getState().S
+    S.weeks[0].days[0].ex = [
+      { id: '0025', sets: 4, reps: 3, weight: 60, mode: 'reps', sg: 'g1', setWeights: [60, 60, 65, 65] },
+      { id: '0031', sets: 4, reps: 1, weight: 60, mode: 'reps', sg: 'g1', setWeights: [60, 60, 65, 70] },
+    ]
+    useStore.setState({ S })
+    mount()
+    act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
+    const card = host.querySelector('[data-day="0"] .cx-card')
+    expect(card.querySelector('.cx-load').textContent).toBe('4 sets · 60/60/65/65\u00a0kg')
+    const rows = [...card.querySelectorAll('.cx-item')]
+    expect(rows[0].querySelector('.ss')).toBeNull()
+    expect(rows[1].querySelector('.ss').textContent).toBe('4 × 1 · 60/60/65/70\u00a0kg')
+  })
 })
 

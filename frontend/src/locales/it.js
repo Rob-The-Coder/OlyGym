@@ -114,6 +114,7 @@ export default {
   'Sets': 'Serie',
   'Reps': 'Rip.',
   'Weight ({0})': 'Peso ({0})',
+  'Weights per set': 'Pesi per serie',
   'Add to routine': 'Aggiungi alla routine',
   'Remove exercise': 'Rimuovi esercizio',
   'Swap exercise': 'Sostituisci esercizio',

@@ -50,6 +50,21 @@ describe('convertStateUnit', () => {
   it('is a no-op for the unit already in use', () => {
     expect(convertStateUnit(S, 'kg')).toBe(S)
   })
+  // A plan's per-set ladder is loads too, and the single weight stays its first value.
+  it('converts a planned ladder alongside its weight', () => {
+    const state = {
+      unit: 'kg',
+      weeks: [{ id: 'w', startIso: '2026-01-05', name: '', days: [{ dow: 1, name: '', ex: [
+        { id: '0025', sets: 4, reps: 10, weight: 60, setWeights: [60, 60, 65, 65] },
+      ] }] }],
+      workouts: [],
+    }
+    const cfg = convertStateUnit(state, 'lb').weeks[0].days[0].ex[0]
+    expect(cfg.setWeights).toEqual([60, 60, 65, 65].map(w => convertWeight(w, 'kg', 'lb')))
+    expect(cfg.weight).toBe(cfg.setWeights[0])
+    // not mutated in place
+    expect(state.weeks[0].days[0].ex[0].setWeights).toEqual([60, 60, 65, 65])
+  })
   // History rows, the detail header, the month calendar and the heatmap tooltips read the
   // cached `vol` and `bw` off the saved workout rather than summing sets, so a conversion that
   // skips them shows kg totals under an lb label (QA C11).

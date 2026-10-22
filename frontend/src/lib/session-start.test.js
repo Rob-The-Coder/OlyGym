@@ -77,4 +77,50 @@ describe('buildSessionEntries', () => {
     expect(buildSessionEntries(stWithHistory(false), plannedDay('linear'))[0].plan.kind).toBe('up')
     expect(buildSessionEntries(stWithHistory(true), plannedDay('off'))[0].plan.kind).toBe('off')
   })
+
+  // Per-set loads: with the plan owning the load, the ladder builds the rows and rides on the
+  // target for later edits; when a rule decides the load, the rule decides every row and the
+  // target carries no ladder.
+  const ladderDay = prog => ({
+    id: 'r', ex: [{ id: '0025', sets: 4, reps: 10, weight: 60, setWeights: [60, 60, 65, 65], ...(prog ? { prog } : {}) }],
+  })
+  const ladder = { unit: 'kg', workouts: [], exWeights: {}, routines: [] }
+
+  it('builds the planned ladder and stamps it on the target when progression is off', () => {
+    const entries = buildSessionEntries(ladder, ladderDay())
+    expect(entries[0].plan).toEqual({ policy: 'off', kind: 'off' })
+    expect(workWeights(entries)).toEqual([60, 60, 65, 65])
+    expect(entries[0].target.setWeights).toEqual([60, 60, 65, 65])
+  })
+
+  it('lets the rule own the load: uniform rows and no ladder on the target', () => {
+    const entries = buildSessionEntries({ ...ladder, autoProg: true }, ladderDay())
+    expect(entries[0].plan.kind).toBe('first')
+    expect(workWeights(entries)).toEqual([60, 60, 60, 60])
+    expect(entries[0].target.setWeights).toBeUndefined()
+  })
+
+  // The case above would also pass if the ladder were simply ignored: with no history the rows
+  // are the config's weight anyway. A rule that decides a DIFFERENT load is what proves it owns
+  // the rows — every one of them takes the prescription, not the plan's ladder.
+  it('takes the load a rule prescribes, not the ladder', () => {
+    const st = {
+      ...ladder,
+      autoProg: true,
+      workouts: [{
+        d: '2026-01-01',
+        entries: [{
+          id: '0025',
+          target: { sets: 3, reps: 5 },
+          sets: [{ w: 60, r: 5, done: true }, { w: 60, r: 5, done: true }, { w: 60, r: 5, done: true }],
+        }],
+      }],
+    }
+    const entries = buildSessionEntries(st, ladderDay())
+    expect(entries[0].plan.kind).toBe('up')
+    expect(entries[0].plan.weight).toBe(62.5)
+    expect(workWeights(entries)).toEqual([62.5, 62.5, 62.5, 62.5])
+    expect(entries[0].target.setWeights).toBeUndefined()
+    expect(entries[0].target.weight).toBe(62.5)
+  })
 })

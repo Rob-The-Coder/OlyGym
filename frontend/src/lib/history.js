@@ -113,13 +113,65 @@ export function defaultConfig(id, mode) {
   if (m === 'time') return { sets: 3, sec: 45, weight: 0, mode: 'time', ...bw }
   return { sets: 3, reps: 10, weight: 0, mode: 'reps', ...bw }
 }
+// Per-set loads (progressive sets). A plan config carries ONE `weight` for every set; when the
+// set loads are not all the same the config also carries `setWeights` — one number per planned
+// set, in the same unit as `weight`, with `setWeights[0] === weight`. Absent means "the same
+// load on every set", which is every config written before the field existed, so nothing needs
+// migrating and a uniform config reads exactly as it did before.
+export function setWeightAt(cfg, i) {
+  const ladder = cfg && Array.isArray(cfg.setWeights) ? cfg.setWeights : null
+  const v = ladder ? ladder[i] : undefined
+  return Number.isFinite(v) ? v : cfg?.weight
+}
+
+/**
+ * `values` as `sets` per-set loads: a short list repeats its last value, a long one is cut.
+ * Values that are all equal are not a ladder — they collapse to undefined and the caller keeps
+ * its one uniform `fallback` weight, so toggling a ladder on and off does not change the plan.
+ */
+export function normalizeSetWeights(values, sets, fallback) {
+  const n = Math.max(1, Math.round(Number(sets)) || 1)
+  const list = (Array.isArray(values) ? values : []).filter(v => typeof v === 'number' && Number.isFinite(v))
+  const last = list.length ? list[list.length - 1] : fallback
+  const out = Array.from({ length: n }, (_, i) => (i < list.length ? list[i] : last))
+  return out.every(v => v === out[0]) ? undefined : out
+}
+
+/** Whether two configs carry the same ladder — absent and empty both mean "no ladder". */
+export function sameSetWeights(a, b) {
+  const x = Array.isArray(a) && a.length ? a : null
+  const y = Array.isArray(b) && b.length ? b : null
+  if (!x || !y) return x === y
+  return x.length === y.length && x.every((v, i) => v === y[i])
+}
+
+/**
+ * The load half of a plan line: '', `60 kg`, `60/60/65/65 kg`, and the `+` of a dip belt.
+ *
+ * A ladder's last load and unit are joined by a non-breaking space: the ladder is what makes a
+ * plan line wrap, and a "kg" alone on the next line reads as a broken row beside every one-load
+ * line around it. Glued, the label can only break before the ladder, where it reads as two groups.
+ * A single load keeps the plain space it has always had — it fits, so nothing about it changes.
+ */
+export function weightsLabel(cfg, unit) {
+  const c = cfg || {}
+  const ladder = Array.isArray(c.setWeights) && c.setWeights.length ? c.setWeights : null
+  if (!ladder && !c.weight) return ''
+  // A hand-edited state or an old backup can carry junk in a ladder; a formatted "NaN" load is
+  // worse than dropping it, and this is the one reader that does not already filter.
+  const loads = (ladder || [c.weight]).filter(v => Number.isFinite(v))
+  if (!loads.length) return ''
+  return (isBw(c) ? '+' : '') + loads.map(v => fmtNum(v)).join('/') + (ladder ? '\u00a0' : ' ') + unit
+}
+
 // One-line summary of a planned exercise ("3 × 10 · 60 kg"), shared by the routine editor
 // and the plan export so a mode is described the same way everywhere.
 export function exLine(cfg, unit) {
   const mode = modeOf(cfg)
   const n = cfg.sets || 1
   // Added weight reads as added: "+10 kg" on a dip belt, "60 kg" on a barbell.
-  const load = cfg.weight ? ' · ' + (isBw(cfg) ? '+' : '') + fmtNum(cfg.weight) + ' ' + unit : ''
+  const label = weightsLabel(cfg, unit)
+  const load = label ? ' · ' + label : ''
   if (mode === 'time') return `${n} × ${fmtSec(cfg.sec || 45)}${load}`
   return `${n} × ${cfg.reps}${load}`
 }
@@ -261,12 +313,16 @@ export const exNoteFor = (S, exId) => ((S?.exNotes || {})[exId] || '').trim() ||
 export function freestyleConfig(S, cfg) {
   const last = lastEntryFor(S, cfg.id)
   if (!last) return { ...cfg }
-  return {
+  const out = {
     ...cfg,
     ...(last.target || {}),
     id: cfg.id,
     sets: Math.max(1, last.sets.length)
   }
+  // A ladder belongs to the plan the session was opened from; last time's target is only a
+  // starting shape here, and a freestyle exercise edits one load per set row.
+  delete out.setWeights
+  return out
 }
 export function bestWeightFor(S, exId) {
   let best = 0
@@ -315,6 +371,10 @@ export function nextTrainingDay(S, iso) {
  * the in-session "Add warm-up set" button produces: each row halves the gap left to the work
  * weight, giving 50% / 75% / 87.5% for three. `options.step` is the exercise's loading step,
  * passed in by the caller (see insertWarmupRow for why this module cannot read it itself).
+ *
+ * With `useTarget` (the plan is prescribing) and a `setWeights` ladder, row i takes the
+ * ladder's own load — including a 0 the plan asked for — and the warm-ups ramp toward the first
+ * work set. A config without a ladder builds exactly what it built before.
  */
 export function buildSets(S, cfg, options = {}) {
   const rows = buildWorkSets(S, cfg, options)
@@ -338,6 +398,9 @@ function buildWorkSets(S, cfg, options = {}) {
   const last = lastEntryFor(S, cfg.id)
   const n = Math.max(1, cfg.sets || 1)
   const mode = modeOf(cfg)
+  // A planned ladder owns each row's load only while the session uses the plan's own target —
+  // with a prescription on, the rule keeps owning the load, exactly as it does with one weight.
+  const ladder = useTarget && Array.isArray(cfg.setWeights) && cfg.setWeights.length ? cfg.setWeights : null
   const sets = []
   // A deload routine must use its own prescription instead of carrying regular-session values
   // into the workout. Other planned sessions keep the existing history-first behaviour.
@@ -349,7 +412,8 @@ function buildWorkSets(S, cfg, options = {}) {
       // exercise from reps to time must not seed the duration from a rep count.
       const prev = prevAt(i)
       const carried = prev && prev.sec > 0 ? prev : null
-      sets.push({ sec: carried ? carried.sec : (cfg.sec || 45), w: carried ? (carried.w || 0) : (cfg.weight || 0), done: false })
+      const w = ladder ? setWeightAt(cfg, i) : (carried ? (carried.w || 0) : (cfg.weight || 0))
+      sets.push({ sec: carried ? carried.sec : (cfg.sec || 45), w, done: false })
     }
     return sets
   }
@@ -362,9 +426,11 @@ function buildWorkSets(S, cfg, options = {}) {
     // A deload uses the routine's target weight; a routine that never set one (weight 0) falls
     // back to the last regular load rather than prescribing an empty bar.
     const lastRegular = last ? (last.sets[i] || last.sets[last.sets.length - 1]) : null
-    const w = useTarget
-      ? (cfg.weight > 0 ? cfg.weight : (lastRegular && lastRegular.r > 0 ? lastRegular.w : cfg.weight))
-      : preferLast && usable ? usable.w : (conf && conf.w > 0 ? conf.w : (usable ? usable.w : cfg.weight))
+    const w = ladder
+      ? setWeightAt(cfg, i)
+      : useTarget
+        ? (cfg.weight > 0 ? cfg.weight : (lastRegular && lastRegular.r > 0 ? lastRegular.w : cfg.weight))
+        : preferLast && usable ? usable.w : (conf && conf.w > 0 ? conf.w : (usable ? usable.w : cfg.weight))
     sets.push({ w, r: usable ? usable.r : cfg.reps, done: false })
   }
   return sets
@@ -434,17 +500,19 @@ export function moveSupersetUnit(items, index, direction) {
 export function unitOf(units, idx) { return units.find(u => u.includes(idx)) || [idx] }
 
 /** What a whole complex shares. The coach writes "3+3 @ 30 kg" once, so the card carries the sets,
- *  the load and the tip once, and only a member that disagrees needs a line of its own.
- *  `load` is false as soon as one member's sets or weight differs; `note` is '' unless every
- *  member carries the same non-empty one. */
+ *  the loads and the tip once, and only a member that disagrees needs a line of its own.
+ *  `load` is false as soon as one member's sets, weight or per-set ladder differs; `note` is ''
+ *  unless every member carries the same non-empty one. */
 export function complexShared(unit, ex) {
   const head = ex[unit[0]]
   if (!head) return null
   const same = (a, b) => (a || 0) === (b || 0)
+  const ladder = Array.isArray(head.setWeights) && head.setWeights.length ? head.setWeights : null
   return {
     sets: head.sets || 1,
     weight: head.weight || 0,
-    load: unit.every(i => same(ex[i].sets, head.sets) && same(ex[i].weight, head.weight)),
+    ...(ladder ? { setWeights: ladder } : {}),
+    load: unit.every(i => same(ex[i].sets, head.sets) && same(ex[i].weight, head.weight) && sameSetWeights(ex[i].setWeights, head.setWeights)),
     note: unit.every(i => (ex[i].note || '') === (head.note || '')) ? (head.note || '') : '',
   }
 }

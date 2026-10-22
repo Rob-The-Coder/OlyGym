@@ -491,6 +491,8 @@ describe('Workout add exercise flow', () => {
     ])
 
     await addExerciseThroughSheets({ id: 'inserted' })
+    // Added into a running session, so the config sheet hides the per-set row.
+    expect(mocks.exConfigSheet.mock.calls.at(-1)[6]).toEqual({ hideSetWeights: true })
 
     expect(mocks.S.active.entries.map(entry => entry.id)).toEqual([
       'current-a', 'current-b', 'inserted', 'pending',
@@ -627,6 +629,8 @@ describe('progression guidance', () => {
     // Freestyle here (no weekId on the active session), so the sheet inherits no day rule —
     // the entry's own `prog` is what counts.
     expect(mocks.exConfigSheet.mock.calls[0][4]).toBe(null)
+    // A running session edits one weight per set row, so its options sheet hides the per-set row.
+    expect(mocks.exConfigSheet.mock.calls[0][6]).toEqual({ hideSetWeights: true })
 
     mocks.exConfigSheet.mock.calls[0][2]({ ...second.target, prog: 'double', repsMin: 6 })
     expect(JSON.stringify(mocks.S.active.entries[0])).toBe(firstBefore)
@@ -1160,6 +1164,27 @@ describe('workout list view', () => {
     await mount([
       exercise('muscle-snatch', [false], { sg: 'g1', target: { mode: 'reps', reps: 3, sets: 3, weight: 30, bodyweight: false } }),
       exercise('overhead-squat', [false], { sg: 'g1', target: { mode: 'reps', reps: 3, sets: 3, weight: 40, bodyweight: false } }),
+    ], 0, { workoutView: 'list' })
+    expect(units()[0].querySelector('.ss-card .ss-hd .ss-load')).toBeNull()
+  })
+
+  // A progressive complex says so once, on the group, in the same one-unit-per-list format the
+  // week editor prints.
+  it('heads a complex with the ladder every member shares', async () => {
+    const target = { mode: 'reps', reps: 3, sets: 4, weight: 60, bodyweight: false, setWeights: [60, 60, 65, 65] }
+    await mount([
+      exercise('muscle-snatch', [false], { sg: 'g1', target: { ...target } }),
+      exercise('overhead-squat', [false], { sg: 'g1', target: { ...target } }),
+    ], 0, { workoutView: 'list' })
+
+    const card = units()[0].querySelector('.ss-card')
+    expect(card.querySelector('.ss-hd .ss-load').textContent).toBe('4 sets · 60/60/65/65\u00a0kg')
+  })
+
+  it('says nothing when the members’ ladders differ', async () => {
+    await mount([
+      exercise('muscle-snatch', [false], { sg: 'g1', target: { mode: 'reps', reps: 3, sets: 4, weight: 60, bodyweight: false, setWeights: [60, 60, 65, 65] } }),
+      exercise('overhead-squat', [false], { sg: 'g1', target: { mode: 'reps', reps: 3, sets: 4, weight: 60, bodyweight: false, setWeights: [60, 60, 65, 70] } }),
     ], 0, { workoutView: 'list' })
     expect(units()[0].querySelector('.ss-card .ss-hd .ss-load')).toBeNull()
   })

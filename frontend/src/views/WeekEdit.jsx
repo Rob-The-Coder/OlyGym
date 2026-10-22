@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
-import { DAYS, DAYN, fmtDate, fmtNum, uid, exCount, weekOrder, weekStartOf } from '../lib/format.js'
+import { DAYS, DAYN, fmtDate, uid, exCount, weekOrder, weekStartOf } from '../lib/format.js'
 import { t, exerciseNameFor } from '../lib/i18n.js'
 import { exOr } from '../lib/exercises.js'
-import { supersetUnits, moveSupersetUnit, unitCount, complexShared, repsOnly, cleanupSg, exLine, defaultConfig } from '../lib/history.js'
+import { supersetUnits, moveSupersetUnit, unitCount, complexShared, repsOnly, cleanupSg, exLine, defaultConfig, weightsLabel, sameSetWeights } from '../lib/history.js'
 import { exercisePicker, exConfigSheet, complexConfigSheet, confirmSheet, menuSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import TopAppBar from '../components/TopAppBar.jsx'
@@ -105,7 +105,8 @@ function DayExercises({ weekId, day, index, unit, editEx, toast }) {
     const exOrId = exOr(entry.id)
     // Outside a complex nothing is shared, so the line and the note both stay on the row; inside one
     // they are printed only by the movement that disagrees with the rest.
-    const ownLine = !sh || (!sh.load && ((entry.sets || 0) !== sh.sets || (entry.weight || 0) !== sh.weight))
+    const ownLine = !sh || (entry.sets || 0) !== sh.sets || (entry.weight || 0) !== sh.weight
+      || !sameSetWeights(entry.setWeights, sh.setWeights)
     const ownNote = entry.note && (!sh || entry.note !== sh.note)
     return <SwipeToDelete className={'item' + (sh ? ' cx-item' : '')}
       deleteLabel={t('Remove')}
@@ -133,7 +134,7 @@ function DayExercises({ weekId, day, index, unit, editEx, toast }) {
       <span className="cx-title">{t('Complex')}</span>
       {/* The numbers the coach wrote for the complex. A movement that disagrees keeps those
           numbers in place and prints its own line below, rather than erasing the prescription. */}
-      <span className="cx-load">{[t(sh.sets === 1 ? '{0} set' : '{0} sets', sh.sets), sh.weight ? fmtNum(sh.weight) + ' ' + unit : null].filter(Boolean).join(' · ')}</span>
+      <span className="cx-load">{[t(sh.sets === 1 ? '{0} set' : '{0} sets', sh.sets), weightsLabel(ex[group[0]], unit) || null].filter(Boolean).join(' · ')}</span>
       <div className="ex-acts">
         <button className="iconbtn" aria-label={t('Move up')} title={t('Move up')} disabled={gi === 0}
           onClick={ev => { ev.stopPropagation(); move(group[0], -1) }}><Icon name="chevronUp" /></button>

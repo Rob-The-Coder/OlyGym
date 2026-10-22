@@ -17,7 +17,7 @@ import { uid, todayISO, isoOf, startOfWeek, MONDAY } from './format.js'
 import { readCoachSheet, splitComplex } from './coach-sheet.js'
 import { matchName } from './plan-aliases.js'
 import { convertedExercise } from './plan-share.js'
-import { NOTE_MAX } from './history.js'
+import { NOTE_MAX, normalizeSetWeights } from './history.js'
 
 export const DEFAULT_SETS = 3
 export const DEFAULT_REPS = 10
@@ -148,10 +148,31 @@ export function applyEntryCorrection(entry, patch) {
     merged[key] = Math.max(1, Math.round(raw))
   }
   const weight = patch.weight
-  if (typeof weight === 'number' && Number.isFinite(weight)) merged.weight = Math.max(0, weight)
+  const weightTouched = typeof weight === 'number' && Number.isFinite(weight)
+  if (weightTouched) merged.weight = Math.max(0, weight)
   Object.assign(out, merged)
   if (merged.sets != null) out.warns = out.warns.filter(w => w !== 'sets')
   if (merged.reps != null || merged.sec != null) out.warns = out.warns.filter(w => w !== 'reps')
+  // The load is one number or one ladder, never both: a weight correction clears the ladder, a
+  // ladder correction decides every set (setting the uniform weight to its first value), and a
+  // set-count correction resizes whatever ladder the entry already carried.
+  if (weightTouched && !Array.isArray(patch.setWeights)) delete out.setWeights
+  if (Array.isArray(patch.setWeights)) out.setWeights = patch.setWeights
+  if (Array.isArray(out.setWeights)) {
+    const values = out.setWeights
+      .filter(v => typeof v === 'number' && Number.isFinite(v))
+      .map(v => Math.max(0, v))
+    if (values.length) {
+      const ladder = normalizeSetWeights(values, out.sets, out.weight)
+      if (ladder) {
+        out.setWeights = ladder
+        out.weight = ladder[0]
+      } else {
+        delete out.setWeights
+        out.weight = values[0]
+      }
+    } else delete out.setWeights
+  }
   return out
 }
 
@@ -163,10 +184,10 @@ export function applyEntryCorrection(entry, patch) {
  * Every entry carries the coach's own row (`raw`, `row`, `src`) next to what was understood (`tier`,
  * `exact`, `warns`), because this is what the review screen shows and what the user corrects.
  *
- * `corrections` maps an entry's `key` to a numeric patch (`sets`, `reps`/`sec`, `weight`) applied
- * through `applyEntryCorrection` before the entry is returned: the review is derived on every read,
- * so a corrected number is re-derived exactly like a corrected exercise name. Nothing in `sheet`
- * or `corrections` is mutated.
+ * `corrections` maps an entry's `key` to a numeric patch (`sets`, `reps`/`sec`, `weight` or a
+ * `setWeights` ladder) applied through `applyEntryCorrection` before the entry is returned: the
+ * review is derived on every read, so a corrected number is re-derived exactly like a corrected
+ * exercise name. Nothing in `sheet` or `corrections` is mutated.
  */
 export function reviewWeek(sheet, { aliases = {}, corrections = {} } = {}) {
   const { days, skipped } = readCoachSheet(sheet.grid)
@@ -264,6 +285,13 @@ export function bundleFromWeek(review, { unit = 'kg', name = '', days = null } =
       const cfg = { id: entry.custom ? customOf(review, entry, made) : entry.id, sets: entry.sets }
       if (entry.mode === 'time') { cfg.mode = 'time'; cfg.sec = entry.sec || 45 } else { cfg.reps = entry.reps || DEFAULT_REPS }
       if (entry.weight) cfg.weight = entry.weight
+      // The reviewed ladder goes into the week as the plan's per-set load. The correction keeps
+      // weight === setWeights[0], so the uniform weight is read off the ladder instead of
+      // re-deciding it; the array is copied so the week never shares it with the review entry.
+      if (Array.isArray(entry.setWeights) && entry.setWeights.length) {
+        cfg.setWeights = entry.setWeights.slice()
+        cfg.weight = cfg.setWeights[0]
+      }
       if (entry.side) cfg.side = true
       if (entry.sg) cfg.sg = entry.sg
       if (entry.note) cfg.note = entry.note
