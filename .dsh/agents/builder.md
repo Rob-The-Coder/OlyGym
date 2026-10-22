@@ -43,11 +43,10 @@ other jobs.
 ## UI work
 
 When the job touches UI, read DESIGN.md first — it is the style authority —then `.dsh/skills/m3-ui/SKILL.md` and the reference
-files it routes you to:start with color-system, component-selection, spacing-and-layout,forms-and-input, 
+files it routes you to: start with color-system, component-selection, spacing-and-layout, forms-and-input, 
 accessibility. Apply the token, state and adaptive-layout rules while writing the code, not as a cleanup pass.
 `DESIGN.md` tokens and roles always override the skill's defaults. The spec and `DESIGN.md` already decided 
 product and IA — do not re-explore them.
-
 
 ## Test against the acceptance criteria
 

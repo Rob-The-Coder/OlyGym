@@ -40,7 +40,7 @@ mode that rewrites files, such as `--fix`.
 
 - **Correctness**: it does what the spec's requirements say. Look for edge
   cases, missing awaits, unhandled errors, and off-by-one or wrong-path bugs.
-- **Simplicity and reuse**: run the `ponytail-review` lens on the diff (see
+- **Simplicity**: run the `ponytail-review` lens on the diff (see
   Skill below). It replaces the old simplicity and reuse checklists and is the
   single authority on what to cut.
 - **Reuse**: it uses existing helpers, components and patterns instead of

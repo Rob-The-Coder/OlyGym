@@ -64,5 +64,5 @@ The approver escalates to a human when one of these is a product decision.
 - Use the repo's real validation commands from AGENTS.md (tests, build, lint) in
   the acceptance criteria. Ask for new tests only if the repo has a test runner.
 - Write the spec in the template's order — Context first, actions after. Do not restructure it to lead with actions.
-- No preamble, no recap: spec.md starts at # <short title>; your reply to the orchestrator is one line, the spec path.
+- No preamble, no recap: spec.md starts at `# <short title>`; your reply to the orchestrator is one line, the spec path.
 - Requirements and acceptance criteria stay flat numbered lists, each item concrete and verifiable. No groupings, no time estimates.

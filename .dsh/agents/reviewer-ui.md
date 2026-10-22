@@ -32,7 +32,7 @@ checkout; your one file goes there.
    global stylesheets, and the neighbouring components.
 7. From round 2 on, your own `round-<N-1>/review-ui.md`. Check whether each
    finding was fixed.
-8. `.dsh/skills/m3-ui/references/anti-patterns.md` and `.dsh/skills/m3-ui/references/accessibility.md`. 
+8. `.dsh/skills/m3-ui/references/anti-patterns.md` and `.dsh/skills/m3-ui/references/accessibility.md`.
    Check screens against these in addition to `antislop-ui`. Precedence on any conflict: `DESIGN.md` > `m3-ui` > `antislop-ui`.
 
 ## Look at it
