@@ -406,7 +406,7 @@ describe('WeekEdit', () => {
     useStore.setState({ S })
     mount()
     act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
-    expect(host.querySelector('[data-day="0"] .item .ss').textContent).toBe('4 × 10 · 60/60/65/65 kg')
+    expect(host.querySelector('[data-day="0"] .item .ss').textContent).toBe('4 × 10 · 60/60/65/65\u00a0kg')
   })
 
   // The card carries the shared numbers once: a ladder is part of them, and a movement whose
@@ -421,7 +421,7 @@ describe('WeekEdit', () => {
     mount()
     act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
     const card = host.querySelector('[data-day="0"] .cx-card')
-    expect(card.querySelector('.cx-load').textContent).toBe('4 sets · 60/60/65/65 kg')
+    expect(card.querySelector('.cx-load').textContent).toBe('4 sets · 60/60/65/65\u00a0kg')
     expect(card.querySelectorAll('.cx-item .ss')).toHaveLength(0)
   })
 
@@ -435,10 +435,10 @@ describe('WeekEdit', () => {
     mount()
     act(() => { host.querySelector('[data-day="0"] button[aria-expanded]').click() })
     const card = host.querySelector('[data-day="0"] .cx-card')
-    expect(card.querySelector('.cx-load').textContent).toBe('4 sets · 60/60/65/65 kg')
+    expect(card.querySelector('.cx-load').textContent).toBe('4 sets · 60/60/65/65\u00a0kg')
     const rows = [...card.querySelectorAll('.cx-item')]
     expect(rows[0].querySelector('.ss')).toBeNull()
-    expect(rows[1].querySelector('.ss').textContent).toBe('4 × 1 · 60/60/65/70 kg')
+    expect(rows[1].querySelector('.ss').textContent).toBe('4 × 1 · 60/60/65/70\u00a0kg')
   })
 })
 

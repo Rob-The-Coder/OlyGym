@@ -99,4 +99,28 @@ describe('buildSessionEntries', () => {
     expect(workWeights(entries)).toEqual([60, 60, 60, 60])
     expect(entries[0].target.setWeights).toBeUndefined()
   })
+
+  // The case above would also pass if the ladder were simply ignored: with no history the rows
+  // are the config's weight anyway. A rule that decides a DIFFERENT load is what proves it owns
+  // the rows — every one of them takes the prescription, not the plan's ladder.
+  it('takes the load a rule prescribes, not the ladder', () => {
+    const st = {
+      ...ladder,
+      autoProg: true,
+      workouts: [{
+        d: '2026-01-01',
+        entries: [{
+          id: '0025',
+          target: { sets: 3, reps: 5 },
+          sets: [{ w: 60, r: 5, done: true }, { w: 60, r: 5, done: true }, { w: 60, r: 5, done: true }],
+        }],
+      }],
+    }
+    const entries = buildSessionEntries(st, ladderDay())
+    expect(entries[0].plan.kind).toBe('up')
+    expect(entries[0].plan.weight).toBe(62.5)
+    expect(workWeights(entries)).toEqual([62.5, 62.5, 62.5, 62.5])
+    expect(entries[0].target.setWeights).toBeUndefined()
+    expect(entries[0].target.weight).toBe(62.5)
+  })
 })

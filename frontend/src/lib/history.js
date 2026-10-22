@@ -145,12 +145,23 @@ export function sameSetWeights(a, b) {
   return x.length === y.length && x.every((v, i) => v === y[i])
 }
 
-/** The load half of a plan line: '', `60 kg`, `60/60/65/65 kg`, and the `+` of a dip belt. */
+/**
+ * The load half of a plan line: '', `60 kg`, `60/60/65/65 kg`, and the `+` of a dip belt.
+ *
+ * A ladder's last load and unit are joined by a non-breaking space: the ladder is what makes a
+ * plan line wrap, and a "kg" alone on the next line reads as a broken row beside every one-load
+ * line around it. Glued, the label can only break before the ladder, where it reads as two groups.
+ * A single load keeps the plain space it has always had — it fits, so nothing about it changes.
+ */
 export function weightsLabel(cfg, unit) {
   const c = cfg || {}
   const ladder = Array.isArray(c.setWeights) && c.setWeights.length ? c.setWeights : null
   if (!ladder && !c.weight) return ''
-  return (isBw(c) ? '+' : '') + (ladder || [c.weight]).map(v => fmtNum(v)).join('/') + ' ' + unit
+  // A hand-edited state or an old backup can carry junk in a ladder; a formatted "NaN" load is
+  // worse than dropping it, and this is the one reader that does not already filter.
+  const loads = (ladder || [c.weight]).filter(v => Number.isFinite(v))
+  if (!loads.length) return ''
+  return (isBw(c) ? '+' : '') + loads.map(v => fmtNum(v)).join('/') + (ladder ? '\u00a0' : ' ') + unit
 }
 
 // One-line summary of a planned exercise ("3 × 10 · 60 kg"), shared by the routine editor

@@ -1054,11 +1054,13 @@ describe('per-set loads', () => {
 
   it('labels a uniform load, a ladder, no load and added weight', () => {
     expect(weightsLabel({ id: LIFT, weight: 60 }, 'kg')).toBe('60 kg')
-    expect(weightsLabel({ id: LIFT, weight: 60, setWeights: [60, 60, 65, 65] }, 'kg')).toBe('60/60/65/65 kg')
+    expect(weightsLabel({ id: LIFT, weight: 60, setWeights: [60, 60, 65, 65] }, 'kg')).toBe('60/60/65/65\u00a0kg')
     expect(weightsLabel({ id: LIFT, weight: 0 }, 'kg')).toBe('')
     expect(weightsLabel({ id: BW, weight: 10 }, 'kg')).toBe('+10 kg')
-    expect(weightsLabel({ id: BW, weight: 10, setWeights: [10, 10, 15, 15] }, 'kg')).toBe('+10/10/15/15 kg')
-    expect(exLine({ id: LIFT, sets: 4, reps: 10, weight: 60, setWeights: [60, 60, 65, 65] }, 'kg')).toBe('4 × 10 · 60/60/65/65 kg')
+    expect(weightsLabel({ id: BW, weight: 10, setWeights: [10, 10, 15, 15] }, 'kg')).toBe('+10/10/15/15\u00a0kg')
+    expect(exLine({ id: LIFT, sets: 4, reps: 10, weight: 60, setWeights: [60, 60, 65, 65] }, 'kg')).toBe('4 × 10 · 60/60/65/65\u00a0kg')
+    // A hand-edited state can carry junk; a "NaN kg" row says nothing, so only real loads print.
+    expect(weightsLabel({ id: LIFT, weight: 60, setWeights: [60, NaN, 65] }, 'kg')).toBe('60/65\u00a0kg')
   })
 
   it('reads and returns the whole ladder a complex shares', () => {

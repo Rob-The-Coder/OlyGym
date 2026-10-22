@@ -285,11 +285,12 @@ export function bundleFromWeek(review, { unit = 'kg', name = '', days = null } =
       const cfg = { id: entry.custom ? customOf(review, entry, made) : entry.id, sets: entry.sets }
       if (entry.mode === 'time') { cfg.mode = 'time'; cfg.sec = entry.sec || 45 } else { cfg.reps = entry.reps || DEFAULT_REPS }
       if (entry.weight) cfg.weight = entry.weight
-      // The reviewed ladder goes into the week as the plan's per-set load; its first value is
-      // the one the uniform weight shows, so the two can never disagree.
+      // The reviewed ladder goes into the week as the plan's per-set load. The correction keeps
+      // weight === setWeights[0], so the uniform weight is read off the ladder instead of
+      // re-deciding it; the array is copied so the week never shares it with the review entry.
       if (Array.isArray(entry.setWeights) && entry.setWeights.length) {
-        cfg.setWeights = entry.setWeights
-        cfg.weight = entry.weight ?? cfg.setWeights[0]
+        cfg.setWeights = entry.setWeights.slice()
+        cfg.weight = cfg.setWeights[0]
       }
       if (entry.side) cfg.side = true
       if (entry.sg) cfg.sg = entry.sg

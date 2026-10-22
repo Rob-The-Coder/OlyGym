@@ -386,7 +386,7 @@ describe('correcting a row’s numbers', () => {
 
       setLadder(ladderSheet)
       save(sheet)
-      expect(row().querySelector('.ss').textContent).toBe('4 × 3 · 50/50/55/55 kg')
+      expect(row().querySelector('.ss').textContent).toBe('4 × 3 · 50/50/55/55\u00a0kg')
     })
 
     it('gives every movement of a complex the same ladder', () => {
@@ -397,7 +397,7 @@ describe('correcting a row’s numbers', () => {
       save(sheet)
 
       const card = review.querySelector('.cx-card')
-      expect(card.querySelector('.cx-load').textContent).toBe('4 sets · 50/50/55/55 kg')
+      expect(card.querySelector('.cx-load').textContent).toBe('4 sets · 50/50/55/55\u00a0kg')
       // both movements share it, so neither prints a disagreeing line
       expect(card.querySelectorAll('.cx-item .ss')).toHaveLength(0)
 
@@ -427,13 +427,37 @@ describe('correcting a row’s numbers', () => {
       const { sheet, ladderSheet } = openLadder(review, row())
       setLadder(ladderSheet)
       save(sheet)
-      expect(row().querySelector('.ss').textContent).toBe('4 × 3 · 50/50/55/55 kg')
+      expect(row().querySelector('.ss').textContent).toBe('4 × 3 · 50/50/55/55\u00a0kg')
 
       act(() => row().click())
       const menu = renderTop()
       expect(menuItem(menu, /Back to the coach's numbers/)).toBeTruthy()
       act(() => menuItem(menu, /Back to the coach's numbers/).click())
       expect(row().querySelector('.ss').textContent).toBe('4 × 3 · 50 kg')
+    })
+
+    // Flattening every set to the same load is a correction too: the ladder must go, not be
+    // silently re-derived from the previous correction after Save.
+    it('flattens a ladder back to the single weight', () => {
+      coachPlanSheet([plainWeek])
+      const review = renderTop()
+      const row = () => review.querySelector('.list .item')
+
+      let opened = openLadder(review, row())
+      setLadder(opened.ladderSheet)
+      save(opened.sheet)
+      expect(row().querySelector('.ss').textContent).toBe('4 × 3 · 50/50/55/55\u00a0kg')
+
+      opened = openLadder(review, row())
+      for (const n of [1, 2, 3, 4]) type(field(opened.ladderSheet, `Set ${n}`), '50')
+      act(() => buttonByText(opened.ladderSheet, 'Done').click())
+      save(opened.sheet)
+      expect(row().querySelector('.ss').textContent).toBe('4 × 3 · 50 kg')
+
+      act(() => buttonByText(review, 'Add the week to my plan').click())
+      const cfg = useStore.getState().S.weeks[0].days[0].ex[0]
+      expect(cfg.weight).toBe(50)
+      expect(cfg.setWeights).toBeUndefined()
     })
   })
 

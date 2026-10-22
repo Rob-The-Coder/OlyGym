@@ -1178,7 +1178,7 @@ describe('workout list view', () => {
     ], 0, { workoutView: 'list' })
 
     const card = units()[0].querySelector('.ss-card')
-    expect(card.querySelector('.ss-hd .ss-load').textContent).toBe('4 sets · 60/60/65/65 kg')
+    expect(card.querySelector('.ss-hd .ss-load').textContent).toBe('4 sets · 60/60/65/65\u00a0kg')
   })
 
   it('says nothing when the members’ ladders differ', async () => {

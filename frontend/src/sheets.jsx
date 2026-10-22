@@ -943,22 +943,25 @@ function ProgressionFields({ ex, mode, c, setC, routine, unit, fallback }) {
 // carries a ladder instead. This is the one control the exercise config, the complex config and
 // the coach's review all open: one Stepper per set, seeded from the ladder when there is one and
 // from the uniform weight when there is not. The callers decide what "Done" writes.
-function SetWeightsSheet({ values, onSave, close }) {
+function SetWeightsSheet({ values, unit, onSave, close }) {
   const [v, setV] = useState(() => values.slice())
   const setAt = (i, n) => setV(list => list.map((x, k) => (k === i ? n : x)))
   const done = () => { close(); onSave(v) }
   return <>
     <h3>{t('Weights per set')}</h3>
     <div style={{ height: 10 }} />
+    {/* One capture per set, so the number and its unit say which set they belong to — the visible
+        caption is a span, not a label, so the input carries the set name too. */}
     {v.map((x, i) => <div key={i} style={{ marginBottom: 8 }}>
-      <Stepper label={t('Set {0}', i + 1)} value={x} step={2.5} onChange={n => setAt(i, n)} />
+      <Stepper label={t('Set {0}', i + 1)} ariaLabel={t('Set {0}', i + 1)} unit={unit}
+        value={x} step={2.5} onChange={n => setAt(i, n)} />
     </div>)}
     <div style={{ height: 10 }} />
     <Button variant="primary" onClick={done}>{t('Done')}</Button>
   </>
 }
-export const setWeightsSheet = (values, onSave) =>
-  ui().openSheet(close => <SetWeightsSheet values={values} onSave={onSave} close={close} />)
+const setWeightsSheet = (values, unit, onSave) =>
+  ui().openSheet(close => <SetWeightsSheet values={values} unit={unit} onSave={onSave} close={close} />)
 
 function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, initial, hideSetWeights }) {
   const st = useStore(s => s.S)
@@ -983,6 +986,7 @@ function ExConfig({ ex: exProp, existing, onSave, onDelete, close, routine, init
     Array.isArray(c.setWeights) && c.setWeights.length
       ? c.setWeights.slice()
       : Array.from({ length: setsCount }, () => uniformWeight),
+    st.unit,
     values => {
       // Done commits the ladder to this draft; the first set is the config's uniform weight.
       const first = Math.max(0, values[0] || 0)
@@ -1291,32 +1295,32 @@ function ComplexConfig({ target, unitIndex, close }) {
     const members = supersetUnits(list)[unitIndex] || []
     members.forEach(i => { list[i] = fn({ ...list[i] }) })
   })
-  const setSets = v => update(s => {
-    const list = locate(s)
-    if (!list) return
-    const members = supersetUnits(list)[unitIndex] || []
-    // The head carries the prescription; its ladder resized is what every movement gets.
-    const head = list[members[0]]
-    const ladder = Array.isArray(head?.setWeights) && head.setWeights.length
-      ? normalizeSetWeights(head.setWeights, v, head.weight || 0)
+  // The head carries the prescription; its ladder resized is what every movement gets — the Sets
+  // stepper moves them all to the same count, so one ladder fits them all.
+  const setSets = v => {
+    const ladder = Array.isArray(first.setWeights) && first.setWeights.length
+      ? normalizeSetWeights(first.setWeights, v, first.weight || 0)
       : undefined
-    members.forEach(i => {
-      const out = { ...list[i], sets: v }
+    writeMembers(row => {
+      const out = { ...row, sets: v }
       if (ladder) out.setWeights = ladder.slice()
       else delete out.setWeights
-      list[i] = out
+      return out
     })
-  })
+  }
   // One Weight control, one meaning: it says "the same load on every set", so it clears the ladder.
   const setWeight = v => writeMembers(row => { const out = { ...row, weight: v }; delete out.setWeights; return out })
   const openSetWeights = () => setWeightsSheet(
     Array.isArray(first.setWeights) && first.setWeights.length
       ? first.setWeights.slice()
       : Array.from({ length: sets }, () => first.weight || 0),
+    st.unit,
     values => {
       const firstLoad = Math.max(0, values[0] || 0)
-      const ladder = normalizeSetWeights(values, sets, firstLoad)
+      // Pairing two configs does not unify their set counts, so the ladder is written against
+      // each movement's own count: a 4-set line always prints four loads.
       writeMembers(row => {
+        const ladder = normalizeSetWeights(values, Math.max(1, Math.round(row.sets) || sets), firstLoad)
         const out = { ...row, weight: firstLoad }
         if (ladder) out.setWeights = ladder.slice()
         else delete out.setWeights
@@ -1378,6 +1382,7 @@ function CoachEntry({ entry, onSave, close }) {
   const changeWeight = v => { setWeight(v); setLadder(null) }
   const openSetWeights = () => setWeightsSheet(
     ladder ? ladder.slice() : Array.from({ length: setsCount }, () => weight || 0),
+    unit,
     values => {
       const first = Math.max(0, values[0] || 0)
       setWeight(first)
@@ -1393,12 +1398,14 @@ function CoachEntry({ entry, onSave, close }) {
     if (timed) patch.sec = Math.max(1, Math.round(sec) || 1)
     else patch.reps = Math.max(1, Math.round(reps) || 1)
     // An untouched ladder hands the coach's exact kilos back, as the weight does; one that was
-    // edited is what the fields say, converted to kilos.
+    // edited is what the fields say, converted to kilos. Flattening every set to the same load
+    // is a real correction too: the empty ladder is what tells applyEntryCorrection to drop it,
+    // otherwise nothing differs from the entry and the old ladder would survive the save.
     if (ladder) {
       patch.setWeights = sameSetWeights(ladder, shownLadder)
         ? entry.setWeights.slice()
         : ladder.map(v => convertWeight(v, unit, 'kg'))
-    }
+    } else if (shownLadder) patch.setWeights = []
     close()
     onSave(patch)
   }

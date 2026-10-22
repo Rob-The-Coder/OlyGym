@@ -125,6 +125,15 @@ describe('exercise config — weights per set', () => {
     expect([...sheet.querySelectorAll('.stp-l')].map(el => el.textContent))
       .toEqual(['Set 1', 'Set 2', 'Set 3', 'Set 4'])
     expect([...sheet.querySelectorAll('.stp-w input')].map(el => el.value)).toEqual(['60', '60', '60', '60'])
+
+    // The visible "Set N" caption is a span, not a label, so the field and its ± buttons carry
+    // the set name themselves — four identical "Decrease / 60 / Increase" groups say nothing.
+    const first = sheet.querySelector('.stp-w')
+    expect(first.querySelector('input').getAttribute('aria-label')).toBe('Set 1')
+    expect(first.querySelector('button[aria-label="Decrease Set 1"]')).toBeTruthy()
+    expect(first.querySelector('button[aria-label="Increase Set 1"]')).toBeTruthy()
+    // …and the unit every other weight control shows.
+    expect(first.querySelector('.val i').textContent).toBe('kg')
   })
 
   it('saves the ladder the sheet set, with the first load as the weight', () => {
@@ -235,6 +244,25 @@ describe('complex config — weights per set', () => {
     act(() => type(fieldOf(host, 'Weight (kg)'), '70'))
     expect(members().map(e => e.setWeights)).toEqual([undefined, undefined])
     expect(members().map(e => e.weight)).toEqual([70, 70])
+  })
+
+  // Pairing two configs does not unify their set counts, so a ladder written on the card has to
+  // be measured against each movement's own sets — a 4-set line must print four loads.
+  it('writes the ladder against each movement’s own set count', () => {
+    useStore.setState(s => ({ S: { ...s.S, weeks: [{ id: 'w1', startIso: '2026-02-09', name: 'Block 1', days: [{ dow: 1, name: 'Push', ex: [
+      { id: '0025', sets: 3, reps: 5, weight: 60, mode: 'reps', sg: 'g1' },
+      { id: '0031', sets: 4, reps: 3, weight: 60, mode: 'reps', sg: 'g1' },
+    ] }] }] } }))
+    const host = open()
+    act(() => rowNamed(host, 'Weights per set').click())
+    const sheet = mountTop()
+    // the card is the head's prescription: three sets, so three steppers
+    expect([...sheet.querySelectorAll('.stp-l')].map(el => el.textContent)).toEqual(['Set 1', 'Set 2', 'Set 3'])
+    act(() => type(fieldOf(sheet, 'Set 3'), '65'))
+    act(() => doneButton(sheet).click())
+
+    expect(members()[0].setWeights).toEqual([60, 60, 65])
+    expect(members()[1].setWeights).toEqual([60, 60, 65, 65])
   })
 })
 

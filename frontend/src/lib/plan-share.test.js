@@ -27,7 +27,7 @@ describe('planPrintHTML', () => {
 
   it('prints a progressive load as its ladder, with the unit once', () => {
     expect(html([{ id: '0025', sets: 4, reps: 10, weight: 60, setWeights: [60, 60, 65, 65] }]))
-      .toContain('4 × 10 · 60/60/65/65 kg')
+      .toContain('4 × 10 · 60/60/65/65\u00a0kg')
   })
 
   it('still prints one number for a uniform week', () => {
