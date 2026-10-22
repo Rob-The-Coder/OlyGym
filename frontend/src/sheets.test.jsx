@@ -3,9 +3,9 @@ import React, { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createRoot } from 'react-dom/client'
 import { EXDB } from './lib/exercises.js'
-import { useStore } from './store/useStore.js'
+import { DEF, useStore } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
-import { exConfigSheet } from './sheets.jsx'
+import { exConfigSheet, complexConfigSheet } from './sheets.jsx'
 
 const ex = EXDB.find(e => e.id === '0009')
 const mounted = []
@@ -79,3 +79,162 @@ describe('exercise configuration progression step', () => {
     expect(useUI.getState().sheets).toHaveLength(0)
   })
 })
+// A planned ladder: the row in the config sheet, and the stepper-per-set sheet it opens. The
+// exercise config keeps the ladder in its draft until Save; the complex config writes it to every
+// movement at once, like its sets and load.
+const mountTop = () => {
+  const sheet = useUI.getState().sheets.at(-1)
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  const root = createRoot(host)
+  mounted.push(root)
+  act(() => root.render(sheet.render(() => useUI.getState().closeSheet(sheet.id))))
+  return host
+}
+const fieldOf = (host, label) => [...host.querySelectorAll('.stp-w')]
+  .find(w => w.querySelector('.stp-l')?.textContent === label)?.querySelector('input')
+const rowNamed = (host, title) => [...host.querySelectorAll('.lrow')].find(r => r.textContent.includes(title))
+const saveButton = host => [...host.querySelectorAll('button')]
+  .find(b => /^(save|add to routine)$/i.test(b.textContent.trim()))
+const doneButton = host => [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Done')
+
+describe('exercise config — weights per set', () => {
+  beforeEach(() => {
+    globalThis.IS_REACT_ACT_ENVIRONMENT = true
+    useUI.setState({ sheets: [] })
+    useStore.setState(s => ({ S: { ...s.S, unit: 'kg' } }))
+    document.body.innerHTML = ''
+  })
+  afterEach(() => { act(() => { mounted.splice(0).forEach(root => root.unmount()) }) })
+
+  const openConfig = (cfg = {}, options = {}) => {
+    const onSave = vi.fn()
+    exConfigSheet(ex, { sets: 4, reps: 10, weight: 60, mode: 'reps', ...cfg }, onSave, null, null, null, options)
+    return { host: mountTop(), onSave }
+  }
+
+  it('shows the row on a multi-set config and one stepper per set in its sheet', () => {
+    const { host } = openConfig()
+    const row = rowNamed(host, 'Weights per set')
+    expect(row).toBeTruthy()
+    expect(row.textContent).toContain('60 kg')
+
+    act(() => row.click())
+    const sheet = mountTop()
+    expect(sheet.querySelector('h3').textContent).toBe('Weights per set')
+    expect([...sheet.querySelectorAll('.stp-l')].map(el => el.textContent))
+      .toEqual(['Set 1', 'Set 2', 'Set 3', 'Set 4'])
+    expect([...sheet.querySelectorAll('.stp-w input')].map(el => el.value)).toEqual(['60', '60', '60', '60'])
+  })
+
+  it('saves the ladder the sheet set, with the first load as the weight', () => {
+    const { host, onSave } = openConfig()
+    act(() => rowNamed(host, 'Weights per set').click())
+    const sheet = mountTop()
+    act(() => type(fieldOf(sheet, 'Set 3'), '65'))
+    act(() => type(fieldOf(sheet, 'Set 4'), '65'))
+    act(() => doneButton(sheet).click())
+    expect(useUI.getState().sheets).toHaveLength(1)
+
+    act(() => saveButton(host).click())
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ sets: 4, weight: 60, setWeights: [60, 60, 65, 65] }))
+  })
+
+  it('resizes the ladder when the Sets count changes, cutting the tail', () => {
+    const { host, onSave } = openConfig()
+    act(() => rowNamed(host, 'Weights per set').click())
+    const sheet = mountTop()
+    act(() => type(fieldOf(sheet, 'Set 3'), '65'))
+    act(() => type(fieldOf(sheet, 'Set 4'), '65'))
+    act(() => doneButton(sheet).click())
+
+    act(() => type(fieldOf(host, 'Sets'), '3'))
+    act(() => saveButton(host).click())
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ sets: 3, setWeights: [60, 60, 65] }))
+  })
+
+  it('clears the ladder when the uniform Weight is edited', () => {
+    const { host, onSave } = openConfig({ setWeights: [60, 60, 65, 65] })
+    expect(rowNamed(host, 'Weights per set')).toBeTruthy()
+    act(() => type(fieldOf(host, 'Weight (kg)'), '70'))
+    act(() => saveButton(host).click())
+    const payload = onSave.mock.calls[0][0]
+    expect(payload.weight).toBe(70)
+    expect(payload.setWeights).toBeUndefined()
+  })
+
+  // A running session's options sheet edits one weight per set row, so the row is hidden there —
+  // but the draft still carries, resizes and clears the ladder it was opened with.
+  it('hides the row in a session and keeps the ladder it was given', () => {
+    const { host, onSave } = openConfig({ setWeights: [60, 60, 65, 65] }, { hideSetWeights: true })
+    expect(rowNamed(host, 'Weights per set')).toBeUndefined()
+    act(() => saveButton(host).click())
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ weight: 60, setWeights: [60, 60, 65, 65] }))
+  })
+
+  it('resizes a hidden ladder when Sets changes, and drops it when Weight does', () => {
+    let config = openConfig({ setWeights: [60, 60, 65, 65] }, { hideSetWeights: true })
+    act(() => type(fieldOf(config.host, 'Sets'), '3'))
+    act(() => saveButton(config.host).click())
+    expect(config.onSave).toHaveBeenCalledWith(expect.objectContaining({ sets: 3, setWeights: [60, 60, 65] }))
+
+    config = openConfig({ setWeights: [60, 60, 65, 65] }, { hideSetWeights: true })
+    act(() => type(fieldOf(config.host, 'Weight (kg)'), '70'))
+    act(() => saveButton(config.host).click())
+    expect(config.onSave.mock.calls[0][0].setWeights).toBeUndefined()
+  })
+})
+
+describe('complex config — weights per set', () => {
+  beforeEach(() => {
+    globalThis.IS_REACT_ACT_ENVIRONMENT = true
+    useUI.setState({ sheets: [] })
+    useStore.setState({
+      S: {
+        ...structuredClone(DEF),
+        unit: 'kg',
+        weeks: [{ id: 'w1', startIso: '2026-02-09', name: 'Block 1', days: [{ dow: 1, name: 'Push', ex: [
+          { id: '0025', sets: 4, reps: 3, weight: 60, mode: 'reps', sg: 'g1' },
+          { id: '0031', sets: 4, reps: 1, weight: 60, mode: 'reps', sg: 'g1' },
+        ] }] }],
+      },
+      user: null,
+    })
+    document.body.innerHTML = ''
+  })
+  afterEach(() => { act(() => { mounted.splice(0).forEach(root => root.unmount()) }) })
+
+  const members = () => useStore.getState().S.weeks[0].days[0].ex
+  const open = () => { complexConfigSheet({ weekId: 'w1', dayIndex: 0 }, 0); return mountTop() }
+
+  it('writes the ladder to every movement of the complex', () => {
+    const host = open()
+    const row = rowNamed(host, 'Weights per set')
+    expect(row).toBeTruthy()
+    act(() => row.click())
+    const sheet = mountTop()
+    act(() => type(fieldOf(sheet, 'Set 3'), '65'))
+    act(() => type(fieldOf(sheet, 'Set 4'), '65'))
+    act(() => doneButton(sheet).click())
+
+    expect(members().map(e => e.setWeights)).toEqual([[60, 60, 65, 65], [60, 60, 65, 65]])
+    expect(members().map(e => e.weight)).toEqual([60, 60])
+  })
+
+  it('leaves the members’ ladders equal and normalized when Sets or Weight change', () => {
+    const host = open()
+    act(() => rowNamed(host, 'Weights per set').click())
+    const sheet = mountTop()
+    act(() => type(fieldOf(sheet, 'Set 3'), '65'))
+    act(() => type(fieldOf(sheet, 'Set 4'), '65'))
+    act(() => doneButton(sheet).click())
+
+    act(() => type(fieldOf(host, 'Sets'), '3'))
+    expect(members().map(e => e.setWeights)).toEqual([[60, 60, 65], [60, 60, 65]])
+
+    act(() => type(fieldOf(host, 'Weight (kg)'), '70'))
+    expect(members().map(e => e.setWeights)).toEqual([undefined, undefined])
+    expect(members().map(e => e.weight)).toEqual([70, 70])
+  })
+})
+

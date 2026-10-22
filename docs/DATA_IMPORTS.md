@@ -20,13 +20,18 @@ The app can read the coach's programme directly from `.xlsx`:
    row stays printed underneath as the record of what he wrote. A movement he writes with `+` is one
    **complex** and is drawn as one card, with his numbers in its head and the movements numbered
    inside: correcting a complex's sets or load applies to every movement (he wrote them once for
-   the whole row), while the reps are corrected for the movement you tapped. Ticking a row marks it
-   read, and the summary counts what is left.
+   the whole row), while the reps are corrected for the movement you tapped. Progressive sets are
+   a ladder under **Weights per set** — one load per set — and a complex's ladder applies to every
+   movement the same way its sets and load do. A load cell that lists several numbers (`90,95 95`)
+   is not split into a ladder: the first number is the weight and the rest stay in the note, so a
+   progressive plan is entered by hand where the app cannot read it unambiguously. Ticking a row
+   marks it read, and the summary counts what is left.
 5. Routines are added to your plans when you confirm; each exercise keeps the coach's row it was
    read out of, so the week editor still shows it afterwards. An exercise-name correction — an alias
    for a name the matcher didn't know — is remembered for the next week's import, because the same
    phrases come back. A sets/reps/weight correction applies to the week you are importing and is not
-   remembered: the same phrase comes back with different numbers (deloads, weeks of 5s).
+   remembered, and neither are per-set loads: the same phrase comes back with different numbers
+   (deloads, weeks of 5s).
 
 The matcher only reads the workbook; it never modifies it. Reading `.xlsx` uses the platform's own
 `DecompressionStream` and `DOMParser`, so no spreadsheet library is involved and no file leaves the

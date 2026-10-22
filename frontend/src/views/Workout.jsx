@@ -5,7 +5,7 @@ import { workoutControls } from '../lib/workout-controls.js'
 import { useUI } from '../store/useUI.js'
 import { exOr } from '../lib/exercises.js'
 import { usesBar, barWeightFor, plateSplit } from '../lib/bar.js'
-import { effectiveDay, lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, freestyleConfig, defaultConfig, setsDoneActive, setUnitsTotal, supersetUnits, unitCount, unitOf, setLabel, modeOf, isBw, EFFORT, effortOf, stepEffort, capEffort, cascadeWeight, insertWarmupRow, removeRowAt, pairAdjacent, unpairSuperset, cleanupSg, pinnedNoteFor, exNoteFor } from '../lib/history.js'
+import { effectiveDay, lastEntryFor, bestWeightFor, bestWeightForEntry, buildSets, freestyleConfig, defaultConfig, setsDoneActive, setUnitsTotal, supersetUnits, unitCount, unitOf, setLabel, modeOf, isBw, EFFORT, effortOf, stepEffort, capEffort, cascadeWeight, insertWarmupRow, removeRowAt, pairAdjacent, unpairSuperset, cleanupSg, pinnedNoteFor, exNoteFor, weightsLabel, sameSetWeights } from '../lib/history.js'
 import { weekFor } from '../lib/weeks.js'
 import { fmtNum, capWords, fmtDate, todayISO, exCount, DAYN } from '../lib/format.js'
 import { beep, vibrate, unlock } from '../lib/sound.js'
@@ -80,8 +80,11 @@ function sharedScheme(entries) {
   // The prescribed numbers live on `target`; `sets` on an active entry is the list of set rows.
   const head = entries[0]?.target
   if (!head) return null
-  const same = entries.every(e => (e.target?.sets || 0) === (head.sets || 0) && (e.target?.weight || 0) === (head.weight || 0))
-  return same ? { sets: head.sets || 1, weight: head.weight || 0 } : null
+  const same = entries.every(e => (e.target?.sets || 0) === (head.sets || 0) && (e.target?.weight || 0) === (head.weight || 0)
+    && sameSetWeights(e.target?.setWeights, head.setWeights))
+  if (!same) return null
+  const ladder = Array.isArray(head.setWeights) && head.setWeights.length ? head.setWeights : null
+  return { sets: head.sets || 1, weight: head.weight || 0, ...(ladder ? { setWeights: ladder } : {}) }
 }
 
 function ExerciseBlock({ entryIdx, step, compact, dense, headOnly, onToggle, onField, onAddSet, onRemoveSet, onAddWarmup, onRemoveSetAt, onStartTimed, onPairPrev, onPairNext, onSetRowRef, onProgressionSettings, onSwap, onMoveUp, onMoveDown, canMoveUp, canMoveDown, onRemoveExercise, busy }) {
@@ -720,7 +723,7 @@ function ActiveWorkout() {
   })
   // The heading of a complex card: the sets and load its exercises share, in the account's unit.
   const schemeFor = unit => sharedScheme(unit.map(i => A.entries[i]))
-  const schemeText = scheme => [t(scheme.sets === 1 ? '{0} set' : '{0} sets', scheme.sets), scheme.weight ? fmtNum(scheme.weight) + ' ' + S.unit : null].filter(Boolean).join(' · ')
+  const schemeText = scheme => [t(scheme.sets === 1 ? '{0} set' : '{0} sets', scheme.sets), weightsLabel({ weight: scheme.weight, setWeights: scheme.setWeights }, S.unit) || null].filter(Boolean).join(' · ')
 
   const onSwipePointerDown = event => {
     if (swipe.current || (event.pointerType && event.pointerType !== 'touch' && event.pointerType !== 'pen')) return
@@ -782,7 +785,7 @@ function ActiveWorkout() {
         activeEntry.plan = plan
         activeEntry.sets = [...doneWarm, ...freshWarm.slice(doneWarm.length), ...doneWork, ...freshWork.slice(doneWork.length)]
       })
-    }, null, day)
+    }, null, day, null, { hideSetWeights: true })
   }
 
   // Remove a whole exercise from the session. The confirmation always asks first; in a
@@ -1060,7 +1063,7 @@ function ActiveWorkout() {
       // the sheet would have opened with; tapping the row still opens that sheet for anyone
       // who wants to set sets/reps first.
       if (quick) { commit(seed || defaultConfig(ex.id)); useUI.getState().toast(t('“{0}” added to {1}', capWords(exerciseNameFor(ex)), day ? day.name : t('Freestyle'))) }
-      else exConfigSheet(ex, null, commit, null, day, seed)
+      else exConfigSheet(ex, null, commit, null, day, seed, { hideSetWeights: true })
     })} icon="plus">{t('Add exercise')}</Button>
     {wc.exerciseButtons && A.entries.length > 0 && <>
       <div style={{ height: 6 }} />

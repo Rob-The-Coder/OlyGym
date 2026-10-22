@@ -360,6 +360,83 @@ describe('correcting a row’s numbers', () => {
     expect(review.textContent).toContain('1 of 5 checked')
   })
 
+  // Progressive sets: the correction sheet carries the same per-set row the exercise config has,
+  // and a ladder is the complex's shared prescription like its sets and load.
+  describe('per-set loads', () => {
+    // Open the correction sheet, then its "Weights per set" sheet.
+    const openLadder = (review, row) => {
+      const sheet = openCorrection(review, row)
+      act(() => [...sheet.querySelectorAll('.lrow')].find(r => r.textContent.includes('Weights per set')).click())
+      return { sheet, ladderSheet: renderTop() }
+    }
+    const setLadder = ladderSheet => {
+      type(field(ladderSheet, 'Set 3'), '55')
+      type(field(ladderSheet, 'Set 4'), '55')
+      act(() => buttonByText(ladderSheet, 'Done').click())
+    }
+
+    it('corrects a plain row into a ladder and prints it on the review', () => {
+      coachPlanSheet([plainWeek])
+      const review = renderTop()
+      const row = () => review.querySelector('.list .item')
+      const { sheet, ladderSheet } = openLadder(review, row())
+      expect(ladderSheet.querySelector('h3').textContent).toBe('Weights per set')
+      expect([...ladderSheet.querySelectorAll('.stp-l')].map(el => el.textContent))
+        .toEqual(['Set 1', 'Set 2', 'Set 3', 'Set 4'])
+
+      setLadder(ladderSheet)
+      save(sheet)
+      expect(row().querySelector('.ss').textContent).toBe('4 × 3 · 50/50/55/55 kg')
+    })
+
+    it('gives every movement of a complex the same ladder', () => {
+      coachPlanSheet([week])
+      const review = renderTop()
+      const { sheet, ladderSheet } = openLadder(review, review.querySelector('.cx-card .cx-item'))
+      setLadder(ladderSheet)
+      save(sheet)
+
+      const card = review.querySelector('.cx-card')
+      expect(card.querySelector('.cx-load').textContent).toBe('4 sets · 50/50/55/55 kg')
+      // both movements share it, so neither prints a disagreeing line
+      expect(card.querySelectorAll('.cx-item .ss')).toHaveLength(0)
+
+      act(() => buttonByText(review, 'Add the week to my plan').click())
+      const ex = useStore.getState().S.weeks[0].days[0].ex
+      expect(ex[0]).toMatchObject({ sets: 4, weight: 50, setWeights: [50, 50, 55, 55] })
+      expect(ex[1]).toMatchObject({ sets: 4, weight: 50, setWeights: [50, 50, 55, 55] })
+    })
+
+    it('imports the ladder with its first load as the week’s weight', () => {
+      coachPlanSheet([plainWeek])
+      const review = renderTop()
+      const { sheet, ladderSheet } = openLadder(review, review.querySelector('.list .item'))
+      setLadder(ladderSheet)
+      save(sheet)
+      act(() => buttonByText(review, 'Add the week to my plan').click())
+
+      const cfg = useStore.getState().S.weeks[0].days[0].ex[0]
+      expect(cfg.setWeights).toEqual([50, 50, 55, 55])
+      expect(cfg.weight).toBe(cfg.setWeights[0])
+    })
+
+    it('takes the ladder back to the coach’s numbers', () => {
+      coachPlanSheet([plainWeek])
+      const review = renderTop()
+      const row = () => review.querySelector('.list .item')
+      const { sheet, ladderSheet } = openLadder(review, row())
+      setLadder(ladderSheet)
+      save(sheet)
+      expect(row().querySelector('.ss').textContent).toBe('4 × 3 · 50/50/55/55 kg')
+
+      act(() => row().click())
+      const menu = renderTop()
+      expect(menuItem(menu, /Back to the coach's numbers/)).toBeTruthy()
+      act(() => menuItem(menu, /Back to the coach's numbers/).click())
+      expect(row().querySelector('.ss').textContent).toBe('4 × 3 · 50 kg')
+    })
+  })
+
   // Resetting must offer only what it can actually remove. A reps-only fix is the tapped
   // movement's own, so it must not put "Back to the coach's numbers" on a sibling, and the item
   // must disappear once resetting the row leaves it nothing (round-1 review, ux/code finding 1).
