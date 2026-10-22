@@ -90,6 +90,12 @@ agent-browser console                             # browser console output
 agent-browser close                               # when done with a session
 ```
 
+`oly-previews/` is for mockups and exploratory screenshots. Factory jobs are the
+exception: agents save a job's evidence screenshots into its job folder under
+`factory/jobs/…` (also gitignored) — that is what the factory dashboard reads,
+and anything left in a worktree is deleted when the worktree is removed after
+merge.
+
 Habits that matter in this repo:
 
 - **Set a phone viewport first** — the app is mobile-first:

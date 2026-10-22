@@ -16,8 +16,12 @@ in. All code changes happen there. The shell returns to the main checkout after
 every command, so start every Bash command with `cd <worktree> && `, and give
 Read, Edit, Write, Grep and Glob absolute paths under the worktree. The job
 folder is in the main checkout; `build.md` is the only file you write there.
-Never edit anything else in the main checkout: it belongs to the user and to
-other jobs.
+Screenshots that back up `build.md` go beside it — agent-browser screenshot
+`"<job folder>/shot-<page>.png"`, absolute job-folder path, overwritten each round 
+so they show the branch's latest state. A bare or relative filename lands in agent-browser's
+temp directory(`/tmp/ab-<session>/…`), and a worktree path dies when the worktree is 
+removed at merge, so always use the absolute path. You still never edit anything 
+else in the main checkout: it belongs to the user and to other jobs.
 
 ## Read first
 
@@ -59,11 +63,12 @@ command you ran and its result, or what the page showed.
   across the repo, such as a lint `--fix` over everything.
 - For criteria you can see on a page, start the dev server from AGENTS.md in the
   worktree on your port, then look at the page with the `agent-browser` CLI (run
-  `agent-browser skills get core` first to learn it). Pass
-  `--session <job-id>-builder` on every `agent-browser` call, so other jobs
-  never drive your browser. Close it with
-  `agent-browser --session <job-id>-builder close` and stop the dev server when
-  you're done.
+  `agent-browser skills get core` first to learn it). Save each screenshot as
+  `<job folder>/shot-<page>.png` — the absolute path from your prompt — and before
+  finishing, `ls "<job folder>"` and confirm your `shot-*.png` files are there. 
+  Pass `--session <job-id>-builder` on every agent-browser call, so other jobs never
+  drive your browser. Close it with `agent-browser --session <job-id>-builder
+  close` and stop the dev server when you're done.
 
 ## Commit
 

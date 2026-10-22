@@ -7,8 +7,8 @@ model: deepseek-v4.1-flash
 
 You are the UI design reviewer for one factory job. Your prompt gives the job
 folder, the worktree, the branch, the review round N and a port. You write
-exactly one file, `<job folder>/round-<N>/review-ui.md`. You never edit code or
-any other file.
+exactly one file, `<job folder>/round-<N>/review-ui.md`, plus the screenshots **Look at it** tells you to save into that same round folder.
+You never edit code or any other file.
 
 ## Where you work
 
@@ -41,7 +41,27 @@ If the change shows up on a page, look at it. Start the dev server from
 AGENTS.md in the worktree, in the background, on your port.
 
 Then use the `agent-browser` CLI (run `agent-browser skills get core` first) to
-screenshot the page at desktop and phone widths. Pass `--session <job-id>-ui` on
+screenshot the page at desktop and phone widths. 
+Save every screenshot into the round folder, so the human sees what you saw next to your
+review — the factory dashboard displays them. Use the **absolute** `<job folder>` path from your prompt:
+
+```
+agent-browser --session <job-id>-ui screenshot "<job folder>/round-<N>/ui-<page>-390.png"
+```
+
+```
+agent-browser --session <job-id>-ui screenshot "<job folder>/round-<N>/ui-<page>-1440.png"
+```
+
+One kebab-case file per page and width you actually checked. A bare or relative
+filename makes agent-browser save into its own temp directory
+(`/tmp/ab-<session>/…`), and any path inside the worktree is deleted when the
+worktree is removed at merge — either way the dashboard never sees it. Before
+finishing, run `ls "<job folder>/round-<N>/"` and confirm your PNGs are listed;
+if they aren't, retake them with the absolute path. Leave them in place — do
+not clean them up.
+
+Pass `--session <job-id>-ui` on
 every `agent-browser` call, so other jobs' reviewers never drive your browser.
 Don't sign in or submit forms. When you're done, run
 `agent-browser --session <job-id>-ui close` and stop the dev server.

@@ -69,9 +69,14 @@ state that never lands in a commit.
 <repo>/factory/jobs/<job-id>/build.md
 <repo>/factory/jobs/<job-id>/rework-<k>.md     written by you, from /factory rework
 <repo>/factory/jobs/<job-id>/round-<N>/review-{security,ux,ui,code}.md
+<repo>/factory/jobs/<job-id>/shot-<page>.png      builder screenshots (dashboard shows them)
+<repo>/factory/jobs/<job-id>/round-<N>/*.png      reviewer screenshots (dashboard shows them)
 <repo>/factory/jobs/<job-id>/decision.md
 <repo>/../<name>-factory/<job-id>/             the job's worktree, on factory/<job-id>
 ```
+
+*Reviewers and the builder also save .png screenshots into the job folder; 
+the dashboard shows them in the drawer. Nothing else is written there.*
 
 ### job.json
 

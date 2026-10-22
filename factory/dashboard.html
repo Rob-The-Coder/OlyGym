@@ -52,6 +52,11 @@
       color: var(--text);
       font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
       -webkit-font-smoothing: antialiased;
+      /* Sticky footer: column fills the viewport, the board grows, footer pins. */
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      min-height: 100dvh;
     }
     button { font: inherit; color: inherit; }
     :focus-visible { outline: 2px solid var(--active); outline-offset: 2px; }
@@ -78,7 +83,8 @@
     /* Board */
     .board {
       display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px;
-      padding: 20px 32px 40px; align-items: start;
+      padding: 20px 32px 48px; align-items: start;
+      flex: 1;
     }
     .col { min-width: 0; }
     .board.boot .col { animation: rise .5s var(--ease) both; }
@@ -237,9 +243,22 @@
     .file.on { background: var(--card-hover); color: var(--text); }
     .file .rn { display: none; }
     .file .v { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); flex: none; }
+    .file .v.img { background: none; border: 1.5px solid var(--faint); border-radius: 2px; }
     .v.good { background: var(--pass); } .v.warn { background: var(--changes); } .v.stop { background: var(--human); }
     .v.pop { animation: dotPop .35s var(--ease); }
     .doc { overflow-y: auto; padding: 22px 28px 60px; min-width: 0; }
+
+    /* Screenshot pane */
+    .shot { margin: 0; max-width: 680px; }
+    .shot a { display: block; }
+    .shot img {
+      display: block; width: 100%; height: auto;
+      border: 1px solid var(--line); border-radius: 10px; background: var(--card);
+    }
+    .shot figcaption {
+      font-family: var(--mono); font-size: 11px; color: var(--faint);
+      margin-top: 8px; overflow-wrap: anywhere;
+    }
 
     /* Rendered markdown */
     .md { max-width: 680px; line-height: 1.65; }
@@ -278,7 +297,12 @@
     .note { color: var(--faint); font-size: 13px; }
 
     footer {
-      padding: 0 32px 32px; font-family: var(--mono); font-size: 11px; color: var(--faint);
+      margin-top: auto; /* pinned to the bottom when the board is short… */
+      position: sticky; bottom: 0; /* …and stays pinned while a tall board scrolls */
+      z-index: 1;
+      background: var(--bg);
+      padding: 12px 32px 16px;
+      font-family: var(--mono); font-size: 11px; color: var(--faint);
       display: flex; gap: 20px; flex-wrap: wrap;
     }
 
@@ -290,7 +314,7 @@
       header { padding: 20px 16px 4px; }
       .banner { margin: 12px 16px 0; }
       .board { grid-template-columns: 1fr; padding: 16px 16px 32px; }
-      footer { padding: 0 16px 24px; }
+      footer { padding: 10px 16px 14px; }
       .d-head { padding: 16px; }
       .d-body { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
       .files {
@@ -354,6 +378,8 @@
   const POLL_MS = 2000
   const POLL_MAX = 30000
   const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)')
+  const IMG_RE = /\.(png|jpe?g|webp|gif)$/i
+  const isImg = (f) => IMG_RE.test(f)
   const STAGES = [
     { key: 'spec', label: 'Spec', who: 'spec-writer' },
     { key: 'build', label: 'Build', who: 'builder' },
@@ -376,13 +402,13 @@
   let lastFiles = null
   let boardBooted = false
   const roundCache = new Map() // "<job>/<n>" -> { verdicts, ok, at } for a finished round
-  const firstLines = new Map() // "<job>/<file>" -> first line, refreshed every poll
+  const firstLines = new Map() // "<job>/<file>" -> first line of an .md file, refreshed every poll
   const lastChips = new Map()  // "<job>/r<n>/<reviewer>" -> last rendered verdict
   const lastStages = new Map() // "<job>" -> last rendered stage
-  const lastTones = new Map()  // "<job>/<file>" -> last rendered tone dot
+  const lastTones = new Map()  // "<job>/<file>" -> last rendered sidebar dot
   let openJobId = null
   let openPath = null
-  let openText
+  let openText // rendered-content sentinel: markdown text, or "<path>:<len>" for images
   let lastFocus = null
   let timer = null
   let fails = 0
@@ -485,7 +511,7 @@
       el.style.transform = `translate(${dx}px, ${dy}px)`
       el.style.transition = 'none'
       requestAnimationFrame(() => {
-        el.style.transition = `transform .32s ${'cubic-bezier(.2,.7,.2,1)'}`
+        el.style.transition = 'transform .32s cubic-bezier(.2,.7,.2,1)'
         el.style.transform = ''
         const done = () => { el.style.transition = '' }
         el.addEventListener('transitionend', done, { once: true })
@@ -606,6 +632,7 @@
   // ---- Drawer --------------------------------------------------------------
 
   // python -m http.server serves an HTML index for directories; read its links.
+  // Markdown files feed the reading pane; images are the reviewers' screenshots.
   async function listFiles(dir) {
     let doc
     try { doc = new DOMParser().parseFromString(await fetchText(dir), 'text/html') }
@@ -616,7 +643,7 @@
     for (const h of hrefs) {
       if (!h || h === '../') continue
       if (h.endsWith('/')) out.push(...(await listFiles(dir + h)).map((f) => h + f))
-      else if (h.endsWith('.md')) out.push(h)
+      else if (h.endsWith('.md') || isImg(h)) out.push(h)
     }
     return out
   }
@@ -624,9 +651,13 @@
   function fileRank(path) {
     const order = ['spec.md', 'build.md', 'decision.md']
     if (order.includes(path)) return [0, order.indexOf(path), path]
-    const round = path.match(/^round-(\d+)\/review-(\w+)\.md$/)
-    if (round) return [2, Number(round[1]) * 10 + REVIEWERS.findIndex(([k]) => k === round[2]), path]
-    return [1, 0, path] // rework-<k>.md and anything else
+    const round = path.match(/^round-(\d+)\/(.*)$/)
+    if (round) {
+      const rev = round[2].match(/^review-(\w+)\.md$/)
+      if (rev) return [2, Number(round[1]) * 10 + REVIEWERS.findIndex(([k]) => k === rev[1]), path]
+      if (isImg(round[2])) return [2, Number(round[1]) * 10 + 4, path] // shots after that round's reviews
+    }
+    return [1, 0, path] // rework-<k>.md and job-root images
   }
 
   function sortFiles(files) {
@@ -678,14 +709,17 @@
     const base = `jobs/${job.id}/`
     const files = sortFiles(await listFiles(base))
     if (!openPath || !files.includes(openPath)) openPath = defaultFile(job, files)
+    const imgOpen = openPath != null && isImg(openPath)
 
+    // Never fetch image bytes here: the sidebar reads first lines of markdown only,
+    // so a folder of multi-megabyte screenshots costs nothing per poll.
     let text = null
-    if (openPath) {
+    if (openPath && !imgOpen) {
       text = await fetchText(base + openPath)
       firstLines.set(base + openPath, text.split('\n')[0].trim())
     }
     // First lines feed the tone dots; re-read them every poll so dots never go stale.
-    await Promise.all(files.filter((f) => f !== openPath).map(async (f) => {
+    await Promise.all(files.filter((f) => f !== openPath && !isImg(f)).map(async (f) => {
       try { firstLines.set(base + f, (await fetchText(base + f)).split('\n')[0].trim()) }
       catch { firstLines.set(base + f, '') }
     }))
@@ -696,17 +730,19 @@
       const head = g !== group ? `<div class="group">${esc(g)}</div>` : ''
       group = g
       const round = f.match(/^round-(\d+)\//)
+      const baseName = f.split('/').pop()
       const name = round
-              ? `<span class="rn">R${round[1]} </span>${esc(f.split('/')[1].replace(/^review-|\.md$/g, ''))}`
+              ? isImg(f)
+                      ? esc(baseName)
+                      : `<span class="rn">R${round[1]} </span>${esc(baseName.replace(/^review-|\.md$/g, ''))}`
               : esc(f)
-      const t = tone(firstLines.get(base + f) || '')
-      // The dot pops when a file's tone changes between polls (e.g. a review lands).
-      const prevT = lastTones.get(base + f)
-      const pop = prevT !== undefined && prevT !== t
-      lastTones.set(base + f, t)
+      const dot = isImg(f) ? 'img' : (tone(firstLines.get(base + f) || '') || '')
+      const prevDot = lastTones.get(base + f)
+      const pop = prevDot !== undefined && prevDot !== dot
+      lastTones.set(base + f, dot)
       const on = f === openPath
       return `${head}<button class="file ${on ? 'on' : ''}" data-file="${esc(f)}"${on ? ' aria-current="true"' : ''}>
-      <span class="v ${t || ''}${pop ? ' pop' : ''}"></span>${name}</button>`
+      <span class="v ${dot}${pop ? ' pop' : ''}"></span>${name}</button>`
     }).join('') || '<div class="empty">No files yet.</div>'
     if (filesHtml !== lastFiles) { lastFiles = filesHtml; $('d-files').innerHTML = filesHtml }
 
@@ -714,13 +750,42 @@
     raw.hidden = !openPath
     if (openPath) raw.href = base + openPath
 
-    if (text !== openText) {
+    const docEl = $('d-doc')
+    if (imgOpen) {
+      // Screenshot pane. While it stays open, a HEAD per poll keeps it honest: if the
+      // reviewer overwrites the file, the size changes and the pane re-renders.
+      const url = base + openPath
+      let len = null
+      try { len = (await fetch(url, { method: 'HEAD', cache: 'no-store' })).headers.get('content-length') } catch {}
+      const sentinel = `${openPath}:${len}`
+      if (sentinel !== openText) {
+        openText = sentinel
+        const img = document.createElement('img')
+        img.alt = url
+        img.src = len != null ? `${url}?v=${len}` : url
+        const cap = document.createElement('figcaption')
+        cap.textContent = url
+        img.addEventListener('load', () => {
+          cap.textContent = `${url} · ${img.naturalWidth}×${img.naturalHeight}px${len ? ` · ${(len / 1024).toFixed(0)} KB` : ''}`
+        })
+        img.addEventListener('error', () => { cap.textContent = `${url} · couldn't load` })
+        const link = document.createElement('a')
+        link.href = url
+        link.target = '_blank'
+        link.rel = 'noopener'
+        link.appendChild(img)
+        const fig = document.createElement('figure')
+        fig.className = 'shot'
+        fig.appendChild(link)
+        fig.appendChild(cap)
+        docEl.replaceChildren(fig)
+      }
+    } else if (text !== openText) {
       openText = text
-      const doc = $('d-doc')
-      doc.innerHTML = text === null ? '<p class="note">The spec-writer hasn’t written anything yet.</p>' : markdown(text)
-      doc.classList.remove('swap')
-      void doc.offsetWidth // restart the animation on back-to-back swaps
-      doc.classList.add('swap')
+      docEl.innerHTML = text === null ? '<p class="note">The spec-writer hasn’t written anything yet.</p>' : markdown(text)
+      docEl.classList.remove('swap')
+      void docEl.offsetWidth // restart the animation on back-to-back swaps
+      docEl.classList.add('swap')
     }
   }
 
