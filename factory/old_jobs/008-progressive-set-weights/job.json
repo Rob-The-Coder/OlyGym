@@ -1,0 +1,14 @@
+{
+  "id": "008-progressive-set-weights",
+  "feature": "When importing a week and when creating one, for each exercise/complex the sets are considered to have the same weight, whereas in reality what happens is that my coach often gives me progressive sets (maybe 4, 2 at a weight and the other 2 heavier). Add the option to individually adjust the sets' weight.",
+  "branch": "factory/008-progressive-set-weights",
+  "worktree": "/home/roberto/Android/OlyGym/.factory-worktrees/008-progressive-set-weights",
+  "stage": "merged",
+  "round": 3,
+  "reviews": {
+    "security": "PASS",
+    "ux": "PASS",
+    "ui": "PASS",
+    "code": "PASS"
+  }
+}

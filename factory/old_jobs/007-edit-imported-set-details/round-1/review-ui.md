@@ -1,0 +1,10 @@
+VERDICT: CHANGES
+
+## Findings
+1. `frontend/src/sheets.jsx:1265-1272` — the three-stepper `.cfgrow` clips a five-character weight at 360px. The Weight field gets a 39px input (`clientWidth`) while `102.5` needs 42px (`scrollWidth`), so the sheet renders `102.Š`: the last digit is visibly cut. A coach load of `102,5` — a normal weightlifting number — hits it on the smallest common phone width (the same happens to a five-character lb weight, `121.5`); at 390px the field is 49/49 and fits. Give the Weight stepper its own row — DESIGN §4's "a stepper alone on its line is a row", which `complexConfigSheet` already does — or otherwise widen the value column so five characters fit at 360. The same three-stepper row in `exConfigSheet` (`sheets.jsx:1016-1021`) clips identically, so a shared fix would close both.
+
+## Notes
+- No new CSS, tokens or colours: the sheet is built from the existing `Stepper`, `Button`, `h3.capitalize`, `.coach-src`, `.muted small` and `.small dim`, so type, controls and spacing match the sheets around it. Dark and light at 390 and 360, and the wide (1200px) layout, render without any other overflow; the console is clean.
+- The row menu's three items fit at 360 in English and in Italian. `Back to the coach's numbers` appears only after a save and is gone after a reset, with the tick kept. After a save from one complex movement the card keeps its single shared head (sets and load) and only the tapped movement's `×reps` changes; reset restores the head. A saved row re-derives its `.ss` line while `.coach-src` stays exactly as he wrote it.
+- `Applies to this import only.` uses `.small dim`. In light theme `.dim` resolves through index.css's legacy `--label-2` (`rgba(60,60,67,.6)`) and measures 3.3:1 at 13px rather than the 4.7:1 the M3 token promises; this is app-wide and pre-existing, not introduced by this branch, but the new line inherits it.
+- The longer header hint runs to three lines at 390px. That is the copy the spec asked for, and it does not push the day strip off the first screen.

@@ -33,6 +33,10 @@ node_modules
 # Finished jobs are archived (and committed) in factory/old_jobs/.
 factory/jobs/
 
+# Job worktrees: full checkouts of factory/<job-id> branches, created by
+# factory/bin/job. Graphify and other repo-walking tools must skip .worktrees/ too.
+/.worktrees/
+
 # graphify's local knowledge graph and its ignore file (regenerated on every run, never published)
 graphify-out/
 .graphifyignore
@@ -48,3 +52,6 @@ android-keys/
 *.keystore
 *.apk
 *.idsig
+
+# Python bytecode from the factory scripts
+__pycache__/

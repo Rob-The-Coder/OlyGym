@@ -29,9 +29,11 @@ frontend/              React 19 + Vite app — all JavaScript lives here
                        app/src/main/java/olygym/app/)
 docs/                  MOBILE.md, DATA_IMPORTS.md, COMBINE_ROUTINES.md, LIST_VIEW.md
 scripts/oly-catalogue/ generator for the Catalyst exercise catalogue (624 lifts)
-factory/               agentic dev workflow: backlog.md, dashboard.html, jobs/ (gitignored
-                       runtime state, one folder per live job), old_jobs/ (finished jobs)
+factory/               agentic dev workflow: backlog.md (the queue), config.json, checks.sh,
+                       bin/ (job, gate, route), dashboard.html, jobs/ (gitignored runtime
+                       state, one folder per live job), old_jobs/ (finished jobs, v1 era)
 .dsh/                  the factory's agent definitions and skill (committed)
+.worktrees/            job worktrees, created and deleted by the factory (gitignored)
 ```
 
 There is no backend, no `api/`, no Docker, no iOS target and no TypeScript. Nothing here
@@ -178,6 +180,28 @@ CI is GitLab (`.gitlab-ci.yml`); there are no GitHub Actions workflows. The sing
 `build:apk`, does `npm ci` → `npm run build:mobile` → `./gradlew assembleRelease` →
 zipalign + sign, on every push to the default branch and on `v*` tags. It will **not** run
 your tests — so run `npm test` yourself before declaring a task done.
+
+## Software factory
+
+`/factory run` builds every unchecked item in `factory/backlog.md` through
+intake → spec → build → gate → review → approve, one PR per item, up to
+`concurrency` jobs at a time (`/factory next` runs a single item,
+`/factory <feature>` an ad-hoc one, `/factory <anything>` talks to the
+factory: feedback, answers to intake, rejections). State is in
+`factory/jobs/` (gitignored); `factory/bin/job` is its only writer. The gate
+runs `factory/checks.sh` — tests + build, `frontend/` — before any reviewer
+and again before the merge; merges happen only through `gh pr merge`. The
+dashboard: `cd factory && python3 -m http.server`, then open
+http://localhost:8000/dashboard.html.
+
+Each job works in its own git worktree, a full checkout of the repo at
+`.worktrees/<job-id>` (gitignored). A tool run from the repo root that doesn't
+read `.gitignore` sees those copies too: graphify must exclude `.worktrees/`
+in its config, and editors opened on the repo root should treat those trees
+as read-only copies. Tests are deliberately not protected: a feature may
+update existing tests (the code reviewer fails weakened or special-cased
+ones). `factory/checks.sh` and `factory/config.json` are protected — no job
+may change the checks it is judged by.
 
 ## Hard rules of this codebase
 

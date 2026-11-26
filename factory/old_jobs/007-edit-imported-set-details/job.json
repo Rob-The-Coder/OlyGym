@@ -1,0 +1,14 @@
+{
+  "id": "007-edit-imported-set-details",
+  "feature": "When importing a week, allow correcting the sets, reps and weight of an imported exercise — not just swapping it to a different exercise.",
+  "branch": "factory/007-edit-imported-set-details",
+  "worktree": "/home/roberto/Android/OlyGym/.factory-worktrees/007-edit-imported-set-details",
+  "stage": "merged",
+  "round": 2,
+  "reviews": {
+    "security": "PASS",
+    "ux": "PASS",
+    "ui": "PASS",
+    "code": "PASS"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "concurrency": 3,
+  "max_rounds": 3,
+  "base_branch": "main",
+  "merge_method": "merge",
+  "provider": "deepseek-official",
+  "routing": {
+    "low":    { "code": "deepseek-flash" },
+    "medium": { "code": "deepseek-flash" },
+    "high":   { "code": "deepseek-flash" }
+  },
+  "surface_reviewers": {
+    "ui": { "ux": "deepseek-flash", "ui": "deepseek-flash" },
+    "security": { "security": "deepseek-flash" }
+  },
+  "protected_paths": [
+    "factory/checks.sh",
+    "factory/config.json"
+  ],
+  "ports": { "base": 5100, "step": 10 },
+  "transcripts_dir": null,
+  "prices_usd_per_mtok": {}
+}
