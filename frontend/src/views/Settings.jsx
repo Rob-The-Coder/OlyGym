@@ -14,6 +14,7 @@ import { MOBILE, isAndroid, shareExport, syncReminder } from '../lib/mobile.js'
 import { checkForUpdate, downloadAndInstall, RELEASES_PAGE } from '../lib/update.js'
 import { starterPlanSheet, confirmSheet, importCoachPlan, importCoachPlanFromDrive, equipmentProfileSheet, effortHelpSheet, timePickerSheet, REMINDER_TIMES, weightClassesSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
+import { whatsNewSheet } from '../components/WhatsNew.jsx'
 import { Section, Row, SelectRow, Switch, Segmented } from '../components/ui.jsx'
 
 // Web-only "Add to Home screen" hint, kept local now that lib/api.js is gone.
@@ -356,6 +357,13 @@ export default function Settings() {
             subtitle={t('Download the APK from opengym.duarte-santos.ch')} accessory="chevron"
             onClick={() => window.open('https://opengym.duarte-santos.ch/#download', '_blank', 'noopener')} />}
     </Section>}
+
+    {/* The bundled highlights, one tap from reopening them. Unlike the launch dialog this never
+        writes newsSeen, so reading it again cannot count as having acknowledged a release. */}
+    <Section>
+      <Row icon="sparkles" title={t("What's new")} subtitle={t('The changes in this version')}
+        accessory="chevron" onClick={() => whatsNewSheet()} />
+    </Section>
 
     {/* The version, at the bottom of Settings — which is where the support template has been
         telling people to look for it, and where it was not. On the phone build there is no

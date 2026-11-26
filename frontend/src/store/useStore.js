@@ -72,6 +72,9 @@ export const DEF = {
   // weight on the plan is the weight on the bar; on restores the linear rule for everything that
   // does not override it. Absent reads as off.
   autoProg: false,
+  // The last app version whose What's new the person dismissed. null (and absent, in a profile
+  // written before this existed) means never, so the dialog still has something to announce.
+  newsSeen: null,
 }
 const clone = o => JSON.parse(JSON.stringify(o))
 

@@ -1466,4 +1466,12 @@ export default {
   'Leave out anything "{0}" does not cover': 'Escludi tutto ciò che "{0}" non copre',
   'weeks': 'settimane',
   'sessions': 'sessioni',
+  "What's new": 'Novità',
+  'The changes in this version': 'Le novità di questa versione',
+  'Per-set weights that follow your progression': 'Carichi per serie che seguono la tua progressione',
+  'Edit sets, reps and weight on an imported plan': 'Modifica serie, ripetizioni e carico su un piano importato',
+  'Export your history as a CSV file': 'Esporta la cronologia in un file CSV',
+  'PR badges on the lifts you beat': 'Badge PR quando batti un record',
+  'Undo a workout you deleted by mistake': 'Annulla un allenamento cancellato per errore',
+  'A rest timer between sets': 'Un timer di recupero tra le serie',
 }
