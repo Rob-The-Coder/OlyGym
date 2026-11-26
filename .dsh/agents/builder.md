@@ -60,6 +60,16 @@ checkout: it belongs to the user and to other jobs.
   can't be met without changing a protected file, write a BLOCKED build.md
   that says which file and why.
 
+## UI work
+
+When the job touches UI, read `DESIGN.md` first — it is the style authority —
+then `.dsh/skills/m3-ui/SKILL.md` and the reference files it routes you to:
+start with color-system, component-selection, spacing-and-layout,
+forms-and-input, accessibility. Apply the token, state and adaptive-layout
+rules while writing the code, not as a cleanup pass. `DESIGN.md` tokens and
+roles always override the skill's defaults. The spec and `DESIGN.md` already
+decided product and IA — do not re-explore them.
+
 ## Test
 
 Run `bash <main checkout>/factory/checks.sh` from the worktree
@@ -74,7 +84,8 @@ command you ran and its result, or what the page showed.
   `--fix` over everything.
 - For criteria you can see on a page, start the dev server from AGENTS.md in
   the worktree on your port (`npm run dev -- --port <port> --strictPort`), then
-  look at the page with the `agent-browser` CLI. Set a phone viewport first
+  look at the page with the `agent-browser` CLI (run `agent-browser skills get
+  core` first to learn it). Set a phone viewport first
   (`agent-browser set viewport 390 844`) — the app is mobile-first — and pass
   `--session <job-id>-builder` on every `agent-browser` call, so other jobs
   never drive your browser. For a fresh-install flow,
@@ -84,7 +95,11 @@ command you ran and its result, or what the page showed.
   -sTCP:LISTEN`); other jobs run dev servers too, so never kill by process
   name.
 - Save the screenshots that back your evidence as `.png` files in the job
-  folder (`<job folder>/shot-<page>.png`), so the dashboard can show them.
+  folder (`<job folder>/shot-<page>.png`), using the absolute job-folder path
+  from your prompt, so the dashboard can show them. A bare or relative
+  filename lands in agent-browser's temp directory (`/tmp/ab-<session>/…`), and
+  a path inside the worktree is deleted at merge; before finishing,
+  `ls "<job folder>"` and confirm your `shot-*.png` files are there.
 
 ## Commit, push, PR
 
