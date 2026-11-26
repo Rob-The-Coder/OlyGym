@@ -1,9 +1,6 @@
 # Factory
 
-A software factory for OlyGym, modelled on
-[zazencodes' software-factory-claude-code-v2](https://github.com/zazencodes/zazencodes-season-3/tree/main/src/software-factory-claude-code-v2)
-and adapted to the DeepSeek harness (`.dsh/`) and to a local backlog instead of
-GitHub issues. Scripts handle the deterministic stages; agents do the judgment;
+A software factory for OlyGym. Scripts handle the deterministic stages; agents do the judgment;
 every job ends as a pull request.
 
 - Run a feature: open a DeepSeek harness session and run `/factory next`
