@@ -71,25 +71,31 @@ npm run preview                          # serve a previously built dist/ instea
 
 In a headless environment a quick health check is:
 `curl -sf http://localhost:4321/ >/dev/null && echo up`. To actually **look at** the app,
-use agent-browser (next section) — never assume the UI works without rendering it.
+use `scripts/agent-browser` (next section) — never assume the UI works without rendering it.
 
 ### Viewing the app: agent-browser
 
 Agents have no GUI browser — view, click through and screenshot the app with the
-`agent-browser` CLI (headless Chromium). If it is not installed:
+`scripts/agent-browser` CLI (headless Chromium). If it is not installed:
 `npm install -g agent-browser && agent-browser install`.
 
+The Bash tool runs under a workspace-write file policy, which blocks
+agent-browser's state and socket directories. Run it through
+`scripts/agent-browser`: the wrapper keeps that state under `/tmp`, links the
+installed browser, and adds `--no-sandbox` where Chrome's own sandbox is
+unavailable. Install the browser itself with the global command above.
+
 ```bash
-agent-browser open http://localhost:4321/         # navigate to the dev server
-agent-browser snapshot -i                         # interactive elements with @refs (@e1, @e2, ...)
-agent-browser click @e1                           # interact via refs from the last snapshot
-agent-browser fill @e2 "60"                       # fill a field (clears existing text first)
-agent-browser screenshot oly-previews/home.png    # visual check (--full = whole page);
-                                                  # oly-previews/ is the gitignored folder
-                                                  # this repo uses for UI mockups/screenshots
-agent-browser errors                              # page errors after interacting
-agent-browser console                             # browser console output
-agent-browser close                               # when done with a session
+scripts/agent-browser open http://localhost:4321/         # navigate to the dev server
+scripts/agent-browser snapshot -i                         # interactive elements with @refs (@e1, @e2, ...)
+scripts/agent-browser click @e1                           # interact via refs from the last snapshot
+scripts/agent-browser fill @e2 "60"                       # fill a field (clears existing text first)
+scripts/agent-browser screenshot oly-previews/home.png              # visual check (--full = whole page);
+                                                                     # oly-previews/ is the gitignored folder
+                                                                     # this repo uses for UI mockups/screenshots
+scripts/agent-browser errors                              # page errors after interacting
+scripts/agent-browser console                             # browser console output
+scripts/agent-browser close                               # when done with a session
 ```
 
 `oly-previews/` is for mockups and exploratory screenshots. Factory jobs are the
@@ -101,18 +107,18 @@ merge.
 Habits that matter in this repo:
 
 - **Set a phone viewport first** — the app is mobile-first:
-  `agent-browser set viewport 390 844` (or `agent-browser set device "iPhone 14"`).
+  `scripts/agent-browser set viewport 390 844` (or `scripts/agent-browser set device "iPhone 14"`).
   A desktop-width snapshot will mislead you about layout.
 - **Refs go stale after navigation or big DOM changes** — re-run `snapshot -i` before the
   next click.
 - **State persists in localStorage** (`gym_state_v1`). For a fresh-install run:
-  `agent-browser storage local clear`, then `agent-browser reload` — that brings up the
+  `scripts/agent-browser storage local clear`, then `scripts/agent-browser reload` — that brings up the
   first-run/starter flow. Inspect saved state with
-  `agent-browser storage local gym_state_v1`.
+  `scripts/agent-browser storage local gym_state_v1`.
 - This is how the CONTRIBUTING rule "click through the flow you touched (and the workout
   flow) in a browser" is satisfied in an agent session — do it before declaring a UI task
   done.
-- The app is offline-first: `agent-browser set offline on` exercises the service-worker
+- The app is offline-first: `scripts/agent-browser set offline on` exercises the service-worker
   path when you need to test it.
 
 ## Tests

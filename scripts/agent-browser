@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Run agent-browser inside the harness's workspace-write sandbox.
+#
+# The Bash tool cannot write outside the workspace, so agent-browser's state
+# directory (~/.agent-browser) and socket directory
+# (/run/user/<uid>/agent-browser) are read-only there. This wrapper keeps both
+# under /tmp, links the browser binaries installed in the real home, and turns
+# off Chrome's own sandbox only where Ubuntu's AppArmor restriction makes it
+# unusable.
+#
+#   scripts/agent-browser open http://localhost:4321/
+#
+# Arguments are passed straight through to agent-browser.
+set -euo pipefail
+
+base="${AGENT_BROWSER_SANDBOX_BASE:-/tmp/olygym-agent-browser}"
+real_home="${AGENT_BROWSER_REAL_HOME:-$HOME}"
+browsers="$real_home/.agent-browser/browsers"
+
+if ! command -v agent-browser >/dev/null; then
+  echo "scripts/agent-browser: agent-browser is not on PATH (npm install -g agent-browser)" >&2
+  exit 1
+fi
+if [ ! -d "$browsers" ]; then
+  echo "scripts/agent-browser: no browsers in $browsers (run: agent-browser install)" >&2
+  exit 1
+fi
+
+mkdir -p "$base/home/.agent-browser" "$base/run"
+ln -sfn "$browsers" "$base/home/.agent-browser/browsers"
+
+args="${AGENT_BROWSER_ARGS:-}"
+if [ -r /proc/sys/kernel/apparmor_restrict_unprivileged_userns ] &&
+   [ "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns)" = 1 ]; then
+  args="${args:+$args,}--no-sandbox"
+fi
+
+exec env HOME="$base/home" XDG_RUNTIME_DIR="$base/run" AGENT_BROWSER_ARGS="$args" agent-browser "$@"

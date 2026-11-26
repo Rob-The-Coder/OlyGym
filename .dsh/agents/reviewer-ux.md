@@ -41,14 +41,14 @@ If the change shows up on a page, use it like the athlete would. Start the dev
 server from AGENTS.md in the worktree, in the background, on your port
 (`npm run dev -- --port <port> --strictPort`).
 
-Then use the `agent-browser` CLI (run `agent-browser skills get core` first).
+Then use the `scripts/agent-browser` CLI (run `scripts/agent-browser skills get core` first).
 **Set a phone viewport first** — the app is mobile-first and a desktop-width
 snapshot will mislead you:
-`agent-browser set viewport 390 844`. Pass `--session <job-id>-ux` on every
-`agent-browser` call, so other jobs' reviewers never drive your browser. For a
-fresh-install flow, `agent-browser storage local clear` then
-`agent-browser reload`. When you're done, run
-`agent-browser --session <job-id>-ux close` and stop the dev server. Stop only
+`scripts/agent-browser set viewport 390 844`. Pass `--session <job-id>-ux` on every
+`scripts/agent-browser` call, so other jobs' reviewers never drive your browser. For a
+fresh-install flow, `scripts/agent-browser storage local clear` then
+`scripts/agent-browser reload`. When you're done, run
+`scripts/agent-browser --session <job-id>-ux close` and stop the dev server. Stop only
 the server you started, by the PID listening on your port
 (`lsof -tiTCP:<port> -sTCP:LISTEN`); other jobs run dev servers too, so
 never kill by process name. Save a screenshot of each state you land on into
@@ -56,7 +56,7 @@ the round folder, with the **absolute** `<job folder>` path from your prompt,
 one kebab-case file per page and state:
 
 ```
-agent-browser --session <job-id>-ux screenshot "<job folder>/round-<N>/ux-<page>-<state>-390.png"
+scripts/agent-browser --session <job-id>-ux screenshot "<job folder>/round-<N>/ux-<page>-<state>-390.png"
 ```
 
 A bare or relative filename makes agent-browser save into its own temp

@@ -47,15 +47,15 @@ If the change shows up on a page, look at it. Start the dev server from
 AGENTS.md in the worktree, in the background, on your port
 (`npm run dev -- --port <port> --strictPort`).
 
-Then use the `agent-browser` CLI (run `agent-browser skills get core` first)
-to screenshot the page at phone width (`agent-browser set viewport 390 844` —
+Then use the `scripts/agent-browser` CLI (run `scripts/agent-browser skills get core` first)
+to screenshot the page at phone width (`scripts/agent-browser set viewport 390 844` —
 the app is mobile-first) and at least one other width. Save each screenshot
 into the round folder with the **absolute** `<job folder>` path from your
 prompt, one kebab-case file per page and width:
 
 ```
-agent-browser --session <job-id>-ui screenshot "<job folder>/round-<N>/ui-<page>-390.png"
-agent-browser --session <job-id>-ui screenshot "<job folder>/round-<N>/ui-<page>-1440.png"
+scripts/agent-browser --session <job-id>-ui screenshot "<job folder>/round-<N>/ui-<page>-390.png"
+scripts/agent-browser --session <job-id>-ui screenshot "<job folder>/round-<N>/ui-<page>-1440.png"
 ```
 
 A bare or relative filename makes agent-browser save into its own temp
@@ -64,9 +64,9 @@ when the worktree is removed at merge — either way the dashboard never sees
 it. Before finishing, `ls "<job folder>/round-<N>/"` and confirm your PNGs are
 listed; leave them in place.
 
-Pass `--session <job-id>-ui` on every `agent-browser` call, so other jobs'
+Pass `--session <job-id>-ui` on every `scripts/agent-browser` call, so other jobs'
 reviewers never drive your browser. When you're done, run
-`agent-browser --session <job-id>-ui close` and stop the dev server. Stop only
+`scripts/agent-browser --session <job-id>-ui close` and stop the dev server. Stop only
 the server you started, by the PID listening on your port
 (`lsof -tiTCP:<port> -sTCP:LISTEN`); other jobs run dev servers too, so
 never kill by process name.

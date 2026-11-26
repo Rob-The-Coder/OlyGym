@@ -84,13 +84,13 @@ command you ran and its result, or what the page showed.
   `--fix` over everything.
 - For criteria you can see on a page, start the dev server from AGENTS.md in
   the worktree on your port (`npm run dev -- --port <port> --strictPort`), then
-  look at the page with the `agent-browser` CLI (run `agent-browser skills get
+  look at the page with the `scripts/agent-browser` CLI (run `scripts/agent-browser skills get
   core` first to learn it). Set a phone viewport first
-  (`agent-browser set viewport 390 844`) — the app is mobile-first — and pass
-  `--session <job-id>-builder` on every `agent-browser` call, so other jobs
+  (`scripts/agent-browser set viewport 390 844`) — the app is mobile-first — and pass
+  `--session <job-id>-builder` on every `scripts/agent-browser` call, so other jobs
   never drive your browser. For a fresh-install flow,
-  `agent-browser storage local clear` then `agent-browser reload`. Close it
-  with `agent-browser --session <job-id>-builder close` and stop the dev server
+  `scripts/agent-browser storage local clear` then `scripts/agent-browser reload`. Close it
+  with `scripts/agent-browser --session <job-id>-builder close` and stop the dev server
   when you're done. Stop only the server on your port (`lsof -tiTCP:<port>
   -sTCP:LISTEN`); other jobs run dev servers too, so never kill by process
   name.
