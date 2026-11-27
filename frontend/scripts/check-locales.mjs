@@ -7,7 +7,9 @@
 //   node scripts/check-locales.mjs
 //
 // The reference is the union of all locales, not one blessed file: a key added to a
-// single locale then flags the other ten instead of passing unnoticed.
+// single locale then flags the other ten instead of passing unnoticed. With a single locale
+// there is no second key set to compare against — the union IS that pack — so the guard
+// reports that instead of flagging every key "only here".
 
 import { readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -29,6 +31,15 @@ for (const file of files) {
     process.exit(1)
   }
   locales.set(file.replace(/\.js$/, ''), new Set(Object.keys(dict)))
+}
+
+// A single pack (English is the source language and has no file, so some forks ship one) has
+// nothing to compare: every key would be reported "only here" and the cross-locale invariant
+// would be vacuously false. Only the parity check needs a second locale.
+if (locales.size === 1) {
+  const [lang, keys] = [...locales.entries()][0]
+  console.log(`1 locale (${lang}), ${keys.size} keys — nothing to compare.`)
+  process.exit(0)
 }
 
 // How many locales carry each key — 1 means the key was added to a single file only,

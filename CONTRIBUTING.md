@@ -31,6 +31,9 @@ npm test             # vitest run
 - **Keep it dependency-light.** The frontend uses React + Router + Zustand and the `@capacitor/*`
   plugins and nothing else; new runtime deps are a hard sell. The coach's `.xlsx` is read with the
   platform's own `DecompressionStream` and `DOMParser` rather than a spreadsheet library.
+- **Keep the release notes current.** `frontend/src/lib/changelog.js` holds the bundled "What's
+  new" entries: a release bumps the newest entry's version and `frontend/package.json` together,
+  newest first with one short line per bullet.
 - **Nothing talks to a server.** No API client, no sync, no telemetry. State stays on the device.
 - **Match the style.** Small components, clear names, comments only where the "why" isn't obvious.
   State lives in the Zustand store (`src/store`); pure helpers in `src/lib`.

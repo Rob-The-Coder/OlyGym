@@ -986,6 +986,13 @@ h4.sec,.card h2{font-size:12px;font-weight:var(--m3-type-label-m-weight);letter-
 }
 .dlg-btn.err{color:var(--m3-error)}
 
+/* The "What's new" list: a version heading per release and one line per change. The heading sits
+   one step under the dialog title; the bullets take the secondary text role. Tokens only. */
+.dlg .wn-ver{font-size:14px;font-weight:var(--m3-type-title-s-weight);letter-spacing:var(--m3-type-title-s-track);color:var(--m3-on-surface);margin:0 0 6px}
+.dlg .wn-list{margin:0;padding-left:18px;font-size:14px;line-height:1.5;color:var(--m3-on-surface-variant)}
+.dlg .wn-list li+li{margin-top:4px}
+.dlg .wn-entry+.wn-entry{margin-top:16px}
+
 /* An open sheet's dialog box must not draw a focus ring: it takes focus on open so a screen
    reader starts at the top of it, and the ring belongs on the control the reader has reached. */
 .sheet:focus,.center:focus{outline:none}

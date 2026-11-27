@@ -22,6 +22,8 @@ frontend/              React 19 + Vite app — all JavaScript lives here
   src/store/           useStore.js — single Zustand store persisted to localStorage
                        (gym_state_v1); useUI.js — ephemeral UI state (sheets, modals)
   src/lib/             pure, framework-free domain logic; each file has a *.test.js beside it
+  src/lib/changelog.js the bundled "What's new" highlights — a release bumps its newest entry's
+                       version and frontend/package.json together
   src/locales/it.js    Italian pack (English is the source language and has no file)
   scripts/             check-locales.mjs, check-source-strings.mjs, bundle-size.mjs,
                        fatigue-monotonic-probe.mjs

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation, useNavigationType } from 'react-router-dom'
-import { useStore } from './store/useStore.js'
+import { useStore, hasData } from './store/useStore.js'
 import { useUI } from './store/useUI.js'
 import { bindUI } from './components/ui.jsx'
 import { ACCENTS, DEFAULT_ACCENT, setWeightDecimals } from './lib/format.js'
@@ -14,9 +14,11 @@ import { useWakeLock } from './lib/wakelock.js'
 import { installViewportGuard } from './lib/viewport-guard.js'
 import { installChipDrag } from './lib/hchips.js'
 import { startFlow } from './sheets.jsx'
+import { shouldAnnounce } from './lib/changelog.js'
 import TabBar from './components/TabBar.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import Modals from './components/Modals.jsx'
+import { whatsNewSheet } from './components/WhatsNew.jsx'
 import Toast from './components/Toast.jsx'
 import RestTimer from './components/RestTimer.jsx'
 import TimerFlash from './components/TimerFlash.jsx'
@@ -60,6 +62,7 @@ function Shell() {
   const loc = useLocation()
   const navType = useNavigationType()
   const S = useStore(s => s.S)
+  const ready = useStore(s => s.ready)
   // iOS: whether timer sounds get past the ring/silent switch (Settings → Sounds). Page-level,
   // so it is applied here on load and on change rather than at each beep.
   useEffect(() => { setPlayOnSilent(!!S.soundOnSilent) }, [S.soundOnSilent])
@@ -116,6 +119,25 @@ function Shell() {
   }, [loc.pathname, navType])
   // bound to the workout, not to the route — checking Stats mid-session keeps the screen on
   useWakeLock(!!S.active && S.keepAwake !== false)
+
+  // One "What's new" check per launch, after the saved profile (and the Android file mirror)
+  // has loaded. A fresh install records the running version silently; an active workout leaves
+  // newsSeen alone, so the dialog comes up on the next launch; otherwise the unacknowledged
+  // releases open. The acknowledgement is written when that dialog is dismissed, never on open.
+  // The ref guard keeps StrictMode's second effect run from stacking a second dialog.
+  const newsChecked = useRef(false)
+  useEffect(() => {
+    if (!ready || newsChecked.current) return
+    newsChecked.current = true
+    if (!hasData(S)) {
+      useStore.getState().update(s => { s.newsSeen = __APP_VERSION__ })
+      return
+    }
+    if (S.active) return
+    if (shouldAnnounce(S.newsSeen, __APP_VERSION__)) {
+      whatsNewSheet({ onDismiss: () => useStore.getState().update(s => { s.newsSeen = __APP_VERSION__ }) })
+    }
+  }, [ready])
 
   // Android lock-screen rest timer: adopt whatever the notification did while the app was away,
   // and let its +15s/Skip drive the same store the in-app bar drives. A no-op off the native

@@ -18,7 +18,7 @@ export const RELEASES_PAGE = `https://github.com/${REPO}/releases/latest`
  * Compares two semver strings (e.g. "1.2.11" vs "1.3.0").
  * Returns  1 if a > b, -1 if a < b, 0 if equal.
  */
-function compareSemver(a, b) {
+export function compareSemver(a, b) {
   const pa = a.replace(/^v/, '').split('.').map(Number)
   const pb = b.replace(/^v/, '').split('.').map(Number)
   for (let i = 0; i < 3; i++) {
