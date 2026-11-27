@@ -1,0 +1,123 @@
+name: Android dev build
+
+# Every merge to main rebuilds the Android test app (the `debug` variant) and replaces the
+# rolling `dev` prerelease, so the phone's bookmark always downloads the newest build.
+# There is deliberately no pull_request trigger: fork/PR code never runs with the signing key.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-dev
+  cancel-in-progress: true
+
+jobs:
+  dev-apk:
+    name: Dev APK
+    # A manual run on a feature branch is skipped: only main is ever published.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - uses: android-actions/setup-android@v3
+
+      # Fails before anything is built when the key is missing: an APK signed with a throwaway
+      # key could not install over the previous test build, so it must never be published.
+      - name: Check the dev signing key
+        env:
+          OLYGYM_DEV_KEYSTORE_B64: ${{ secrets.OLYGYM_DEV_KEYSTORE_B64 }}
+          OLYGYM_DEV_KEYSTORE_PASSWORD: ${{ secrets.OLYGYM_DEV_KEYSTORE_PASSWORD }}
+          OLYGYM_DEV_KEY_ALIAS: ${{ secrets.OLYGYM_DEV_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          if [ -z "${OLYGYM_DEV_KEYSTORE_B64:-}" ]; then
+            echo "FATAL: OLYGYM_DEV_KEYSTORE_B64 is not set, so the dev APK cannot be signed with a stable key." >&2
+            echo "" >&2
+            echo "Create the dev key once (keep it: every build must use the same key, or Android refuses the update):" >&2
+            echo "" >&2
+            echo "  mkdir -p android-keys   # gitignored" >&2
+            echo "  keytool -genkeypair -keystore android-keys/olygym-dev.jks -alias olygym-dev \\" >&2
+            echo "    -keyalg RSA -keysize 2048 -validity 10950 -storetype PKCS12" >&2
+            echo "" >&2
+            echo "Then set the three repository secrets:" >&2
+            echo "" >&2
+            echo "  base64 -w0 android-keys/olygym-dev.jks | gh secret set OLYGYM_DEV_KEYSTORE_B64 --repo Rob-The-Coder/OlyGym" >&2
+            echo "  gh secret set OLYGYM_DEV_KEYSTORE_PASSWORD --repo Rob-The-Coder/OlyGym" >&2
+            echo "  gh secret set OLYGYM_DEV_KEY_ALIAS --repo Rob-The-Coder/OlyGym" >&2
+            exit 1
+          fi
+          KEYSTORE="$RUNNER_TEMP/olygym-dev.jks"
+          printf '%s' "$OLYGYM_DEV_KEYSTORE_B64" | base64 -d > "$KEYSTORE"
+          {
+            echo "OLYGYM_DEV_KEYSTORE=$KEYSTORE"
+            echo "OLYGYM_DEV_KEYSTORE_PASSWORD=$OLYGYM_DEV_KEYSTORE_PASSWORD"
+            echo "OLYGYM_DEV_KEY_ALIAS=$OLYGYM_DEV_KEY_ALIAS"
+          } >> "$GITHUB_ENV"
+
+      - name: Build the mobile bundle
+        run: |
+          cd frontend
+          npm ci
+          npm run build:mobile
+
+      - name: Build the debug APK
+        run: |
+          cd frontend/android
+          ./gradlew assembleDebug --no-daemon
+
+      # Proves the upload is the test app signed with the dev key, not the real package or an
+      # unsigned artifact.
+      - name: Verify the APK
+        run: |
+          set -euo pipefail
+          APK=frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          # Newest build-tools first, as scripts/build-apk.sh does it.
+          PATH="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1):$PATH"
+          apksigner verify --print-certs "$APK" | grep -E 'certificate DN|SHA-256 digest'
+          BADGING="$(aapt2 dump badging "$APK" 2>/dev/null)"
+          echo "$BADGING" | sed -n 1p
+          echo "$BADGING" | grep -q "package: name='olygym.app.test'"
+          echo "$BADGING" | grep -q "application-label:'OpenGymTest'"
+
+      # Runs only after the checks above pass, so a red run leaves the last good APK up.
+      - name: Publish the dev release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cp frontend/android/app/build/outputs/apk/debug/app-debug.apk OlyGym-dev.apk
+          sha256sum OlyGym-dev.apk > OlyGym-dev.apk.sha256
+          cat OlyGym-dev.apk.sha256
+          NOTES="$RUNNER_TEMP/olygym-dev-notes.md"
+          {
+            echo "Automatic dev build of the Android test app."
+            echo
+            echo "- Commit: \`$(git rev-parse --short HEAD)\` — $(git log -1 --pretty=%s)"
+            echo "- Built: $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo "- Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo
+            echo "Test build \`olygym.app.test\` (OpenGymTest): it installs beside OlyGym with its own data."
+          } > "$NOTES"
+          if gh release view dev >/dev/null 2>&1; then
+            gh release edit dev --prerelease --notes-file "$NOTES"
+          else
+            gh release create dev --prerelease --title "OlyGym dev build" --target "$GITHUB_SHA" --notes-file "$NOTES"
+          fi
+          gh release upload dev OlyGym-dev.apk OlyGym-dev.apk.sha256 --clobber
