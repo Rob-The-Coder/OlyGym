@@ -36,7 +36,11 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
+      # v3's default package list still includes the removed `tools`, so name only the packages
+      # this build uses: platform-tools, the compileSdk 36 platform and build-tools.
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
 
       # Fails before anything is built when the key is missing: an APK signed with a throwaway
       # key could not install over the previous test build, so it must never be published.
