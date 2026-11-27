@@ -46,10 +46,10 @@ npm test             # vitest run
 
 ## What CI does with your pull request
 
-The only CI job is the signed Android APK build (`build:apk` in `.gitlab-ci.yml`). There are no
-backend, MCP, Pages or container jobs any more. If your change needs an APK to be judged, say so in
-the MR. Merge requests opened from a fork keep working the same way they always did; the pipeline is
-started on the project's runners after a maintainer has looked at the diff.
+Pull requests run no CI. When a change lands on `main`, GitHub Actions builds the Android test APK
+(`.github/workflows/android-dev.yml`) and refreshes the rolling
+[`dev` release](https://github.com/Rob-The-Coder/OlyGym/releases/tag/dev). The test suite is not run
+there either, so run `npm test` yourself before opening a pull request.
 
 ## Good first issues
 
