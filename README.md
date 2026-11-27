@@ -182,9 +182,11 @@ an in-app updater, and nothing that phones home.
 
 ## Install
 
-**Android.** Grab the signed APK the project's `build:apk` CI job publishes, or build and sign your
-own. See **[docs/MOBILE.md](docs/MOBILE.md)**. Sideload it, allow the install once, and the app
-checks for a newer build itself. No Play Store, no account.
+**Android.** Grab the test build from the
+[`dev` release](https://github.com/Rob-The-Coder/OlyGym/releases/tag/dev) — it is rebuilt on every
+merge and installs beside the real app — or install prod by building and signing your own. See
+**[docs/MOBILE.md](docs/MOBILE.md)**. Sideload it, allow the install once, and the app checks for a
+newer build itself. No Play Store, no account.
 
 **Browser / installed PWA.** The app is static files; there is no server component.
 

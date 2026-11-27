@@ -83,15 +83,53 @@ npx @capacitor/assets generate --iconBackgroundColor '#0c0e12' --splashBackgroun
 OlyGym is not on the Play Store, and that is a choice: no store accounts, no store rules, no yearly
 fees between you and an open-source app.
 
-The project's CI builds a signed APK with the `build:apk` job in [`.gitlab-ci.yml`](../.gitlab-ci.yml):
-it runs `npm run build:mobile` and `./gradlew assembleRelease`, then `zipalign`s and signs the
-result with the release key. The job runs on every push to `main`, and on a `v*` tag it also
-uploads the APK and its `.sha256` to the GitLab generic package registry. Signing keys live in
-*protected* CI variables (`ANDROID_KEYSTORE_B64`, `ANDROID_KEYSTORE_PASSWORD`,
-`ANDROID_KEY_ALIAS`), so a merge request from a fork builds an unsigned APK and never sees the key.
+There are two builds, and they are signed with different keys so neither can overwrite the other:
+
+- **Dev / test build** — the Android `debug` variant: package `olygym.app.test`, launcher name
+  `OpenGymTest`. [GitHub Actions](../.github/workflows/android-dev.yml) builds and publishes it on
+  every merge to `main`, signed with a dedicated dev key.
+- **Prod** — the real `olygym.app`, built and signed locally with `scripts/build-apk.sh` and shipped
+  as a `v*` GitHub release. This is the one the in-app updater reads.
+
+### The dev build
+
+Bookmark the release page on the phone:
+
+- release page: <https://github.com/Rob-The-Coder/OlyGym/releases/tag/dev>
+- one-tap download: <https://github.com/Rob-The-Coder/OlyGym/releases/download/dev/OlyGym-dev.apk>
 
 Android asks you to allow installs from the browser the first time — standard for any app outside
-the Play Store.
+the Play Store. A newer dev build installs over the previous test app and keeps its data, because
+every build carries the same dev key. If you ever installed a debug APK built locally on your own
+machine, uninstall the test app once first: that build has a different signature, so Android refuses
+to install over it.
+
+Each build replaces the release's single `OlyGym-dev.apk` (plus `OlyGym-dev.apk.sha256`), so the link
+always gives the newest one, and the body names the commit and the workflow run that produced it.
+The `dev` tag is not a version number and the release stays a **prerelease** on purpose: the prod
+updater only reads release tags as versions, so it can never offer the test build as an update.
+
+**One-time setup.** The workflow needs a dev key in repository secrets — a human step, no agent here
+holds repo admin. Generate it once and keep it: a new key means uninstalling the test app on the
+phone first.
+
+```sh
+mkdir -p android-keys   # gitignored
+keytool -genkeypair -keystore android-keys/olygym-dev.jks -alias olygym-dev \
+  -keyalg RSA -keysize 2048 -validity 10950 -storetype PKCS12
+
+base64 -w0 android-keys/olygym-dev.jks \
+  | gh secret set OLYGYM_DEV_KEYSTORE_B64 --repo Rob-The-Coder/OlyGym
+gh secret set OLYGYM_DEV_KEYSTORE_PASSWORD --repo Rob-The-Coder/OlyGym
+gh secret set OLYGYM_DEV_KEY_ALIAS --repo Rob-The-Coder/OlyGym
+```
+
+The dev key is deliberately **not** the release key: a leaked Actions secret could sign only test
+builds, never an update of the real app.
+
+A red run uploads nothing — the last good APK stays up and keeps downloading. Fix the problem and
+push again, or re-run the workflow from the Actions tab. A failure at the key check means a missing
+secret, not a broken build: set the three secrets above and re-run.
 
 To build and sign your own:
 

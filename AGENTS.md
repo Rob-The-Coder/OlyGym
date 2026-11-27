@@ -157,7 +157,7 @@ Android APK (needs the Android SDK and **Java 21** for Gradle — see `docs/MOBI
 ```bash
 cd frontend && npm run build:mobile
 cd android && ./gradlew assembleRelease
-# → app/build/outputs/apk/release/app-release-unsigned.apk  (unsigned; only CI signs)
+# → app/build/outputs/apk/release/app-release-unsigned.apk  (unsigned — sign with scripts/build-apk.sh)
 ```
 
 After a mobile build, re-run a plain `npm run build` before publishing `dist/` as a
@@ -184,10 +184,15 @@ passed to `t()` that no pack defines is caught by `check-source-strings --strict
 
 ## CI
 
-CI is GitLab (`.gitlab-ci.yml`); there are no GitHub Actions workflows. The single job,
-`build:apk`, does `npm ci` → `npm run build:mobile` → `./gradlew assembleRelease` →
-zipalign + sign, on every push to the default branch and on `v*` tags. It will **not** run
-your tests — so run `npm test` yourself before declaring a task done.
+CI is GitHub Actions, one workflow: `.github/workflows/android-dev.yml` (`Android dev build`).
+It runs on every push to `main` and on a manual dispatch, builds the mobile bundle (`npm ci` →
+`npm run build:mobile`) and the Android `debug` variant (`./gradlew assembleDebug`), signs it with a
+dedicated dev key from repository secrets and replaces the rolling
+[`dev` prerelease](https://github.com/Rob-The-Coder/OlyGym/releases/tag/dev). Pull requests run no
+CI. The suite is **not** run there — run `npm test` yourself before declaring a task done.
+
+Prod is not built by CI: build and sign it locally with `scripts/build-apk.sh` and ship it as a
+`v*` GitHub release, which is what the in-app updater reads. Details in `docs/MOBILE.md`.
 
 ## Software factory
 
