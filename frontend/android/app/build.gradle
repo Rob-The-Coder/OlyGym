@@ -16,6 +16,20 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // The dev APK built by CI must carry the same key on every run, or Android refuses to
+    // install the new build over the previous test app. The key comes from the environment
+    // only, so a local ./gradlew assembleDebug (and Android Studio) keeps using the machine's
+    // own debug keystore exactly as before.
+    signingConfigs {
+        if (System.getenv('OLYGYM_DEV_KEYSTORE')) {
+            devCi {
+                storeFile file(System.getenv('OLYGYM_DEV_KEYSTORE'))
+                storePassword System.getenv('OLYGYM_DEV_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('OLYGYM_DEV_KEY_ALIAS')
+                keyPassword System.getenv('OLYGYM_DEV_KEYSTORE_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
@@ -26,6 +40,11 @@ android {
             // can live on one device. The name/icon label is overridden by the debug resource
             // overlay in src/debug/res. The release build (the "real" app) is untouched.
             applicationIdSuffix ".test"
+            // CI sets OLYGYM_DEV_KEYSTORE; sign with that key so each build installs over the
+            // last one. Unset locally, so local debug builds are untouched.
+            if (System.getenv('OLYGYM_DEV_KEYSTORE')) {
+                signingConfig signingConfigs.devCi
+            }
         }
     }
 }
