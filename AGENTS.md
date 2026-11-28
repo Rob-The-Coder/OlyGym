@@ -190,6 +190,9 @@ It runs on every push to `main` and on a manual dispatch, builds the mobile bund
 dedicated dev key from repository secrets and replaces the rolling
 [`dev` prerelease](https://github.com/Rob-The-Coder/OlyGym/releases/tag/dev). Pull requests run no
 CI. The suite is **not** run there — run `npm test` yourself before declaring a task done.
+Its actions are pinned to full commit SHAs and `.github/dependabot.yml` keeps those pins and
+their release comments current: bump an action through a Dependabot PR, never by putting a tag
+back in.
 
 Prod is not built by CI: build and sign it locally with `scripts/build-apk.sh` and ship it as a
 `v*` GitHub release, which is what the in-app updater reads. Details in `docs/MOBILE.md`.
