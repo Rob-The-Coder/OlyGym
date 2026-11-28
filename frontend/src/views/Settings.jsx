@@ -33,7 +33,6 @@ export default function Settings() {
   const [updateInfo, setUpdateInfo] = useState(null) // { hasUpdate, latestVersion, apkUrl, hashUrl } | null
   const [devInfo, setDevInfo] = useState(null) // dev-channel result shape, or null until a check answers
   const [channel, setChannel] = useState(null) // 'dev' | 'prod' on Android; null until the package id is known
-  const [android, setAndroid] = useState(false)
   const [checking, setChecking] = useState(false)
 
   useEffect(() => {
@@ -43,7 +42,6 @@ export default function Settings() {
     // from even asking (and from calling github.com on every Settings visit).
     if (!MOBILE) return
     isAndroid().then(async ok => {
-      setAndroid(ok)
       if (!ok) return
       // The test app reads the rolling dev prerelease; the real package keeps the prod check.
       // Only one of the two is ever asked.
@@ -73,6 +71,26 @@ export default function Settings() {
     setChecking(false)
   }
 
+  // The one install path both channels share: progress sheet, download, verified installer, and
+  // the failure toast. Callers resolve the checksum first, so nothing unverified gets downloaded.
+  const installApk = async (apkUrl, expectedHash) => {
+    let closeProgress = null
+    let setProgress = null
+    useUI.getState().openSheet(close => {
+      closeProgress = close
+      return <DownloadProgress ref={fn => { setProgress = fn }} />
+    }, { locked: true })
+    try {
+      await downloadAndInstall(apkUrl, expectedHash, (received, total) => {
+        if (setProgress) setProgress(received, total)
+      })
+      if (closeProgress) closeProgress()
+    } catch (e) {
+      if (closeProgress) closeProgress()
+      toast(t('Update failed: {0}', e.message))
+    }
+  }
+
   const onUpdateRowClick = () => {
     if (!updateInfo?.hasUpdate) return
     if (updateInfo.apkUrl) {
@@ -83,13 +101,6 @@ export default function Settings() {
         message: t('The latest version will be downloaded and the installer will open.'),
         confirmText: t('Download & Install'),
         onConfirm: async () => {
-          // Open a progress sheet
-          let closeProgress = null
-          let setProgress = null
-          useUI.getState().openSheet(close => {
-            closeProgress = close
-            return <DownloadProgress ref={fn => { setProgress = fn }} />
-          }, { locked: true })
           try {
             // GitHub hashes every uploaded asset, so the checksum usually comes with the release
             // JSON the check already fetched (apkSha256). A .sha256 published beside the APK is
@@ -103,12 +114,8 @@ export default function Settings() {
               } catch (e) { /* reported below */ }
             }
             if (!/^[0-9a-f]{64}$/i.test(expectedHash || '')) throw new Error(t('Checksum not available — not installing'))
-            await downloadAndInstall(updateInfo.apkUrl, expectedHash, (received, total) => {
-              if (setProgress) setProgress(received, total)
-            })
-            if (closeProgress) closeProgress()
+            await installApk(updateInfo.apkUrl, expectedHash)
           } catch (e) {
-            if (closeProgress) closeProgress()
             toast(t('Update failed: {0}', e.message))
           }
         },
@@ -147,24 +154,8 @@ export default function Settings() {
       title: t('Install the dev build from {0}?', shortCommit),
       message: t('The latest version will be downloaded and the installer will open.'),
       confirmText: t('Download & Install'),
-      onConfirm: async () => {
-        let closeProgress = null
-        let setProgress = null
-        useUI.getState().openSheet(close => {
-          closeProgress = close
-          return <DownloadProgress ref={fn => { setProgress = fn }} />
-        }, { locked: true })
-        try {
-          // Same checksum-verified path as prod, fed from the release's own asset.
-          await downloadAndInstall(devInfo.apkUrl, devInfo.apkSha256, (received, total) => {
-            if (setProgress) setProgress(received, total)
-          })
-          if (closeProgress) closeProgress()
-        } catch (e) {
-          if (closeProgress) closeProgress()
-          toast(t('Update failed: {0}', e.message))
-        }
-      },
+      // The release's own asset and digest: no fallback, so the checksum is already here.
+      onConfirm: () => installApk(devInfo.apkUrl, devInfo.apkSha256),
     })
   }
 
@@ -421,7 +412,7 @@ export default function Settings() {
         its rolling prerelease is not a version, and its APK is a different package. On the web the
         app updates with its server, so the row points at the APK for the phone instead. iOS has no
         APK: nothing. */}
-    {(!MOBILE || (android && channel)) && <Section title={t('Updates')}
+    {(!MOBILE || channel) && <Section title={t('Updates')}
       footer={channel === 'dev'
         ? t('Dev builds come from the rolling prerelease on GitHub. The download is checked against its checksum before the installer opens.')
         : MOBILE ? t('Releases are checked on gitlab.com. The download is verified against its checksum before the installer opens.') : t('The web app updates together with your server. The Android app installs its own updates from here.')}>
