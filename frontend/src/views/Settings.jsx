@@ -10,8 +10,8 @@ import { unlock, playOnSilentSupported } from '../lib/sound.js'
 import { wakeLockSupported } from '../lib/wakelock.js'
 import { t, LANGS, INSTR_LANGS } from '../lib/i18n.js'
 import TopAppBar from '../components/TopAppBar.jsx'
-import { MOBILE, isAndroid, shareExport, syncReminder } from '../lib/mobile.js'
-import { checkForUpdate, downloadAndInstall, RELEASES_PAGE } from '../lib/update.js'
+import { MOBILE, isAndroid, isDevBuild, shareExport, syncReminder } from '../lib/mobile.js'
+import { checkForUpdate, checkForDevUpdate, downloadAndInstall, DEV_RELEASES_PAGE, RELEASES_PAGE } from '../lib/update.js'
 import { starterPlanSheet, confirmSheet, importCoachPlan, importCoachPlanFromDrive, equipmentProfileSheet, effortHelpSheet, timePickerSheet, REMINDER_TIMES, weightClassesSheet } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { whatsNewSheet } from '../components/WhatsNew.jsx'
@@ -31,6 +31,8 @@ export default function Settings() {
 
   // --- update check state ---
   const [updateInfo, setUpdateInfo] = useState(null) // { hasUpdate, latestVersion, apkUrl, hashUrl } | null
+  const [devInfo, setDevInfo] = useState(null) // dev-channel result shape, or null until a check answers
+  const [channel, setChannel] = useState(null) // 'dev' | 'prod' on Android; null until the package id is known
   const [android, setAndroid] = useState(false)
   const [checking, setChecking] = useState(false)
 
@@ -40,7 +42,20 @@ export default function Settings() {
     // already answers false off the mobile build; the MOBILE check on top keeps the web bundle
     // from even asking (and from calling github.com on every Settings visit).
     if (!MOBILE) return
-    isAndroid().then(ok => { setAndroid(ok); if (ok) checkForUpdate().then(setUpdateInfo).catch(() => {}) })
+    isAndroid().then(async ok => {
+      setAndroid(ok)
+      if (!ok) return
+      // The test app reads the rolling dev prerelease; the real package keeps the prod check.
+      // Only one of the two is ever asked.
+      if (await isDevBuild()) {
+        setChannel('dev')
+        setChecking(true)
+        checkForDevUpdate().then(setDevInfo).catch(() => {}).finally(() => setChecking(false))
+      } else {
+        setChannel('prod')
+        checkForUpdate().then(setUpdateInfo).catch(() => {})
+      }
+    })
   }, [])
 
   // The same check, on demand: the automatic one is silent when it finds nothing or cannot
@@ -104,6 +119,55 @@ export default function Settings() {
     }
   }
 
+  // The dev channel's manual check. The automatic one is silent when it finds nothing, so a tap
+  // answers: "latest", the release page when the release cannot be read, or the offline error.
+  const checkDevNow = async () => {
+    if (checking) return
+    setChecking(true)
+    try {
+      const info = await checkForDevUpdate()
+      setDevInfo(info)
+      if (info.unreadable) window.open(DEV_RELEASES_PAGE, '_blank', 'noopener')
+      else if (!info.hasUpdate) toast(t('You have the latest dev build.'))
+    } catch {
+      toast(t('Could not check for updates — are you online?'))
+    }
+    setChecking(false)
+  }
+
+  // The test app's one row: offer a newer dev build only when the release gave both the APK and
+  // its checksum. Anything less opens the release page — a sideloaded binary is verified or not
+  // installed, never downloaded unverified.
+  const onDevRowClick = () => {
+    if (devInfo?.unreadable) return window.open(DEV_RELEASES_PAGE, '_blank', 'noopener')
+    if (!devInfo || !devInfo.hasUpdate) return checkDevNow()
+    if (!devInfo.apkUrl || !devInfo.apkSha256) return window.open(DEV_RELEASES_PAGE, '_blank', 'noopener')
+    const shortCommit = devInfo.commit.slice(0, 7)
+    confirmSheet({
+      title: t('Install the dev build from {0}?', shortCommit),
+      message: t('The latest version will be downloaded and the installer will open.'),
+      confirmText: t('Download & Install'),
+      onConfirm: async () => {
+        let closeProgress = null
+        let setProgress = null
+        useUI.getState().openSheet(close => {
+          closeProgress = close
+          return <DownloadProgress ref={fn => { setProgress = fn }} />
+        }, { locked: true })
+        try {
+          // Same checksum-verified path as prod, fed from the release's own asset.
+          await downloadAndInstall(devInfo.apkUrl, devInfo.apkSha256, (received, total) => {
+            if (setProgress) setProgress(received, total)
+          })
+          if (closeProgress) closeProgress()
+        } catch (e) {
+          if (closeProgress) closeProgress()
+          toast(t('Update failed: {0}', e.message))
+        }
+      },
+    })
+  }
+
   const doExport = async () => {
     const json = JSON.stringify(S, null, 2)
     const name = 'opengym-backup-' + todayISO() + '.json'
@@ -140,6 +204,16 @@ export default function Settings() {
       nav('/home'); toast(t('All data reset'))
     },
   })
+
+  // The dev row's copy, in its precedence: checking in flight, then an offer, then a release we
+  // could not read, then whatever build is installed.
+  const devShort = devInfo?.commit ? devInfo.commit.slice(0, 7) : null
+  const installedShort = (__BUILD_COMMIT__ || '').slice(0, 7)
+  let devTitle = t('Check for dev updates')
+  let devSubtitle = installedShort ? t('You have the dev build from {0}', installedShort) : t('This dev build has no commit stamp.')
+  if (checking) devSubtitle = t('Checking…')
+  else if (devInfo?.hasUpdate) { devTitle = t('Update to the latest dev build'); devSubtitle = t('Build {0}', devShort) }
+  else if (devInfo?.unreadable) { devTitle = t('Open the dev releases page'); devSubtitle = t('The dev release could not be read.') }
 
   return <div className="narrow">
     <TopAppBar title={t('Settings')}
@@ -343,19 +417,29 @@ export default function Settings() {
 
     {/* ---------- updates: the last thing on the page, so keeping OlyGym current is one tap ----------
         On Android the row is always there — it checks on demand and installs when a release is
-        newer (checksum verified, see onUpdateRowClick). On the web the app updates with its
-        server, so the row points at the APK for the phone instead. iOS has no APK: nothing. */}
-    {(!MOBILE || android) && <Section title={t('Updates')}
-      footer={MOBILE ? t('Releases are checked on gitlab.com. The download is verified against its checksum before the installer opens.') : t('The web app updates together with your server. The Android app installs its own updates from here.')}>
-      {MOBILE
+        newer (checksum verified, see onUpdateRowClick). The test app gets the dev channel instead:
+        its rolling prerelease is not a version, and its APK is a different package. On the web the
+        app updates with its server, so the row points at the APK for the phone instead. iOS has no
+        APK: nothing. */}
+    {(!MOBILE || (android && channel)) && <Section title={t('Updates')}
+      footer={channel === 'dev'
+        ? t('Dev builds come from the rolling prerelease on GitHub. The download is checked against its checksum before the installer opens.')
+        : MOBILE ? t('Releases are checked on gitlab.com. The download is verified against its checksum before the installer opens.') : t('The web app updates together with your server. The Android app installs its own updates from here.')}>
+      {channel === 'dev'
         ? <Row icon="download"
-            title={updateInfo?.hasUpdate ? t('Update to OlyGym v{0}', updateInfo.latestVersion) : t('Check for updates')}
-            subtitle={checking ? t('Checking…') : t('You have v{0}', __APP_VERSION__)}
+            title={devTitle}
+            subtitle={devSubtitle}
             accessory="chevron"
-            onClick={() => (updateInfo?.hasUpdate ? onUpdateRowClick() : checkNow())} />
-        : <Row icon="download" title={t('Get the Android app')}
-            subtitle={t('Download the APK from opengym.duarte-santos.ch')} accessory="chevron"
-            onClick={() => window.open('https://opengym.duarte-santos.ch/#download', '_blank', 'noopener')} />}
+            onClick={onDevRowClick} />
+        : MOBILE
+          ? <Row icon="download"
+              title={updateInfo?.hasUpdate ? t('Update to OlyGym v{0}', updateInfo.latestVersion) : t('Check for updates')}
+              subtitle={checking ? t('Checking…') : t('You have v{0}', __APP_VERSION__)}
+              accessory="chevron"
+              onClick={() => (updateInfo?.hasUpdate ? onUpdateRowClick() : checkNow())} />
+          : <Row icon="download" title={t('Get the Android app')}
+              subtitle={t('Download the APK from opengym.duarte-santos.ch')} accessory="chevron"
+              onClick={() => window.open('https://opengym.duarte-santos.ch/#download', '_blank', 'noopener')} />}
     </Section>}
 
     {/* The bundled highlights, one tap from reopening them. Unlike the launch dialog this never
