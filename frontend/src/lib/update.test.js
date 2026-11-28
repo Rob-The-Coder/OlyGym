@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { checkForUpdate, sha256, resetUpdateCheck } from './update.js'
+import {
+  checkForUpdate, checkForDevUpdate, resetUpdateCheck, resetDevUpdateCheck,
+  parseDevBuildCommit, devUpdateFromRelease, sha256,
+  DEV_RELEASES_API, DEV_RELEASES_PAGE,
+} from './update.js'
 
 // __APP_VERSION__ is defined at build time by vite.config.js (reads package.json).
 // In the test environment vitest applies the same define, so it's available here.
@@ -229,5 +233,148 @@ describe('semver comparison (via checkForUpdate behavior)', () => {
     // minus one on the minor when possible.
     mockRelease('v' + [MAJ, Math.max(0, MIN - 1), 0].join('.'))
     expect((await checkForUpdate()).hasUpdate).toBe(false)
+  })
+})
+
+// ---- the dev channel (`olygym.app.test`) ----
+
+// The rolling `dev` release cannot be compared as a version, so the workflow stamps the commit
+// it built into the release body and the bundle; these helpers are that comparison.
+const DEV_SHA = '0123456789abcdef0123456789abcdef01234567'
+const devRelease = (body, assets = []) => ({ tag_name: 'dev', body, assets })
+
+describe('parseDevBuildCommit', () => {
+  it('reads the full commit from the build-commit line', () => {
+    expect(parseDevBuildCommit('Automatic dev build.\n\n- Build-commit: `' + DEV_SHA + '`\n- Run: x')).toBe(DEV_SHA)
+  })
+
+  it('accepts the marker without backticks and lowercases the hex', () => {
+    expect(parseDevBuildCommit('- Build-commit: ' + DEV_SHA.toUpperCase())).toBe(DEV_SHA)
+  })
+
+  it('returns null when the body has no marker', () => {
+    expect(parseDevBuildCommit('Automatic dev build.\n- Commit: `0123456` — something')).toBe(null)
+  })
+
+  it('returns null when only a short SHA is named', () => {
+    expect(parseDevBuildCommit('- Build-commit: `0123456`')).toBe(null)
+  })
+
+  it('returns null when the marker appears more than once', () => {
+    expect(parseDevBuildCommit('- Build-commit: `' + DEV_SHA + '`\n- Build-commit: `' + DEV_SHA + '`')).toBe(null)
+  })
+})
+
+describe('devUpdateFromRelease', () => {
+  const body = '- Build-commit: `' + DEV_SHA + '`'
+  const apk = asset('OlyGym-dev.apk', 'sha256:' + SHA)
+  const sum = asset('OlyGym-dev.apk.sha256', 'sha256:' + SHA)
+
+  it('reports no release when there is none', () => {
+    expect(devUpdateFromRelease(null, DEV_SHA)).toEqual({
+      exists: false, unreadable: false, hasUpdate: false, commit: null,
+      apkUrl: null, apkSha256: null, pageUrl: null,
+    })
+  })
+
+  it('marks a release without the marker unreadable and points at its page', () => {
+    const result = devUpdateFromRelease(devRelease('no marker here'), DEV_SHA)
+    expect(result.exists).toBe(true)
+    expect(result.unreadable).toBe(true)
+    expect(result.hasUpdate).toBe(false)
+    expect(result.commit).toBe(null)
+    expect(result.apkUrl).toBe(null)
+    expect(result.apkSha256).toBe(null)
+    expect(result.pageUrl).toBe(DEV_RELEASES_PAGE)
+  })
+
+  it('reports no update when the release was built from the installed commit', () => {
+    // The comparison lowercases both sides — the installed side may come from a tool that
+    // preserved the case.
+    const result = devUpdateFromRelease(devRelease(body, [apk]), DEV_SHA.toUpperCase())
+    expect(result.hasUpdate).toBe(false)
+    expect(result.commit).toBe(DEV_SHA)
+    expect(result.apkUrl).toBe(null)   // an offer that is not made carries nothing to install
+    expect(result.apkSha256).toBe(null)
+  })
+
+  it('offers the release when the commits differ', () => {
+    const result = devUpdateFromRelease(devRelease(body, [apk]), 'ffffffffffffffffffffffffffffffffffffffff')
+    expect(result.hasUpdate).toBe(true)
+    expect(result.apkUrl).toBe(apk.browser_download_url)
+    expect(result.apkSha256).toBe(SHA)
+    expect(result.pageUrl).toBe(DEV_RELEASES_PAGE)
+  })
+
+  it('treats a build from before the stamp as older', () => {
+    for (const installed of ['', null, undefined]) {
+      expect(devUpdateFromRelease(devRelease(body, [apk]), installed).hasUpdate).toBe(true)
+    }
+  })
+
+  it('takes the APK by exact name and reads its digest, never the .sha256 asset', () => {
+    // GitHub lists the checksum file first, as it does in the prod release payload.
+    const result = devUpdateFromRelease(devRelease(body, [sum, apk]), 'ffffffffffffffffffffffffffffffffffffffff')
+    expect(result.apkUrl).toBe(apk.browser_download_url)
+    expect(result.apkSha256).toBe(SHA)
+  })
+
+  it('leaves the checksum null when GitHub reported none', () => {
+    const result = devUpdateFromRelease(
+      devRelease(body, [asset('OlyGym-dev.apk')]),
+      'ffffffffffffffffffffffffffffffffffffffff',
+    )
+    expect(result.apkUrl).toBe('https://github.com/Rob-The-Coder/OlyGym/releases/download/v99.0.0/OlyGym-dev.apk')
+    expect(result.apkSha256).toBe(null)
+  })
+})
+
+describe('checkForDevUpdate', () => {
+  let originalFetch
+
+  beforeEach(() => { originalFetch = globalThis.fetch; resetDevUpdateCheck() })
+  afterEach(() => { globalThis.fetch = originalFetch })
+
+  function mockFetch(body, status = 200) {
+    globalThis.fetch = vi.fn(() => Promise.resolve({
+      ok: status >= 200 && status < 300,
+      status,
+      json: () => Promise.resolve(body),
+    }))
+  }
+
+  it('asks for the dev release by tag', async () => {
+    mockFetch(devRelease('- Build-commit: `' + DEV_SHA + '`'))
+    await checkForDevUpdate()
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+    expect(globalThis.fetch.mock.calls[0][0]).toBe(DEV_RELEASES_API)
+  })
+
+  it('reports exists:false when the release does not exist yet', async () => {
+    mockFetch(null, 404)
+    const result = await checkForDevUpdate()
+    expect(result.exists).toBe(false)
+    expect(result.unreadable).toBe(false)
+    expect(result.hasUpdate).toBe(false)
+  })
+
+  it('reuses one request for two calls', async () => {
+    mockFetch(devRelease('- Build-commit: `' + DEV_SHA + '`'))
+    const [a, b] = await Promise.all([checkForDevUpdate(), checkForDevUpdate()])
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+    expect(a).toBe(b)
+  })
+
+  it('resetDevUpdateCheck re-arms the request', async () => {
+    mockFetch(devRelease('- Build-commit: `' + DEV_SHA + '`'))
+    await checkForDevUpdate()
+    resetDevUpdateCheck()
+    await checkForDevUpdate()
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('throws when GitHub answers with an error status', async () => {
+    mockFetch(null, 500)
+    await expect(checkForDevUpdate()).rejects.toThrow('GitHub API 500')
   })
 })
