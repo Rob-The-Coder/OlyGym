@@ -1299,7 +1299,7 @@ export default {
   'This dev build has no commit stamp.': 'Questa build dev non ha il commit di compilazione.',
   'Install the dev build from {0}?': 'Installare la build dev {0}?',
   'You have the latest dev build.': 'Hai l’ultima build dev.',
-  'Dev builds come from the rolling prerelease on GitHub. The download is checked against its checksum before the installer opens.': 'Le build dev arrivano dalla prerelease mobile su GitHub. Il download viene verificato con il suo checksum prima di aprire l’installer.',
+  'Dev builds come from the rolling prerelease on GitHub. The download is checked against its checksum before the installer opens.': 'Le build dev arrivano dalla prerelease continua su GitHub. Il download viene verificato con il suo checksum prima di aprire l’installer.',
   'The web app updates together with your server. The Android app installs its own updates from here.': 'L’app web si aggiorna insieme al tuo server. L’app Android installa i suoi aggiornamenti da qui.',
   'Starting download…': 'Avvio del download…',
   'Downloading update…': 'Download dell’aggiornamento…',
