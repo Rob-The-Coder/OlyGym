@@ -31,6 +31,29 @@ export async function isAndroid() {
   }
 }
 
+// The rolling dev prerelease is not a version the prod updater can see, so the test app needs
+// its own channel. The debug variant is the only build that installs as `olygym.app.test`
+// (build.gradle's applicationIdSuffix), and both APKs come from this one source — the runtime
+// package id is the only honest way to tell which one is running. Cached because the answer
+// cannot change while the app is open.
+let devBuild = null
+export async function isDevBuild() {
+  if (!MOBILE) return false
+  if (!devBuild) {
+    devBuild = (async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core')
+        if (Capacitor.getPlatform() !== 'android') return false
+        const { App } = await import('@capacitor/app')
+        return (await App.getInfo()).id === 'olygym.app.test'
+      } catch (e) {
+        return false
+      }
+    })()
+  }
+  return devBuild
+}
+
 const FILE = 'opengym-state.json'
 
 export async function nativeLoad() {

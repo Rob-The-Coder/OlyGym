@@ -11,7 +11,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true
 // flips the two gates (MOBILE flag, Capacitor platform) and watches whether Settings even
 // asks gitlab.com for the latest release.
 const mocks = vi.hoisted(() => {
-  const state = { S: null, MOBILE: false, android: false }
+  const state = { S: null, MOBILE: false, android: false, dev: false }
   state.snapshot = () => ({
     S: state.S,
     user: null,
@@ -44,6 +44,7 @@ vi.mock('../lib/wakelock.js', () => ({ wakeLockSupported: () => false }))
 vi.mock('../lib/mobile.js', () => ({
   get MOBILE() { return mocks.MOBILE },
   isAndroid: () => Promise.resolve(mocks.android),
+  isDevBuild: () => Promise.resolve(mocks.dev),
   shareExport: vi.fn(), syncReminder: vi.fn(),
 }))
 vi.mock('../lib/update.js', () => ({
@@ -67,6 +68,7 @@ beforeEach(() => {
   }
   mocks.MOBILE = false
   mocks.android = false
+  mocks.dev = false
   mocks.checkForUpdate.mockClear()
   mocks.confirmSheet.mockClear()
   host = document.createElement('div')

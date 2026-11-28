@@ -109,6 +109,11 @@ always gives the newest one, and the body names the commit and the workflow run 
 The `dev` tag is not a version number and the release stays a **prerelease** on purpose: the prod
 updater only reads release tags as versions, so it can never offer the test build as an update.
 
+The test app now offers that update from Settings: it checks the `dev` prerelease, compares the
+release's build commit with the one the APK was built from, verifies the APK's checksum before the
+installer opens, and falls back to this release page when it cannot read the release. Rebuilding the
+same commit is not offered again.
+
 **One-time setup.** The workflow needs a dev key in repository secrets — a human step, no agent here
 holds repo admin. Generate it once and keep it: a new key means uninstalling the test app on the
 phone first.

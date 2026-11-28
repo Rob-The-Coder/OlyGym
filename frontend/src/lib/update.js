@@ -14,6 +14,12 @@ const REPO = 'Rob-The-Coder/OlyGym'
 const RELEASES_API = `https://api.github.com/repos/${REPO}/releases?per_page=1`
 export const RELEASES_PAGE = `https://github.com/${REPO}/releases/latest`
 
+// The test app's channel: one rolling prerelease whose tag is not a version, so the semver
+// comparison above cannot see it. It is read by tag and identified by the commit the publishing
+// workflow stamped into the bundle.
+export const DEV_RELEASES_API = `https://api.github.com/repos/${REPO}/releases/tags/dev`
+export const DEV_RELEASES_PAGE = `https://github.com/${REPO}/releases/tag/dev`
+
 /**
  * Compares two semver strings (e.g. "1.2.11" vs "1.3.0").
  * Returns  1 if a > b, -1 if a < b, 0 if equal.
@@ -76,6 +82,66 @@ async function fetchLatest() {
     // no second request, and none of the CORS trouble of fetching a .sha256 file.
     apkSha256: apk?.digest?.startsWith('sha256:') ? apk.digest.slice(7) : null,
   }
+}
+
+// The dev release body carries one machine-readable line, `- Build-commit: `<40 hex>``, because
+// the releases API has no per-build commit field: `target_commitish` is fixed when the rolling
+// release is first created and goes stale after later edits. Exactly one such line is
+// unambiguous; none, a short SHA only, or several mean the release cannot be compared.
+const DEV_COMMIT_LINE = /^\s*-\s+Build-commit:/
+const DEV_COMMIT_VALUE = /^\s*-\s+Build-commit:\s*(?:`([0-9a-fA-F]{40})`|([0-9a-fA-F]{40}))\s*$/
+export function parseDevBuildCommit(body) {
+  if (typeof body !== 'string') return null
+  const lines = body.split(/\r?\n/).filter(line => DEV_COMMIT_LINE.test(line))
+  if (lines.length !== 1) return null
+  const match = DEV_COMMIT_VALUE.exec(lines[0])
+  return match ? (match[1] || match[2]).toLowerCase() : null
+}
+
+// One result shape for every outcome, so the row can be drawn from it without guessing.
+// `exists` separates "no dev release yet" from "a release we could not read", and an unreadable
+// release is never reported as current. The APK and its checksum only travel with an actual
+// update — nothing else in the app may install a dev build.
+const noDevRelease = () => ({ exists: false, unreadable: false, hasUpdate: false, commit: null, apkUrl: null, apkSha256: null, pageUrl: null })
+const unreadableDevRelease = () => ({ exists: true, unreadable: true, hasUpdate: false, commit: null, apkUrl: null, apkSha256: null, pageUrl: DEV_RELEASES_PAGE })
+
+export function devUpdateFromRelease(release, installedCommit) {
+  if (!release) return noDevRelease()
+  const commit = parseDevBuildCommit(release.body)
+  if (!commit) return unreadableDevRelease()
+
+  const installed = typeof installedCommit === 'string' ? installedCommit.toLowerCase() : ''
+  // A build from before the stamp has no commit to compare, so it is the older side; a release
+  // rebuilt from the same commit is the one case that is already current.
+  const hasUpdate = !installed || installed !== commit
+
+  // Exact name only: the release also carries `OlyGym-dev.apk.sha256`, which is not the APK.
+  const apk = hasUpdate ? (release.assets || []).find(a => a.name === 'OlyGym-dev.apk') : null
+  return {
+    exists: true,
+    unreadable: false,
+    hasUpdate,
+    commit,
+    apkUrl: apk?.browser_download_url || null,
+    apkSha256: apk?.digest?.startsWith('sha256:') ? apk.digest.slice(7) : null,
+    pageUrl: DEV_RELEASES_PAGE,
+  }
+}
+
+// One request per session, as for the prod check; a rejected promise is not cached, so a manual
+// retry after going back online still reaches GitHub.
+let devCached = null
+export function resetDevUpdateCheck() { devCached = null }
+export async function checkForDevUpdate() {
+  if (!devCached) devCached = fetchDevRelease().catch(e => { devCached = null; throw e })
+  return devCached
+}
+async function fetchDevRelease() {
+  const res = await fetch(DEV_RELEASES_API)
+  // 404 is the one-time keystore setup not done yet, or a repo that moved: nothing to offer.
+  if (res.status === 404) return noDevRelease()
+  if (!res.ok) throw new Error(`GitHub API ${res.status}`)
+  return devUpdateFromRelease(await res.json(), __BUILD_COMMIT__)
 }
 
 /**

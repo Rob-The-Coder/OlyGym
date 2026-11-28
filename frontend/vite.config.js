@@ -32,8 +32,15 @@ const swStamp = {
 // time so no runtime fetch is involved.
 const pkgVersion = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version
 
+// The dev workflow stamps the commit it built; every other build leaves the stamp empty, which
+// the dev updater reads as older than any stamped release.
+const buildCommit = process.env.OLYGYM_BUILD_COMMIT || ''
+
 export default defineConfig({
-  define: { __APP_VERSION__: JSON.stringify(pkgVersion) },
+  define: {
+    __APP_VERSION__: JSON.stringify(pkgVersion),
+    __BUILD_COMMIT__: JSON.stringify(buildCommit),
+  },
   plugins: [react(), swStamp],
   base: './',
   server: {
