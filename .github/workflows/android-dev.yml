@@ -76,6 +76,8 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Build the mobile bundle
+        env:
+          OLYGYM_BUILD_COMMIT: ${{ github.sha }}
         run: |
           cd frontend
           npm ci
@@ -114,6 +116,7 @@ jobs:
             echo "Automatic dev build of the Android test app."
             echo
             echo "- Commit: \`$(git rev-parse --short HEAD)\` — $(git log -1 --pretty=%s)"
+            echo "- Build-commit: \`$GITHUB_SHA\`"
             echo "- Built: $(date -u '+%Y-%m-%d %H:%M UTC')"
             echo "- Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             echo
